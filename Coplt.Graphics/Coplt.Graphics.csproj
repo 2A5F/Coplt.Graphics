@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Coplt.Dropping" Version="0.5.1" />
+      <PackageReference Include="Coplt.Mathematics" Version="0.9.0" />
+    </ItemGroup>
+
+</Project>

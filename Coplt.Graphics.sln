@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coplt.Graphics", "Coplt.Graphics\Coplt.Graphics.csproj", "{6813F522-1C62-499D-AD26-B87636689DB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test1", "Test1\Test1.csproj", "{539EEE54-8092-441B-B8D8-EA1AD7AF3F88}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{DBD91642-35A7-4287-9856-CA8E09605928}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6813F522-1C62-499D-AD26-B87636689DB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6813F522-1C62-499D-AD26-B87636689DB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6813F522-1C62-499D-AD26-B87636689DB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6813F522-1C62-499D-AD26-B87636689DB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{539EEE54-8092-441B-B8D8-EA1AD7AF3F88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{539EEE54-8092-441B-B8D8-EA1AD7AF3F88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{539EEE54-8092-441B-B8D8-EA1AD7AF3F88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{539EEE54-8092-441B-B8D8-EA1AD7AF3F88}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{539EEE54-8092-441B-B8D8-EA1AD7AF3F88} = {DBD91642-35A7-4287-9856-CA8E09605928}
+	EndGlobalSection
+EndGlobal
