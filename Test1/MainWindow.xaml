@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Test1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+        Title="MainWindow"
+        Width="960" Height="540"
+        WindowStartupLocation="CenterScreen"
+        Loaded="OnLoaded"
+        Background="Transparent">
 </Window>

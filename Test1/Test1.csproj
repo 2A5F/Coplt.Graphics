@@ -8,8 +8,28 @@
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <D3D12SDKVersion>715</D3D12SDKVersion>
+        <D3D12SDKPath>D3D12</D3D12SDKPath>
+    </PropertyGroup>
+
     <ItemGroup>
-      <ProjectReference Include="..\Coplt.Graphics\Coplt.Graphics.csproj" />
+        <ProjectReference Include="..\Coplt.Graphics\Coplt.Graphics.csproj"/>
+        <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.715.1-preview" GeneratePathProperty="true"/>
+        <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2407.12" GeneratePathProperty="true" ExcludeAssets="all"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="../D3D12SDKVersionPatcher.exe" Visible="false"/>
+    </ItemGroup>
+
+    <Target Name="PatchDxSdkExport" AfterTargets="Build">
+        <Exec Command="..\D3D12SDKVersionPatcher.exe .\$(OutDir)\$(AssemblyName).exe $(D3D12SDKVersion) .\$(D3D12SDKPath)\"/>
+    </Target>
+
+    <ItemGroup>
+        <None Include="../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
 </Project>

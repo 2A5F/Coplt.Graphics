@@ -1,0 +1,6 @@
+[submodule "Coplt.Graphics.Native/D3d12/ThirdParty/D3D12MemoryAllocator"]
+	path = Coplt.Graphics.Native/D3d12/ThirdParty/D3D12MemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
+[submodule "Coplt.Graphics.Native/D3d12/ThirdParty/DirectXTK12"]
+	path = Coplt.Graphics.Native/D3d12/ThirdParty/DirectXTK12
+	url = https://github.com/Microsoft/DirectXTK12

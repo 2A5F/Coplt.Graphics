@@ -4,11 +4,41 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <NoWarn>CS8500</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Coplt.Dropping" Version="0.5.1" />
-      <PackageReference Include="Coplt.Mathematics" Version="0.9.0" />
+        <PackageReference Include="Coplt.Dropping" Version="0.5.1"/>
+        <PackageReference Include="Coplt.Mathematics" Version="0.10.0"/>
+        <PackageReference Include="Fody" Version="6.9.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="InlineIL.Fody" Version="1.10.0" PrivateAssets='All'/>
     </ItemGroup>
+
+    <Target Name="FFI" BeforeTargets="PrepareForBuild">
+        <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.rsp"/>
+        <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.D3d12.rsp"/>
+    </Target>
+
+    <Target Name="NativeBuildDebug" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Exec Command="cmake --build --target Coplt_Graphics_Native_D3d12 --preset debug" WorkingDirectory=".."/>
+        <ItemGroup>
+            <NativeOutputs Include="../build/debug/bin/**/*.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
+            <NativeOutputs Include="../build/debug/bin/**/*.pdb" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
+            <!--            <NativeOutputs Include="../build/debug/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false"/>-->
+        </ItemGroup>
+        <Copy SourceFiles="@(NativeOutputs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" UseHardlinksIfPossible="true"/>
+    </Target>
+    <Target Name="NativeBuildRelease" AfterTargets="Build" Condition="'$(Configuration)' != 'Debug'">
+        <Exec Command="cmake --build --target Coplt_Graphics_Native_D3d12 --preset release" WorkingDirectory=".."/>
+        <ItemGroup>
+            <NativeOutputs Include="../build/release/bin/**/*.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
+            <!--            <NativeOutputs Include="../build/release/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false"/>-->
+        </ItemGroup>
+        <Copy SourceFiles="@(NativeOutputs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" UseHardlinksIfPossible="true"/>
+    </Target>
 
 </Project>
