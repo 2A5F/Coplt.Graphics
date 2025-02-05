@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.30)
-
 FetchContent_Declare(
     DirectX-Headers
     GIT_REPOSITORY https://github.com/Microsoft/DirectX-Headers
@@ -13,6 +11,11 @@ add_library(${target_name} SHARED
     Src/Instance.cc
     Src/Instance.h
     FFI/Library.h
+    FFI/Instance.h
+    FFI/Device.h
+    Src/Device.cc
+    Src/Device.cc
+    Src/Device.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

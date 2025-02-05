@@ -15,6 +15,13 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Coplt.Graphics\Coplt.Graphics.csproj"/>
+        <PackageReference Include="Serilog" Version="4.2.0"/>
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
+        <PackageReference Include="Serilog.Exceptions" Version="8.4.0"/>
+        <PackageReference Include="Serilog.Expressions" Version="5.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.715.1-preview" GeneratePathProperty="true"/>
         <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2407.12" GeneratePathProperty="true" ExcludeAssets="all"/>
     </ItemGroup>

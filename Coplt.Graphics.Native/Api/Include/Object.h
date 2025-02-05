@@ -460,15 +460,25 @@ namespace Coplt
         };
     }
 
+    struct IsObject
+    {
+    };
+
+    template <class T>
+    concept ObjectLike = requires
+    {
+        std::is_base_of_v<IsObject, T>;
+    };
+
     struct ObjectRcPartialImpl
     {
         mutable std::atomic_size_t m_strong{1};
         mutable std::atomic_size_t m_weak{1};
 
-        COPLT_NO_INLINE void DropSlow(void* self, void (*free)(void*)) const noexcept
+        COPLT_NO_INLINE void DropSlow(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
         {
             this->~ObjectRcPartialImpl();
-            ReleaseWeak(self, free);
+            ReleaseWeak(self, object_start, free);
         }
 
         size_t AddRef() const noexcept
@@ -476,11 +486,11 @@ namespace Coplt
             return m_strong.fetch_add(1, std::memory_order_relaxed);
         }
 
-        size_t Release(void* self, void (*free)(void*)) const noexcept
+        size_t Release(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
         {
             const size_t r = m_strong.fetch_sub(1, std::memory_order_release);
             if (r != 1) return r;
-            DropSlow(self, free);
+            DropSlow(self, object_start, free);
             return r;
         }
 
@@ -489,11 +499,11 @@ namespace Coplt
             return m_weak.fetch_add(1, std::memory_order_relaxed);
         }
 
-        size_t ReleaseWeak(void* self, void (*free)(void*)) const noexcept
+        size_t ReleaseWeak(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
         {
             const size_t r = m_weak.fetch_sub(1, std::memory_order_release);
             if (r != 1) return r;
-            free(self);
+            free(self, object_start);
             return r;
         }
 
@@ -523,13 +533,28 @@ namespace Coplt
     };
 
     // 对象不允许多继承，只允许具有多个接口
-    template <class This, Interface... Interfaces>
-    struct Object : _internal::MergeInterface<Interfaces...>::Output, private ObjectRcPartialImpl
+    template <class This, class Base, Interface... Ts>
+    struct ObjectImpl
     {
-    private:
-        static void DoFree(void* p)
+        // ReSharper disable once CppStaticAssertFailure
+        static_assert(false, "不应该存在此类型");
+    };
+
+    // 对象不允许多继承，只允许具有多个接口
+    template <class This, Interface... Interfaces>
+    struct ObjectImpl<This, void, Interfaces...>
+        : _internal::MergeInterface<Interfaces...>::Output, ObjectRcPartialImpl, IsObject
+    {
+        void* ObjectStart() noexcept override
         {
-            static_cast<This*>(p)->Free(p);
+            This* self = static_cast<This*>(this);
+            return self;
+        }
+
+    private:
+        static void DoFree(void* self, void* p)
+        {
+            static_cast<ObjectImpl*>(self)->Free(p);
         }
 
     protected:
@@ -560,8 +585,7 @@ namespace Coplt
 
         size_t Release() noexcept override
         {
-            This* self = static_cast<This*>(this);
-            return ObjectRcPartialImpl::Release(self, DoFree);
+            return ObjectRcPartialImpl::Release(this, ObjectStart(), DoFree);
         }
 
         size_t AddRefWeak() noexcept override
@@ -571,8 +595,7 @@ namespace Coplt
 
         size_t ReleaseWeak() noexcept override
         {
-            This* self = static_cast<This*>(this);
-            return ObjectRcPartialImpl::ReleaseWeak(self, DoFree);
+            return ObjectRcPartialImpl::ReleaseWeak(this, ObjectStart(), DoFree);
         }
 
         b8 TryDowngrade() noexcept override
@@ -585,4 +608,57 @@ namespace Coplt
             return ObjectRcPartialImpl::TryUpgrade();
         }
     };
+
+    // 对象不允许多继承，只允许具有多个接口
+    template <class This, ObjectLike Base, Interface... Interfaces>
+    struct ObjectImpl<This, Base, Interfaces...> : Base, _internal::MergeInterface<Interfaces...>::Output
+    {
+        void* ObjectStart() noexcept override
+        {
+            This* self = static_cast<This*>(this);
+            return self;
+        }
+
+        size_t Release() noexcept override
+        {
+            return Base::Release();
+        }
+
+        size_t AddRef() noexcept override
+        {
+            return Base::AddRef();
+        }
+
+        size_t AddRefWeak() noexcept override
+        {
+            return Base::AddRefWeak();
+        }
+
+        size_t ReleaseWeak() noexcept override
+        {
+            return Base::ReleaseWeak();
+        }
+
+        b8 TryDowngrade() noexcept override
+        {
+            return Base::TryDowngrade();
+        }
+
+        b8 TryUpgrade() noexcept override
+        {
+            return Base::TryUpgrade();
+        }
+
+        void* QueryInterface(Guid id) noexcept override
+        {
+            return Base::QueryInterface(id);
+        }
+    };
+
+    template <class This, class Base, Interface... Interfaces>
+    using Object = std::conditional_t<
+        std::is_base_of_v<IsObject, Base>,
+        ObjectImpl<This, Base, Interfaces...>,
+        ObjectImpl<This, void, Base, Interfaces...>
+    >;
 }

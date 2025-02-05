@@ -47,6 +47,12 @@ namespace Coplt
         {
         }
 
+        // 将复制内容
+        explicit String8(const char* m_data, const usize m_size) : StringT(
+            reinterpret_cast<const char8_t*>(m_data), m_size)
+        {
+        }
+
         constexpr const char* c_str() const
         {
             return reinterpret_cast<const char*>(m_data);

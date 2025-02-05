@@ -4,7 +4,7 @@
 
 #ifdef FFI_SRC
 #define COPLT_INTERFACE_GUID(ID) constexpr static Guid GUID = Guid(ID);
-#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : FUnknown, __VA_ARGS__ {\
+#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : __VA_ARGS__ {\
     COPLT_INTERFACE_GUID(ID)\
 private:\
     template <Interface... T>\
@@ -17,7 +17,7 @@ private:\
 struct NAME : _internal::META_##NAME
 #else
 #define COPLT_INTERFACE_GUID(ID) constexpr static auto s_FFI_GUID = L##ID;
-#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : FUnknown, __VA_ARGS__ {\
+#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : __VA_ARGS__ {\
 COPLT_INTERFACE_GUID(ID)\
 };};\
 struct NAME : _internal::META_##NAME
@@ -29,6 +29,7 @@ namespace Coplt
     {
         virtual ~FObject() noexcept = default;
         virtual size_t Release() noexcept = 0;
+        virtual void* ObjectStart() noexcept = 0;
     };
 
     struct FRcObject : FObject
