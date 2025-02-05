@@ -1,10 +1,17 @@
 #pragma once
 
-#include "Object.h"
-#include "String.h"
+#include "GpuObject.h"
 
 namespace Coplt
 {
+    enum class FVulkanVersion : i32
+    {
+        Unset = 0,
+        _1_2 = 1002,
+        _1_3 = 1003,
+        _1_4 = 1004,
+    };
+
     enum class FD3dFeatureLevel : i32
     {
         Unset = 0,
@@ -25,11 +32,13 @@ namespace Coplt
         Str8or16 Name{};
         // 仅 dx 后端时可用
         FD3dFeatureLevel D3dFeatureLevel{};
+        // 仅 vk 后端时可用
+        FVulkanVersion VulkanVersion{};
         FGpuPreference Preference{};
         b8 Debug{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuDevice, "557f032d-ed50-403a-adc5-214fddbe6c6b", FUnknown)
+    COPLT_INTERFACE_DEFINE(FGpuDevice, "557f032d-ed50-403a-adc5-214fddbe6c6b", FGpuObject)
     {
 
     };

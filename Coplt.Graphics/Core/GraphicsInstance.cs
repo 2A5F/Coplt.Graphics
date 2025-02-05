@@ -208,8 +208,8 @@ public unsafe partial class GraphicsInstance
     #region Device
 
     public GpuDevice CreateDevice(
+        GpuDeviceOptions options = default,
         GpuPreference Preference = GpuPreference.HighPerformance,
-        D3dFeatureLevel D3dFeatureLevel = D3dFeatureLevel._12_2,
         string? Name = null,
         ReadOnlySpan<byte> Name8 = default,
         bool Debug = false
@@ -219,15 +219,16 @@ public unsafe partial class GraphicsInstance
         {
             fixed (byte* p_name8 = Name8)
             {
-                FGpuDeviceCreateOptions options = new()
+                FGpuDeviceCreateOptions f_options = new()
                 {
                     Name = new(Name, Name8, p_name, p_name8),
-                    D3dFeatureLevel = (FD3dFeatureLevel)D3dFeatureLevel,
+                    D3dFeatureLevel = (FD3dFeatureLevel)options.D3dFeatureLevel,
+                    VulkanVersion = (FVulkanVersion)options.VulkanVersion,
                     Preference = (FGpuPreference)Preference,
                     Debug = Debug
                 };
                 FGpuDevice* ptr;
-                m_ptr->CreateDevice(&options, &ptr).TryThrow();
+                m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
                 return new(ptr);
             }
         }

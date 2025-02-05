@@ -53,7 +53,7 @@ namespace Coplt
         T str;
     };
 
-    inline auto SetName(const Str8or16& str)
+    inline auto SetNameEx(const Str8or16& str)
     {
         return SetName_t{&str};
     }

@@ -58,9 +58,9 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, B8>)(lpVtbl[7]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* QueryInterface([NativeTypeName("Coplt::Guid")] Guid id)
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, Guid, void*>)(lpVtbl[8]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, Guid*, void*>)(lpVtbl[8]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
@@ -129,9 +129,9 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, B8>)(lpVtbl[7]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* QueryInterface([NativeTypeName("Coplt::Guid")] Guid id)
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, Guid, void*>)(lpVtbl[8]))((FD3d12Instance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, Guid*, void*>)(lpVtbl[8]))((FD3d12Instance*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
@@ -203,9 +203,16 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, B8>)(lpVtbl[7]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* QueryInterface([NativeTypeName("Coplt::Guid")] Guid id)
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, Guid, void*>)(lpVtbl[8]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[8]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 
@@ -260,9 +267,16 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, B8>)(lpVtbl[7]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* QueryInterface([NativeTypeName("Coplt::Guid")] Guid id)
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, Guid, void*>)(lpVtbl[8]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[8]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 

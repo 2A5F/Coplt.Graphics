@@ -561,7 +561,7 @@ namespace Coplt
         virtual void Free(void* self) noexcept { operator delete(self); }
 
     public:
-        void* QueryInterface(Guid id) noexcept override
+        void* QueryInterface(const Guid& id) noexcept override
         {
             return _internal::DoQueryInterface<Interfaces...>::QueryInterface(this, id);
         }
@@ -649,7 +649,7 @@ namespace Coplt
             return Base::TryUpgrade();
         }
 
-        void* QueryInterface(Guid id) noexcept override
+        void* QueryInterface(const Guid& id) noexcept override
         {
             return Base::QueryInterface(id);
         }

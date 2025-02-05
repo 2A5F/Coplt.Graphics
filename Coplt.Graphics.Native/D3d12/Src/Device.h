@@ -35,5 +35,7 @@ namespace Coplt
         {
             return m_debug_controller != nullptr;
         }
+
+        FResult SetName(const Str8or16& name) noexcept override;
     };
 }

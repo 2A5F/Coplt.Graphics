@@ -62,7 +62,7 @@ namespace Coplt
         template <>
         struct DoQueryInterface<>
         {
-            constexpr static void* QueryInterface(auto* self, Guid id)
+            constexpr static void* QueryInterface(auto* self, const Guid& id)
             {
                 return nullptr;
             }
@@ -71,7 +71,7 @@ namespace Coplt
         template <Interface First, Interface... Last>
         struct DoQueryInterface<First, Last...>
         {
-            constexpr static void* QueryInterface(auto* self, Guid id)
+            constexpr static void* QueryInterface(auto* self, const Guid& id)
             {
                 if (First::GUID == id) return static_cast<First*>(self);
                 if (void* r = First::QueryInterfaceForBase(static_cast<First*>(self), id)) return r;
@@ -87,7 +87,7 @@ namespace Coplt
         COPLT_INTERFACE_GUID("00000000-0000-0000-0000-000000000000");
 
         // 返回 null 表示失败
-        virtual void* QueryInterface(Guid id) noexcept = 0;
+        virtual void* QueryInterface(const Guid& id) noexcept = 0;
 
 #ifdef FFI_SRC
         template <Interface T>
@@ -100,7 +100,7 @@ namespace Coplt
         template <Interface... T>
         friend struct _internal::DoQueryInterface;
 
-        constexpr static void* QueryInterfaceForBase(auto* self, Guid id)
+        constexpr static void* QueryInterfaceForBase(auto* self, const Guid& id)
         {
             return nullptr;
         }

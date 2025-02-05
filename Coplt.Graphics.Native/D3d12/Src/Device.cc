@@ -123,9 +123,9 @@ D3d12GpuDevice::D3d12GpuDevice(
 
     if (Debug())
     {
-        chr | m_device >> SetName(options.Name);
+        chr | m_device >> SetNameEx(options.Name);
 
-        if (SUCCEEDED(m_device -> QueryInterface(IID_PPV_ARGS(&m_info_queue))))
+        if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&m_info_queue))))
         {
             if (!SUCCEEDED(
                 m_info_queue->RegisterMessageCallback(
@@ -144,4 +144,12 @@ D3d12GpuDevice::~D3d12GpuDevice()
     {
         chr | m_info_queue->UnregisterMessageCallback(m_callback_cookie);
     }
+}
+
+FResult D3d12GpuDevice::SetName(const Str8or16& name) noexcept
+{
+    return feb([&]
+    {
+        chr | m_device >> SetNameEx(name);
+    });
 }
