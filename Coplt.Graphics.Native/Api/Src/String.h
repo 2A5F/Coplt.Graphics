@@ -72,6 +72,12 @@ namespace Coplt
         }
 
 #if _WINDOWS
+        // 将复制内容
+        explicit String16(const wchar_t* m_data, const usize m_size) : StringT(
+            reinterpret_cast<const char16_t*>(m_data), m_size)
+        {
+        }
+
         constexpr const wchar_t* c_str() const
         {
             return reinterpret_cast<const wchar_t*>(m_data);

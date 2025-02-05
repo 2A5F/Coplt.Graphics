@@ -28,6 +28,30 @@
 
     <ItemGroup>
         <None Include="../D3D12SDKVersionPatcher.exe" Visible="false"/>
+        <None Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\**\*.dll"
+              Exclude="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\DirectSR.dll"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\**\*.pdb"
+              Exclude="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\DirectSR.pdb;$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\d3dconfig.pdb"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+              Condition="'$(Configuration)' == 'Debug'"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\**\*.dll"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\**\*.pdb"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+              Condition="'$(Configuration)' == 'Debug'"
+        />
     </ItemGroup>
 
     <Target Name="PatchDxSdkExport" AfterTargets="Build">

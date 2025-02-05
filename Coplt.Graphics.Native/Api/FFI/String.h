@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(FFI_SRC) && defined(_WINDOWS)
+#include <atlconv.h>
+#endif
+
 #include "Object.h"
 
 namespace Coplt
@@ -42,4 +46,75 @@ namespace Coplt
         i32 len;
         FMessageType type;
     };
+
+    struct Str8
+    {
+        const char* str;
+        i32 len;
+    };
+
+    struct Str16
+    {
+        const Char16* str;
+        i32 len;
+    };
+
+    struct Str8or16
+    {
+        const char* str8;
+        const Char16* str16;
+        i32 len;
+
+#ifdef FFI_SRC
+        bool has8() const
+        {
+            return str8 != nullptr;
+        }
+
+        bool has16() const
+        {
+            return str16 != nullptr;
+        }
+
+        bool is_null() const
+        {
+            return str8 == nullptr && str16 == nullptr;
+        }
+#endif
+    };
+
+    struct CStr8or16
+    {
+        const char* str8;
+        const Char16* str16;
+
+#ifdef FFI_SRC
+        bool has8() const
+        {
+            return str8 != nullptr;
+        }
+
+        bool has16() const
+        {
+            return str16 != nullptr;
+        }
+
+        bool is_null() const
+        {
+            return str8 == nullptr && str16 == nullptr;
+        }
+#endif
+    };
+
+#if defined(FFI_SRC) && defined(_WINDOWS)
+
+
+    inline std::wstring to_wstring(const char* str)
+    {
+        const ATL::CA2W ca2_w(str);
+        return std::wstring(ca2_w);
+    }
+
+#endif
+
 }

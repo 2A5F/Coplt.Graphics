@@ -24,6 +24,12 @@ public unsafe partial class GraphicsInstance
 
     #endregion
 
+    #region Props
+
+    public FInstance* Ptr => m_ptr;
+
+    #endregion
+
     #region Ctor
 
     public GraphicsInstance(FInstance* ptr) => m_ptr = ptr;
@@ -196,6 +202,36 @@ public unsafe partial class GraphicsInstance
     }
 
     #endregion
+
+    #endregion
+
+    #region Device
+
+    public GpuDevice CreateDevice(
+        GpuPreference Preference = GpuPreference.HighPerformance,
+        D3dFeatureLevel D3dFeatureLevel = D3dFeatureLevel._12_2,
+        string? Name = null,
+        ReadOnlySpan<byte> Name8 = default,
+        bool Debug = false
+    )
+    {
+        fixed (char* p_name = Name)
+        {
+            fixed (byte* p_name8 = Name8)
+            {
+                FGpuDeviceCreateOptions options = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    D3dFeatureLevel = (FD3dFeatureLevel)D3dFeatureLevel,
+                    Preference = (FGpuPreference)Preference,
+                    Debug = Debug
+                };
+                FGpuDevice* ptr;
+                m_ptr->CreateDevice(&options, &ptr).TryThrow();
+                return new(ptr);
+            }
+        }
+    }
 
     #endregion
 }

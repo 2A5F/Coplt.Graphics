@@ -1,9 +1,11 @@
 #pragma once
+
 #include "../../Api/Include/Object.h"
 #include "../../Api/FFI/Instance.h"
-#include "../../Api/FFI/Device.h"
 #include "../../Api/Include/InstanceBase.h"
 #include "../FFI/Instance.h"
+#include "../Include/Utils.h"
+#include <directx/d3d12.h>
 
 namespace Coplt
 {

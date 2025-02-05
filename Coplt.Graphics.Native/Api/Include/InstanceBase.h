@@ -16,8 +16,13 @@ namespace Coplt
 
         FResult SetLogger(const FLogger& logger) noexcept override
         {
-            m_logger = Logger(logger);
+            m_logger = Coplt::Logger(logger);
             return FResult::None();
+        }
+
+        const Logger& Logger() const noexcept
+        {
+            return m_logger;
         }
     };
 }

@@ -10,7 +10,7 @@ namespace Coplt
     {
         Fatal = 0,
         Error,
-        Warning,
+        Warn,
         Info,
         Debug,
         Trace,

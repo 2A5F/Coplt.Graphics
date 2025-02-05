@@ -58,6 +58,17 @@ namespace Coplt
             m_inner.pf_logger(m_inner.p_object, level, type, msg);
         }
 
+        void Log(const FLogLevel level, const char* str) const
+        {
+            Log(level, FLogType::Common, str);
+        }
+
+        void Log(const FLogLevel level, const FLogType type, const char* str) const
+        {
+            const FMessage msg{{.str = str}, .len = 0, .type = FMessageType::CStr8};
+            Log(level, type, msg);
+        }
+
         void Log(const FLogLevel level, const char* str, const size_t size) const
         {
             Log(level, FLogType::Common, str, size);
@@ -69,12 +80,12 @@ namespace Coplt
             Log(level, type, msg);
         }
 
-        void Log(const FLogLevel level, std::string& string) const
+        void Log(const FLogLevel level, const std::string& string) const
         {
             Log(level, FLogType::Common, string);
         }
 
-        void Log(const FLogLevel level, const FLogType type, std::string& string) const
+        void Log(const FLogLevel level, const FLogType type, const std::string& string) const
         {
             const FMessage msg{
                 {.str = string.data()}, .len = static_cast<i32>(string.size()), .type = FMessageType::Slice8
@@ -84,12 +95,12 @@ namespace Coplt
 
 #ifdef _WINDOWS
 
-        void LogW(const FLogLevel level, std::wstring& string) const
+        void LogW(const FLogLevel level, const std::wstring& string) const
         {
             LogW(level, FLogType::Common, string);
         }
 
-        void LogW(const FLogLevel level, const FLogType type, std::wstring& string) const
+        void LogW(const FLogLevel level, const FLogType type, const std::wstring& string) const
         {
             const FMessage msg{
                 {.wstr = string.data()}, .len = static_cast<i32>(string.size()), .type = FMessageType::Slice16

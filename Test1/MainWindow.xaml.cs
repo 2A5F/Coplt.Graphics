@@ -20,13 +20,15 @@ namespace Test1;
 public partial class MainWindow : Window
 {
     private GraphicsInstance Graphics;
+    private GpuDevice Device;
     private IntPtr Handle;
 
     public MainWindow()
     {
         Graphics = GraphicsInstance.LoadD3d12();
         Graphics.SetLogger((level, _) => Log.IsEnabled(level.ToLogEventLevel()),
-            (level, _, msg) => Log.Write(level.ToLogEventLevel(), "{Msg}", msg));
+            (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg));
+        Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
         Handle = new WindowInteropHelper(this).EnsureHandle();
         InitializeComponent();
     }

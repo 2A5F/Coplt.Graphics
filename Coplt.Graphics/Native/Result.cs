@@ -1,7 +1,10 @@
-﻿namespace Coplt.Graphics.Native;
+﻿using System.Diagnostics;
+
+namespace Coplt.Graphics.Native;
 
 public partial struct FResult
 {
+    [StackTraceHidden]
     public void TryThrow()
     {
         if (code == FResultCode.Success) return;

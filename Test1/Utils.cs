@@ -9,7 +9,7 @@ public static class Utils
     {
         FLogLevel.Fatal => LogEventLevel.Fatal,
         FLogLevel.Error => LogEventLevel.Error,
-        FLogLevel.Warning => LogEventLevel.Warning,
+        FLogLevel.Warn => LogEventLevel.Warning,
         FLogLevel.Info => LogEventLevel.Information,
         FLogLevel.Debug => LogEventLevel.Debug,
         FLogLevel.Trace => LogEventLevel.Verbose,

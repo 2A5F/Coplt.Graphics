@@ -1,27 +1,5 @@
 cmake_minimum_required(VERSION 3.29)
 
-include(FetchContent)
-FetchContent_Declare(
-    cpptrace
-    GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-    GIT_TAG v0.7.5
-)
-FetchContent_Declare(
-    glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 1.0.1
-)
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 11.1.3
-)
-FetchContent_Declare(
-    mimalloc
-    GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-    GIT_TAG v2.1.7
-)
-
 project(Coplt_Graphics_Native)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -43,10 +21,10 @@ add_definitions(-DGLM_FORCE_QUAT_DATA_XYZW)
 
 set(MI_OVERRID OFF)
 
-FetchContent_MakeAvailable(cpptrace)
-FetchContent_MakeAvailable(glm)
-FetchContent_MakeAvailable(fmt)
-FetchContent_MakeAvailable(mimalloc)
+add_subdirectory(ThirdParty/cpptrace)
+add_subdirectory(ThirdParty/glm)
+add_subdirectory(ThirdParty/fmt)
+add_subdirectory(ThirdParty/mimalloc)
 
 add_subdirectory(Coplt.Graphics.Native/Api)
 add_subdirectory(Coplt.Graphics.Native/D3d12)

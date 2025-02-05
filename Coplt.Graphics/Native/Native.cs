@@ -434,12 +434,51 @@ namespace Coplt.Graphics.Native
         public FMessageType type;
     }
 
+    public unsafe partial struct Str8
+    {
+        [NativeTypeName("const char *")]
+        public byte* str;
+
+        [NativeTypeName("Coplt::i32")]
+        public int len;
+    }
+
+    public unsafe partial struct Str16
+    {
+        [NativeTypeName("const Char16 *")]
+        public char* str;
+
+        [NativeTypeName("Coplt::i32")]
+        public int len;
+    }
+
+    public unsafe partial struct Str8or16
+    {
+        [NativeTypeName("const char *")]
+        public byte* str8;
+
+        [NativeTypeName("const Char16 *")]
+        public char* str16;
+
+        [NativeTypeName("Coplt::i32")]
+        public int len;
+    }
+
+    public unsafe partial struct CStr8or16
+    {
+        [NativeTypeName("const char *")]
+        public byte* str8;
+
+        [NativeTypeName("const Char16 *")]
+        public char* str16;
+    }
+
     [NativeTypeName("Coplt::u32")]
     public enum FLogLevel : uint
     {
         Fatal = 0,
         Error,
-        Warning,
+        Warn,
         Info,
         Debug,
         Trace,
@@ -488,6 +527,17 @@ namespace Coplt.Graphics.Native
 
     public partial struct FGpuDeviceCreateOptions
     {
+        [NativeTypeName("Coplt::Str8or16")]
+        public Str8or16 Name;
+
+        [NativeTypeName("Coplt::FD3dFeatureLevel")]
+        public FD3dFeatureLevel D3dFeatureLevel;
+
+        [NativeTypeName("Coplt::FGpuPreference")]
+        public FGpuPreference Preference;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Debug;
     }
 
     public partial struct FGpuDevice
@@ -680,6 +730,22 @@ namespace Coplt.Graphics.Native
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[10]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
+    }
+
+    [NativeTypeName("Coplt::i32")]
+    public enum FD3dFeatureLevel
+    {
+        Unset = 0,
+        _12_1 = 0xc100,
+        _12_2 = 0xc200,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FGpuPreference : byte
+    {
+        HighPerformance = 0,
+        MinimumPower = 1,
+        Any = 255,
     }
 
     [NativeTypeName("struct META_FGpuDevice : Coplt::FUnknown")]

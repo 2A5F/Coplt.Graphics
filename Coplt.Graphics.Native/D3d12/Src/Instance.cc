@@ -9,7 +9,6 @@ FResult D3d12Instance::CreateDevice(const FGpuDeviceCreateOptions& options, FGpu
 {
     return feb([&]
     {
-        Rc r = D3d12GpuDevice::Create(options);
-        *out = r.leak();
+        *out = new D3d12GpuDevice(this->CloneThis(), options);
     });
 }
