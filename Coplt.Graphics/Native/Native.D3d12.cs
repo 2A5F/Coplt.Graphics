@@ -246,6 +246,34 @@ namespace Coplt.Graphics.Native.D3d12
             FResult result;
             return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Present()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[7]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult PresentNoWait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[8]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult WaitNextFrame()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[9]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
     }
 
     [NativeTypeName("struct FD3d12GpuOutput : Coplt::_internal::META_FD3d12GpuOutput")]
@@ -287,6 +315,34 @@ namespace Coplt.Graphics.Native.D3d12
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Present()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[7]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult PresentNoWait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[8]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult WaitNextFrame()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[9]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
         }
     }
 
@@ -333,6 +389,34 @@ namespace Coplt.Graphics.Native.D3d12
             FResult result;
             return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Present()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[7]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult PresentNoWait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[8]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult WaitNextFrame()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[9]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
+        }
     }
 
     [NativeTypeName("struct FD3d12GpuSwapChainOutput : Coplt::_internal::META_FD3d12GpuSwapChainOutput")]
@@ -374,6 +458,34 @@ namespace Coplt.Graphics.Native.D3d12
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Present()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[7]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult PresentNoWait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[8]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult WaitNextFrame()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, FResult*>)(lpVtbl[9]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result);
         }
     }
 

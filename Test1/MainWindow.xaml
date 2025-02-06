@@ -7,6 +7,5 @@
         mc:Ignorable="d"
         Title="MainWindow"
         Width="960" Height="540"
-        WindowStartupLocation="CenterScreen"
-        Loaded="OnLoaded">
+        WindowStartupLocation="CenterScreen">
 </Window>

@@ -20,10 +20,12 @@ namespace Test1;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private GraphicsInstance Graphics;
-    private GpuDevice Device;
-    private GpuOutput Output;
+    private GraphicsInstance Graphics = null!;
+    private GpuDevice Device = null!;
+    private GpuOutput Output = null!;
     private IntPtr Handle;
+
+    private bool Closed = false;
 
     public MainWindow()
     {
@@ -39,13 +41,39 @@ public partial class MainWindow : Window
                 Width = (uint)Width,
                 Height = (uint)Height,
             }, Handle);
+            Output.Present();
         }
         catch (Exception e)
         {
             Log.Error(e, "");
         }
+        new Thread(() =>
+        {
+            while (!Closed)
+            {
+                try
+                {
+                    Output.Present();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "");
+                }
+            }
+        }).Start();
         InitializeComponent();
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e) { }
+    protected override void OnRender(DrawingContext drawingContext) { }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        Closed = true;
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        Console.WriteLine($"OnRenderSizeChanged {sizeInfo.NewSize}");
+        Output.Resize((uint)sizeInfo.NewSize.Width, (uint)sizeInfo.NewSize.Height);
+    }
 }

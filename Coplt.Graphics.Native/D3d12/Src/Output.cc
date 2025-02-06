@@ -22,9 +22,9 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     m_v_sync = options.VSync;
 
     DXGI_SWAP_CHAIN_DESC1 desc{};
-    desc.Width = options.Width;
-    desc.Height = options.Height;
-    desc.Format = ToDXGIFormat(options.Format);
+    desc.Width = m_cur_width = options.Width;
+    desc.Height = m_cur_height = options.Height;
+    desc.Format = m_format = ToDXGIFormat(options.Format);
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     switch (options.PresentMode)
@@ -85,19 +85,14 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     chr | m_dx_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&m_srv_heap));
     m_srv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
-    CD3DX12_CPU_DESCRIPTOR_HANDLE srv_handle(m_srv_heap->GetCPUDescriptorHandleForHeapStart());
+    CreateBuffers();
 
-    for (UINT i = 0; i < m_frame_count; ++i)
+    for (u32 i = 0; i < m_frame_count; ++i)
     {
-        chr | m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
-        m_dx_device->CreateRenderTargetView(m_buffers[i].Get(), nullptr, rtv_handle);
-        rtv_handle.Offset(1, m_rtv_descriptor_size);
-        m_dx_device->CreateShaderResourceView(m_buffers[i].Get(), nullptr, srv_handle);
-        srv_handle.Offset(1, m_rtv_descriptor_size);
+        chr | m_dx_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[i])
+        );
     }
-
-    chr | m_dx_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocator));
 
     chr | m_dx_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
     m_fence_value = 1;
@@ -108,7 +103,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
 
 D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
 {
-    // todo
+    WaitAll();
     CloseHandle(m_fence_event);
 }
 
@@ -126,4 +121,147 @@ FResult D3d12GpuSwapChainOutput::SetVSync(const b8 Enable) noexcept
     {
         m_v_sync = static_cast<bool>(Enable);
     });
+}
+
+FResult D3d12GpuSwapChainOutput::Resize(const u32 Width, const u32 Height) noexcept
+{
+    return feb([&]
+    {
+        if (m_waiting || m_need_resize)
+        {
+            m_new_width = Width;
+            m_new_height = Height;
+            m_need_resize = true;
+
+            std::lock_guard lock(m_queue->m_mutex);
+            if (m_need_resize)
+            {
+                Resize_NoLock(m_new_width, m_new_height);
+            }
+        }
+        else
+        {
+            std::lock_guard lock(m_queue->m_mutex);
+            Resize_NoLock(Width, Height);
+        }
+    });
+}
+
+FResult D3d12GpuSwapChainOutput::Present() noexcept
+{
+    return feb([&]
+    {
+        std::lock_guard lock(m_queue->m_mutex);
+        m_queue->SubmitNoLock(m_command_allocators[m_frame_index]);
+        PresentNoWait_NoLock();
+        WaitNextFrame_NoLock();
+    });
+}
+
+FResult D3d12GpuSwapChainOutput::PresentNoWait() noexcept
+{
+    return feb([&]
+    {
+        std::lock_guard lock(m_queue->m_mutex);
+        PresentNoWait_NoLock();
+    });
+}
+
+FResult D3d12GpuSwapChainOutput::WaitNextFrame() noexcept
+{
+    return feb([&]
+    {
+        std::lock_guard lock(m_queue->m_mutex);
+        WaitNextFrame_NoLock();
+    });
+}
+
+void D3d12GpuSwapChainOutput::PresentNoWait_NoLock()
+{
+    chr | m_swap_chain->Present(m_v_sync ? 1 : 0, 0);
+    Signal_NoLock();
+}
+
+void D3d12GpuSwapChainOutput::WaitNextFrame_NoLock()
+{
+    if (m_need_resize)
+    {
+        Resize_NoLock(m_new_width, m_new_height);
+        m_need_resize = false;
+    }
+    if (!m_fence_value_queue.empty())
+    {
+        const auto fence_value = m_fence_value_queue.front();
+        m_fence_value_queue.pop();
+        WaitFenceValue_NoLock(fence_value);
+    }
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    {
+        const auto fence_value = m_frame_m_fence_values[m_frame_index];
+        WaitFenceValue_NoLock(fence_value);
+    }
+    chr | m_command_allocators[m_frame_index]->Reset();
+}
+
+void D3d12GpuSwapChainOutput::Resize_NoLock(const u32 width, const u32 height)
+{
+    if (width == m_cur_width && height == m_cur_height) return;
+    WaitAll_NoLock();
+    for (u32 i = 0; i < m_frame_count; i++)
+    {
+        m_buffers[i] = nullptr;
+    }
+    chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, m_format, 0);
+    CreateBuffers();
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    m_cur_width = width;
+    m_cur_height = height;
+}
+
+void D3d12GpuSwapChainOutput::Signal_NoLock()
+{
+    const auto fence_value = m_fence_value;
+    chr | m_dx_queue->Signal(m_fence.Get(), fence_value);
+    m_fence_value_queue.push(fence_value);
+    m_frame_m_fence_values[m_frame_index] = fence_value;
+    m_fence_value++;
+}
+
+void D3d12GpuSwapChainOutput::WaitAll()
+{
+    std::lock_guard lock(m_queue->m_mutex);
+    WaitAll_NoLock();
+}
+
+void D3d12GpuSwapChainOutput::WaitAll_NoLock()
+{
+    Signal_NoLock();
+    const auto fence_value = m_fence_value_queue.back();
+    m_fence_value_queue = {};
+    WaitFenceValue_NoLock(fence_value);
+}
+
+void D3d12GpuSwapChainOutput::WaitFenceValue_NoLock(const u32 fence_value)
+{
+    if (m_fence->GetCompletedValue() < fence_value)
+    {
+        m_waiting = true;
+        chr | m_fence->SetEventOnCompletion(fence_value, m_fence_event);
+        WaitForSingleObject(m_fence_event, INFINITE);
+        m_waiting = false;
+    }
+}
+
+void D3d12GpuSwapChainOutput::CreateBuffers()
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE srv_handle(m_srv_heap->GetCPUDescriptorHandleForHeapStart());
+    for (u32 i = 0; i < m_frame_count; ++i)
+    {
+        chr | m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
+        m_dx_device->CreateRenderTargetView(m_buffers[i].Get(), nullptr, rtv_handle);
+        rtv_handle.Offset(1, m_rtv_descriptor_size);
+        m_dx_device->CreateShaderResourceView(m_buffers[i].Get(), nullptr, srv_handle);
+        srv_handle.Offset(1, m_rtv_descriptor_size);
+    }
 }

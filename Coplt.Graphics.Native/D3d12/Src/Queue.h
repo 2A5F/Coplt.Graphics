@@ -30,5 +30,12 @@ namespace Coplt
             void* hwnd,
             FGpuOutput** out
         ) noexcept override;
+
+        ~D3d12GpuQueue() noexcept override;
+
+        // 提交命令，并互换命令分配器，参数提供的 command_allocator 必须可用
+        void Submit(ComPtr<ID3D12CommandAllocator>& command_allocator);
+        // 提交命令，并互换命令分配器，但是无锁，需要外部手动锁，参数提供的 command_allocator 必须可用
+        void SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator);
     };
 } // Coplt

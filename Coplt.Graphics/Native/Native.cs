@@ -837,6 +837,34 @@ namespace Coplt.Graphics.Native
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Present()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FResult*>)(lpVtbl[7]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult PresentNoWait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FResult*>)(lpVtbl[8]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult WaitNextFrame()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FResult*>)(lpVtbl[9]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
     }
 
     public enum FTextureFormat

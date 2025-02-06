@@ -80,4 +80,29 @@ public sealed unsafe partial class GpuOutput
     }
 
     #endregion
+
+    #region Present
+
+    /// <summary>
+    /// 提交命令并等待下帧可用
+    /// </summary>
+    public void Present() => m_ptr->Present().TryThrow();
+
+    /// <summary>
+    /// 提交命令
+    /// </summary>
+    public void PresentNoWait() => m_ptr->PresentNoWait().TryThrow();
+
+    /// <summary>
+    /// 等待下帧可用
+    /// </summary>
+    public void WaitNextFrame() => m_ptr->WaitNextFrame().TryThrow();
+
+    #endregion
+
+    #region Resize
+
+    public void Resize(uint width, uint height) => m_ptr->Resize(width, height).TryThrow();
+
+    #endregion
 }

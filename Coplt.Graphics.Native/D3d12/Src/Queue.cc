@@ -32,8 +32,6 @@ D3d12GpuQueue::D3d12GpuQueue(
         nullptr, IID_PPV_ARGS(&m_command_list)
     );
 
-    chr | m_command_list->Close();
-
     if (m_device->Debug())
     {
         chr | m_queue >> SetNameEx(options.Name);
@@ -67,4 +65,26 @@ FResult D3d12GpuQueue::CreateOutputForHwnd(
         return FResult::Error(u"Calling Windows platform-specific APIs on non-Windows platforms");
 #endif
     });
+}
+
+D3d12GpuQueue::~D3d12GpuQueue() noexcept
+{
+    // ReSharper disable once CppFunctionResultShouldBeUsed
+    m_command_list->Close();
+}
+
+void D3d12GpuQueue::Submit(ComPtr<ID3D12CommandAllocator>& command_allocator)
+{
+    std::lock_guard lock(m_mutex);
+    SubmitNoLock(command_allocator);
+}
+
+void D3d12GpuQueue::SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator)
+{
+    chr | m_command_list->Close();
+    ID3D12CommandList* command_lists[1] = {m_command_list.Get()};
+    m_queue->ExecuteCommandLists(1, command_lists);
+
+    std::swap(m_command_allocator, command_allocator);
+    chr | m_command_list->Reset(m_command_allocator.Get(), nullptr);
 }
