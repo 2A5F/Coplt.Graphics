@@ -33,11 +33,8 @@ namespace Coplt
         UINT m_frame_m_fence_values[MaxBufferCount]{};
         UINT m_rtv_descriptor_size{};
         UINT m_srv_descriptor_size{};
-        u32 m_cur_width{};
-        u32 m_cur_height{};
         mutable u32 m_new_width{};
         mutable u32 m_new_height{};
-        DXGI_FORMAT m_format{};
         std::atomic_bool m_v_sync{};
         std::atomic_bool m_waiting{};
         std::atomic_bool m_need_resize{};
@@ -45,6 +42,8 @@ namespace Coplt
         explicit D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue, const FGpuOutputCreateOptions& options, HWND hwnd);
 
         ~D3d12GpuSwapChainOutput() override;
+
+        static FTextureFormat SelectFormat(const FGpuOutputFormatSelector& selector, FTextureFormat Specify);
 
         FResult SetName(const Str8or16& name) noexcept override;
 

@@ -79,6 +79,12 @@ public sealed unsafe partial class GpuQueue
                     PresentMode = (FPresentMode)Options.PresentMode,
                     AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
                     VSync = Options.VSync,
+                    FormatSelector = new()
+                    {
+                        Specify = Options.FormatSelector.Specify,
+                        Srgb = Options.FormatSelector.Srgb,
+                        Hdr = (FHdrType)Options.FormatSelector.Hdr,
+                    },
                 };
                 FGpuOutput* ptr;
                 m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();

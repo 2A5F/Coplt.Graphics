@@ -378,6 +378,15 @@ namespace Coplt.Graphics.Native
     {
         public void** lpVtbl;
 
+        [NativeTypeName("Coplt::FTextureFormat")]
+        public FTextureFormat m_format;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint m_width;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint m_height;
+
         public void Dispose()
         {
             ((delegate* unmanaged[Thiscall]<FGpuObject*, void>)(lpVtbl[0]))((FGpuObject*)Unsafe.AsPointer(ref this));
@@ -438,6 +447,8 @@ namespace Coplt.Graphics.Native
     public unsafe partial struct FGpuDevice
     {
         public void** lpVtbl;
+
+        public META_FGpuDevice Base;
 
         public void Dispose()
         {
@@ -582,39 +593,10 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("struct META_FGpuDevice : Coplt::FGpuObject")]
     public unsafe partial struct META_FGpuDevice
     {
-        public void** lpVtbl;
+        public FGpuObject Base;
 
         [NativeTypeName("const wchar_t *const")]
         public const string s_FFI_GUID = "557f032d-ed50-403a-adc5-214fddbe6c6b";
-
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, void>)(lpVtbl[0]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[1]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[2]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, Guid*, void*>)(lpVtbl[3]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
-        }
     }
 
     public partial struct FMainQueueCreateOptions
@@ -634,45 +616,18 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("struct META_FGpuQueue : Coplt::FGpuObject")]
     public unsafe partial struct META_FGpuQueue
     {
-        public void** lpVtbl;
+        public FGpuObject Base;
 
         [NativeTypeName("const wchar_t *const")]
         public const string s_FFI_GUID = "95e60e28-e387-4055-9b33-2d23af901f8a";
-
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<META_FGpuQueue*, void>)(lpVtbl[0]))((META_FGpuQueue*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuQueue*, nuint>)(lpVtbl[1]))((META_FGpuQueue*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuQueue*, nuint>)(lpVtbl[2]))((META_FGpuQueue*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuQueue*, Guid*, void*>)(lpVtbl[3]))((META_FGpuQueue*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FGpuQueue*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FGpuQueue*)Unsafe.AsPointer(ref this), &result, name);
-        }
     }
 
     [NativeTypeName("struct FGpuQueue : Coplt::_internal::META_FGpuQueue")]
     public unsafe partial struct FGpuQueue
     {
         public void** lpVtbl;
+
+        public META_FGpuQueue Base;
 
         [NativeTypeName("Coplt::FGpuQueueType")]
         public FGpuQueueType m_queue_type;
@@ -735,6 +690,26 @@ namespace Coplt.Graphics.Native
         PostPremultiplied,
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FHdrType : byte
+    {
+        None,
+        UNorm10,
+        Float16,
+    }
+
+    public partial struct FGpuOutputFormatSelector
+    {
+        [NativeTypeName("Coplt::b8")]
+        public B8 Specify;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Srgb;
+
+        [NativeTypeName("Coplt::FHdrType")]
+        public FHdrType Hdr;
+    }
+
     public partial struct FGpuOutputCreateOptions
     {
         [NativeTypeName("Coplt::Str8or16")]
@@ -757,50 +732,26 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 VSync;
+
+        [NativeTypeName("Coplt::FGpuOutputFormatSelector")]
+        public FGpuOutputFormatSelector FormatSelector;
     }
 
     [NativeTypeName("struct META_FGpuOutput : Coplt::FGpuObject")]
     public unsafe partial struct META_FGpuOutput
     {
-        public void** lpVtbl;
+        public FGpuObject Base;
 
         [NativeTypeName("const wchar_t *const")]
         public const string s_FFI_GUID = "f1c59cb4-7ee6-4ee2-80f4-07cc568920d2";
-
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<META_FGpuOutput*, void>)(lpVtbl[0]))((META_FGpuOutput*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuOutput*, nuint>)(lpVtbl[1]))((META_FGpuOutput*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuOutput*, nuint>)(lpVtbl[2]))((META_FGpuOutput*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuOutput*, Guid*, void*>)(lpVtbl[3]))((META_FGpuOutput*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FGpuOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FGpuOutput*)Unsafe.AsPointer(ref this), &result, name);
-        }
     }
 
     [NativeTypeName("struct FGpuOutput : Coplt::_internal::META_FGpuOutput")]
     public unsafe partial struct FGpuOutput
     {
         public void** lpVtbl;
+
+        public META_FGpuOutput Base;
 
         public void Dispose()
         {

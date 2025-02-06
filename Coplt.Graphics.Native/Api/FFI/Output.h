@@ -19,6 +19,24 @@ namespace Coplt
         PostPremultiplied,
     };
 
+    enum class FHdrType : u8
+    {
+        None,
+        UNorm10,
+        Float16,
+    };
+
+    // 输出格式选择器，按选择器选择，不符合将回退，保证成功；指定格式不保证
+    struct FGpuOutputFormatSelector
+    {
+        // 指定格式，忽略选择器
+        b8 Specify{};
+        // 如果可能，使用 srgb 格式
+        b8 Srgb{};
+        // 如果可能，使用 hdr 格式，和 srgb 冲突，并且优先级更高
+        FHdrType Hdr{};
+    };
+
     struct FGpuOutputCreateOptions
     {
         Str8or16 Name;
@@ -29,6 +47,7 @@ namespace Coplt
         FPresentMode PresentMode{};
         FOutputAlphaMode AlphaMode{};
         b8 VSync{};
+        FGpuOutputFormatSelector FormatSelector{};
     };
 
     using WhenDoneFn = void COPLT_CDECL(void* obj);

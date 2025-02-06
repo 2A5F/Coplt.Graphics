@@ -17,6 +17,32 @@ public enum OutputAlphaMode : byte
     PostPremultiplied,
 }
 
+public enum HdrType : byte
+{
+    None,
+    UNorm10,
+    Float16,
+}
+
+/// <summary>
+/// 输出格式选择器，按选择器选择，不符合将回退，保证成功；指定格式不保证
+/// </summary>
+public record struct GpuOutputFormatSelector
+{
+    /// <summary>
+    /// 指定格式，忽略选择器
+    /// </summary>
+    public bool Specify { get; set; }
+    /// <summary>
+    /// 如果可能，使用 srgb 格式
+    /// </summary>
+    public bool Srgb { get; set; }
+    /// <summary>
+    /// 如果可能，使用 hdr 格式，和 srgb 冲突，并且优先级更高
+    /// </summary>
+    public HdrType Hdr { get; set; }
+}
+
 public record struct GpuOutputOptions()
 {
     public required uint Width { get; set; }
@@ -25,6 +51,7 @@ public record struct GpuOutputOptions()
     public PresentMode PresentMode { get; set; } = PresentMode.TripleBuffer;
     public OutputAlphaMode AlphaMode { get; set; } = OutputAlphaMode.Opaque;
     public bool VSync { get; set; } = false;
+    public GpuOutputFormatSelector FormatSelector { get; set; } = new();
 }
 
 [Dropping(Unmanaged = true)]

@@ -1,5 +1,6 @@
 #include "Output.h"
 
+#include "PostProcess.h"
 #include "directx/d3dx12.h"
 
 #include "TextureFormat.h"
@@ -22,9 +23,9 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     m_v_sync = options.VSync;
 
     DXGI_SWAP_CHAIN_DESC1 desc{};
-    desc.Width = m_cur_width = options.Width;
-    desc.Height = m_cur_height = options.Height;
-    desc.Format = m_format = ToDXGIFormat(options.Format);
+    desc.Width = m_width = options.Width;
+    desc.Height = m_height = options.Height;
+    desc.Format = ToDXGIFormat(m_format = SelectFormat(options.FormatSelector, options.Format));
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     switch (options.PresentMode)
@@ -105,6 +106,21 @@ D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
 {
     WaitAll();
     CloseHandle(m_fence_event);
+}
+
+FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(const FGpuOutputFormatSelector& selector, FTextureFormat Specify)
+{
+    if (selector.Specify) return Specify;
+    switch (selector.Hdr)
+    {
+    case FHdrType::UNorm10: return FTextureFormat::R10G10B10A2_UNorm;
+    case FHdrType::Float16: return FTextureFormat::R16G16B16A16_Float;
+    case FHdrType::None:
+    default:
+        break;
+    }
+    if (selector.Srgb) return FTextureFormat::R8G8B8A8_UNorm_sRGB;
+    return FTextureFormat::R8G8B8A8_UNorm;
 }
 
 FResult D3d12GpuSwapChainOutput::SetName(const Str8or16& name) noexcept
@@ -205,17 +221,17 @@ void D3d12GpuSwapChainOutput::WaitNextFrame_NoLock()
 
 void D3d12GpuSwapChainOutput::Resize_NoLock(const u32 width, const u32 height)
 {
-    if (width == m_cur_width && height == m_cur_height) return;
+    if (width == m_width && height == m_height) return;
     WaitAll_NoLock();
     for (u32 i = 0; i < m_frame_count; i++)
     {
         m_buffers[i] = nullptr;
     }
-    chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, m_format, 0);
+    chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, ToDXGIFormat(m_format), 0);
     CreateBuffers();
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-    m_cur_width = width;
-    m_cur_height = height;
+    m_width = width;
+    m_height = height;
 }
 
 void D3d12GpuSwapChainOutput::Signal_NoLock()
@@ -267,7 +283,7 @@ void D3d12GpuSwapChainOutput::CreateBuffers()
         if (m_device->Debug())
         {
             chr | m_buffers[i]->SetName(
-                fmt::format(L"Swap Chain Buffer {} ({}, {})", i, m_cur_width, m_cur_height).c_str());
+                fmt::format(L"Swap Chain Buffer {} ({}, {})", i, m_width, m_height).c_str());
         }
     }
 }

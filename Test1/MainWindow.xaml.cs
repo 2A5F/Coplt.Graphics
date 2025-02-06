@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     private GpuOutput Output = null!;
     private IntPtr Handle;
 
-    private bool Closed = false;
+    private bool IsClosed = false;
 
     public MainWindow()
     {
@@ -50,7 +50,7 @@ public partial class MainWindow : Window
         }
         new Thread(() =>
         {
-            while (!Closed)
+            while (!IsClosed)
             {
                 try
                 {
@@ -68,7 +68,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
-        Closed = true;
+        IsClosed = true;
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
