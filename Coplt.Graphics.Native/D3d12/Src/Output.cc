@@ -22,17 +22,28 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
 
     m_v_sync = options.VSync;
 
+    bool is_hdr = false;
+    m_format = SelectFormat(options, is_hdr);
+
     DXGI_SWAP_CHAIN_DESC1 desc{};
     desc.Width = m_width = options.Width;
     desc.Height = m_height = options.Height;
-    desc.Format = ToDXGIFormat(m_format = SelectFormat(options.FormatSelector, options.Format));
+    desc.Format = ToDXGIFormat(m_format);
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     switch (options.PresentMode)
     {
     case FPresentMode::NoBuffer:
-        m_frame_count = desc.BufferCount = 2;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+        if (is_hdr)
+        {
+            m_frame_count = desc.BufferCount = 2;
+            desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        }
+        else
+        {
+            m_frame_count = desc.BufferCount = 2;
+            desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+        }
         break;
     case FPresentMode::DoubleBuffer:
         m_frame_count = desc.BufferCount = 2;
@@ -69,6 +80,11 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     );
 
     chr | swap_chain.As(&m_swap_chain);
+
+    if (m_format == FTextureFormat::R10G10B10A2_UNorm)
+    {
+        chr | m_swap_chain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+    }
 
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
@@ -108,18 +124,22 @@ D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
     CloseHandle(m_fence_event);
 }
 
-FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(const FGpuOutputFormatSelector& selector, FTextureFormat Specify)
+FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(
+    const FGpuOutputCreateOptions& options,  bool& is_hdr
+)
 {
-    if (selector.Specify) return Specify;
-    switch (selector.Hdr)
+    if (options.FormatSelector.Specify) return options.Format;
+    if (options.FormatSelector.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
     {
-    case FHdrType::UNorm10: return FTextureFormat::R10G10B10A2_UNorm;
-    case FHdrType::Float16: return FTextureFormat::R16G16B16A16_Float;
-    case FHdrType::None:
-    default:
-        break;
+        is_hdr = true;
+        return FTextureFormat::R10G10B10A2_UNorm;
     }
-    if (selector.Srgb) return FTextureFormat::R8G8B8A8_UNorm_sRGB;
+    if (options.FormatSelector.Hdr == FHdrType::Float16)
+    {
+        is_hdr = true;
+        return FTextureFormat::R16G16B16A16_Float;
+    }
+    if (options.FormatSelector.Srgb) return FTextureFormat::R8G8B8A8_UNorm_sRGB;
     return FTextureFormat::R8G8B8A8_UNorm;
 }
 

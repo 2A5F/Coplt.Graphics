@@ -3,6 +3,20 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
 
+public enum GpuQueueType : byte
+{
+    Direct,
+    Compute,
+    Copy,
+}
+
+public static partial class GraphicsExtensions
+{
+    public static FGpuQueueType ToFFI(this GpuQueueType value) => (FGpuQueueType)value;
+
+    public static GpuQueueType FromFFI(this FGpuQueueType value) => (GpuQueueType)value;
+}
+
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuQueue
 {
@@ -79,7 +93,7 @@ public sealed unsafe partial class GpuQueue
                     PresentMode = (FPresentMode)Options.PresentMode,
                     AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
                     VSync = Options.VSync,
-                    FormatSelector = new()
+                    FormatSelector =
                     {
                         Specify = Options.FormatSelector.Specify,
                         Srgb = Options.FormatSelector.Srgb,

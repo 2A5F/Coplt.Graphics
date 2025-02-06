@@ -3,11 +3,41 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
 
+#region Enums
+
+public enum D3dFeatureLevel
+{
+    Unset = 0,
+    _12_1 = 0xc100,
+    _12_2 = 0xc200,
+}
+
+public enum VulkanVersion
+{
+    Unset = 0,
+    _1_2 = 1002,
+    _1_3 = 1003,
+    _1_4 = 1004,
+}
+
+public enum GpuPreference : byte
+{
+    HighPerformance = 0,
+    MinimumPower = 1,
+    Any = 255,
+}
+
+#endregion
+
+#region GpuDeviceOptions
+
 public record struct GpuDeviceOptions
 {
-    public VulkanVersion VulkanVersion { get; set; }
-    public D3dFeatureLevel D3dFeatureLevel { get; set; }
+    public VulkanVersion VulkanVersion;
+    public D3dFeatureLevel D3dFeatureLevel;
 }
+
+#endregion
 
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuDevice

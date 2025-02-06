@@ -3,6 +3,8 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
 
+#region Enums
+
 public enum PresentMode : byte
 {
     NoBuffer,
@@ -24,6 +26,10 @@ public enum HdrType : byte
     Float16,
 }
 
+#endregion
+
+#region GpuOutputOptions
+
 /// <summary>
 /// 输出格式选择器，按选择器选择，不符合将回退，保证成功；指定格式不保证
 /// </summary>
@@ -32,27 +38,29 @@ public record struct GpuOutputFormatSelector
     /// <summary>
     /// 指定格式，忽略选择器
     /// </summary>
-    public bool Specify { get; set; }
+    public bool Specify;
     /// <summary>
     /// 如果可能，使用 srgb 格式
     /// </summary>
-    public bool Srgb { get; set; }
+    public bool Srgb;
     /// <summary>
     /// 如果可能，使用 hdr 格式，和 srgb 冲突，并且优先级更高
     /// </summary>
-    public HdrType Hdr { get; set; }
+    public HdrType Hdr;
 }
 
 public record struct GpuOutputOptions()
 {
-    public required uint Width { get; set; }
-    public required uint Height { get; set; }
-    public TextureFormat Format { get; set; } = TextureFormat.R8G8B8A8_UNorm;
-    public PresentMode PresentMode { get; set; } = PresentMode.TripleBuffer;
-    public OutputAlphaMode AlphaMode { get; set; } = OutputAlphaMode.Opaque;
-    public bool VSync { get; set; } = false;
-    public GpuOutputFormatSelector FormatSelector { get; set; } = new();
+    public required uint Width;
+    public required uint Height;
+    public TextureFormat Format = TextureFormat.R8G8B8A8_UNorm;
+    public PresentMode PresentMode = PresentMode.TripleBuffer;
+    public OutputAlphaMode AlphaMode = OutputAlphaMode.Opaque;
+    public bool VSync = false;
+    public GpuOutputFormatSelector FormatSelector;
 }
+
+#endregion
 
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuOutput
