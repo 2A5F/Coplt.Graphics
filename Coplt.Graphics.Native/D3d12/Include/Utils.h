@@ -68,7 +68,7 @@ namespace Coplt
     {
         if (arg.str->has16())
         {
-            return obj->SetPrivateData(WKPDID_D3DDebugObjectNameW, static_cast<UINT>(arg.str->len), arg.str->str16);
+            return obj->SetPrivateData(WKPDID_D3DDebugObjectNameW, static_cast<UINT>(arg.str->len * 2), arg.str->str16);
         }
         else if (arg.str->has8())
         {
