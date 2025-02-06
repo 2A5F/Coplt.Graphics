@@ -29,6 +29,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        InitializeComponent();
         try
         {
             Graphics = GraphicsInstance.LoadD3d12();
@@ -61,7 +62,6 @@ public partial class MainWindow : Window
                 }
             }
         }).Start();
-        InitializeComponent();
     }
 
     protected override void OnRender(DrawingContext drawingContext) { }

@@ -263,5 +263,11 @@ void D3d12GpuSwapChainOutput::CreateBuffers()
         rtv_handle.Offset(1, m_rtv_descriptor_size);
         m_dx_device->CreateShaderResourceView(m_buffers[i].Get(), nullptr, srv_handle);
         srv_handle.Offset(1, m_rtv_descriptor_size);
+
+        if (m_device->Debug())
+        {
+            chr | m_buffers[i]->SetName(
+                fmt::format(L"Swap Chain Buffer {} ({}, {})", i, m_cur_width, m_cur_height).c_str());
+        }
     }
 }
