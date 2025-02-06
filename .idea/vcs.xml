@@ -3,6 +3,11 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Coplt.Graphics.Native/D3d12/ThirdParty/D3D12MemoryAllocator" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Coplt.Graphics.Native/D3d12/ThirdParty/DirectX-Headers" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Coplt.Graphics.Native/D3d12/ThirdParty/DirectXTK12" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ThirdParty/cpptrace" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ThirdParty/fmt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ThirdParty/glm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ThirdParty/mimalloc" vcs="Git" />
   </component>
 </project>

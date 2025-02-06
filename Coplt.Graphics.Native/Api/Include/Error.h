@@ -215,35 +215,35 @@ namespace Coplt
                         }
                         catch (cpptrace::exception& e)
                         {
-                            const auto msg = std::string(e.what());
-                            r = FResult::Error(new String8(msg.data(), msg.size()));
+                            auto msg = std::string(e.what());
+                            r = FResult::Error(new CString(std::move(msg)));
                         }
                         catch (Exception& e)
                         {
                             const auto& msg = e.what();
-                            r = FResult::Error(new String8(msg.data(), msg.size()));
+                            r = FResult::Error(String8::Create(msg.data(), msg.size()));
                         }
 #ifdef _WINDOWS
                         catch (WException& e)
                         {
                             const auto& msg = e.what();
-                            r = FResult::Error(new String16(msg.data(), msg.size()));
+                            r = FResult::Error(String16::Create(msg.data(), msg.size()));
                         }
 #endif
                     }
                 CPPTRACE_CATCH(std::exception& ex)
                 {
                     const auto trace = to_string(cpptrace::from_current_exception());
-                    const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
-                    r = FResult::Error(new String8(msg.data(), msg.size()));
+                    auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+                    r = FResult::Error(new CString(std::move(msg)));
                 }
             }
         CPPTRACE_CATCH(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
-            const auto msg = fmt::format(
+            auto msg = fmt::format(
                 "Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
-            r = FResult::Error(new String8(msg.data(), msg.size()));
+            r = FResult::Error(new CString(std::move(msg)));
         }
         return r;
     }
@@ -262,19 +262,19 @@ namespace Coplt
                         }
                         catch (cpptrace::exception& e)
                         {
-                            const auto msg = std::string(e.what());
-                            r = FResult::Error(new String8(msg.data(), msg.size()));
+                            auto msg = std::string(e.what());
+                            r = FResult::Error(new CString(std::move(msg)));
                         }
                         catch (Exception& e)
                         {
                             const auto& msg = e.what();
-                            r = FResult::Error(new String8(msg.data(), msg.size()));
+                            r = FResult::Error(String8::Create(msg.data(), msg.size()));
                         }
 #ifdef _WINDOWS
                         catch (WException& e)
                         {
                             const auto& msg = e.what();
-                            r = FResult::Error(new String16(msg.data(), msg.size()));
+                            r = FResult::Error(String16::Create(msg.data(), msg.size()));
                         }
 #endif
                     }
@@ -282,7 +282,7 @@ namespace Coplt
                 {
                     const auto trace = to_string(cpptrace::from_current_exception());
                     const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
-                    r = FResult::Error(new String8(msg.data(), msg.size()));
+                    r = FResult::Error(new CString(msg.data(), msg.size()));
                 }
             }
         CPPTRACE_CATCH(...)
@@ -290,7 +290,7 @@ namespace Coplt
             const auto trace = to_string(cpptrace::from_current_exception());
             const auto msg = fmt::format(
                 "Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
-            r = FResult::Error(new String8(msg.data(), msg.size()));
+            r = FResult::Error(new CString(msg.data(), msg.size()));
         }
         return r;
     }

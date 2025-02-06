@@ -29,16 +29,11 @@ namespace Coplt
     {
         virtual ~FObject() noexcept = default;
         virtual size_t Release() noexcept = 0;
-        virtual void* ObjectStart() noexcept = 0;
     };
 
     struct FRcObject : FObject
     {
         virtual size_t AddRef() noexcept = 0;
-        virtual size_t AddRefWeak() noexcept = 0;
-        virtual size_t ReleaseWeak() noexcept = 0;
-        virtual b8 TryDowngrade() noexcept = 0;
-        virtual b8 TryUpgrade() noexcept = 0;
     };
 
 #ifdef FFI_SRC

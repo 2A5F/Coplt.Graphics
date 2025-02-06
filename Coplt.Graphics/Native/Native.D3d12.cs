@@ -23,58 +23,29 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[1]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, void*>)(lpVtbl[2]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[3]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[4]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[5]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, B8>)(lpVtbl[6]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, B8>)(lpVtbl[7]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[2]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, Guid*, void*>)(lpVtbl[8]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetLogger([NativeTypeName("const FLogger &")] FLogger* logger)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[9]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[4]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[10]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
     }
 
@@ -94,58 +65,29 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[1]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, void*>)(lpVtbl[2]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[3]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[4]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[5]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, B8>)(lpVtbl[6]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, B8>)(lpVtbl[7]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[2]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, Guid*, void*>)(lpVtbl[8]))((FD3d12Instance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, Guid*, void*>)(lpVtbl[3]))((FD3d12Instance*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetLogger([NativeTypeName("const FLogger &")] FLogger* logger)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[9]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
+            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[4]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[10]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
     }
 
@@ -168,51 +110,22 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[1]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, void*>)(lpVtbl[2]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[3]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[4]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[5]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, B8>)(lpVtbl[6]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, B8>)(lpVtbl[7]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[2]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[8]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 
@@ -232,51 +145,22 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[1]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, void*>)(lpVtbl[2]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[3]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[5]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, B8>)(lpVtbl[6]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, B8>)(lpVtbl[7]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[2]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[8]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 

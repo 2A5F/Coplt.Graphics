@@ -18,11 +18,6 @@ namespace Coplt.Graphics.Native
         {
             return ((delegate* unmanaged[Thiscall]<FObject*, nuint>)(lpVtbl[1]))((FObject*)Unsafe.AsPointer(ref this));
         }
-
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FObject*, void*>)(lpVtbl[2]))((FObject*)Unsafe.AsPointer(ref this));
-        }
     }
 
     [NativeTypeName("struct FRcObject : Coplt::FObject")]
@@ -41,39 +36,10 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FRcObject*, nuint>)(lpVtbl[1]))((FRcObject*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, void*>)(lpVtbl[2]))((FRcObject*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, nuint>)(lpVtbl[3]))((FRcObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, nuint>)(lpVtbl[4]))((FRcObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, nuint>)(lpVtbl[5]))((FRcObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, B8>)(lpVtbl[6]))((FRcObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FRcObject*, B8>)(lpVtbl[7]))((FRcObject*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FRcObject*, nuint>)(lpVtbl[2]))((FRcObject*)Unsafe.AsPointer(ref this));
         }
     }
 
@@ -96,44 +62,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FUnknown*, nuint>)(lpVtbl[1]))((FUnknown*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, void*>)(lpVtbl[2]))((FUnknown*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, nuint>)(lpVtbl[3]))((FUnknown*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, nuint>)(lpVtbl[4]))((FUnknown*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, nuint>)(lpVtbl[5]))((FUnknown*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, B8>)(lpVtbl[6]))((FUnknown*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, B8>)(lpVtbl[7]))((FUnknown*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FUnknown*, nuint>)(lpVtbl[2]))((FUnknown*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FUnknown*, Guid*, void*>)(lpVtbl[8]))((FUnknown*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FUnknown*, Guid*, void*>)(lpVtbl[3]))((FUnknown*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -156,44 +93,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<META_FString8*, nuint>)(lpVtbl[1]))((META_FString8*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, void*>)(lpVtbl[2]))((META_FString8*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, nuint>)(lpVtbl[3]))((META_FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, nuint>)(lpVtbl[4]))((META_FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, nuint>)(lpVtbl[5]))((META_FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, B8>)(lpVtbl[6]))((META_FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, B8>)(lpVtbl[7]))((META_FString8*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FString8*, nuint>)(lpVtbl[2]))((META_FString8*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FString8*, Guid*, void*>)(lpVtbl[8]))((META_FString8*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FString8*, Guid*, void*>)(lpVtbl[3]))((META_FString8*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -219,44 +127,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FString8*, nuint>)(lpVtbl[1]))((FString8*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString8*, void*>)(lpVtbl[2]))((FString8*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FString8*, nuint>)(lpVtbl[3]))((FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString8*, nuint>)(lpVtbl[4]))((FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString8*, nuint>)(lpVtbl[5]))((FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString8*, B8>)(lpVtbl[6]))((FString8*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString8*, B8>)(lpVtbl[7]))((FString8*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FString8*, nuint>)(lpVtbl[2]))((FString8*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FString8*, Guid*, void*>)(lpVtbl[8]))((FString8*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FString8*, Guid*, void*>)(lpVtbl[3]))((FString8*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -279,44 +158,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<META_FString16*, nuint>)(lpVtbl[1]))((META_FString16*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, void*>)(lpVtbl[2]))((META_FString16*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, nuint>)(lpVtbl[3]))((META_FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, nuint>)(lpVtbl[4]))((META_FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, nuint>)(lpVtbl[5]))((META_FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, B8>)(lpVtbl[6]))((META_FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, B8>)(lpVtbl[7]))((META_FString16*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FString16*, nuint>)(lpVtbl[2]))((META_FString16*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FString16*, Guid*, void*>)(lpVtbl[8]))((META_FString16*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FString16*, Guid*, void*>)(lpVtbl[3]))((META_FString16*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -342,44 +192,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FString16*, nuint>)(lpVtbl[1]))((FString16*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString16*, void*>)(lpVtbl[2]))((FString16*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FString16*, nuint>)(lpVtbl[3]))((FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString16*, nuint>)(lpVtbl[4]))((FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString16*, nuint>)(lpVtbl[5]))((FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString16*, B8>)(lpVtbl[6]))((FString16*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FString16*, B8>)(lpVtbl[7]))((FString16*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FString16*, nuint>)(lpVtbl[2]))((FString16*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FString16*, Guid*, void*>)(lpVtbl[8]))((FString16*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FString16*, Guid*, void*>)(lpVtbl[3]))((FString16*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -540,44 +361,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, nuint>)(lpVtbl[1]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, void*>)(lpVtbl[2]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, nuint>)(lpVtbl[3]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, nuint>)(lpVtbl[4]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, nuint>)(lpVtbl[5]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, B8>)(lpVtbl[6]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, B8>)(lpVtbl[7]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, nuint>)(lpVtbl[2]))((META_FGpuObject*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, Guid*, void*>)(lpVtbl[8]))((META_FGpuObject*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FGpuObject*, Guid*, void*>)(lpVtbl[3]))((META_FGpuObject*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -597,51 +389,22 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FGpuObject*, nuint>)(lpVtbl[1]))((FGpuObject*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, void*>)(lpVtbl[2]))((FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, nuint>)(lpVtbl[3]))((FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, nuint>)(lpVtbl[4]))((FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, nuint>)(lpVtbl[5]))((FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, B8>)(lpVtbl[6]))((FGpuObject*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, B8>)(lpVtbl[7]))((FGpuObject*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FGpuObject*, nuint>)(lpVtbl[2]))((FGpuObject*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FGpuObject*, Guid*, void*>)(lpVtbl[8]))((FGpuObject*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FGpuObject*, Guid*, void*>)(lpVtbl[3]))((FGpuObject*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuObject*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((FGpuObject*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuObject*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuObject*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 
@@ -687,51 +450,22 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[1]))((FGpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, void*>)(lpVtbl[2]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[3]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[5]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, B8>)(lpVtbl[6]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, B8>)(lpVtbl[7]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[2]))((FGpuDevice*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, Guid*, void*>)(lpVtbl[8]))((FGpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, Guid*, void*>)(lpVtbl[3]))((FGpuDevice*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 
@@ -754,44 +488,15 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<META_FInstance*, nuint>)(lpVtbl[1]))((META_FInstance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, void*>)(lpVtbl[2]))((META_FInstance*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, nuint>)(lpVtbl[3]))((META_FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, nuint>)(lpVtbl[4]))((META_FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, nuint>)(lpVtbl[5]))((META_FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, B8>)(lpVtbl[6]))((META_FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, B8>)(lpVtbl[7]))((META_FInstance*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FInstance*, nuint>)(lpVtbl[2]))((META_FInstance*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FInstance*, Guid*, void*>)(lpVtbl[8]))((META_FInstance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FInstance*, Guid*, void*>)(lpVtbl[3]))((META_FInstance*)Unsafe.AsPointer(ref this), id);
         }
     }
 
@@ -811,58 +516,29 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FInstance*, nuint>)(lpVtbl[1]))((FInstance*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, void*>)(lpVtbl[2]))((FInstance*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, nuint>)(lpVtbl[3]))((FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, nuint>)(lpVtbl[4]))((FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, nuint>)(lpVtbl[5]))((FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, B8>)(lpVtbl[6]))((FInstance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, B8>)(lpVtbl[7]))((FInstance*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FInstance*, nuint>)(lpVtbl[2]))((FInstance*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<FInstance*, Guid*, void*>)(lpVtbl[8]))((FInstance*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<FInstance*, Guid*, void*>)(lpVtbl[3]))((FInstance*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetLogger([NativeTypeName("const FLogger &")] FLogger* logger)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FLogger*, FResult*>)(lpVtbl[9]))((FInstance*)Unsafe.AsPointer(ref this), &result, logger);
+            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FLogger*, FResult*>)(lpVtbl[4]))((FInstance*)Unsafe.AsPointer(ref this), &result, logger);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[10]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
     }
 
@@ -910,51 +586,22 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[1]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
         }
 
-        public void* ObjectStart()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, void*>)(lpVtbl[2]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[3]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRefWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[4]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint ReleaseWeak()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[5]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryDowngrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, B8>)(lpVtbl[6]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::b8")]
-        public B8 TryUpgrade()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, B8>)(lpVtbl[7]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, nuint>)(lpVtbl[2]))((META_FGpuDevice*)Unsafe.AsPointer(ref this));
         }
 
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
-            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, Guid*, void*>)(lpVtbl[8]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), id);
+            return ((delegate* unmanaged[Thiscall]<META_FGpuDevice*, Guid*, void*>)(lpVtbl[3]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), id);
         }
 
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[9]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<META_FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
     }
 }

@@ -545,7 +545,7 @@ namespace Coplt
     struct ObjectImpl<This, void, Interfaces...>
         : _internal::MergeInterface<Interfaces...>::Output, ObjectRcPartialImpl, IsObject
     {
-        void* ObjectStart() noexcept override
+        virtual void* ObjectStart() noexcept
         {
             This* self = static_cast<This*>(this);
             return self;
@@ -588,22 +588,22 @@ namespace Coplt
             return ObjectRcPartialImpl::Release(this, ObjectStart(), DoFree);
         }
 
-        size_t AddRefWeak() noexcept override
+        virtual size_t AddRefWeak() noexcept
         {
             return ObjectRcPartialImpl::AddRefWeak();
         }
 
-        size_t ReleaseWeak() noexcept override
+        virtual size_t ReleaseWeak() noexcept
         {
             return ObjectRcPartialImpl::ReleaseWeak(this, ObjectStart(), DoFree);
         }
 
-        b8 TryDowngrade() noexcept override
+        virtual b8 TryDowngrade() noexcept
         {
             return ObjectRcPartialImpl::TryDowngrade();
         }
 
-        b8 TryUpgrade() noexcept override
+        virtual b8 TryUpgrade() noexcept
         {
             return ObjectRcPartialImpl::TryUpgrade();
         }
@@ -627,26 +627,6 @@ namespace Coplt
         size_t AddRef() noexcept override
         {
             return Base::AddRef();
-        }
-
-        size_t AddRefWeak() noexcept override
-        {
-            return Base::AddRefWeak();
-        }
-
-        size_t ReleaseWeak() noexcept override
-        {
-            return Base::ReleaseWeak();
-        }
-
-        b8 TryDowngrade() noexcept override
-        {
-            return Base::TryDowngrade();
-        }
-
-        b8 TryUpgrade() noexcept override
-        {
-            return Base::TryUpgrade();
         }
 
         void* QueryInterface(const Guid& id) noexcept override
