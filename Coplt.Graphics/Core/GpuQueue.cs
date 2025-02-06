@@ -3,37 +3,26 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
 
-public record struct GpuDeviceOptions
-{
-    public VulkanVersion VulkanVersion { get; set; }
-    public D3dFeatureLevel D3dFeatureLevel { get; set; }
-}
-
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuDevice
+public sealed unsafe partial class GpuQueue
 {
     #region Fields
 
-    internal FGpuDevice* m_ptr;
-    [Drop]
-    internal readonly GpuQueue m_main_queue;
+    internal FGpuQueue* m_ptr;
 
     #endregion
 
     #region Props
 
-    public FGpuDevice* Ptr => m_ptr;
-    public GpuQueue MainQueue => m_main_queue;
+    public FGpuQueue* Ptr => m_ptr;
+
+    public GpuQueueType QueueType => m_ptr->m_queue_type.FromFFI();
 
     #endregion
 
     #region Ctor
 
-    public GpuDevice(FGpuDevice* ptr, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default)
-    {
-        m_ptr = ptr;
-        m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
-    }
+    public GpuQueue(FGpuQueue* ptr) => m_ptr = ptr;
 
     #endregion
 
@@ -70,26 +59,29 @@ public sealed unsafe partial class GpuDevice
 
     #endregion
 
-    #region GetRawDevice
+    #region CreateOutputForHwnd
 
-    public void* GetRawDevice() => m_ptr->GetRawDevice();
-
-    #endregion
-
-    #region CreateMainQueue
-
-    public GpuQueue CreateMainQueue(string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    public GpuOutput CreateOutputForHwnd(
+        in GpuOutputOptions Options, IntPtr Hwnd,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
     {
         fixed (char* p_name = Name)
         {
             fixed (byte* p_name8 = Name8)
             {
-                FMainQueueCreateOptions f_options = new()
+                FGpuOutputCreateOptions f_options = new()
                 {
                     Name = new(Name, Name8, p_name, p_name8),
+                    Width = Options.Width,
+                    Height = Options.Height,
+                    Format = Options.Format.ToFFI(),
+                    PresentMode = (FPresentMode)Options.PresentMode,
+                    AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
+                    VSync = Options.VSync,
                 };
-                FGpuQueue* ptr;
-                m_ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
+                FGpuOutput* ptr;
+                m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
                 return new(ptr);
             }
         }

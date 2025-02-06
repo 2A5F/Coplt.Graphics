@@ -18,6 +18,10 @@ add_library(${target_name} STATIC
     Include/InstanceBase.h
     Include/Error.h
     FFI/GpuObject.h
+    FFI/Output.h
+    FFI/Queue.h
+    FFI/TextureFormat.h
+    FFI/States.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

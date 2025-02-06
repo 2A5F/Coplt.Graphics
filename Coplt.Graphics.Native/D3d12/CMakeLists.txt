@@ -11,6 +11,13 @@ add_library(${target_name} SHARED
     Src/Device.cc
     Src/Device.h
     Include/Utils.h
+    FFI/Queue.h
+    Src/Queue.cc
+    Src/Queue.h
+    FFI/Output.h
+    Src/Output.cc
+    Src/Output.h
+    Src/TextureFormat.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

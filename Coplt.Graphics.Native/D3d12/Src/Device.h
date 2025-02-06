@@ -15,6 +15,7 @@ namespace Coplt
         ComPtr<IDXGIFactory4> m_factory{};
         ComPtr<IDXGIAdapter1> m_adapter{};
         ComPtr<ID3D12Device2> m_device{};
+        ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
         DWORD m_callback_cookie{};
@@ -37,5 +38,9 @@ namespace Coplt
         }
 
         FResult SetName(const Str8or16& name) noexcept override;
+
+        void* GetRawDevice() noexcept override;
+
+        FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept override;
     };
 }

@@ -1,6 +1,7 @@
 #include "Device.h"
 
 #include "dxgi1_6.h"
+#include "Queue.h"
 
 using namespace Coplt;
 
@@ -136,6 +137,8 @@ D3d12GpuDevice::D3d12GpuDevice(
             }
         }
     }
+
+    chr | m_device->QueryInterface(IID_PPV_ARGS(&m_device0));
 }
 
 D3d12GpuDevice::~D3d12GpuDevice()
@@ -151,5 +154,18 @@ FResult D3d12GpuDevice::SetName(const Str8or16& name) noexcept
     return feb([&]
     {
         chr | m_device >> SetNameEx(name);
+    });
+}
+
+void* D3d12GpuDevice::GetRawDevice() noexcept
+{
+    return m_device0.Get();
+}
+
+FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GpuQueue(this->CloneThis(), options);
     });
 }

@@ -8,6 +8,5 @@
         Title="MainWindow"
         Width="960" Height="540"
         WindowStartupLocation="CenterScreen"
-        Loaded="OnLoaded"
-        Background="Transparent">
+        Loaded="OnLoaded">
 </Window>

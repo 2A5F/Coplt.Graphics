@@ -29,4 +29,16 @@ public static unsafe class Utils
     }
 
     #endregion
+
+    #region JoinUtf8String
+
+    public static byte[] JoinUtf8String(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+    {
+        var array = new byte[a.Length + b.Length];
+        a.CopyTo(array);
+        b.CopyTo(array.AsSpan(a.Length));
+        return array;
+    }
+
+    #endregion
 }

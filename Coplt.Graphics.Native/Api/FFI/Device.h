@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "Queue.h"
 
 namespace Coplt
 {
@@ -40,6 +41,9 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FGpuDevice, "557f032d-ed50-403a-adc5-214fddbe6c6b", FGpuObject)
     {
+        // d3d12 返回 ID3D12Device*
+        virtual void* GetRawDevice() noexcept = 0;
 
+        virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
     };
 }

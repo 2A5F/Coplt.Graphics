@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -21,15 +22,28 @@ public partial class MainWindow : Window
 {
     private GraphicsInstance Graphics;
     private GpuDevice Device;
+    private GpuOutput Output;
     private IntPtr Handle;
 
     public MainWindow()
     {
-        Graphics = GraphicsInstance.LoadD3d12();
-        Graphics.SetLogger((level, _) => Log.IsEnabled(level.ToLogEventLevel()),
-            (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg));
-        Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
-        Handle = new WindowInteropHelper(this).EnsureHandle();
+        try
+        {
+            Graphics = GraphicsInstance.LoadD3d12();
+            Graphics.SetLogger((level, _) => Log.IsEnabled(level.ToLogEventLevel()),
+                (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg));
+            Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
+            Handle = new WindowInteropHelper(this).EnsureHandle();
+            Output = Device.MainQueue.CreateOutputForHwnd(new()
+            {
+                Width = (uint)Width,
+                Height = (uint)Height,
+            }, Handle);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "");
+        }
         InitializeComponent();
     }
 

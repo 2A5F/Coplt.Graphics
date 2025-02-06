@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.IO;
+using System.Text;
 using System.Windows;
 using Serilog;
 using Serilog.Exceptions;
@@ -14,8 +15,10 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        Console.OutputEncoding = Encoding.UTF8;
+        
         base.OnStartup(e);
-
+        
         InitLogger();
     }
 
@@ -52,6 +55,7 @@ public partial class App : Application
             .Enrich.WithThreadName()
             .Enrich.WithExceptionDetails()
             .WriteTo.Console()
+            .WriteTo.Debug()
             .WriteTo.Async(c => c.File("./logs/latest.log"))
             .CreateLogger();
     }

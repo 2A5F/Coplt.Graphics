@@ -205,7 +205,7 @@ public unsafe partial class GraphicsInstance
 
     #endregion
 
-    #region Device
+    #region CreateDevice
 
     public GpuDevice CreateDevice(
         GpuDeviceOptions options = default,
@@ -215,6 +215,9 @@ public unsafe partial class GraphicsInstance
         bool Debug = false
     )
     {
+        var QueueName = !Debug || Name is null ? null : $"{Name} Main Queue";
+        var QueueName8 = !Debug || Name8.Length == 0 ? Name8 : Utils.JoinUtf8String(Name8, " Main Queue"u8);
+
         fixed (char* p_name = Name)
         {
             fixed (byte* p_name8 = Name8)
@@ -229,7 +232,7 @@ public unsafe partial class GraphicsInstance
                 };
                 FGpuDevice* ptr;
                 m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-                return new(ptr);
+                return new(ptr, QueueName: QueueName, QueueName8: QueueName8);
             }
         }
     }

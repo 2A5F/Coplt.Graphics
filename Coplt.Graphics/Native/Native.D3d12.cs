@@ -127,6 +127,18 @@ namespace Coplt.Graphics.Native.D3d12
             FResult result;
             return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
+
+        public void* GetRawDevice()
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, void*>)(lpVtbl[5]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateMainQueue([NativeTypeName("const FMainQueueCreateOptions &")] FMainQueueCreateOptions* options, FGpuQueue** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
     }
 
     [NativeTypeName("struct FD3d12GpuDevice : Coplt::_internal::META_FD3d12GpuDevice")]
@@ -161,6 +173,207 @@ namespace Coplt.Graphics.Native.D3d12
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public void* GetRawDevice()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, void*>)(lpVtbl[5]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateMainQueue([NativeTypeName("const FMainQueueCreateOptions &")] FMainQueueCreateOptions* options, FGpuQueue** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+    }
+
+    [NativeTypeName("struct META_FD3d12GpuQueue : Coplt::FGpuQueue")]
+    public unsafe partial struct META_FD3d12GpuQueue
+    {
+        public FGpuQueue Base;
+
+        [NativeTypeName("const wchar_t *const")]
+        public const string s_FFI_GUID = "11a59db3-49d8-4158-a276-5d80fd37d85f";
+    }
+
+    [NativeTypeName("struct FD3d12GpuQueue : Coplt::_internal::META_FD3d12GpuQueue")]
+    public unsafe partial struct FD3d12GpuQueue
+    {
+        public META_FD3d12GpuQueue Base;
+    }
+
+    [NativeTypeName("struct META_FD3d12GpuOutput : Coplt::FGpuOutput")]
+    public unsafe partial struct META_FD3d12GpuOutput
+    {
+        public void** lpVtbl;
+
+        [NativeTypeName("const wchar_t *const")]
+        public const string s_FFI_GUID = "8d068a07-118c-4d1b-9ab0-384576b61897";
+
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, void>)(lpVtbl[0]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, nuint>)(lpVtbl[1]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, nuint>)(lpVtbl[2]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((META_FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+        }
+    }
+
+    [NativeTypeName("struct FD3d12GpuOutput : Coplt::_internal::META_FD3d12GpuOutput")]
+    public unsafe partial struct FD3d12GpuOutput
+    {
+        public void** lpVtbl;
+
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, void>)(lpVtbl[0]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, nuint>)(lpVtbl[1]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, nuint>)(lpVtbl[2]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+        }
+    }
+
+    [NativeTypeName("struct META_FD3d12GpuSwapChainOutput : Coplt::FD3d12GpuOutput")]
+    public unsafe partial struct META_FD3d12GpuSwapChainOutput
+    {
+        public void** lpVtbl;
+
+        [NativeTypeName("const wchar_t *const")]
+        public const string s_FFI_GUID = "5ee90a8d-8c3d-48ad-915e-87f3d28dabe7";
+
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, void>)(lpVtbl[0]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, nuint>)(lpVtbl[1]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, nuint>)(lpVtbl[2]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuSwapChainOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((META_FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+        }
+    }
+
+    [NativeTypeName("struct FD3d12GpuSwapChainOutput : Coplt::_internal::META_FD3d12GpuSwapChainOutput")]
+    public unsafe partial struct FD3d12GpuSwapChainOutput
+    {
+        public void** lpVtbl;
+
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, void>)(lpVtbl[0]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, nuint>)(lpVtbl[1]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, nuint>)(lpVtbl[2]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this));
+        }
+
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuSwapChainOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FD3d12GpuSwapChainOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
     }
 
