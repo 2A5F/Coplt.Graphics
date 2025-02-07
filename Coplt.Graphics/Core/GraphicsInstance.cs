@@ -232,7 +232,7 @@ public unsafe partial class GraphicsInstance
                 };
                 FGpuDevice* ptr;
                 m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-                return new(ptr, QueueName: QueueName, QueueName8: QueueName8);
+                return new(ptr, Name, QueueName: QueueName, QueueName8: QueueName8);
             }
         }
     }

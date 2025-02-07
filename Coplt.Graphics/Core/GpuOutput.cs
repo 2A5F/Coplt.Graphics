@@ -69,6 +69,7 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
     #region Fields
 
     internal FGpuOutput* m_ptr;
+    internal string? m_name;
     internal readonly GpuQueue m_queue;
 
     #endregion
@@ -83,10 +84,11 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     #region Ctor
 
-    internal GpuOutput(GpuQueue queue, FGpuOutput* ptr)
+    internal GpuOutput(GpuQueue queue, FGpuOutput* ptr, string? name)
     {
         m_queue = queue;
         m_ptr = ptr;
+        m_name = name;
     }
 
     #endregion
@@ -106,6 +108,7 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     public void SetName(string name)
     {
+        m_name = name;
         fixed (char* ptr = name)
         {
             Str8or16 str = new() { str16 = ptr, len = name.Length };
@@ -115,12 +118,20 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     public void SetName(ReadOnlySpan<byte> name)
     {
+        m_name = null;
         fixed (byte* ptr = name)
         {
             Str8or16 str = new() { str8 = ptr, len = name.Length };
             m_ptr->SetName(&str).TryThrow();
         }
     }
+
+    #endregion
+
+    #region ToString
+
+    public override string ToString() =>
+        m_name is null ? $"{nameof(GpuOutput)}({(nuint)m_ptr:X})" : $"{nameof(GpuOutput)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 
@@ -132,6 +143,10 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
+    void IView.UnsafeChangeState(FResourceState state)
+    {
+        m_ptr->m_state.ChangeState(state);
+    }
 
     #endregion
 

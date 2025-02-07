@@ -4,7 +4,14 @@ namespace Coplt.Graphics;
 
 public interface IView
 {
+    public GpuQueue Queue { get; }
+    
     public FResourceMeta GetMeta();
+
+    /// <summary>
+    /// 只是用来追踪最终状态的，实际过渡不会使用
+    /// </summary>
+    public void UnsafeChangeState(FResourceState state);
 }
 
 public interface ICbv : IView;

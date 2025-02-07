@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
@@ -52,6 +53,7 @@ public sealed class CommandList
 
     private int AddResource<T>(T resource) where T : IView
     {
+        if (resource.Queue != m_queue) throw new ArgumentException($"Resource {resource} does not belong to queue {m_queue}");
         ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(m_resources, resource, out var exists);
         if (!exists)
         {
@@ -105,6 +107,7 @@ public sealed class CommandList
             Flags = (FCommandFlags)flags,
             ClearColor = cmd,
         });
+        image.UnsafeChangeState(FResourceState.RenderTarget);
     }
 
     #endregion

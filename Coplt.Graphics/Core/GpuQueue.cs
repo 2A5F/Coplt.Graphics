@@ -1,4 +1,5 @@
-﻿using Coplt.Dropping;
+﻿using System.Text;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
@@ -23,6 +24,7 @@ public sealed unsafe partial class GpuQueue
     #region Fields
 
     internal FGpuQueue* m_ptr;
+    internal string? m_name;
     internal readonly Lock m_lock = new();
     internal readonly CommandList m_cmd;
 
@@ -40,8 +42,9 @@ public sealed unsafe partial class GpuQueue
 
     #region Ctor
 
-    internal GpuQueue(FGpuQueue* ptr)
+    internal GpuQueue(FGpuQueue* ptr, string? name)
     {
+        m_name = name;
         m_ptr = ptr;
         m_cmd = new(this);
     }
@@ -64,6 +67,7 @@ public sealed unsafe partial class GpuQueue
 
     public void SetName(string name)
     {
+        m_name = name;
         fixed (char* ptr = name)
         {
             Str8or16 str = new() { str16 = ptr, len = name.Length };
@@ -78,7 +82,15 @@ public sealed unsafe partial class GpuQueue
             Str8or16 str = new() { str8 = ptr, len = name.Length };
             m_ptr->SetName(&str).TryThrow();
         }
+        m_name = null;
     }
+
+    #endregion
+
+    #region ToString
+
+    public override string ToString() =>
+        m_name is null ? $"{nameof(GpuQueue)}({(nuint)m_ptr:X})" : $"{nameof(GpuQueue)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 
@@ -111,7 +123,7 @@ public sealed unsafe partial class GpuQueue
                 };
                 FGpuOutput* ptr;
                 m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
-                return new(this, ptr);
+                return new(this, ptr, Name);
             }
         }
     }

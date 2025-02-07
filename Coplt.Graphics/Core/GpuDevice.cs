@@ -1,4 +1,5 @@
-﻿using Coplt.Dropping;
+﻿using System.Text;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
@@ -45,6 +46,7 @@ public sealed unsafe partial class GpuDevice
     #region Fields
 
     internal FGpuDevice* m_ptr;
+    internal string? m_name;
     [Drop]
     internal readonly GpuQueue m_main_queue;
 
@@ -60,8 +62,9 @@ public sealed unsafe partial class GpuDevice
 
     #region Ctor
 
-    internal GpuDevice(FGpuDevice* ptr, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default)
+    internal GpuDevice(FGpuDevice* ptr, string? name, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default)
     {
+        m_name = name;
         m_ptr = ptr;
         m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
     }
@@ -83,6 +86,7 @@ public sealed unsafe partial class GpuDevice
 
     public void SetName(string name)
     {
+        m_name = name;
         fixed (char* ptr = name)
         {
             Str8or16 str = new() { str16 = ptr, len = name.Length };
@@ -92,12 +96,20 @@ public sealed unsafe partial class GpuDevice
 
     public void SetName(ReadOnlySpan<byte> name)
     {
+        m_name = null;
         fixed (byte* ptr = name)
         {
             Str8or16 str = new() { str8 = ptr, len = name.Length };
             m_ptr->SetName(&str).TryThrow();
         }
     }
+
+    #endregion
+
+    #region ToString
+
+    public override string ToString() =>
+        m_name is null ? $"{nameof(GpuDevice)}({(nuint)m_ptr:X})" : $"{nameof(GpuDevice)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 
@@ -121,7 +133,7 @@ public sealed unsafe partial class GpuDevice
                 };
                 FGpuQueue* ptr;
                 m_ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
-                return new(ptr);
+                return new(ptr, Name);
             }
         }
     }
