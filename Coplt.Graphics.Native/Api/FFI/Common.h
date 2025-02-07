@@ -48,4 +48,6 @@
 #endif
 #endif
 
+#define COPLT_U32_MAX 4294967295
+
 #include "./Types.h"

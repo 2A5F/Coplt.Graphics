@@ -41,4 +41,17 @@ public static unsafe class Utils
     }
 
     #endregion
+
+    #region AlignOf
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AlignOfHelper<T> where T : unmanaged
+    {
+        public byte dummy;
+        public T data;
+    }
+
+    public static int AlignOf<T>() where T : unmanaged => sizeof(AlignOfHelper<T>) - sizeof(T);
+
+    #endregion
 }

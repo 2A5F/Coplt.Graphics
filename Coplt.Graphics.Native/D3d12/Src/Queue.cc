@@ -73,17 +73,29 @@ D3d12GpuQueue::~D3d12GpuQueue() noexcept
     m_command_list->Close();
 }
 
-void D3d12GpuQueue::Submit(ComPtr<ID3D12CommandAllocator>& command_allocator)
+void D3d12GpuQueue::Submit(
+    ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit
+)
 {
     std::lock_guard lock(m_mutex);
-    SubmitNoLock(command_allocator);
+    SubmitNoLock(command_allocator, submit);
 }
 
-void D3d12GpuQueue::SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator)
+void D3d12GpuQueue::SubmitNoLock(
+    ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit
+)
 {
-    chr | m_command_list->Close();
-    ID3D12CommandList* command_lists[1] = {m_command_list.Get()};
-    m_queue->ExecuteCommandLists(1, command_lists);
+    if (submit == nullptr)
+    {
+        chr | m_command_list->Close();
+    }
+    else
+    {
+        m_command_interpreter.Interpret(m_command_list.Get(), *submit);
+        chr | m_command_list->Close();
+        ID3D12CommandList* command_lists[1] = {m_command_list.Get()};
+        m_queue->ExecuteCommandLists(1, command_lists);
+    }
 
     std::swap(m_command_allocator, command_allocator);
     chr | m_command_list->Reset(m_command_allocator.Get(), nullptr);

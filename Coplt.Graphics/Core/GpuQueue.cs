@@ -23,6 +23,8 @@ public sealed unsafe partial class GpuQueue
     #region Fields
 
     internal FGpuQueue* m_ptr;
+    internal readonly Lock m_lock = new();
+    internal readonly CommandList m_cmd;
 
     #endregion
 
@@ -32,11 +34,17 @@ public sealed unsafe partial class GpuQueue
 
     public GpuQueueType QueueType => m_ptr->m_queue_type.FromFFI();
 
+    public CommandList CommandList => m_cmd;
+
     #endregion
 
     #region Ctor
 
-    public GpuQueue(FGpuQueue* ptr) => m_ptr = ptr;
+    internal GpuQueue(FGpuQueue* ptr)
+    {
+        m_ptr = ptr;
+        m_cmd = new(this);
+    }
 
     #endregion
 
@@ -45,6 +53,7 @@ public sealed unsafe partial class GpuQueue
     [Drop]
     private void Drop()
     {
+        using var _ = m_lock.EnterScope();
         if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
         ptr->Release();
     }
@@ -102,7 +111,7 @@ public sealed unsafe partial class GpuQueue
                 };
                 FGpuOutput* ptr;
                 m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
-                return new(ptr);
+                return new(this, ptr);
             }
         }
     }

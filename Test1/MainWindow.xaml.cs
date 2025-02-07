@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Coplt.Graphics;
+using Coplt.Mathematics;
 using Serilog;
 
 namespace Test1;
@@ -41,6 +42,7 @@ public partial class MainWindow : Window
             {
                 Width = (uint)Width,
                 Height = (uint)Height,
+                VSync = true,
             }, Handle);
             Output.Present();
         }
@@ -50,10 +52,12 @@ public partial class MainWindow : Window
         }
         new Thread(() =>
         {
+            var cmd = Device.MainCommandList;
             while (!IsClosed)
             {
                 try
                 {
+                    cmd.ClearColor(Output, new float4(1, 1, 1, 1));
                     Output.Present();
                 }
                 catch (Exception e)

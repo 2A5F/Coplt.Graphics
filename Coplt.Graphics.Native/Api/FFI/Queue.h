@@ -2,6 +2,7 @@
 
 #include "GpuObject.h"
 #include "Output.h"
+#include "Command.h"
 
 namespace Coplt
 {

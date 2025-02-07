@@ -22,6 +22,8 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
 
     m_v_sync = options.VSync;
 
+    m_state = FResourceState::Present;
+
     bool is_hdr = false;
     m_format = SelectFormat(options, is_hdr);
 
@@ -125,7 +127,7 @@ D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
 }
 
 FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(
-    const FGpuOutputCreateOptions& options,  bool& is_hdr
+    const FGpuOutputCreateOptions& options, bool& is_hdr
 )
 {
     if (options.FormatSelector.Specify) return options.Format;
@@ -183,23 +185,24 @@ FResult D3d12GpuSwapChainOutput::Resize(const u32 Width, const u32 Height) noexc
     });
 }
 
-FResult D3d12GpuSwapChainOutput::Present() noexcept
+FResult D3d12GpuSwapChainOutput::Present(/* 可选 */ const FCommandSubmit* submit) noexcept
 {
     return feb([&]
     {
         std::lock_guard lock(m_queue->m_mutex);
-        m_queue->SubmitNoLock(m_command_allocators[m_frame_index]);
-        PresentNoWait_NoLock();
+        Submit_NoLock(submit);
+        Present_NoLock();
         WaitNextFrame_NoLock();
     });
 }
 
-FResult D3d12GpuSwapChainOutput::PresentNoWait() noexcept
+FResult D3d12GpuSwapChainOutput::PresentNoWait(/* 可选 */ const FCommandSubmit* submit) noexcept
 {
     return feb([&]
     {
         std::lock_guard lock(m_queue->m_mutex);
-        PresentNoWait_NoLock();
+        Submit_NoLock(submit);
+        Present_NoLock();
     });
 }
 
@@ -212,7 +215,12 @@ FResult D3d12GpuSwapChainOutput::WaitNextFrame() noexcept
     });
 }
 
-void D3d12GpuSwapChainOutput::PresentNoWait_NoLock()
+void D3d12GpuSwapChainOutput::Submit_NoLock(const FCommandSubmit* submit)
+{
+    m_queue->SubmitNoLock(m_command_allocators[m_frame_index], submit);
+}
+
+void D3d12GpuSwapChainOutput::Present_NoLock()
 {
     chr | m_swap_chain->Present(m_v_sync ? 1 : 0, 0);
     Signal_NoLock();

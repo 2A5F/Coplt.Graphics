@@ -7,6 +7,7 @@
 #include "../Include/Utils.h"
 #include "../../Api/Include/Object.h"
 #include "../FFI/Queue.h"
+#include "Command.h"
 
 namespace Coplt
 {
@@ -18,6 +19,8 @@ namespace Coplt
         ComPtr<ID3D12CommandAllocator> m_command_allocator{};
         ComPtr<ID3D12GraphicsCommandList> m_command_list{};
         std::mutex m_mutex{};
+
+        D3d12CommandInterpreter m_command_interpreter{};
 
         explicit D3d12GpuQueue(Rc<D3d12GpuDevice>&& device, const FMainQueueCreateOptions& options);
 
@@ -34,8 +37,8 @@ namespace Coplt
         ~D3d12GpuQueue() noexcept override;
 
         // 提交命令，并互换命令分配器，参数提供的 command_allocator 必须可用
-        void Submit(ComPtr<ID3D12CommandAllocator>& command_allocator);
+        void Submit(ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit);
         // 提交命令，并互换命令分配器，但是无锁，需要外部手动锁，参数提供的 command_allocator 必须可用
-        void SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator);
+        void SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit);
     };
 } // Coplt

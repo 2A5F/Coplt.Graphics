@@ -1,173 +1,54 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static Coplt.Graphics.Native.D3d12.D3d12Native;
 
 namespace Coplt.Graphics.Native.D3d12
 {
-    [NativeTypeName("struct META_FD3d12Instance : Coplt::FInstance")]
-    public unsafe partial struct META_FD3d12Instance
+    [Guid("2F979FA9-5CB0-4396-BB59-16094B0F9B1A")]
+    [NativeTypeName("struct FD3d12Instance : Coplt::FInstance")]
+    public unsafe partial struct FD3d12Instance : INativeGuid
     {
-        public void** lpVtbl;
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12Instance));
 
-        [NativeTypeName("const wchar_t *const")]
-        public const string s_FFI_GUID = "2f979fa9-5cb0-4396-bb59-16094b0f9b1a";
-
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, void>)(lpVtbl[0]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[1]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, nuint>)(lpVtbl[2]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetLogger([NativeTypeName("const FLogger &")] FLogger* logger)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[4]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((META_FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
+        public FInstance Base;
     }
 
-    [NativeTypeName("struct FD3d12Instance : Coplt::_internal::META_FD3d12Instance")]
-    public unsafe partial struct FD3d12Instance
+    [Guid("DB7CE2BC-155A-4FCC-9F7F-137694191CA7")]
+    [NativeTypeName("struct FD3d12GpuDevice : Coplt::FGpuDevice")]
+    public unsafe partial struct FD3d12GpuDevice : FD3d12GpuDevice.Interface, INativeGuid
     {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuDevice));
+
         public void** lpVtbl;
 
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<FD3d12Instance*, void>)(lpVtbl[0]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[1]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, nuint>)(lpVtbl[2]))((FD3d12Instance*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<FD3d12Instance*, Guid*, void*>)(lpVtbl[3]))((FD3d12Instance*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetLogger([NativeTypeName("const FLogger &")] FLogger* logger)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FLogger*, FResult*>)(lpVtbl[4]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, logger);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12Instance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((FD3d12Instance*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-    }
-
-    [NativeTypeName("struct META_FD3d12GpuDevice : Coplt::FGpuDevice")]
-    public unsafe partial struct META_FD3d12GpuDevice
-    {
-        public void** lpVtbl;
-
-        [NativeTypeName("const wchar_t *const")]
-        public const string s_FFI_GUID = "db7ce2bc-155a-4fcc-9f7f-137694191ca7";
-
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, void>)(lpVtbl[0]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[1]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, nuint>)(lpVtbl[2]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[3]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
-        }
-
-        public void* GetRawDevice()
-        {
-            return ((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, void*>)(lpVtbl[5]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateMainQueue([NativeTypeName("const FMainQueueCreateOptions &")] FMainQueueCreateOptions* options, FGpuQueue** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<META_FD3d12GpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((META_FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-    }
-
-    [NativeTypeName("struct FD3d12GpuDevice : Coplt::_internal::META_FD3d12GpuDevice")]
-    public unsafe partial struct FD3d12GpuDevice
-    {
-        public void** lpVtbl;
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, void>)(lpVtbl[0]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("size_t")]
         public nuint Release()
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[1]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("size_t")]
         public nuint AddRef()
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, nuint>)(lpVtbl[2]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), id);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
         public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
         {
@@ -175,62 +56,50 @@ namespace Coplt.Graphics.Native.D3d12
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void* GetRawDevice()
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, void*>)(lpVtbl[5]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateMainQueue([NativeTypeName("const FMainQueueCreateOptions &")] FMainQueueCreateOptions* options, FGpuQueue** @out)
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
+
+        public interface Interface : FGpuDevice.Interface
+        {
+        }
     }
 
-    [NativeTypeName("struct META_FD3d12GpuQueue : Coplt::FGpuQueue")]
-    public unsafe partial struct META_FD3d12GpuQueue
+    [Guid("11A59DB3-49D8-4158-A276-5D80FD37D85F")]
+    [NativeTypeName("struct FD3d12GpuQueue : Coplt::FGpuQueue")]
+    public unsafe partial struct FD3d12GpuQueue : INativeGuid
     {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuQueue));
+
         public FGpuQueue Base;
-
-        [NativeTypeName("const wchar_t *const")]
-        public const string s_FFI_GUID = "11a59db3-49d8-4158-a276-5d80fd37d85f";
     }
 
-    [NativeTypeName("struct FD3d12GpuQueue : Coplt::_internal::META_FD3d12GpuQueue")]
-    public unsafe partial struct FD3d12GpuQueue
+    [Guid("8D068A07-118C-4D1B-9AB0-384576B61897")]
+    [NativeTypeName("struct FD3d12GpuOutput : Coplt::FGpuOutput")]
+    public unsafe partial struct FD3d12GpuOutput : INativeGuid
     {
-        public META_FD3d12GpuQueue Base;
-    }
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuOutput));
 
-    [NativeTypeName("struct META_FD3d12GpuOutput : Coplt::FGpuOutput")]
-    public unsafe partial struct META_FD3d12GpuOutput
-    {
         public FGpuOutput Base;
-
-        [NativeTypeName("const wchar_t *const")]
-        public const string s_FFI_GUID = "8d068a07-118c-4d1b-9ab0-384576b61897";
     }
 
-    [NativeTypeName("struct FD3d12GpuOutput : Coplt::_internal::META_FD3d12GpuOutput")]
-    public unsafe partial struct FD3d12GpuOutput
+    [Guid("5EE90A8D-8C3D-48AD-915E-87F3D28DABE7")]
+    [NativeTypeName("struct FD3d12GpuSwapChainOutput : Coplt::FD3d12GpuOutput")]
+    public unsafe partial struct FD3d12GpuSwapChainOutput : INativeGuid
     {
-        public META_FD3d12GpuOutput Base;
-    }
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuSwapChainOutput));
 
-    [NativeTypeName("struct META_FD3d12GpuSwapChainOutput : Coplt::FD3d12GpuOutput")]
-    public unsafe partial struct META_FD3d12GpuSwapChainOutput
-    {
         public FD3d12GpuOutput Base;
-
-        [NativeTypeName("const wchar_t *const")]
-        public const string s_FFI_GUID = "5ee90a8d-8c3d-48ad-915e-87f3d28dabe7";
-    }
-
-    [NativeTypeName("struct FD3d12GpuSwapChainOutput : Coplt::_internal::META_FD3d12GpuSwapChainOutput")]
-    public unsafe partial struct FD3d12GpuSwapChainOutput
-    {
-        public META_FD3d12GpuSwapChainOutput Base;
     }
 
     public static unsafe partial class D3d12Native
@@ -238,5 +107,15 @@ namespace Coplt.Graphics.Native.D3d12
         [DllImport("Coplt.Graphics.Native.D3d12", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("Coplt::FInstance *")]
         public static extern FInstance* Coplt_Graphics_D3d12_Create_Instance();
+
+        public static readonly Guid IID_FD3d12Instance = new Guid(0x2F979FA9, 0x5CB0, 0x4396, 0xBB, 0x59, 0x16, 0x09, 0x4B, 0x0F, 0x9B, 0x1A);
+
+        public static readonly Guid IID_FD3d12GpuDevice = new Guid(0xDB7CE2BC, 0x155A, 0x4FCC, 0x9F, 0x7F, 0x13, 0x76, 0x94, 0x19, 0x1C, 0xA7);
+
+        public static readonly Guid IID_FD3d12GpuQueue = new Guid(0x11A59DB3, 0x49D8, 0x4158, 0xA2, 0x76, 0x5D, 0x80, 0xFD, 0x37, 0xD8, 0x5F);
+
+        public static readonly Guid IID_FD3d12GpuOutput = new Guid(0x8D068A07, 0x118C, 0x4D1B, 0x9A, 0xB0, 0x38, 0x45, 0x76, 0xB6, 0x18, 0x97);
+
+        public static readonly Guid IID_FD3d12GpuSwapChainOutput = new Guid(0x5EE90A8D, 0x8C3D, 0x48AD, 0x91, 0x5E, 0x87, 0xF3, 0xD2, 0x8D, 0xAB, 0xE7);
     }
 }

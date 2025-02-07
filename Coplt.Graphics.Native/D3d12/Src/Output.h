@@ -51,11 +51,12 @@ namespace Coplt
 
         FResult Resize(u32 Width, u32 Height) noexcept override;
 
-        FResult Present() noexcept override;
-        FResult PresentNoWait() noexcept override;
+        FResult Present(/* 可选 */ const FCommandSubmit* submit) noexcept override;
+        FResult PresentNoWait(/* 可选 */ const FCommandSubmit* submit) noexcept override;
         FResult WaitNextFrame() noexcept override;
 
-        void PresentNoWait_NoLock();
+        void Submit_NoLock(/* 可选 */ const FCommandSubmit* submit);
+        void Present_NoLock();
         void WaitNextFrame_NoLock();
         void Resize_NoLock(u32 width, u32 height);
 

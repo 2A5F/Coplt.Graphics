@@ -1,4 +1,5 @@
-﻿using Coplt.Dropping;
+﻿using System.Runtime.InteropServices;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics;
@@ -63,11 +64,12 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput
+public sealed unsafe partial class GpuOutput : IRtv, ISrv
 {
     #region Fields
 
     internal FGpuOutput* m_ptr;
+    internal readonly GpuQueue m_queue;
 
     #endregion
 
@@ -75,11 +77,17 @@ public sealed unsafe partial class GpuOutput
 
     public FGpuOutput* Ptr => m_ptr;
 
+    public GpuQueue Queue => m_queue;
+
     #endregion
 
     #region Ctor
 
-    public GpuOutput(FGpuOutput* ptr) => m_ptr = ptr;
+    internal GpuOutput(GpuQueue queue, FGpuOutput* ptr)
+    {
+        m_queue = queue;
+        m_ptr = ptr;
+    }
 
     #endregion
 
@@ -116,22 +124,107 @@ public sealed unsafe partial class GpuOutput
 
     #endregion
 
+    #region GetMeta
+
+    FResourceMeta IView.GetMeta() => new()
+    {
+        CurrentState = m_ptr->m_state,
+        Type = FResourceRefType.Output,
+        Output = m_ptr,
+    };
+
+    #endregion
+
     #region Present
 
     /// <summary>
     /// 提交命令并等待下帧可用
     /// </summary>
-    public void Present() => m_ptr->Present().TryThrow();
+    public void Present()
+    {
+        using var _ = Queue.m_lock.EnterScope();
+        var cmd = Queue.m_cmd;
+        if (cmd.m_resource_metas.Count == 0)
+        {
+            m_ptr->Present(null).TryThrow();
+        }
+        else
+        {
+            fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+            {
+                fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+                {
+                    fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
+                    {
+                        FCommandSubmit submit = new()
+                        {
+                            Resources = p_resources,
+                            Items = p_commands,
+                            Payload = p_payload,
+                            Count = (uint)cmd.m_resource_metas.Count,
+                        };
+                        try
+                        {
+                            m_ptr->Present(&submit).TryThrow();
+                        }
+                        finally
+                        {
+                            cmd.Reset();
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 提交命令
     /// </summary>
-    public void PresentNoWait() => m_ptr->PresentNoWait().TryThrow();
+    public void PresentNoWait()
+    {
+        using var _ = Queue.m_lock.EnterScope();
+        var cmd = Queue.m_cmd;
+        if (cmd.m_resource_metas.Count == 0)
+        {
+            m_ptr->PresentNoWait(null).TryThrow();
+        }
+        else
+        {
+            fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+            {
+                fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+                {
+                    fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
+                    {
+                        FCommandSubmit submit = new()
+                        {
+                            Resources = p_resources,
+                            Items = p_commands,
+                            Payload = p_payload,
+                            Count = (uint)cmd.m_resource_metas.Count,
+                        };
+                        try
+                        {
+                            m_ptr->PresentNoWait(&submit).TryThrow();
+                        }
+                        finally
+                        {
+                            cmd.Reset();
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 等待下帧可用
     /// </summary>
-    public void WaitNextFrame() => m_ptr->WaitNextFrame().TryThrow();
+    public void WaitNextFrame()
+    {
+        using var _ = Queue.m_lock.EnterScope();
+        m_ptr->WaitNextFrame().TryThrow();
+    }
 
     #endregion
 

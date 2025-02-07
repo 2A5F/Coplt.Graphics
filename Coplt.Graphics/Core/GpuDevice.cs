@@ -54,12 +54,13 @@ public sealed unsafe partial class GpuDevice
 
     public FGpuDevice* Ptr => m_ptr;
     public GpuQueue MainQueue => m_main_queue;
+    public CommandList MainCommandList => MainQueue.CommandList;
 
     #endregion
 
     #region Ctor
 
-    public GpuDevice(FGpuDevice* ptr, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default)
+    internal GpuDevice(FGpuDevice* ptr, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default)
     {
         m_ptr = ptr;
         m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);

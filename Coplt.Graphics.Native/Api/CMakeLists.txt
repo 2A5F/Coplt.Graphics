@@ -22,6 +22,10 @@ add_library(${target_name} STATIC
     FFI/Queue.h
     FFI/TextureFormat.h
     FFI/States.h
+    Src/Allocator.cc
+    Src/Allocator.h
+    FFI/List.h
+    FFI/Command.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

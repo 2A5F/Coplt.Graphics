@@ -2,6 +2,12 @@
 
 #include "Common.h"
 
+#ifdef _MSC_VER
+#define COPLT_UUID_MARK(ID) __declspec( uuid(ID) )
+#else
+#define COPLT_UUID_MARK(ID)
+#endif
+
 #ifdef FFI_SRC
 #define COPLT_INTERFACE_GUID(ID) constexpr static Guid GUID = Guid(ID);
 #define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : __VA_ARGS__ {\
@@ -14,13 +20,10 @@ private:\
         return ::Coplt::_internal::DoQueryInterface<__VA_ARGS__>::QueryInterface(self, id);\
     }\
 };};\
-struct NAME : _internal::META_##NAME
+struct COPLT_UUID_MARK(ID) NAME : _internal::META_##NAME
 #else
 #define COPLT_INTERFACE_GUID(ID) constexpr static auto s_FFI_GUID = L##ID;
-#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : __VA_ARGS__ {\
-COPLT_INTERFACE_GUID(ID)\
-};};\
-struct NAME : _internal::META_##NAME
+#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) struct COPLT_UUID_MARK(ID) NAME : __VA_ARGS__
 #endif
 
 namespace Coplt
@@ -77,7 +80,7 @@ namespace Coplt
 
 #endif
 
-    struct FUnknown : FRcObject
+    struct COPLT_UUID_MARK("00000000-0000-0000-0000-000000000000") FUnknown : FRcObject
     {
         COPLT_INTERFACE_GUID("00000000-0000-0000-0000-000000000000");
 
