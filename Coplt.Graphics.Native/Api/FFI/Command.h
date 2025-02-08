@@ -10,6 +10,8 @@ namespace Coplt
         None,
         // 手动资源过渡
         Transition,
+        // 仅内部使用
+        Present,
         ClearColor,
     };
 
@@ -31,17 +33,35 @@ namespace Coplt
     {
         union
         {
-            FGpuOutput* Output;
+            FGpuOutput* Output{};
             // todo other
         };
 
         FResourceState CurrentState{};
         FResourceRefType Type{};
+
+#ifdef FFI_SRC
+        FUnknown* GetObjectPtr() const
+        {
+            switch (Type)
+            {
+            case FResourceRefType::Texture:
+                return nullptr; // todo
+            case FResourceRefType::Output:
+                return Output;
+            }
+            return nullptr; // todo
+        }
+#endif
     };
 
     struct FResourceSrc
     {
         u32 ResourceIndex{};
+
+#ifdef FFI_SRC
+        FResourceMeta& Get(const FCommandSubmit& submit) const;
+#endif
     };
 
     struct FRect
@@ -57,6 +77,11 @@ namespace Coplt
         FResourceSrc Resource{};
         FResourceState SrcState{};
         FResourceState DstState{};
+    };
+
+    struct FCommandPresent
+    {
+        FResourceSrc Image{};
     };
 
     struct FCommandClearColor
@@ -77,17 +102,29 @@ namespace Coplt
         union
         {
             FCommandTransition Transition;
+            FCommandPresent Present;
             FCommandClearColor ClearColor;
         };
     };
 
     struct FCommandSubmit
     {
+        // 提交操作可能会修改此内存，提交后内存将无效
         FResourceMeta* Resources{};
-        // 命令项里面的对象制造需要保证生命周期 >= FCommandSubmit 的生命周期
+        // 命令项里面的对象制造需要保证生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
         FCommandItem* Items{};
+        // 提交操作可能会修改此内存，提交后内存将无效
         u8* Payload{};
         // 有多少命令
         u32 Count{};
     };
+
+#ifdef FFI_SRC
+
+    inline FResourceMeta& FResourceSrc::Get(const FCommandSubmit& submit) const
+    {
+        return submit.Resources[ResourceIndex];
+    }
+
+#endif
 }

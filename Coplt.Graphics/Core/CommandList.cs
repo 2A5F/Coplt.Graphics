@@ -19,6 +19,7 @@ public sealed class CommandList
     internal readonly List<FResourceMeta> m_resource_metas = new();
     internal readonly Dictionary<object, int> m_resources = new();
     internal readonly List<byte> m_payload = new();
+    internal GpuOutput? m_current_output;
 
     #endregion
 
@@ -45,6 +46,7 @@ public sealed class CommandList
         m_resource_metas.Clear();
         m_resources.Clear();
         m_payload.Clear();
+        m_current_output = null;
     }
 
     #endregion
@@ -54,6 +56,12 @@ public sealed class CommandList
     private int AddResource<T>(T resource) where T : IView
     {
         if (resource.Queue != m_queue) throw new ArgumentException($"Resource {resource} does not belong to queue {m_queue}");
+        if (resource is GpuOutput output)
+        {
+            if (m_current_output != null && output != m_current_output) 
+                throw new ArgumentException($"Multiple outputs cannot be used at the same time");
+            m_current_output = output;
+        }
         ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(m_resources, resource, out var exists);
         if (!exists)
         {
@@ -66,6 +74,26 @@ public sealed class CommandList
     #endregion
 
     #region Commands
+
+    #region Present
+
+    internal void Present(GpuOutput output)
+    {
+        var index = AddResource(output);
+        var cmd = new FCommandPresent
+        {
+            Image = new(index),
+        };
+        m_commands.Add(new()
+        {
+            Type = FCommandType.Present,
+            Flags = FCommandFlags.None,
+            Present = cmd,
+        });
+        output.UnsafeChangeState(FResourceState.Present);
+    }
+
+    #endregion
 
     #region ClearColor
 
@@ -85,6 +113,8 @@ public sealed class CommandList
         CommandFlags flags = CommandFlags.None
     ) where Rtv : IRtv
     {
+        if (!image.TryRtv()) throw new ArgumentException($"Resource {image} cannot be used as Rtv");
+        
         var index = AddResource(image);
 
         var cmd = new FCommandClearColor

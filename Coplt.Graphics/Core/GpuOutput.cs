@@ -131,11 +131,13 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
     #region ToString
 
     public override string ToString() =>
-        m_name is null ? $"{nameof(GpuOutput)}({(nuint)m_ptr:X})" : $"{nameof(GpuOutput)}({(nuint)m_ptr:X} \"{m_name}\")";
+        m_name is null
+            ? $"{nameof(GpuOutput)}({(nuint)m_ptr:X})"
+            : $"{nameof(GpuOutput)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 
-    #region GetMeta
+    #region Views
 
     FResourceMeta IView.GetMeta() => new()
     {
@@ -143,10 +145,11 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
-    void IView.UnsafeChangeState(FResourceState state)
-    {
-        m_ptr->m_state.ChangeState(state);
-    }
+    void IView.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
+    internal void UnsafeChangeState(FResourceState state) => m_ptr->m_state.ChangeState(state);
+
+    public bool TrySrv() => true;
+    public bool TryRtv() => true;
 
     #endregion
 
@@ -159,33 +162,30 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
     {
         using var _ = Queue.m_lock.EnterScope();
         var cmd = Queue.m_cmd;
-        if (cmd.m_resource_metas.Count == 0)
+        if (cmd.m_current_output != null && cmd.m_current_output != this)
+            throw new ArgumentException(
+                $"The command is already used by another output and cannot be presented in this output");
+        cmd.Present(this);
+        fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
         {
-            m_ptr->Present(null).TryThrow();
-        }
-        else
-        {
-            fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+            fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
             {
-                fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+                fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
                 {
-                    fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
+                    FCommandSubmit submit = new()
                     {
-                        FCommandSubmit submit = new()
-                        {
-                            Resources = p_resources,
-                            Items = p_commands,
-                            Payload = p_payload,
-                            Count = (uint)cmd.m_resource_metas.Count,
-                        };
-                        try
-                        {
-                            m_ptr->Present(&submit).TryThrow();
-                        }
-                        finally
-                        {
-                            cmd.Reset();
-                        }
+                        Resources = p_resources,
+                        Items = p_commands,
+                        Payload = p_payload,
+                        Count = (uint)cmd.m_commands.Count,
+                    };
+                    try
+                    {
+                        m_ptr->Present(&submit).TryThrow();
+                    }
+                    finally
+                    {
+                        cmd.Reset();
                     }
                 }
             }
@@ -199,33 +199,30 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
     {
         using var _ = Queue.m_lock.EnterScope();
         var cmd = Queue.m_cmd;
-        if (cmd.m_resource_metas.Count == 0)
+        if (cmd.m_current_output != null && cmd.m_current_output != this)
+            throw new ArgumentException(
+                $"The command is already used by another output and cannot be presented in this output");
+        cmd.Present(this);
+        fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
         {
-            m_ptr->PresentNoWait(null).TryThrow();
-        }
-        else
-        {
-            fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+            fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
             {
-                fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+                fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
                 {
-                    fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
+                    FCommandSubmit submit = new()
                     {
-                        FCommandSubmit submit = new()
-                        {
-                            Resources = p_resources,
-                            Items = p_commands,
-                            Payload = p_payload,
-                            Count = (uint)cmd.m_resource_metas.Count,
-                        };
-                        try
-                        {
-                            m_ptr->PresentNoWait(&submit).TryThrow();
-                        }
-                        finally
-                        {
-                            cmd.Reset();
-                        }
+                        Resources = p_resources,
+                        Items = p_commands,
+                        Payload = p_payload,
+                        Count = (uint)cmd.m_commands.Count,
+                    };
+                    try
+                    {
+                        m_ptr->PresentNoWait(&submit).TryThrow();
+                    }
+                    finally
+                    {
+                        cmd.Reset();
                     }
                 }
             }

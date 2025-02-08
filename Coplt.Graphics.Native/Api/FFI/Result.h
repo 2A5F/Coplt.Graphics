@@ -16,6 +16,33 @@ namespace Coplt
         FResultCode code{};
 
 #ifdef FFI_SRC
+
+        bool IsError() const
+        {
+            return code != FResultCode::Success;
+        }
+
+        void TryThrow() const
+        {
+            if (IsError()) throw *this;
+        }
+
+        void Drop()
+        {
+            switch (msg.type)
+            {
+            case FMessageType::String8:
+                msg.msg.string8->Release();
+                break;
+            case FMessageType::String16:
+                msg.msg.string16->Release();
+                break;
+            default:
+                break;
+            }
+            *this = None();
+        }
+
         explicit FResult() : msg{.msg = {.str = nullptr}}, code(FResultCode::Success)
         {
         }

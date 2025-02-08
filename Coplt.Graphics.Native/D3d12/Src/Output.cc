@@ -233,7 +233,7 @@ void D3d12GpuSwapChainOutput::WaitNextFrame_NoLock()
         Resize_NoLock(m_new_width, m_new_height);
         m_need_resize = false;
     }
-    if (!m_fence_value_queue.empty())
+    if (m_fence_value_queue.size() >= m_frame_count)
     {
         const auto fence_value = m_fence_value_queue.front();
         m_fence_value_queue.pop();
@@ -314,4 +314,22 @@ void D3d12GpuSwapChainOutput::CreateBuffers()
                 fmt::format(L"Swap Chain Buffer {} ({}, {})", i, m_width, m_height).c_str());
         }
     }
+}
+
+FResult D3d12GpuSwapChainOutput::GetCurrentResourcePtr(void* out) const noexcept
+{
+    return feb([&]
+    {
+        *static_cast<ID3D12Resource**>(out) = m_buffers[m_frame_index].Get();
+    });
+}
+
+FResult D3d12GpuSwapChainOutput::GetCurrentRtv(void* out) noexcept
+{
+    return feb([&]
+    {
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
+        rtv_handle.Offset(m_frame_index, m_rtv_descriptor_size);
+        *static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(out) = rtv_handle;
+    });
 }

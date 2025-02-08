@@ -7,24 +7,24 @@ namespace Coplt.Graphics;
 public enum ResourceState : uint
 {
     Manual = uint.MaxValue,
-    Common = 0,
-    Present = 1 << 0,
-    VertexBuffer = 1 << 1,
-    IndexBuffer = 1 << 2,
-    ConstantBuffer = 1 << 3,
-    RenderTarget = 1 << 4,
-    DepthRead = 1 << 5,
-    DepthWrite = 1 << 6,
-    PixelShaderResource = 1 << 7,
-    NonPixelShaderResource = 1 << 8,
-    UnorderedAccess = 1 << 9,
-    CopySrc = 1 << 10,
-    CopyDst = 1 << 11,
-    ResolveSrc = 1 << 12,
-    ResolveDst = 1 << 13,
-    RayTracing = 1 << 14,
-    ShadingRate = 1 << 15,
-    IndirectBuffer = 1 << 16,
+    Common = 1 << 0,
+    Present = 1 << 1,
+    VertexBuffer = 1 << 2,
+    IndexBuffer = 1 << 3,
+    ConstantBuffer = 1 << 4,
+    IndirectBuffer = 1 << 5,
+    RenderTarget = 1 << 6,
+    DepthRead = 1 << 7,
+    DepthWrite = 1 << 8,
+    ShaderResource = 1 << 9,
+    UnorderedAccess = 1 << 10,
+    CopySrc = 1 << 11,
+    CopyDst = 1 << 12,
+    ResolveSrc = 1 << 13,
+    ResolveDst = 1 << 14,
+    RayTracing = 1 << 15,
+    ShadingRate = 1 << 16,
+    StreamOutput = 1 << 17,
 }
 
 public static partial class GraphicsExtensions
@@ -36,36 +36,22 @@ public static partial class GraphicsExtensions
     public static bool ContainsOnly(this ResourceState value, ResourceState other) => (value & ~other) == 0;
     public static bool Contains(this ResourceState value, ResourceState other) => (value & other) != 0;
 
+    public static bool IsReadOnly(this ResourceState value) => value.ContainsOnly(
+        ResourceState.IndexBuffer | ResourceState.VertexBuffer |
+        ResourceState.ConstantBuffer | ResourceState.IndirectBuffer | ResourceState.CopySrc |
+        ResourceState.ResolveSrc | ResourceState.ShaderResource | ResourceState.DepthRead
+    );
+
     public static bool IsCompatible(this ResourceState value, ResourceState other)
     {
         if (value == ResourceState.Manual || other == ResourceState.Manual) return false;
         if (value == other) return true;
-        if (
-            value.ContainsOnly(
-                ResourceState.IndexBuffer | ResourceState.VertexBuffer |
-                ResourceState.ConstantBuffer | ResourceState.CopySrc | ResourceState.IndirectBuffer
-            ) &&
-            other.ContainsOnly(
-                ResourceState.IndexBuffer | ResourceState.VertexBuffer |
-                ResourceState.ConstantBuffer | ResourceState.CopySrc | ResourceState.IndirectBuffer
-            )
-        ) return true;
-        if (
-            value.ContainsOnly(
-                ResourceState.PixelShaderResource | ResourceState.NonPixelShaderResource |
-                ResourceState.DepthRead | ResourceState.CopySrc | ResourceState.ResolveSrc
-            ) &&
-            other.ContainsOnly(
-                ResourceState.PixelShaderResource | ResourceState.NonPixelShaderResource |
-                ResourceState.DepthRead | ResourceState.CopySrc | ResourceState.ResolveSrc
-            )
-        ) return true;
+        if (value.IsReadOnly() && other.IsReadOnly()) return true;
         return false;
     }
 
     public static void ChangeState(this ref ResourceState value, ResourceState state)
     {
-        if (value == ResourceState.RayTracing) return;
         if (value.IsCompatible(state)) value |= state;
         else value = state;
     }

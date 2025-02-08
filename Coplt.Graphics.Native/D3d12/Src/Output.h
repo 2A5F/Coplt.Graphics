@@ -68,5 +68,8 @@ namespace Coplt
         void WaitFenceValue_NoLock(u32 fence_value);
 
         void CreateBuffers();
+
+        FResult GetCurrentResourcePtr(void* out) const noexcept override;
+        FResult GetCurrentRtv(void* out) noexcept override;
     };
 }

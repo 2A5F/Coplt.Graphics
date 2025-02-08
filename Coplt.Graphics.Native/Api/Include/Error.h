@@ -25,7 +25,7 @@ namespace Coplt
         while (std::getline(ss, tmp, '\n'))
         {
             stream << "    ";
-            stream << std::move(tmp);
+            stream << tmp;
             stream << "\r\n";
         }
         stream << "    --- End of native exception stack trace ---";
@@ -35,7 +35,7 @@ namespace Coplt
     struct Exception
     {
         virtual ~Exception() = default;
-        virtual const std::string what() const noexcept = 0;
+        virtual std::string what() const noexcept = 0;
         virtual const std::string& message() const = 0;
         virtual const cpptrace::stacktrace& trace() const = 0;
     };
@@ -52,7 +52,7 @@ namespace Coplt
         {
         }
 
-        const std::string what() const noexcept override
+        std::string what() const noexcept override
         {
             if (what_string.empty())
             {
@@ -96,6 +96,15 @@ namespace Coplt
             : ExceptionWithMessage(std::move(message_arg), std::move(trace))
         {
         }
+
+        template <usize N>
+        explicit RuntimeException(
+            const char (&message_arg)[N],
+            cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : RuntimeException(std::string(message_arg, N), std::move(trace))
+        {
+        }
     };
 
 #if _WINDOWS
@@ -118,7 +127,7 @@ namespace Coplt
     struct WException
     {
         virtual ~WException() = default;
-        virtual const std::wstring what() const noexcept = 0;
+        virtual std::wstring what() const noexcept = 0;
         virtual const std::wstring& message() const = 0;
         virtual const cpptrace::stacktrace& trace() const = 0;
     };
@@ -135,7 +144,7 @@ namespace Coplt
         {
         }
 
-        const std::wstring what() const noexcept override
+        std::wstring what() const noexcept override
         {
             if (what_string.empty())
             {
@@ -179,6 +188,15 @@ namespace Coplt
             : WExceptionWithMessage(std::move(message_arg), std::move(trace))
         {
         }
+
+        template <usize N>
+        explicit WRuntimeException(
+            const wchar_t (&message_arg)[N],
+            cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : WRuntimeException(std::wstring(message_arg, N), std::move(trace))
+        {
+        }
     };
 
     class ComException : public WExceptionWithMessage
@@ -189,6 +207,15 @@ namespace Coplt
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
         ) noexcept
             : WExceptionWithMessage(std::move(message_arg), std::move(trace))
+        {
+        }
+
+        template <usize N>
+        explicit ComException(
+            const wchar_t (&message_arg)[N],
+            cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : ComException(std::wstring(message_arg, N), std::move(trace))
         {
         }
     };
@@ -212,6 +239,10 @@ namespace Coplt
                         try
                         {
                             r = f();
+                        }
+                        catch (FResult& e)
+                        {
+                            r = e;
                         }
                         catch (cpptrace::exception& e)
                         {
@@ -260,6 +291,10 @@ namespace Coplt
                         {
                             f();
                         }
+                        catch (FResult& e)
+                        {
+                            r = e;
+                        }
                         catch (cpptrace::exception& e)
                         {
                             auto msg = std::string(e.what());
@@ -305,6 +340,11 @@ namespace Coplt
                         try
                         {
                             r = f();
+                        }
+                        catch (FResult& e)
+                        {
+                            logger.Log(FLogLevel::Error, FLogType::Common, e.msg);
+                            e.Drop();
                         }
                         catch (cpptrace::exception& e)
                         {

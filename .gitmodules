@@ -19,3 +19,6 @@
 [submodule "Coplt.Graphics.Native/D3d12/ThirdParty/DirectX-Headers"]
 	path = Coplt.Graphics.Native/D3d12/ThirdParty/DirectX-Headers
 	url = https://github.com/Microsoft/DirectX-Headers
+[submodule "ThirdParty/emhash"]
+	path = ThirdParty/emhash
+	url = https://github.com/ktprime/emhash

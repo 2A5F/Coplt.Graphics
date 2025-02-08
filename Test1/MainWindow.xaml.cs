@@ -44,7 +44,6 @@ public partial class MainWindow : Window
                 Height = (uint)Height,
                 VSync = true,
             }, Handle);
-            Output.Present();
         }
         catch (Exception e)
         {

@@ -50,4 +50,55 @@
 
 #define COPLT_U32_MAX 4294967295
 
+#ifdef FFI_SRC
+#define COPLT_ENUM_FLAGS(Name, Type) enum class Name : Type;\
+inline bool operator==(const Name a, const Type b)\
+{\
+    return static_cast<Type>(a) == b;\
+}\
+inline bool operator!=(const Name a, const Type b)\
+{\
+    return static_cast<Type>(a) != b;\
+}\
+inline Name operator~(const Name value)\
+{\
+    return static_cast<Name>(~static_cast<Type>(value));\
+}\
+inline Name operator&(const Name a, const Name b)\
+{\
+    return static_cast<Name>(static_cast<Type>(a) & static_cast<Type>(b));\
+}\
+inline Name operator|(const Name a, const Name b)\
+{\
+    return static_cast<Name>(static_cast<Type>(a) | static_cast<Type>(b));\
+}\
+inline Name operator^(const Name a, const Name b)\
+{\
+    return static_cast<Name>(static_cast<Type>(a) ^ static_cast<Type>(b));\
+}\
+inline Name operator&=(Name& a, const Name b)\
+{\
+    return a = a & b;\
+}\
+inline Name operator|=(Name& a, const Name b)\
+{\
+    return a = a | b;\
+}\
+inline Name operator^=(Name& a, const Name b)\
+{\
+    return a = a ^ b;\
+}\
+inline bool HasFlags(Name a, Name b)\
+{\
+    return (a & b) == b;\
+}\
+inline bool HasAnyFlags(Name a, Name b)\
+{\
+    return (a & b) != 0;\
+}\
+enum class Name : Type
+#else
+#define COPLT_ENUM_FLAGS(Name, Type) enum class Name : Type
+#endif
+
 #include "./Types.h"

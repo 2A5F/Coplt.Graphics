@@ -3,6 +3,7 @@
 #include "GpuObject.h"
 #include "States.h"
 #include "TextureFormat.h"
+#include "Resource.h"
 
 namespace Coplt
 {

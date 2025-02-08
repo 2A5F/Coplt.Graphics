@@ -732,6 +732,67 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
+    public enum FGpuViewType : byte
+    {
+        None = 0,
+        Cbv,
+        Srv,
+        Uav,
+        Rtv,
+        Dsv,
+        Ibv,
+        Vbv,
+        Sov,
+    }
+
+    [Guid("F99DCEEC-2F0C-4A28-B666-BEB7C35219D6")]
+    [NativeTypeName("struct FGpuResource : Coplt::FGpuObject")]
+    public unsafe partial struct FGpuResource : FGpuResource.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuResource));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FGpuResource*, void>)(lpVtbl[0]))((FGpuResource*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuResource*, nuint>)(lpVtbl[1]))((FGpuResource*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuResource*, nuint>)(lpVtbl[2]))((FGpuResource*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuResource*, Guid*, void*>)(lpVtbl[3]))((FGpuResource*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuResource*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuResource*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+        }
+    }
+
+    [NativeTypeName("Coplt::u8")]
     public enum FPresentMode : byte
     {
         NoBuffer,
@@ -1033,25 +1094,25 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("Coplt::u32")]
     public enum FResourceState : uint
     {
-        Manual = 4294967295,
-        Common = 0,
-        Present = 1 << 0,
-        VertexBuffer = 1 << 1,
-        IndexBuffer = 1 << 2,
-        ConstantBuffer = 1 << 3,
-        RenderTarget = 1 << 4,
-        DepthRead = 1 << 5,
-        DepthWrite = 1 << 6,
-        PixelShaderResource = 1 << 7,
-        NonPixelShaderResource = 1 << 8,
-        UnorderedAccess = 1 << 9,
-        CopySrc = 1 << 10,
-        CopyDst = 1 << 11,
-        ResolveSrc = 1 << 12,
-        ResolveDst = 1 << 13,
-        RayTracing = 1 << 14,
-        ShadingRate = 1 << 15,
-        IndirectBuffer = 1 << 16,
+        Manual = 0,
+        Common = 1 << 0,
+        Present = 1 << 1,
+        VertexBuffer = 1 << 2,
+        IndexBuffer = 1 << 3,
+        ConstantBuffer = 1 << 4,
+        IndirectBuffer = 1 << 5,
+        RenderTarget = 1 << 6,
+        DepthRead = 1 << 7,
+        DepthWrite = 1 << 8,
+        ShaderResource = 1 << 9,
+        UnorderedAccess = 1 << 10,
+        CopySrc = 1 << 11,
+        CopyDst = 1 << 12,
+        ResolveSrc = 1 << 13,
+        ResolveDst = 1 << 14,
+        RayTracing = 1 << 15,
+        ShadingRate = 1 << 16,
+        StreamOutput = 1 << 17,
     }
 
     public partial struct FSamplerState
@@ -1068,6 +1129,7 @@ namespace Coplt.Graphics.Native
     {
         None,
         Transition,
+        Present,
         ClearColor,
     }
 
@@ -1087,7 +1149,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L32_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L34_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -1148,6 +1210,12 @@ namespace Coplt.Graphics.Native
         public FResourceState DstState;
     }
 
+    public partial struct FCommandPresent
+    {
+        [NativeTypeName("Coplt::FResourceSrc")]
+        public FResourceSrc Image;
+    }
+
     public partial struct FCommandClearColor
     {
         [NativeTypeName("Coplt::u32")]
@@ -1177,7 +1245,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L77_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L102_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -1187,6 +1255,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.Transition;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandPresent Present
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Present;
             }
         }
 
@@ -1206,6 +1284,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandTransition")]
             public FCommandTransition Transition;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandPresent")]
+            public FCommandPresent Present;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandClearColor")]
@@ -1230,6 +1312,8 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FGpuDevice = new Guid(0x557F032D, 0xED50, 0x403A, 0xAD, 0xC5, 0x21, 0x4F, 0xDD, 0xBE, 0x6C, 0x6B);
 
         public static readonly Guid IID_FGpuQueue = new Guid(0x95E60E28, 0xE387, 0x4055, 0x9B, 0x33, 0x2D, 0x23, 0xAF, 0x90, 0x1F, 0x8A);
+
+        public static readonly Guid IID_FGpuResource = new Guid(0xF99DCEEC, 0x2F0C, 0x4A28, 0xB6, 0x66, 0xBE, 0xB7, 0xC3, 0x52, 0x19, 0xD6);
 
         public static readonly Guid IID_FGpuOutput = new Guid(0xF1C59CB4, 0x7EE6, 0x4EE2, 0x80, 0xF4, 0x07, 0xCC, 0x56, 0x89, 0x20, 0xD2);
     }

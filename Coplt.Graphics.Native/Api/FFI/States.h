@@ -5,29 +5,65 @@
 
 namespace Coplt
 {
-    enum class FResourceState : u32
+    COPLT_ENUM_FLAGS(FResourceState, u32)
     {
         // 手动管理资源状态，自动过渡时将忽略
-        Manual = COPLT_U32_MAX,
-        Common = 0,
-        Present = 1 << 0,
-        VertexBuffer = 1 << 1,
-        IndexBuffer = 1 << 2,
-        ConstantBuffer = 1 << 3,
-        RenderTarget = 1 << 4,
-        DepthRead = 1 << 5,
-        DepthWrite = 1 << 6,
-        PixelShaderResource = 1 << 7,
-        NonPixelShaderResource = 1 << 8,
-        UnorderedAccess = 1 << 9,
-        CopySrc = 1 << 10,
-        CopyDst = 1 << 11,
-        ResolveSrc = 1 << 12,
-        ResolveDst = 1 << 13,
-        RayTracing = 1 << 14,
-        ShadingRate = 1 << 15,
-        IndirectBuffer = 1 << 16,
+        Manual = 0,
+        Common = 1 << 0,
+        Present = 1 << 1,
+        VertexBuffer = 1 << 2,
+        IndexBuffer = 1 << 3,
+        ConstantBuffer = 1 << 4,
+        IndirectBuffer = 1 << 5,
+        RenderTarget = 1 << 6,
+        DepthRead = 1 << 7,
+        DepthWrite = 1 << 8,
+        ShaderResource = 1 << 9,
+        UnorderedAccess = 1 << 10,
+        CopySrc = 1 << 11,
+        CopyDst = 1 << 12,
+        ResolveSrc = 1 << 13,
+        ResolveDst = 1 << 14,
+        RayTracing = 1 << 15,
+        ShadingRate = 1 << 16,
+        StreamOutput = 1 << 17,
     };
+
+#ifdef FFI_SRC
+    inline bool ContainsOnly(const FResourceState value, const FResourceState other)
+    {
+        return (value & ~other) == 0;
+    }
+
+    inline bool Contains(const FResourceState value, const FResourceState other)
+    {
+        return (value & other) != 0;
+    }
+
+    inline bool IsReadOnly(const FResourceState value)
+    {
+        return ContainsOnly(
+            value,
+            FResourceState::IndexBuffer | FResourceState::VertexBuffer |
+            FResourceState::ConstantBuffer | FResourceState::IndirectBuffer | FResourceState::CopySrc |
+            FResourceState::ResolveSrc | FResourceState::ShaderResource | FResourceState::DepthRead
+        );
+    }
+
+    inline bool IsCompatible(const FResourceState value, const FResourceState other)
+    {
+        if (value == FResourceState::Manual || other == FResourceState::Manual) return false;
+        if (value == other) return true;
+        if (IsReadOnly(value) && IsReadOnly(other)) return true;
+        return false;
+    }
+
+    inline FResourceState ChangeState(const FResourceState value, const FResourceState state)
+    {
+        if (IsCompatible(value, state)) return value | state;
+        return state;
+    }
+#endif
 
     struct FSamplerState
     {

@@ -20,7 +20,7 @@ namespace Coplt
         ComPtr<ID3D12GraphicsCommandList> m_command_list{};
         std::mutex m_mutex{};
 
-        D3d12CommandInterpreter m_command_interpreter{};
+        D3d12CommandInterpreter m_command_interpreter;
 
         explicit D3d12GpuQueue(Rc<D3d12GpuDevice>&& device, const FMainQueueCreateOptions& options);
 

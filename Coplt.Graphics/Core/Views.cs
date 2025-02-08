@@ -14,11 +14,35 @@ public interface IView
     public void UnsafeChangeState(FResourceState state);
 }
 
-public interface ICbv : IView;
-public interface ISrv : IView;
-public interface IUav : IView;
-public interface IRtv : IView;
-public interface IDsv : IView;
-public interface IIbv : IView;
-public interface IVbv : IView;
-public interface ISov : IView;
+public interface ICbv : IView
+{
+    public bool TryCbv();
+}
+public interface ISrv : IView
+{
+    public bool TrySrv();
+}
+public interface IUav : IView
+{
+    public bool TryUav();
+}
+public interface IRtv : IView
+{
+    public bool TryRtv();
+}
+public interface IDsv : IView
+{
+    public bool TryDsv();
+}
+public interface IIbv : IView
+{
+    public bool TryIbv();
+}
+public interface IVbv : IView
+{
+    public bool TryVbv();
+}
+public interface ISov : IView
+{
+    public bool TrySov();
+}
