@@ -8,9 +8,15 @@
 #define COPLT_UUID_MARK(ID)
 #endif
 
+#ifdef _MSC_VER
+#define COPLT_NOVTABLE __declspec(novtable)
+#else
+#define COPLT_NOVTABLE
+#endif
+
 #ifdef FFI_SRC
 #define COPLT_INTERFACE_GUID(ID) constexpr static Guid GUID = Guid(ID);
-#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct META_##NAME : __VA_ARGS__ {\
+#define COPLT_INTERFACE_DEFINE(NAME, ID, ...) namespace _internal { struct COPLT_NOVTABLE META_##NAME : __VA_ARGS__ {\
     COPLT_INTERFACE_GUID(ID)\
 private:\
     template <Interface... T>\
@@ -20,7 +26,7 @@ private:\
         return ::Coplt::_internal::DoQueryInterface<__VA_ARGS__>::QueryInterface(self, id);\
     }\
 };};\
-struct COPLT_UUID_MARK(ID) NAME : _internal::META_##NAME
+struct COPLT_UUID_MARK(ID) COPLT_NOVTABLE NAME : _internal::META_##NAME
 #else
 #define COPLT_INTERFACE_GUID(ID) constexpr static auto s_FFI_GUID = L##ID;
 #define COPLT_INTERFACE_DEFINE(NAME, ID, ...) struct COPLT_UUID_MARK(ID) NAME : __VA_ARGS__
@@ -80,7 +86,7 @@ namespace Coplt
 
 #endif
 
-    struct COPLT_UUID_MARK("00000000-0000-0000-0000-000000000000") FUnknown : FRcObject
+    struct COPLT_UUID_MARK("00000000-0000-0000-0000-000000000000") COPLT_NOVTABLE FUnknown : FRcObject
     {
         COPLT_INTERFACE_GUID("00000000-0000-0000-0000-000000000000");
 

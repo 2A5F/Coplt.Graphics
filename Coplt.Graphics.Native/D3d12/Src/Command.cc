@@ -259,22 +259,38 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetRtv(const FResourceMeta&
 
 D3D12_RESOURCE_STATES D3d12CommandInterpreter::ToDx(const FResourceState state)
 {
+    switch (state)
+    {
+    case FResourceState::Common:
+    case FResourceState::Present:
+        return D3D12_RESOURCE_STATE_COMMON;
+    case FResourceState::RenderTarget:
+        return D3D12_RESOURCE_STATE_RENDER_TARGET;
+    case FResourceState::DepthWrite:
+        return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    case FResourceState::UnorderedAccess:
+        return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    case FResourceState::CopyDst:
+        return D3D12_RESOURCE_STATE_COPY_DEST;
+    case FResourceState::ResolveDst:
+        return D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    case FResourceState::RayTracing:
+        return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+    case FResourceState::ShadingRate:
+        return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+    case FResourceState::StreamOutput:
+        return D3D12_RESOURCE_STATE_STREAM_OUT;
+    default:
+        break;
+    }
     D3D12_RESOURCE_STATES r = D3D12_RESOURCE_STATE_COMMON;
-    if (HasFlags(state, FResourceState::RayTracing)) return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     if (HasAnyFlags(state, FResourceState::ConstantBuffer | FResourceState::VertexBuffer))
         r |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
     if (HasFlags(state, FResourceState::IndexBuffer)) r |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-    if (HasFlags(state, FResourceState::IndexBuffer)) r |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-    if (HasFlags(state, FResourceState::RenderTarget)) r |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+    if (HasFlags(state, FResourceState::IndirectBuffer)) r |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
     if (HasFlags(state, FResourceState::DepthRead)) r |= D3D12_RESOURCE_STATE_DEPTH_READ;
-    if (HasFlags(state, FResourceState::DepthWrite)) r |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
     if (HasFlags(state, FResourceState::ShaderResource)) r |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
-    if (HasFlags(state, FResourceState::UnorderedAccess)) r |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     if (HasFlags(state, FResourceState::CopySrc)) r |= D3D12_RESOURCE_STATE_COPY_SOURCE;
-    if (HasFlags(state, FResourceState::CopyDst)) r |= D3D12_RESOURCE_STATE_COPY_DEST;
     if (HasFlags(state, FResourceState::ResolveSrc)) r |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-    if (HasFlags(state, FResourceState::ResolveDst)) r |= D3D12_RESOURCE_STATE_RESOLVE_DEST;
-    if (HasFlags(state, FResourceState::ShadingRate)) r |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-    if (HasFlags(state, FResourceState::StreamOutput)) r |= D3D12_RESOURCE_STATE_STREAM_OUT;
     return r;
 }

@@ -42,7 +42,7 @@ public partial class MainWindow : Window
             {
                 Width = (uint)Width,
                 Height = (uint)Height,
-                VSync = true,
+                // VSync = true,
             }, Handle);
         }
         catch (Exception e)
