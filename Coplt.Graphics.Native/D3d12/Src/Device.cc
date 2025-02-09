@@ -2,6 +2,7 @@
 
 #include "dxgi1_6.h"
 #include "Queue.h"
+#include "../../Api/Src/Shader.h"
 
 using namespace Coplt;
 
@@ -167,5 +168,23 @@ FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, 
     return feb([&]
     {
         *out = new D3d12GpuQueue(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateShaderModule(
+    const FShaderModuleCreateOptions& options, FShaderModule** out
+) noexcept
+{
+    return feb([&]
+    {
+        *out = ShaderModule::Create(options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new Shader(options);
     });
 }

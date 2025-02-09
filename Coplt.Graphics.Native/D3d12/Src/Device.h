@@ -42,5 +42,11 @@ namespace Coplt
         void* GetRawDevice() noexcept override;
 
         FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept override;
+
+        FResult CreateShaderModule(
+            const FShaderModuleCreateOptions& options, FShaderModule** out
+        ) noexcept override;
+
+        FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept override;
     };
 }

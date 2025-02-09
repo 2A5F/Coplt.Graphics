@@ -70,6 +70,22 @@ namespace Coplt.Graphics.Native.D3d12
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, FShaderModule** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderModuleCreateOptions*, FShaderModule**, FResult*>)(lpVtbl[7]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[8]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
         public interface Interface : FGpuDevice.Interface
         {
         }

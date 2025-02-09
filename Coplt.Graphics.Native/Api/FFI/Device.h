@@ -2,6 +2,7 @@
 
 #include "GpuObject.h"
 #include "Queue.h"
+#include "Shader.h"
 
 namespace Coplt
 {
@@ -45,5 +46,10 @@ namespace Coplt
         virtual void* GetRawDevice() noexcept = 0;
 
         virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
+
+        virtual FResult CreateShaderModule(
+            const FShaderModuleCreateOptions& options, FShaderModule** out
+        ) noexcept = 0;
+        virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
     };
 }

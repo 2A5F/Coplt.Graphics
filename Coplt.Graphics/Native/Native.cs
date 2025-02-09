@@ -552,12 +552,34 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMainQueueCreateOptions*, FGpuQueue**, FResult*>)(lpVtbl[6]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, FShaderModule** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderModuleCreateOptions*, FShaderModule**, FResult*>)(lpVtbl[7]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[8]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
         public interface Interface : FGpuObject.Interface
         {
             void* GetRawDevice();
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateMainQueue([NativeTypeName("const FMainQueueCreateOptions &")] FMainQueueCreateOptions* options, FGpuQueue** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, FShaderModule** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out);
         }
     }
 
@@ -647,6 +669,201 @@ namespace Coplt.Graphics.Native
         HighPerformance = 0,
         MinimumPower = 1,
         Any = 255,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderStage : byte
+    {
+        Compute = 0,
+        Pixel = 1,
+        Vertex = 2,
+        Mesh = 3,
+        Task = 4,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderStageFlags : byte
+    {
+        Compute = 1 << 0,
+        Pixel = 1 << 1,
+        Vertex = 1 << 2,
+        Mesh = 1 << 3,
+        Task = 1 << 4,
+    }
+
+    public unsafe partial struct FShaderModuleCreateOptions
+    {
+        public void* Data;
+
+        [NativeTypeName("Coplt::usize")]
+        public nuint Size;
+
+        [NativeTypeName("Coplt::FShaderStage")]
+        public FShaderStage Stage;
+    }
+
+    [Guid("5C0E1FDB-2ACD-4FCE-B985-09E12A7A1AAD")]
+    [NativeTypeName("struct FShaderModule : Coplt::FGpuObject")]
+    public unsafe partial struct FShaderModule : FShaderModule.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShaderModule));
+
+        public void** lpVtbl;
+
+        [NativeTypeName("Coplt::u8 *")]
+        public byte* Data;
+
+        [NativeTypeName("Coplt::usize")]
+        public nuint Size;
+
+        [NativeTypeName("Coplt::FShaderStage")]
+        public FShaderStage Stage;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FShaderModule*, void>)(lpVtbl[0]))((FShaderModule*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, nuint>)(lpVtbl[1]))((FShaderModule*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, nuint>)(lpVtbl[2]))((FShaderModule*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, Guid*, void*>)(lpVtbl[3]))((FShaderModule*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FShaderModule*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderModule*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+        }
+    }
+
+    public unsafe partial struct FShaderCreateOptions
+    {
+        public FShaderModule** Modules;
+
+        [NativeTypeName("Coplt::u8")]
+        public byte Count;
+    }
+
+    [Guid("DE1352D5-023D-42B0-BEAC-122B3B296C9C")]
+    [NativeTypeName("struct FShader : Coplt::FGpuObject")]
+    public unsafe partial struct FShader : FShader.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShader));
+
+        public void** lpVtbl;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags Stages;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FShader*, void>)(lpVtbl[0]))((FShader*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShader*, nuint>)(lpVtbl[1]))((FShader*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShader*, nuint>)(lpVtbl[2]))((FShader*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShader*, Guid*, void*>)(lpVtbl[3]))((FShader*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FShader*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShader*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+        }
+    }
+
+    [Guid("356A2610-34E3-4C01-9904-22E3C5CE2F4E")]
+    [NativeTypeName("struct FShaderPipeline : Coplt::FGpuObject")]
+    public unsafe partial struct FShaderPipeline : FShaderPipeline.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShaderPipeline));
+
+        public void** lpVtbl;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags Stages;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FShaderPipeline*, void>)(lpVtbl[0]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, nuint>)(lpVtbl[1]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, nuint>)(lpVtbl[2]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, Guid*, void*>)(lpVtbl[3]))((FShaderPipeline*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+        }
     }
 
     public partial struct FMainQueueCreateOptions
@@ -1310,6 +1527,12 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FInstance = new Guid(0xCC2894BA, 0x57C7, 0x474A, 0xB7, 0x77, 0x1A, 0x3E, 0x3A, 0x7C, 0x92, 0x2C);
 
         public static readonly Guid IID_FGpuDevice = new Guid(0x557F032D, 0xED50, 0x403A, 0xAD, 0xC5, 0x21, 0x4F, 0xDD, 0xBE, 0x6C, 0x6B);
+
+        public static readonly Guid IID_FShaderModule = new Guid(0x5C0E1FDB, 0x2ACD, 0x4FCE, 0xB9, 0x85, 0x09, 0xE1, 0x2A, 0x7A, 0x1A, 0xAD);
+
+        public static readonly Guid IID_FShader = new Guid(0xDE1352D5, 0x023D, 0x42B0, 0xBE, 0xAC, 0x12, 0x2B, 0x3B, 0x29, 0x6C, 0x9C);
+
+        public static readonly Guid IID_FShaderPipeline = new Guid(0x356A2610, 0x34E3, 0x4C01, 0x99, 0x04, 0x22, 0xE3, 0xC5, 0xCE, 0x2F, 0x4E);
 
         public static readonly Guid IID_FGpuQueue = new Guid(0x95E60E28, 0xE387, 0x4055, 0x9B, 0x33, 0x2D, 0x23, 0xAF, 0x90, 0x1F, 0x8A);
 
