@@ -7,10 +7,17 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
 {
     m_dx_device = m_device->m_device;
 
+    m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
+
     ComPtr<ID3DBlob> blob{};
     ComPtr<ID3DBlob> error_blob{};
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
+
+    for (UINT i = 0; i < m_layout_item_defines.size(); i++)
+    {
+
+    }
 
     // todo
 
@@ -44,4 +51,10 @@ FResult D3d12ShaderLayout::SetName(const Str8or16& name) noexcept
 void* D3d12ShaderLayout::GetRootSignaturePtr() noexcept
 {
     return m_root_signature.Get();
+}
+
+FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count) noexcept
+{
+    *out_count = static_cast<u32>(m_layout_item_defines.size());
+    return m_layout_item_defines.data();
 }
