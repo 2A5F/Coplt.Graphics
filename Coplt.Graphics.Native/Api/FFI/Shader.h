@@ -40,8 +40,12 @@ namespace Coplt
         FShaderStage Stage{};
     };
 
+    struct FShaderLayout;
+
     struct FShaderCreateOptions
     {
+        // 此处是借用，不传递所有权
+        FShaderLayout* Layout{};
         // 此处是借用，不传递所有权
         FShaderModule** Modules{};
         u8 Count{};
@@ -50,10 +54,18 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(FShader, "de1352d5-023d-42b0-beac-122b3b296c9c", FGpuObject)
     {
         FShaderStageFlags Stages{};
-    };
 
-    COPLT_INTERFACE_DEFINE(FShaderPipeline, "356a2610-34e3-4c01-9904-22e3c5ce2f4e", FGpuObject)
-    {
-        FShaderStageFlags Stages{};
+        virtual FShaderLayout* Layout() noexcept = 0;
+
+        // 没有返回 null
+        virtual FShaderModule* Compute() noexcept = 0;
+        // 没有返回 null
+        virtual FShaderModule* Pixel() noexcept = 0;
+        // 没有返回 null
+        virtual FShaderModule* Vertex() noexcept = 0;
+        // 没有返回 null
+        virtual FShaderModule* Mesh() noexcept = 0;
+        // 没有返回 null
+        virtual FShaderModule* Task() noexcept = 0;
     };
 }

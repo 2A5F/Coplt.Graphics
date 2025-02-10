@@ -5,7 +5,13 @@
 #include <stdexcept>
 
 #ifdef FFI_SRC
+#include <type_traits>
 #include <glm/glm.hpp>
+
+#ifdef COPLT_X64
+#include <emmintrin.h>
+#endif
+
 #endif
 
 namespace Coplt
@@ -221,18 +227,46 @@ namespace Coplt
             *this = FromStr(str, 36);
         }
 
-        constexpr bool operator==(const Guid& other) const noexcept
+        COPLT_FORCE_INLINE constexpr bool operator==(const Guid& other) const noexcept
         {
-            return _a == other._a && _b == other._b && _c == other._c
-                && _d == other._d && _e == other._e && _f == other._f && _g == other._g
-                && _h == other._h && _i == other._i && _j == other._j && _k == other._k;
+            if consteval
+            {
+                return _a == other._a && _b == other._b && _c == other._c
+                    && _d == other._d && _e == other._e && _f == other._f && _g == other._g
+                    && _h == other._h && _i == other._i && _j == other._j && _k == other._k;
+            }
+            else
+            {
+#ifdef COPLT_X64
+                const __m128i a = _mm_loadu_si128(reinterpret_cast<const __m128i*>(this));
+                const __m128i b = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&other));
+                const __m128i r = _mm_cmpeq_epi8(a, b);
+                const auto mask = _mm_movemask_epi8(r);
+                return mask == 0xFFFF;
+#else
+                const auto src = reinterpret_cast<const u8*>(this);
+                const auto dst = reinterpret_cast<const u8*>(&other);
+                for (auto i = 0; i < sizeof(Guid); ++i)
+                {
+                    if (src[i] != dst[i]) return false;
+                }
+                return true;
+#endif
+            }
         }
 
-        constexpr bool operator!=(const Guid& other) const noexcept
+        COPLT_FORCE_INLINE constexpr bool operator!=(const Guid& other) const noexcept
         {
-            return _a != other._a || _b != other._b || _c != other._c
-                || _d != other._d || _e != other._e || _f != other._f || _g != other._g
-                || _h != other._h || _i != other._i || _j != other._j || _k != other._k;
+            if consteval
+            {
+                return _a != other._a || _b != other._b || _c != other._c
+                    || _d != other._d || _e != other._e || _f != other._f || _g != other._g
+                    || _h != other._h || _i != other._i || _j != other._j || _k != other._k;
+            }
+            else
+            {
+                return !operator==(other);
+            }
         }
 
     private:

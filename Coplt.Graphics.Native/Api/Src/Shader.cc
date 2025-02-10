@@ -34,6 +34,9 @@ FResult ShaderModule::SetName(const Str8or16& name) noexcept
 
 Shader::Shader(const FShaderCreateOptions& options)
 {
+    if (options.Layout == nullptr) throw RuntimeException("options.Layout is null");
+    m_layout = Rc<FShaderLayout>::UnsafeClone(options.Layout);
+
     if (options.Count == 0) throw RuntimeException("options.Count cannot be 0");
     if (options.Count > MaxShaderModuleCount)
         throw RuntimeException(
@@ -89,4 +92,34 @@ Shader::Shader(const FShaderCreateOptions& options)
 FResult Shader::SetName(const Str8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FShaderLayout* Shader::Layout() noexcept
+{
+    return m_layout.get();
+}
+
+FShaderModule* Shader::Compute() noexcept
+{
+    return HasFlags(Stages, FShaderStageFlags::Compute) ? m_modules[0].get() : nullptr;
+}
+
+FShaderModule* Shader::Pixel() noexcept
+{
+    return HasFlags(Stages, FShaderStageFlags::Pixel) ? m_modules[0].get() : nullptr;
+}
+
+FShaderModule* Shader::Vertex() noexcept
+{
+    return HasFlags(Stages, FShaderStageFlags::Vertex) ? m_modules[1].get() : nullptr;
+}
+
+FShaderModule* Shader::Mesh() noexcept
+{
+    return HasFlags(Stages, FShaderStageFlags::Mesh) ? m_modules[1].get() : nullptr;
+}
+
+FShaderModule* Shader::Task() noexcept
+{
+    return HasFlags(Stages, FShaderStageFlags::Task) ? m_modules[2].get() : nullptr;
 }

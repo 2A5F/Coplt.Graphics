@@ -21,7 +21,7 @@
 private:\
     template <Interface... T>\
     friend struct DoQueryInterface;\
-    constexpr static void* QueryInterfaceForBase(auto* self, Guid id)\
+    COPLT_FORCE_INLINE constexpr static void* QueryInterfaceForBase(auto* self, Guid id)\
     {\
         return ::Coplt::_internal::DoQueryInterface<__VA_ARGS__>::QueryInterface(self, id);\
     }\
@@ -66,7 +66,7 @@ namespace Coplt
         template <>
         struct DoQueryInterface<>
         {
-            constexpr static void* QueryInterface(auto* self, const Guid& id)
+            COPLT_FORCE_INLINE constexpr static void* QueryInterface(auto* self, const Guid& id)
             {
                 return nullptr;
             }
@@ -75,7 +75,7 @@ namespace Coplt
         template <Interface First, Interface... Last>
         struct DoQueryInterface<First, Last...>
         {
-            constexpr static void* QueryInterface(auto* self, const Guid& id)
+            COPLT_FORCE_INLINE constexpr static void* QueryInterface(auto* self, const Guid& id)
             {
                 if (First::GUID == id) return static_cast<First*>(self);
                 if (void* r = First::QueryInterfaceForBase(static_cast<First*>(self), id)) return r;
@@ -90,12 +90,12 @@ namespace Coplt
     {
         COPLT_INTERFACE_GUID("00000000-0000-0000-0000-000000000000");
 
-        // 返回 null 表示失败
+        // 返回 null 表示失败，这个 QueryInterface 不会增加引用计数
         virtual void* QueryInterface(const Guid& id) noexcept = 0;
 
 #ifdef FFI_SRC
         template <Interface T>
-        T* QueryInterface() noexcept
+        COPLT_FORCE_INLINE T* QueryInterface() noexcept
         {
             return static_cast<T*>(QueryInterface(T::GUID));
         }
@@ -104,7 +104,7 @@ namespace Coplt
         template <Interface... T>
         friend struct _internal::DoQueryInterface;
 
-        constexpr static void* QueryInterfaceForBase(auto* self, const Guid& id)
+        COPLT_FORCE_INLINE constexpr static void* QueryInterfaceForBase(auto* self, const Guid& id)
         {
             return nullptr;
         }

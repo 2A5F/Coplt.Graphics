@@ -1,8 +1,10 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "Layout.h"
 #include "Queue.h"
 #include "Shader.h"
+#include "Pipeline.h"
 
 namespace Coplt
 {
@@ -47,9 +49,12 @@ namespace Coplt
 
         virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
 
-        virtual FResult CreateShaderModule(
-            const FShaderModuleCreateOptions& options, FShaderModule** out
-        ) noexcept = 0;
+        virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
+        virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
+
+        virtual FResult CreateGraphicsPipeline(
+            const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
+        ) noexcept = 0;
     };
 }

@@ -64,10 +64,4 @@ namespace Coplt
         return state;
     }
 #endif
-
-    struct FSamplerState
-    {
-        u32 Count{1};
-        u32 Quality{0};
-    };
 };

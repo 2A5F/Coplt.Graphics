@@ -20,6 +20,12 @@ add_library(${target_name} SHARED
     Src/TextureFormat.h
     Src/Command.cc
     Src/Command.h
+    FFI/Pipeline.h
+    Src/GraphicsPipeline.h
+    Src/GraphicsPipeline.cc
+    FFI/Layout.h
+    Src/Layout.h
+    Src/Layout.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

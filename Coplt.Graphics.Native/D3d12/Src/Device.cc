@@ -1,6 +1,8 @@
 #include "Device.h"
 
 #include "dxgi1_6.h"
+#include "GraphicsPipeline.h"
+#include "Layout.h"
 #include "Queue.h"
 #include "../../Api/Src/Shader.h"
 
@@ -171,13 +173,19 @@ FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, 
     });
 }
 
-FResult D3d12GpuDevice::CreateShaderModule(
-    const FShaderModuleCreateOptions& options, FShaderModule** out
-) noexcept
+FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept
 {
     return feb([&]
     {
         *out = ShaderModule::Create(options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12ShaderLayout(this->CloneThis(), options);
     });
 }
 
@@ -186,5 +194,15 @@ FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShade
     return feb([&]
     {
         *out = new Shader(options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateGraphicsPipeline(
+    const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
+) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GraphicsShaderPipeline(this->CloneThis(), options);
     });
 }

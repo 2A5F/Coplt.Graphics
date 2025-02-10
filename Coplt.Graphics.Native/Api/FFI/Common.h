@@ -48,6 +48,12 @@
 #endif
 #endif
 
+#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__)
+#define COPLT_X64
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define COPLT_ARM64
+#endif
+
 #define COPLT_U32_MAX 4294967295
 
 #ifdef FFI_SRC

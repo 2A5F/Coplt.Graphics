@@ -30,6 +30,9 @@ add_library(${target_name} STATIC
     FFI/Shader.h
     Src/Shader.h
     Src/Shader.cc
+    FFI/Pipeline.h
+    FFI/PipelineState.h
+    FFI/Layout.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})
