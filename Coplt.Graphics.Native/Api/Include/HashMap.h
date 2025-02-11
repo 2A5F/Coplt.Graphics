@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <span>
 
+#include "mimalloc.h"
+
 #include "../FFI/Common.h"
-#include "./Memory.h"
 
 #include "Concepts.h"
 
@@ -33,9 +34,9 @@ namespace Coplt
 
         struct Slot
         {
-            i32 next;
-            u32 hash0;
-            u32 hash1;
+            i32 next{};
+            u32 hash0{};
+            u32 hash1{};
 
             usize& hash_code()
             {
@@ -489,6 +490,28 @@ namespace Coplt
         Entry& GetOrAddDefaultEntry(Key&& key, bool& already_exist)
         {
             return GetOrAddEntry(std::forward<Key>(key), already_exist, [&](Value* p) { new(p) Value(); });
+        }
+
+        void Clear()
+        {
+            if (m_count > 0)
+            {
+                if constexpr (!std::is_trivially_destructible<Entry>())
+                {
+                    auto iter = Iterator();
+                    while (auto entry = iter.Next())
+                    {
+                        entry->~Entry();
+                    }
+                }
+
+                std::fill_n(m_p_buckets, m_cap, 0);
+                std::fill_n(m_p_slots, m_cap, Slot{});
+
+                m_count = 0;
+                m_free_list = -1;
+                m_free_count = 0;
+            }
         }
 
         class Iterator

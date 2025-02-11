@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "../FFI/Common.h"
 #include "mimalloc.h"
 
