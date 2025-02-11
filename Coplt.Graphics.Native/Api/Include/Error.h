@@ -14,6 +14,8 @@
 #include <AtlBase.h>
 #endif
 
+#include "Concepts.h"
+
 namespace Coplt
 {
     inline std::string to_string(const cpptrace::stacktrace& trace)
@@ -221,12 +223,6 @@ namespace Coplt
     };
 
 #endif
-
-    template <class F, class R, class... Args>
-    concept Fn = std::invocable<F, Args...> && requires(F f)
-    {
-        { f() } -> std::convertible_to<R>;
-    };
 
     template <Fn<FResult> F>
     FResult feb(F f) noexcept

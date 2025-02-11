@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "../../Api/Include/HashMap.h"
+
 #include "Device.h"
 #include "../../Api/Include/Object.h"
 #include "../FFI/Layout.h"
@@ -22,5 +24,7 @@ namespace Coplt
         void* GetRootSignaturePtr() noexcept override;
 
         FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
+
+        using Foo = decltype([]{}());
     };
 }

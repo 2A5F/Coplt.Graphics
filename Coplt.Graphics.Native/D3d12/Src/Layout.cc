@@ -2,6 +2,10 @@
 
 using namespace Coplt;
 
+struct TmpBySpace
+{
+};
+
 D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
     : m_device(std::move(device))
 {
@@ -9,18 +13,21 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
 
     m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
 
-    ComPtr<ID3DBlob> blob{};
-    ComPtr<ID3DBlob> error_blob{};
-
-    D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
+    HashMap<u32, TmpBySpace> tmp_by_space{};
+    tmp_by_space.TryAdd(1, {});
 
     for (UINT i = 0; i < m_layout_item_defines.size(); i++)
     {
-
     }
 
+    std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
+
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
+    desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_2;
     // todo
 
+    ComPtr<ID3DBlob> blob{};
+    ComPtr<ID3DBlob> error_blob{};
     if (const auto r = D3D12SerializeVersionedRootSignature(&desc, &blob, &error_blob); !SUCCEEDED(r))
     {
         m_device->Logger().Log(
