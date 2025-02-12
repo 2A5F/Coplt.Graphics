@@ -9,9 +9,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
 {
     m_dx_device = m_device->m_device;
 
-    InputAssembler = options.InputAssembler;
-    StreamOutput = options.StreamOutput;
-    BindLess = options.BindLess;
+    Flags = options.Flags;
 
     m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
     m_item_metas = std::vector<ItemMeta>(options.Count, {});
@@ -170,9 +168,11 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     desc.Desc_1_1.pStaticSamplers = nullptr;
     desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-    if (options.InputAssembler) desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-    if (options.StreamOutput) desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
-    if (options.BindLess)
+    if (HasFlags(options.Flags, FShaderLayoutFlags::InputAssembler))
+        desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    if (HasFlags(options.Flags, FShaderLayoutFlags::StreamOutput))
+        desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+    if (HasFlags(options.Flags, FShaderLayoutFlags::BindLess))
         desc.Desc_1_1.Flags |=
             D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
             D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;

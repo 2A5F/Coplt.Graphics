@@ -792,14 +792,8 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
-        [NativeTypeName("Coplt::b8")]
-        public B8 InputAssembler;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 StreamOutput;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 BindLess;
+        [NativeTypeName("Coplt::FShaderLayoutFlags")]
+        public FShaderLayoutFlags Flags;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -1647,6 +1641,15 @@ namespace Coplt.Graphics.Native
         public FShaderLayoutItemUsage Usage;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderLayoutFlags : byte
+    {
+        None = 0,
+        BindLess = 1 << 0,
+        InputAssembler = 1 << 1,
+        StreamOutput = 1 << 2,
+    }
+
     public unsafe partial struct FShaderLayoutCreateOptions
     {
         [NativeTypeName("Coplt::Str8or16")]
@@ -1658,14 +1661,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FShaderLayoutItemDefine *")]
         public FShaderLayoutItemDefine* Items;
 
-        [NativeTypeName("Coplt::b8")]
-        public B8 InputAssembler;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 StreamOutput;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 BindLess;
+        [NativeTypeName("Coplt::FShaderLayoutFlags")]
+        public FShaderLayoutFlags Flags;
     }
 
     public unsafe partial struct FShaderPipelineCreateOptions

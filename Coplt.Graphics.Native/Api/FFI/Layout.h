@@ -39,6 +39,17 @@ namespace Coplt
         FShaderLayoutItemUsage Usage{};
     };
 
+    COPLT_ENUM_FLAGS(FShaderLayoutFlags, u8)
+    {
+        None = 0,
+        // 是否启用无绑定
+        BindLess = 1 << 0,
+        // 是否启用输入组装
+        InputAssembler = 1 << 1,
+        // 是否启用流输出
+        StreamOutput = 1 << 2,
+    };
+
     struct FShaderLayoutCreateOptions
     {
         Str8or16 Name{};
@@ -46,22 +57,12 @@ namespace Coplt
         FShaderLayoutItemDefine* Items{};
         // todo 静态采样器
 
-        // 是否启用输入组装
-        b8 InputAssembler{};
-        // 是否启用流输出
-        b8 StreamOutput{};
-        // 是否启用无绑定
-        b8 BindLess{};
+        FShaderLayoutFlags Flags{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderLayout, "552a498e-8f3a-47ff-a335-7af2de0901e8", FGpuObject)
     {
-        // 是否启用输入组装
-        b8 InputAssembler{};
-        // 是否启用流输出
-        b8 StreamOutput{};
-        // 是否启用无绑定
-        b8 BindLess{};
+        FShaderLayoutFlags Flags{};
 
         virtual FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
     };
