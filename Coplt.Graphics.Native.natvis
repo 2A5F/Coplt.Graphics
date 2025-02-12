@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="Coplt::HashMap&lt;*,*,*,*&gt;">
+	  <DisplayString>{{ len={m_count} }}</DisplayString>
+	  <Expand>
+		  <Item Name="[len]">m_count</Item>
+		  <Item Name="[capacity]">m_cap</Item>
+		  
+		  <CustomListItems Condition="m_count > 0">
+			  <Variable Name="index" InitialValue="0" />
+			  <Size>m_count</Size>
+			  <Loop>
+				  <Break Condition="index &lt; 0 || index >= m_count" />
+				  <Exec>i++</Exec>
+				  <If Condition="m_p_slots[i].next >= -1">
+					  <Item>m_p_entries[i]</Item>
+				  </If>
+			  </Loop>
+		  </CustomListItems>
+		  
+	  </Expand>
+  </Type>
+</AutoVisualizer>

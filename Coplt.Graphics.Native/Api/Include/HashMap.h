@@ -70,7 +70,6 @@ namespace Coplt
         Slot* m_p_slots{};
         Entry* m_p_entries{};
         u32 m_cap{};
-        i32 m_capacity{};
         i32 m_count{};
         i32 m_free_list{};
         i32 m_free_count{};
@@ -133,9 +132,9 @@ namespace Coplt
             const auto size = HashHelpers::GetPrime(capacity);
 
             m_cap = size;
-            m_p_buckets = static_cast<i32*>(mi_zalloc_aligned(size, alignof(i32)));
-            m_p_slots = static_cast<Slot*>(mi_zalloc_aligned(size, alignof(Slot)));
-            m_p_entries = static_cast<Entry*>(mi_malloc_aligned(size, alignof(Entry)));
+            m_p_buckets = static_cast<i32*>(mi_zalloc_aligned(size * sizeof(i32), alignof(i32)));
+            m_p_slots = static_cast<Slot*>(mi_zalloc_aligned(size * sizeof(Slot), alignof(Slot)));
+            m_p_entries = static_cast<Entry*>(mi_malloc_aligned(size * sizeof(Entry), alignof(Entry)));
 
             m_free_list = -1;
             m_fast_mod_multiplier = HashHelpers::GetFastModMultiplier(static_cast<u32>(size));
@@ -158,9 +157,11 @@ namespace Coplt
         {
             m_cap = new_size;
             mi_free_aligned(m_p_buckets, alignof(i32));
-            m_p_buckets = static_cast<i32*>(mi_zalloc_aligned(new_size, alignof(i32)));
-            m_p_slots = static_cast<Slot*>(mi_rezalloc_aligned(m_p_slots, new_size, alignof(Slot)));
-            m_p_entries = static_cast<Entry*>(mi_realloc_aligned(m_p_entries, new_size, alignof(Entry)));
+            m_p_buckets = static_cast<i32*>(mi_zalloc_aligned(new_size * sizeof(i32), alignof(i32)));
+            m_p_slots = static_cast<Slot*>(mi_rezalloc_aligned(m_p_slots, new_size * sizeof(Slot), alignof(Slot)));
+            m_p_entries = static_cast<Entry*>(
+                mi_realloc_aligned(m_p_entries, new_size * sizeof(Entry), alignof(Entry))
+            );
             m_fast_mod_multiplier = HashHelpers::GetFastModMultiplier(static_cast<u32>(new_size));
 
             const auto count = m_count;
@@ -575,9 +576,13 @@ namespace Coplt
             using pointer = Entry*;
             using reference = Entry&;
 
-            explicit StdIterator(HashMap* self) : m_self(self)
+            explicit StdIterator(HashMap* self, const i32 index) : m_self(self), m_index(index)
             {
                 if (m_self) AdvanceToValid();
+            }
+
+            explicit StdIterator(HashMap* self) : StdIterator(self, 0)
+            {
             }
 
             Entry& operator*() const
@@ -645,9 +650,13 @@ namespace Coplt
             using pointer = const Entry*;
             using reference = const Entry&;
 
-            explicit ConstIterator(const HashMap* self) : m_self(self)
+            explicit ConstIterator(HashMap* self, const i32 index) : m_self(self), m_index(index)
             {
                 if (m_self) AdvanceToValid();
+            }
+
+            explicit ConstIterator(HashMap* self) : ConstIterator(self, 0)
+            {
             }
 
             const Entry& operator*() const
