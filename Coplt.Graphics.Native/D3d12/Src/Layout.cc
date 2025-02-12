@@ -1,30 +1,181 @@
 #include "Layout.h"
 
-using namespace Coplt;
+#include "../Include/ShaderVisibility.h"
 
-struct TmpBySpace
-{
-};
+using namespace Coplt;
 
 D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
     : m_device(std::move(device))
 {
     m_dx_device = m_device->m_device;
 
+    InputAssembler = options.InputAssembler;
+    StreamOutput = options.StreamOutput;
+    BindLess = options.BindLess;
+
     m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
-
-    HashMap<u32, TmpBySpace> tmp_by_space{};
-    tmp_by_space.TryAdd(1, {});
-
-    for (UINT i = 0; i < m_layout_item_defines.size(); i++)
-    {
-    }
+    m_item_metas = std::vector<ItemMeta>(options.Count, {});
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
 
+    HashMap<TableKey, TableMeta, TableKey::Hasher, TableKey::Eq> tables[2]{};
+    u32 table_index[2]{};
+
+    for (u32 i = 0; i < m_layout_item_defines.size(); i++)
+    {
+        const auto& item = m_layout_item_defines[i];
+
+        if (item.Type == FShaderLayoutItemType::Constants)
+        {
+            D3D12_ROOT_PARAMETER1 param{};
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+            param.Constants.ShaderRegister = item.Slot;
+            param.Constants.RegisterSpace = item.Space;
+            param.Constants.Num32BitValues = item.CountOrIndex;
+            param.ShaderVisibility = ToDx(item.Stage);
+            m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Const};
+            root_parameters.push_back(param);
+            continue;
+        }
+
+        D3D12_ROOT_PARAMETER_TYPE type;
+        TableScope table_scope;
+
+        switch (item.Usage)
+        {
+        case FShaderLayoutItemUsage::Common:
+            table_scope = TableScope::Common;
+            goto DefineDescriptorTable;
+        case FShaderLayoutItemUsage::Material:
+            table_scope = TableScope::Material;
+            goto DefineDescriptorTable;
+        case FShaderLayoutItemUsage::Instant:
+            if (item.CountOrIndex > 1)
+            {
+                table_scope = TableScope::Common;
+                goto DefineDescriptorTable;
+            }
+            switch (item.Type)
+            {
+            case FShaderLayoutItemType::Cbv:
+                type = D3D12_ROOT_PARAMETER_TYPE_CBV;
+                goto DefineDescriptor;
+            case FShaderLayoutItemType::SrvTexture:
+            case FShaderLayoutItemType::SrvBuffer:
+                type = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                goto DefineDescriptor;
+            case FShaderLayoutItemType::UavTexture:
+            case FShaderLayoutItemType::UavBuffer:
+                type = D3D12_ROOT_PARAMETER_TYPE_UAV;
+                goto DefineDescriptor;
+            case FShaderLayoutItemType::Sampler:
+                throw WRuntimeException(L"TODO"); // 静态采样器
+            default:
+                throw WRuntimeException(
+                    fmt::format(L"Unknown shader layout item type {}", static_cast<u32>(item.Type))
+                );
+            }
+        default:
+            throw WRuntimeException(fmt::format(L"Unknown shader layout item usage {}", static_cast<u32>(item.Usage)));
+        }
+
+        continue;
+
+    DefineDescriptor:
+        {
+            D3D12_ROOT_PARAMETER1 param{};
+            param.ParameterType = type;
+            param.Descriptor.ShaderRegister = item.Slot;
+            param.Descriptor.RegisterSpace = item.Space;
+            param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+            param.ShaderVisibility = ToDx(item.Stage);
+            m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Direct};
+            root_parameters.push_back(param);
+            continue;
+        }
+    DefineDescriptorTable:
+        {
+            auto& table = tables[static_cast<u8>(table_scope)];
+            RangeType range_type{};
+            D3D12_DESCRIPTOR_RANGE1 range{};
+            switch (item.Type)
+            {
+            case FShaderLayoutItemType::Cbv:
+                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+                range_type = RangeType::Cbv;
+                break;
+            case FShaderLayoutItemType::SrvTexture:
+            case FShaderLayoutItemType::SrvBuffer:
+                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                range_type = RangeType::Srv;
+                break;
+            case FShaderLayoutItemType::UavTexture:
+            case FShaderLayoutItemType::UavBuffer:
+                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                range_type = RangeType::Uav;
+                break;
+            case FShaderLayoutItemType::Sampler:
+                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+                range_type = RangeType::Sampler;
+                break;
+            default:
+                throw WRuntimeException(
+                    fmt::format(L"Unknown shader layout item type {}", static_cast<u32>(item.Type))
+                );
+            }
+            auto& meta = table.GetOrAdd(TableKey(item.Stage, range_type), [&](auto* p)
+            {
+                new(p) TableMeta(table_index[static_cast<u8>(table_scope)]++, item.Stage, range_type);
+            });
+            range.NumDescriptors = item.CountOrIndex;
+            range.BaseShaderRegister = item.Slot;
+            range.RegisterSpace = item.Space;
+            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            m_item_metas[i] = ItemMeta{
+                .Index = static_cast<u32>(meta.ranges.size()), .Table = table_scope,
+                .Type = ItemType::InTable, .RangeType = range_type
+            };
+            meta.ranges.push_back(range);
+            continue;
+        }
+    }
+
+    for (u8 ts = 0; ts < 2; ++ts)
+    {
+        auto& table = tables[ts];
+        auto& table_metas = m_table_metas[ts];
+        table_metas = std::vector<TableMeta>(table.Count(), {});
+        for (auto& pair : table)
+        {
+            D3D12_ROOT_PARAMETER1 param{};
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+
+            auto& meta = table_metas[pair.second.Index];
+            meta = std::move(pair.second);
+            meta.RootIndex = root_parameters.size();
+
+            param.ShaderVisibility = ToDx(meta.Stage);
+            param.DescriptorTable.NumDescriptorRanges = meta.ranges.size();
+            param.DescriptorTable.pDescriptorRanges = meta.ranges.data();
+
+            root_parameters.push_back(param);
+        }
+    }
+
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
     desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_2;
-    // todo
+    desc.Desc_1_1.NumParameters = static_cast<u32>(root_parameters.size());
+    desc.Desc_1_1.pParameters = root_parameters.data();
+    desc.Desc_1_1.NumStaticSamplers = 0;
+    desc.Desc_1_1.pStaticSamplers = nullptr;
+    desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+    if (options.InputAssembler) desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    if (options.StreamOutput) desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+    if (options.BindLess)
+        desc.Desc_1_1.Flags |=
+            D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+            D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
     ComPtr<ID3DBlob> blob{};
     ComPtr<ID3DBlob> error_blob{};

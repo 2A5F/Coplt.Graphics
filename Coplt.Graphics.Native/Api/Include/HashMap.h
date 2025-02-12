@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <span>
+#include <vector>
 
 #include "mimalloc.h"
 
 #include "../FFI/Common.h"
 
 #include "Concepts.h"
+#include "Utils.h"
 
 namespace Coplt
 {
@@ -69,11 +71,11 @@ namespace Coplt
         i32* m_p_buckets{};
         Slot* m_p_slots{};
         Entry* m_p_entries{};
+        u64 m_fast_mod_multiplier{};
         u32 m_cap{};
         i32 m_count{};
         i32 m_free_list{};
         i32 m_free_count{};
-        u64 m_fast_mod_multiplier{};
         Hash m_hash{};
         Eq m_eq{};
 
@@ -90,7 +92,7 @@ namespace Coplt
         }
 
     public:
-        explicit HashMap() = default;
+        HashMap() = default;
 
         ~HashMap()
         {
@@ -115,6 +117,29 @@ namespace Coplt
                 mi_free_aligned(m_p_entries, alignof(Entry));
             }
         }
+
+        HashMap(HashMap&& other) noexcept
+            : m_p_buckets(std::exchange(other.m_p_buckets, nullptr)),
+              m_p_slots(std::exchange(other.m_p_slots, nullptr)),
+              m_p_entries(std::exchange(other.m_p_entries, nullptr)),
+              m_fast_mod_multiplier(std::exchange(other.m_fast_mod_multiplier, 0)),
+              m_cap(std::exchange(other.m_cap, 0)),
+              m_count(std::exchange(other.m_count, 0)),
+              m_free_list(std::exchange(other.m_free_list, 0))
+        {
+        }
+
+        HashMap& operator=(HashMap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            new HashMap(std::move(*this));
+            new(this) HashMap(std::forward<HashMap>(other));
+            return *this;
+        }
+
+        HashMap(HashMap& other) noexcept = delete;
+
+        HashMap& operator=(HashMap& other) = delete;
 
         usize Count() const noexcept
         {
@@ -178,7 +203,8 @@ namespace Coplt
 
     public:
         template <
-            Fn<Key&> QueryKey, Fn<void, Key*> CreateKey, Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue
+            Fn<const Key&> QueryKey, Fn<void, Key*> CreateKey, Fn<void, Value&> UpdateValue, Fn<void, Value*>
+            CreateValue
         >
         HashMapInsertResult TryInsert(
             QueryKey query_key, CreateKey create_key, UpdateValue update_value, CreateValue create_value,
@@ -187,7 +213,7 @@ namespace Coplt
         {
             if (m_p_buckets == nullptr) Initialize(0);
 
-            auto key = query_key();
+            const Key& key = query_key();
             const usize hash_code = m_hash(key);
 
             u32 collision_count = 0;
@@ -251,10 +277,10 @@ namespace Coplt
             return HashMapInsertResult::Added;
         }
 
-        HashMapInsertResult TryInsert(Key key, Value value, const InsertionBehavior behavior, Entry** out_entry)
+        HashMapInsertResult TryInsert(Key&& key, Value&& value, const InsertionBehavior behavior, Entry** out_entry)
         {
             return TryInsert(
-                [&]-> Key& { return key; },
+                [&] -> const Key& { return key; },
                 [&](Key* p) -> void { new(p) Key(std::move(key)); },
                 [&](Value& p) -> void { p = std::move(value); },
                 [&](Value* p) -> void { new(p) Value(std::move(value)); },
@@ -262,23 +288,77 @@ namespace Coplt
             );
         }
 
+        HashMapInsertResult TryInsert(
+            const Key& key, Value&& value, const InsertionBehavior behavior, Entry** out_entry
+        )
+        {
+            return TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(key); },
+                [&](Value& p) -> void { p = std::move(value); },
+                [&](Value* p) -> void { new(p) Value(std::move(value)); },
+                behavior, out_entry
+            );
+        }
+
+        HashMapInsertResult TryInsert(
+            Key&& key, const Value& value, const InsertionBehavior behavior, Entry** out_entry
+        )
+        {
+            return TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(std::move(key)); },
+                [&](Value& p) -> void { p = value; },
+                [&](Value* p) -> void { new(p) Value(value); },
+                behavior, out_entry
+            );
+        }
+
+        HashMapInsertResult TryInsert(
+            const Key& key, const Value& value, const InsertionBehavior behavior, Entry** out_entry
+        )
+        {
+            return TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(key); },
+                [&](Value& p) -> void { p = value; },
+                [&](Value* p) -> void { new(p) Value(value); },
+                behavior, out_entry
+            );
+        }
+
         template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
         HashMapInsertResult TryInsert(
-            Key key, UpdateValue update_value, CreateValue create_value,
+            Key&& key, UpdateValue update_value, CreateValue create_value,
             const InsertionBehavior behavior, Entry** out_entry
         )
         {
             return TryInsert(
-                [&]-> Key& { return key; },
+                [&] -> const Key& { return key; },
                 [&](Key* p) -> void { new(p) Key(std::move(key)); },
-                std::forward<UpdateValue>(update_value),
-                std::forward<CreateValue>(create_value),
+                fove(update_value),
+                fove(create_value),
+                behavior, out_entry
+            );
+        }
+
+        template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
+        HashMapInsertResult TryInsert(
+            const Key& key, UpdateValue update_value, CreateValue create_value,
+            const InsertionBehavior behavior, Entry** out_entry
+        )
+        {
+            return TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(key); },
+                fove(update_value),
+                fove(create_value),
                 behavior, out_entry
             );
         }
 
         template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
-        Entry* FindEntry(QKey& query_key, QHash& hasher, QEq& eq)
+        Entry* FindEntry(const QKey& query_key, QHash hasher, QEq eq) const
         {
             Slot* slot = nullptr;
             Entry* entry = nullptr;
@@ -315,25 +395,40 @@ namespace Coplt
             throw std::out_of_range("HashMap does not support concurrent operations");
         }
 
-        Entry* FindEntry(Key& key)
+        Entry* FindEntry(const Key& key) const
         {
             return FindEntry(key, m_hash, m_eq);
         }
 
-        bool Contains(Key& key)
+        bool Contains(const Key& key) const
         {
             return FindEntry(key) != nullptr;
         }
 
         template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
-        bool Contains(QKey& query_key, QHash& hasher, QEq& eq)
+        bool Contains(const QKey& query_key, QHash hasher, QEq eq) const
         {
-            return FindEntry(query_key, hasher, eq) != nullptr;
+            return FindEntry(query_key, fove(hasher), fove(eq)) != nullptr;
+        }
+
+        Value* TryGet(const Key& key) const
+        {
+            auto entry = FindEntry(key);
+            if (entry) return &entry->second;
+            return nullptr;
+        }
+
+        template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
+        Value* TryGet(const QKey& query_key, QHash hasher, QEq eq) const
+        {
+            auto entry = FindEntry(query_key, fove(hasher), fove(eq));
+            if (entry) return &entry->second;
+            return nullptr;
         }
 
         // 返回是否删除，如果删除并且 out_entry 不为空将写入 out_entry
         template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
-        bool Remove(QKey& query_key, QHash& hasher, QEq& eq, Entry* out_entry)
+        bool Remove(const QKey& query_key, QHash hasher, QEq eq, Entry* out_entry)
         {
             if (m_p_buckets == nullptr) return false;
             u32 collision_count = 0;
@@ -387,62 +482,84 @@ namespace Coplt
 
         // 返回是否删除
         template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
-        bool Remove(QKey& query_key, QHash& hasher, QEq& eq)
+        bool Remove(const QKey& query_key, QHash hasher, QEq eq)
         {
-            return Remove(query_key, hasher, eq, nullptr);
+            return Remove(query_key, fove(hasher), fove(eq), nullptr);
         }
 
         // 返回是否删除，如果删除并且 out_entry 不为空将写入 out_entry
-        bool Remove(Key& key, Entry* out_entry)
+        bool Remove(const Key& key, Entry* out_entry)
         {
             return Remove(key, m_hash, m_eq, out_entry);
         }
 
         // 返回是否删除
-        bool Remove(Key& key)
+        bool Remove(const Key& key)
         {
             return Remove(key, m_hash, m_eq, nullptr);
         }
 
-        Value* TryGet(Key& key)
-        {
-            auto entry = FindEntry(key);
-            if (entry) return &entry->second;
-            return nullptr;
-        }
-
-        template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
-        Value* TryGet(QKey& query_key, QHash& hasher, QEq& eq)
-        {
-            auto entry = FindEntry(query_key, hasher, eq);
-            if (entry) return &entry->second;
-            return nullptr;
-        }
-
         // 返回是否添加
-        bool TryAdd(Key key, Value value)
+        bool TryAdd(Key&& key, Value&& value)
         {
             return TryInsert(std::forward<Key>(key), std::forward<Value>(value), InsertionBehavior::None, nullptr)
                 == HashMapInsertResult::Added;
         }
 
         // 返回是否添加
+        bool TryAdd(const Key& key, Value&& value)
+        {
+            return TryInsert(key, std::forward<Value>(value), InsertionBehavior::None, nullptr)
+                == HashMapInsertResult::Added;
+        }
+
+        // 返回是否添加
+        bool TryAdd(Key&& key, const Value& value)
+        {
+            return TryInsert(std::forward<Key>(key), value, InsertionBehavior::None, nullptr)
+                == HashMapInsertResult::Added;
+        }
+
+        // 返回是否添加
+        bool TryAdd(const Key& key, const Value& value)
+        {
+            return TryInsert(key, value, InsertionBehavior::None, nullptr)
+                == HashMapInsertResult::Added;
+        }
+
+        // 返回是否添加
         template <Fn<void, Value*> CreateValue>
-        bool TryAdd(Key key, CreateValue create_value)
+        bool TryAdd(Key&& key, CreateValue create_value)
         {
             return TryInsert(
-                [&]-> Key& { return key; },
+                [&] -> const Key& { return key; },
                 [&](Key* p) -> void { new(p) Key(std::move(key)); },
                 [&](Value& p)
                 {
                     // 不需要更新
                 },
-                std::forward<CreateValue>(create_value),
+                fove(create_value),
                 InsertionBehavior::None, nullptr
             ) == HashMapInsertResult::Added;
         }
 
-        HashMapInsertResult AddOrReplace(Key key, Value value)
+        // 返回是否添加
+        template <Fn<void, Value*> CreateValue>
+        bool TryAdd(const Key& key, CreateValue create_value)
+        {
+            return TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(key); },
+                [&](Value& p)
+                {
+                    // 不需要更新
+                },
+                fove(create_value),
+                InsertionBehavior::None, nullptr
+            ) == HashMapInsertResult::Added;
+        }
+
+        HashMapInsertResult AddOrReplace(Key&& key, Value&& value)
         {
             return TryInsert(
                 std::forward<Key>(key), std::forward<Value>(value),
@@ -450,50 +567,157 @@ namespace Coplt
             );
         }
 
+        HashMapInsertResult AddOrReplace(const Key& key, Value&& value)
+        {
+            return TryInsert(
+                key, std::forward<Value>(value),
+                InsertionBehavior::OverwriteExisting, nullptr
+            );
+        }
+
+        HashMapInsertResult AddOrReplace(Key&& key, const Value& value)
+        {
+            return TryInsert(
+                std::forward<Key>(key), value,
+                InsertionBehavior::OverwriteExisting, nullptr
+            );
+        }
+
+        HashMapInsertResult AddOrReplace(const Key& key, const Value& value)
+        {
+            return TryInsert(
+                key, value,
+                InsertionBehavior::OverwriteExisting, nullptr
+            );
+        }
+
         template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
-        HashMapInsertResult AddOrUpdate(Key key, UpdateValue update_value, CreateValue create_value)
+        HashMapInsertResult AddOrUpdate(Key&& key, UpdateValue update_value, CreateValue create_value)
         {
             return TryInsert(
                 std::forward<Key>(key),
-                std::forward<UpdateValue>(update_value),
-                std::forward<CreateValue>(create_value),
+                fove(update_value),
+                fove(create_value),
+                InsertionBehavior::None, nullptr
+            );
+        }
+
+        template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
+        HashMapInsertResult AddOrUpdate(const Key& key, UpdateValue update_value, CreateValue create_value)
+        {
+            return TryInsert(
+                key,
+                fove(update_value),
+                fove(create_value),
                 InsertionBehavior::None, nullptr
             );
         }
 
         template <Fn<void, Value*> CreateValue>
-        Entry& GetOrAddEntry(Key key, bool& already_exist, CreateValue create_value)
+        Entry& GetOrAddEntry(Key&& key, bool& already_exist, CreateValue create_value)
         {
             Entry* entry{};
             already_exist = TryInsert(
-                [&]-> Key& { return key; },
+                [&] -> const Key& { return key; },
                 [&](Key* p) -> void { new(p) Key(std::move(key)); },
                 [&](Value& p) -> void
                 {
                     // 不需要更新
                 },
-                std::forward<CreateValue>(create_value),
+                fove(create_value),
                 InsertionBehavior::None, &entry
             ) == HashMapInsertResult::None;
             return *entry;
         }
 
         template <Fn<void, Value*> CreateValue>
-        Value& GetOrAdd(Key key, bool& already_exist, CreateValue create_value)
+        Entry& GetOrAddEntry(const Key& key, bool& already_exist, CreateValue create_value)
+        {
+            Entry* entry{};
+            already_exist = TryInsert(
+                [&] -> const Key& { return key; },
+                [&](Key* p) -> void { new(p) Key(key); },
+                [&](Value& p) -> void
+                {
+                    // 不需要更新
+                },
+                fove(create_value),
+                InsertionBehavior::None, &entry
+            ) == HashMapInsertResult::None;
+            return *entry;
+        }
+
+        template <Fn<void, Value*> CreateValue>
+        Value& GetOrAdd(Key&& key, bool& already_exist, CreateValue create_value)
         {
             return GetOrAddEntry(
-                std::forward<Key>(key), already_exist, std::forward<CreateValue>(create_value)
+                std::forward<Key>(key), already_exist, fove(create_value)
             ).second;
         }
 
-        Value& GetOrAddDefault(Key key, bool& already_exist)
+        template <Fn<void, Value*> CreateValue>
+        Value& GetOrAdd(Key&& key, CreateValue create_value)
+        {
+            bool already_exist{};
+            return GetOrAddEntry(
+                std::forward<Key>(key), already_exist, fove(create_value)
+            ).second;
+        }
+
+        template <Fn<void, Value*> CreateValue>
+        Value& GetOrAdd(const Key& key, bool& already_exist, CreateValue create_value)
+        {
+            return GetOrAddEntry(key, already_exist, fove(create_value)).second;
+        }
+
+        template <Fn<void, Value*> CreateValue>
+        Value& GetOrAdd(const Key& key, CreateValue create_value)
+        {
+            bool already_exist{};
+            return GetOrAddEntry(key, already_exist, fove(create_value)).second;
+        }
+
+        Value& GetOrAddDefault(Key&& key, bool& already_exist)
         {
             return GetOrAdd(std::forward<Key>(key), already_exist, [&](Value* p) { new(p) Value(); });
         }
 
-        Entry& GetOrAddDefaultEntry(Key key, bool& already_exist)
+        Value& GetOrAddDefault(Key&& key)
+        {
+            bool already_exist{};
+            return GetOrAddDefault(std::forward<Key>(key), already_exist);
+        }
+
+        Value& GetOrAddDefault(const Key& key, bool& already_exist)
+        {
+            return GetOrAdd(key, already_exist, [&](Value* p) { new(p) Value(); });
+        }
+
+        Value& GetOrAddDefault(const Key& key)
+        {
+            return GetOrAddDefault(key);
+        }
+
+        Entry& GetOrAddDefaultEntry(Key&& key, bool& already_exist)
         {
             return GetOrAddEntry(std::forward<Key>(key), already_exist, [&](Value* p) { new(p) Value(); });
+        }
+
+        Entry& GetOrAddDefaultEntry(Key&& key)
+        {
+            bool already_exist{};
+            return GetOrAddDefaultEntry(std::forward<Key>(key), already_exist);
+        }
+
+        Entry& GetOrAddDefaultEntry(const Key& key, bool& already_exist)
+        {
+            return GetOrAddEntry(key, already_exist, [&](Value* p) { new(p) Value(); });
+        }
+
+        Entry& GetOrAddDefaultEntry(const Key& key)
+        {
+            bool already_exist{};
+            return GetOrAddDefaultEntry(key, already_exist);
         }
 
         void Clear()
@@ -518,13 +742,13 @@ namespace Coplt
             }
         }
 
-        class Iterator
+        class MutIterator
         {
             HashMap* m_self{};
             i32 m_index{0};
 
         public:
-            explicit Iterator(HashMap* self) : m_self(self)
+            explicit MutIterator(HashMap* self) : m_self(self)
             {
             }
 
@@ -548,9 +772,44 @@ namespace Coplt
             }
         };
 
-        Iterator Iterator() const
+        MutIterator Iterator()
         {
-            return Iterator(this);
+            return MutIterator(this);
+        }
+
+        class ImmIterator
+        {
+            const HashMap* m_self{};
+            i32 m_index{0};
+
+        public:
+            explicit ImmIterator(const HashMap* self) : m_self(self)
+            {
+            }
+
+            // 尝试获取下个项，如果成功获取将不是 null
+            const Entry* Next()
+            {
+                while (static_cast<u32>(m_index) < static_cast<u32>(m_self->m_count))
+                {
+                    auto i = m_index++;
+                    auto& slot = m_self->m_p_slots[i];
+                    auto& entry = m_self->m_p_entries[i];
+
+                    if (slot.next >= -1)
+                    {
+                        return &entry;
+                    }
+                }
+
+                m_index = m_self->m_count + 1;
+                return nullptr;
+            }
+        };
+
+        ImmIterator Iterator() const
+        {
+            return ImmIterator(this);
         }
 
         class StdIterator
@@ -717,6 +976,19 @@ namespace Coplt
         ConstIterator end() const
         {
             return ConstIterator(this, m_count);
+        }
+
+        std::vector<Entry> IntoVector() &&
+        {
+            std::vector<Entry> entries{};
+            entries.reserve(m_count);
+            auto iter = Iterator();
+            while (auto entry = iter.Next())
+            {
+                entries.push_back(std::move(*entry));
+            }
+            new HashMap(std::move(*this));
+            return entries;
         }
     };
 }

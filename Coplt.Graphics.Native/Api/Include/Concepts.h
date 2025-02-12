@@ -11,8 +11,8 @@ namespace Coplt
     };
 
     template <class F, class T>
-    concept Hash = Fn<F, size_t, T&> || Fn<F, size_t, T>;
+    concept Hash = Fn<F, size_t, const T&> || Fn<F, size_t, T>;
 
     template <class F, class A, class B = A>
-    concept Eq = Fn<F, bool, A&, B&>;
+    concept Eq = Fn<F, bool, const A&, const B&>;
 }

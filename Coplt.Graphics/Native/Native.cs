@@ -792,6 +792,15 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
+        [NativeTypeName("Coplt::b8")]
+        public B8 InputAssembler;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 StreamOutput;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 BindLess;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
@@ -1615,7 +1624,6 @@ namespace Coplt.Graphics.Native
         Common,
         Material,
         Instant,
-        Static,
     }
 
     public partial struct FShaderLayoutItemDefine
@@ -1627,10 +1635,10 @@ namespace Coplt.Graphics.Native
         public uint Space;
 
         [NativeTypeName("Coplt::u32")]
-        public uint X0;
+        public uint CountOrIndex;
 
-        [NativeTypeName("Coplt::FShaderStageFlags")]
-        public FShaderStageFlags Visibility;
+        [NativeTypeName("Coplt::FShaderStage")]
+        public FShaderStage Stage;
 
         [NativeTypeName("Coplt::FShaderLayoutItemType")]
         public FShaderLayoutItemType Type;
@@ -1649,6 +1657,15 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderLayoutItemDefine *")]
         public FShaderLayoutItemDefine* Items;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 InputAssembler;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 StreamOutput;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 BindLess;
     }
 
     public unsafe partial struct FShaderPipelineCreateOptions

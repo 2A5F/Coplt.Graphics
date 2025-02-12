@@ -243,6 +243,8 @@ namespace Coplt.Graphics.Native.D3d12
 
         public void** lpVtbl;
 
+        public FShaderLayout Base;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
