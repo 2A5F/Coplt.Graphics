@@ -58,28 +58,27 @@ void D3d12CommandInterpreter::InterpreterContext::ReqState(FResourceSrc res_src,
     const auto new_state = ChangeState(res.CurrentState, req_state);
     if (new_state == res.CurrentState) return;
     auto barrier = &GetCurrentBarrier();
-    if (const auto state_pair = barrier->m_states.try_get(res_obj))
+    bool exists{};
+    auto state_pair = barrier->m_states.GetOrAdd(res_obj, exists, [&](StatePair* p)
     {
-        if (IsCompatible(state_pair->FinalState, new_state))
+        new(p) StatePair(res.CurrentState, new_state, res.Type);
+        res.CurrentState = new_state;
+    });
+    if (exists)
+    {
+        if (IsCompatible(state_pair.FinalState, new_state))
         {
-            state_pair->FinalState |= new_state;
-            res.CurrentState = state_pair->FinalState;
+            state_pair.FinalState |= new_state;
+            res.CurrentState = state_pair.FinalState;
         }
         else
         {
             barrier = &AddBarrier();
-            barrier->m_states.do_insert(
+            barrier->m_states.TryAdd(
                 res_obj, StatePair(res.CurrentState, new_state, res.Type)
             );
             res.CurrentState = new_state;
         }
-    }
-    else
-    {
-        barrier->m_states.do_insert(
-            res_obj, StatePair(res.CurrentState, new_state, res.Type)
-        );
-        res.CurrentState = new_state;
     }
 }
 
@@ -147,7 +146,7 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
             const auto& barrier_map = std::get<std::unique_ptr<CommandBarrierPart>>(cmd_item)->m_states;
 
             std::vector<D3D12_RESOURCE_BARRIER> barriers{};
-            barriers.reserve(barrier_map.size());
+            barriers.reserve(barrier_map.Count());
 
             for (const auto& [obj, pair] : barrier_map)
             {

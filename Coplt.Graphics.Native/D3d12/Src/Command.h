@@ -2,7 +2,7 @@
 
 #include <variant>
 
-#include "../../ThirdParty/emhash/hash_table8.hpp"
+#include "../../Api/Include/HashMap.h"
 
 #include "../Include/Utils.h"
 #include "../../Api/FFI/States.h"
@@ -24,12 +24,14 @@ namespace Coplt
             FResourceState FinalState{};
             FResourceRefType Type{};
 
+            explicit StatePair() = default;
+
             explicit StatePair(FResourceState StartState, FResourceState FinalState, FResourceRefType Type);
         };
 
         struct CommandBarrierPart
         {
-            emhash8::HashMap<FUnknown*, StatePair> m_states{};
+            HashMap<FUnknown*, StatePair> m_states{};
         };
 
         struct CommandItemPart
