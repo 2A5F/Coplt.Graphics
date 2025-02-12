@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Test1": {
+    "HelloTriangle": {
       "commandName": "Project",
       "nativeDebugging": true,
       "commandLineArgs": "-D"

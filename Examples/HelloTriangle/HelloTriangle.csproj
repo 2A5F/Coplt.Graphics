@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Coplt.Graphics\Coplt.Graphics.csproj"/>
+        <ProjectReference Include="..\..\Coplt.Graphics\Coplt.Graphics.csproj"/>
         <PackageReference Include="Serilog" Version="4.2.0"/>
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
         <PackageReference Include="Serilog.Exceptions" Version="8.4.0"/>
@@ -28,7 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../D3D12SDKVersionPatcher.exe" Visible="false"/>
+        <None Include="../../D3D12SDKVersionPatcher.exe" Visible="false"/>
         <None Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\**\*.dll"
               Exclude="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\DirectSR.dll"
               Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
@@ -56,12 +56,16 @@
     </ItemGroup>
 
     <Target Name="PatchDxSdkExport" AfterTargets="Build">
-        <Exec Command="..\D3D12SDKVersionPatcher.exe .\$(OutDir)\$(AssemblyName).exe $(D3D12SDKVersion) .\$(D3D12SDKPath)\"/>
+        <Exec Command="..\..\D3D12SDKVersionPatcher.exe .\$(OutDir)\$(AssemblyName).exe $(D3D12SDKVersion) .\$(D3D12SDKPath)\"/>
     </Target>
 
     <ItemGroup>
-        <None Include="../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
-        <None Include="../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
-        <None Include="../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ClCompile Include="Shaders\HelloTriangle.hlsl" />
     </ItemGroup>
 </Project>

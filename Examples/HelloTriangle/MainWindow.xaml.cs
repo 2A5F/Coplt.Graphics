@@ -31,6 +31,22 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitGraphics();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        IsClosed = true;
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        Console.WriteLine($"OnRenderSizeChanged {sizeInfo.NewSize}");
+        Output.Resize((uint)sizeInfo.NewSize.Width, (uint)sizeInfo.NewSize.Height);
+    }
+
+    void InitGraphics()
+    {
         try
         {
             Graphics = GraphicsInstance.LoadD3d12();
@@ -51,12 +67,14 @@ public partial class MainWindow : Window
         }
         new Thread(() =>
         {
+            Thread.CurrentThread.Name = "Render Thread";
             var cmd = Device.MainCommandList;
+            LoadResources(cmd);
             while (!IsClosed)
             {
                 try
                 {
-                    cmd.ClearColor(Output, new float4(1, 1, 1, 1));
+                    Render(cmd);
                     Output.Present();
                 }
                 catch (Exception e)
@@ -67,16 +85,13 @@ public partial class MainWindow : Window
         }).Start();
     }
 
-    protected override void OnRender(DrawingContext drawingContext) { }
-
-    protected override void OnClosed(EventArgs e)
+    void LoadResources(CommandList cmd)
     {
-        IsClosed = true;
+        // todo        
     }
 
-    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    void Render(CommandList cmd)
     {
-        Console.WriteLine($"OnRenderSizeChanged {sizeInfo.NewSize}");
-        Output.Resize((uint)sizeInfo.NewSize.Width, (uint)sizeInfo.NewSize.Height);
+        cmd.ClearColor(Output, new float4(1, 1, 1, 1));
     }
 }
