@@ -51,6 +51,9 @@ namespace Coplt
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
         virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
+        virtual FResult CreateShaderInputLayout(
+            const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
+        ) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
 
         virtual FResult CreateGraphicsPipeline(

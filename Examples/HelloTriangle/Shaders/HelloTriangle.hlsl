@@ -20,7 +20,7 @@ Varying Vertex(Attribute input)
 }
 
 [shader("pixel")]
-float4 Pixel(Varying input)
+float4 Pixel(Varying input) : SV_Target
 {
     return input.Color;
 }

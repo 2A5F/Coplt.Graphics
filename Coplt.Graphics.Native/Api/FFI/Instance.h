@@ -25,6 +25,9 @@ namespace Coplt
 
         virtual FResult SetLogger(const FLogger& logger) noexcept = 0;
 
+        virtual FResult CreateString8(const Char8* data, usize size, FString8** out) noexcept = 0;
+        virtual FResult CreateString16(const Char16* data, usize size, FString16** out) noexcept = 0;
+
         virtual FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept = 0;
     };
 }

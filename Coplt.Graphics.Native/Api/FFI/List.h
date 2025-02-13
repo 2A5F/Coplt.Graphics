@@ -21,6 +21,8 @@ namespace Coplt
 
         constexpr size_t InitCapacity = 4;
 
+        FList() = default;
+
         explicit FList(FAllocator* allocator) : m_allocator(allocator), m_ptr(nullptr)
         {
         }
@@ -120,9 +122,4 @@ namespace Coplt
         }
 #endif
     };
-
-    // struct Foo
-    // {
-    //     FList<i32> a;
-    // };
 }

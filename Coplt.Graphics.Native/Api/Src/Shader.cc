@@ -34,8 +34,8 @@ FResult ShaderModule::SetName(const Str8or16& name) noexcept
 
 Shader::Shader(const FShaderCreateOptions& options)
 {
-    if (options.Layout == nullptr) throw RuntimeException("options.Layout is null");
     m_layout = Rc<FShaderLayout>::UnsafeClone(options.Layout);
+    m_input_layout = Rc<FShaderInputLayout>::UnsafeClone(options.InputLayout);
 
     if (options.Count == 0) throw RuntimeException("options.Count cannot be 0");
     if (options.Count > MaxShaderModuleCount)
@@ -97,6 +97,11 @@ FResult Shader::SetName(const Str8or16& name) noexcept
 FShaderLayout* Shader::Layout() noexcept
 {
     return m_layout.get();
+}
+
+FShaderInputLayout* Shader::InputLayout() noexcept
+{
+    return m_input_layout.get();
 }
 
 FShaderModule* Shader::Compute() noexcept

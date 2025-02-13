@@ -189,6 +189,15 @@ FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& opt
     });
 }
 
+FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options,
+    FShaderInputLayout** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12ShaderInputLayout(this->CloneThis(), options);
+    });
+}
+
 FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept
 {
     return feb([&]

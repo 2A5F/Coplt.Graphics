@@ -45,6 +45,9 @@ namespace Coplt
 
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept override;
         FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept override;
+        FResult CreateShaderInputLayout(
+            const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
+        ) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept override;
 
         FResult CreateGraphicsPipeline(

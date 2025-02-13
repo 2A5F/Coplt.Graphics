@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,8 +13,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Coplt.Graphics;
+using Coplt.Graphics.Core;
 using Coplt.Mathematics;
 using Serilog;
+using Path = System.IO.Path;
 
 namespace Test1;
 
@@ -26,13 +30,21 @@ public partial class MainWindow : Window
     private GpuOutput Output = null!;
     private IntPtr Handle;
 
+    private Shader Shader = null!;
+
     private bool IsClosed = false;
+
+    #region Ctor
 
     public MainWindow()
     {
         InitializeComponent();
         InitGraphics();
     }
+
+    #endregion
+
+    #region Misc
 
     protected override void OnClosed(EventArgs e)
     {
@@ -41,9 +53,13 @@ public partial class MainWindow : Window
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
-        Console.WriteLine($"OnRenderSizeChanged {sizeInfo.NewSize}");
+        Log.Information("OnRenderSizeChanged {NewSize}", sizeInfo.NewSize);
         Output.Resize((uint)sizeInfo.NewSize.Width, (uint)sizeInfo.NewSize.Height);
     }
+
+    #endregion
+
+    #region InitGraphics
 
     void InitGraphics()
     {
@@ -69,7 +85,7 @@ public partial class MainWindow : Window
         {
             Thread.CurrentThread.Name = "Render Thread";
             var cmd = Device.MainCommandList;
-            LoadResources(cmd);
+            LoadResources(cmd).Wait();
             while (!IsClosed)
             {
                 try
@@ -85,13 +101,46 @@ public partial class MainWindow : Window
         }).Start();
     }
 
-    void LoadResources(CommandList cmd)
+    #endregion
+
+    #region LoadShaderModule
+
+    async Task<ShaderModule> LoadShaderModule(ShaderStage stage, string path)
     {
+        var blob = await File.ReadAllBytesAsync(Path.Join(AppContext.BaseDirectory, path));
+        return Device.CreateShaderModule(stage, blob);
+    }
+    Task<ShaderModule[]> LoadShaderModules(string name, ReadOnlySpan<ShaderStage> stages)
+    {
+        var tasks = new Task<ShaderModule>[stages.Length];
+        for (int i = 0; i < stages.Length; i++)
+        {
+            var stage = stages[i];
+            tasks[i] = LoadShaderModule(stage, $"{name}.{stage}.dxil");
+        }
+        return Task.WhenAll(tasks);
+    }
+
+    #endregion
+
+    #region LoadResources
+
+    async Task LoadResources(CommandList cmd)
+    {
+        var modules = await LoadShaderModules("HelloTriangle", [ShaderStage.Vertex, ShaderStage.Pixel]);
+        Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout(["POSITION", "COLOR"]));
+
         // todo        
     }
+
+    #endregion
+
+    #region Render
 
     void Render(CommandList cmd)
     {
         cmd.ClearColor(Output, new float4(1, 1, 1, 1));
     }
+
+    #endregion
 }

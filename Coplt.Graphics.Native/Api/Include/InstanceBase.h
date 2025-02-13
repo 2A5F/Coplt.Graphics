@@ -8,9 +8,11 @@
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 
+#include "Error.h"
 #include "mimalloc.h"
 
 #include "../Src/Allocator.h"
+#include "../Src/String.h"
 
 namespace Coplt
 {
@@ -35,6 +37,22 @@ namespace Coplt
         const Logger& Logger() const noexcept
         {
             return m_logger;
+        }
+
+        FResult CreateString8(const Char8* data, const usize size, FString8** out) noexcept override
+        {
+            return feb([&]
+            {
+                *out = String8::Create(data, size);
+            });
+        }
+
+        FResult CreateString16(const Char16* data, const usize size, FString16** out) noexcept override
+        {
+            return feb([&]
+            {
+                *out = String16::Create(data, size);
+            });
         }
     };
 }

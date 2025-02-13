@@ -2,7 +2,7 @@
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 public enum GpuQueueType : byte
 {
@@ -90,7 +90,9 @@ public sealed unsafe partial class GpuQueue
     #region ToString
 
     public override string ToString() =>
-        m_name is null ? $"{nameof(GpuQueue)}({(nuint)m_ptr:X})" : $"{nameof(GpuQueue)}({(nuint)m_ptr:X} \"{m_name}\")";
+        m_name is null
+            ? $"0x{nameof(GpuQueue)}({(nuint)m_ptr:X})"
+            : $"0x{nameof(GpuQueue)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 

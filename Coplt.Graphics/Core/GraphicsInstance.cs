@@ -1,11 +1,13 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 using Coplt.Graphics.Native.D3d12;
 using Coplt.Graphics.Utilities;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
 public unsafe partial class GraphicsInstance
@@ -21,6 +23,9 @@ public unsafe partial class GraphicsInstance
     #region Fields
 
     internal FInstance* m_ptr;
+    internal readonly ConcurrentDictionary<string, String8> m_string_cache = new();
+    internal readonly ConcurrentDictionary<string, uint> m_slot_id_cache = new(StringComparer.OrdinalIgnoreCase);
+    internal uint m_slot_id_inc;
 
     #endregion
 
@@ -205,6 +210,48 @@ public unsafe partial class GraphicsInstance
 
     #endregion
 
+    #region String
+
+    public String8 CreateString8(ReadOnlySpan<byte> str, string? managed = null)
+    {
+        fixed (byte* p_str = str)
+        {
+            FString8* ptr;
+            m_ptr->CreateString8(p_str, (nuint)str.Length, &ptr).TryThrow();
+            return new(ptr, managed);
+        }
+    }
+
+    public String16 CreateString16(ReadOnlySpan<char> str, string? managed = null)
+    {
+        fixed (char* p_str = str)
+        {
+            FString16* ptr;
+            m_ptr->CreateString16(p_str, (nuint)str.Length, &ptr).TryThrow();
+            return new(ptr, managed);
+        }
+    }
+
+    public String8 CreateString8(string str) => CreateString8(Encoding.UTF8.GetBytes(str), str);
+    public String16 CreateString16(string str) => CreateString16(str, str);
+
+    #region CacheString8
+
+    private Func<string, String8>? m_cache_CreateString8;
+    public String8 CacheString8(string str) => m_string_cache.GetOrAdd(str, m_cache_CreateString8 ??= CreateString8);
+
+    #endregion
+
+    #endregion
+
+    #region SlotId
+
+    private uint AllocSlotId(string _) => m_slot_id_inc++;
+    private Func<string, uint>? m_cache_AllocSlotId;
+    public uint GetSlotId(string name) => m_slot_id_cache.GetOrAdd(name, m_cache_AllocSlotId ??= AllocSlotId);
+
+    #endregion
+
     #region CreateDevice
 
     public GpuDevice CreateDevice(
@@ -232,7 +279,7 @@ public unsafe partial class GraphicsInstance
                 };
                 FGpuDevice* ptr;
                 m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-                return new(ptr, Name, QueueName: QueueName, QueueName8: QueueName8);
+                return new(ptr, this, Name, QueueName: QueueName, QueueName8: QueueName8);
             }
         }
     }

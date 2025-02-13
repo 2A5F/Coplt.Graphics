@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "PipelineState.h"
 
 namespace Coplt
 {
@@ -15,6 +16,7 @@ namespace Coplt
 
     COPLT_ENUM_FLAGS(FShaderStageFlags, u8)
     {
+        None = 0,
         Compute = 1 << 0,
         Pixel = 1 << 1,
         Vertex = 1 << 2,
@@ -24,6 +26,7 @@ namespace Coplt
 
     struct FShaderModuleCreateOptions
     {
+        Str8or16 Name{};
         // 需要自己保证数据内容符合当前使用的后端，比如 dx 使用的 dxil，vk 使用的 spv
         void* Data{};
         usize Size{};
@@ -41,11 +44,15 @@ namespace Coplt
     };
 
     struct FShaderLayout;
+    struct FShaderInputLayout;
 
     struct FShaderCreateOptions
     {
+        Str8or16 Name{};
         // 此处是借用，不传递所有权
         FShaderLayout* Layout{};
+        // 此处是借用，不传递所有权
+        FShaderInputLayout* InputLayout{};
         // 此处是借用，不传递所有权
         FShaderModule** Modules{};
         u8 Count{};
@@ -53,9 +60,13 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FShader, "de1352d5-023d-42b0-beac-122b3b296c9c", FGpuObject)
     {
+        constexpr static u32 MaxShaderModuleCount = 3;
+
         FShaderStageFlags Stages{};
 
         virtual FShaderLayout* Layout() noexcept = 0;
+
+        virtual FShaderInputLayout* InputLayout() noexcept = 0;
 
         // 没有返回 null
         virtual FShaderModule* Compute() noexcept = 0;

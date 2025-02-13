@@ -2,7 +2,7 @@
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 #region Enums
 
@@ -132,8 +132,8 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     public override string ToString() =>
         m_name is null
-            ? $"{nameof(GpuOutput)}({(nuint)m_ptr:X})"
-            : $"{nameof(GpuOutput)}({(nuint)m_ptr:X} \"{m_name}\")";
+            ? $"{nameof(GpuOutput)}(0x{(nuint)m_ptr:X})"
+            : $"{nameof(GpuOutput)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 

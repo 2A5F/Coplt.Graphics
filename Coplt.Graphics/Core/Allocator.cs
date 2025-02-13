@@ -1,7 +1,7 @@
 ﻿using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class Allocator

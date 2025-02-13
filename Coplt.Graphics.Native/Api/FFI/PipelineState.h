@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "TextureFormat.h"
+#include "String.h"
 
 namespace Coplt
 {
@@ -203,46 +204,37 @@ namespace Coplt
         FPrimitiveTopologyType Topology{FPrimitiveTopologyType::Triangle};
     };
 
-    enum class FInputElementValueType : u8
+    enum class FShaderInputElementRate : u8
     {
-        Undefined = 0,
-        Int8,
-        Int16,
-        Int32,
-        UInt8,
-        UInt16,
-        UInt32,
-        Float16,
-        Float32,
-        Float64,
-    };
-
-    enum class FInputElementFrequency : u8
-    {
-        Undefined = 0,
         Vertex,
         Instance,
     };
 
-    enum class FInputElementNumComponents : u8
+    struct FShaderInputLayoutElement
     {
-        X1 = 1,
-        X2 = 2,
-        X3 = 3,
-        X4 = 4,
+        // dx 后端为语义名称，必须有；其他后端可选
+        FString8* SlotName{};
+        // 相同名字的 SlotName 必须具有相同的 SlotId，需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id，且缓存不应区分大小写
+        u32 SlotId{};
+        // 是 Slot 中第几个项，对应 dx 的 SemanticIndex
+        u32 SlotIndex{};
     };
 
-    struct FInputLayoutElement
+    struct FMeshLayoutElement
     {
-        u32 SlotNameAt{0};
-        u32 SemanticIndex{0};
-        u32 BufferSlot{0};
-        u32 RelativeOffset{COPLT_U32_MAX};
-        u32 Stride{COPLT_U32_MAX};
-        u32 InstanceDataStepRate{1};
-        FInputElementNumComponents NumComponents{0};
-        FInputElementValueType ValueType{FInputElementValueType::Float32};
-        u8 IsNormalized{true};
-        FInputElementFrequency Frequency{FInputElementFrequency::Vertex};
+        // 需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id
+        u32 SlotId{};
+        // 是 Slot 中第几个项，对应 dx 的 SemanticIndex
+        u32 SlotIndex{};
+        // 元素格式
+        FTextureFormat Format{};
+        // 元素间隔
+        u32 Stride{};
+        // 元素在间隔中的偏移
+        u32 Offset{};
+        // 元素频率，指示是按顶点还是按实例
+        FShaderInputElementRate Rate{};
+        // 每次实例数据可重复几次，对应 dx 的 InstanceDataStepRate；对于实例 0 相当于 1
+        u32 InstanceRepeat{};
     };
 }

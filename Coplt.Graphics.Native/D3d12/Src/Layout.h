@@ -105,9 +105,18 @@ namespace Coplt
         void* GetRootSignaturePtr() noexcept override;
 
         FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
+    };
 
-        using Foo = decltype([]
-        {
-        }());
+    struct D3d12ShaderInputLayout final : Object<D3d12ShaderInputLayout, FD3d12ShaderInputLayout>
+    {
+        Rc<D3d12GpuDevice> m_device{};
+        std::vector<Rc<FString8>> m_slot_names{};
+        std::vector<FShaderInputLayoutElement> m_elements{};
+
+        explicit D3d12ShaderInputLayout(Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options);
+
+        FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
+
+        FResult SetName(const Str8or16& name) noexcept override;
     };
 }

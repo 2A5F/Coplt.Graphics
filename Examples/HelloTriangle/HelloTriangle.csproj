@@ -21,7 +21,7 @@
         <PackageReference Include="Serilog.Expressions" Version="5.0.0"/>
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0"/>
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
-        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.715.1-preview" GeneratePathProperty="true"/>
         <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2407.12" GeneratePathProperty="true" ExcludeAssets="all"/>
@@ -59,13 +59,14 @@
         <Exec Command="..\..\D3D12SDKVersionPatcher.exe .\$(OutDir)\$(AssemblyName).exe $(D3D12SDKVersion) .\$(D3D12SDKPath)\"/>
     </Target>
 
+    <Target Name="BuildShader" AfterTargets="Build">
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T vs_6_6 -E Vertex -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloTriangle.Vertex.dxil ./Shaders/HelloTriangle.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T ps_6_6 -E Pixel -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloTriangle.Pixel.dxil ./Shaders/HelloTriangle.hlsl"/>
+    </Target>
+
     <ItemGroup>
         <None Include="../../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
-    </ItemGroup>
-
-    <ItemGroup>
-      <ClCompile Include="Shaders\HelloTriangle.hlsl" />
     </ItemGroup>
 </Project>

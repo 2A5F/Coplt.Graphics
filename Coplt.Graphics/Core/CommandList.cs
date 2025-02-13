@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 public enum CommandFlags : uint
 {

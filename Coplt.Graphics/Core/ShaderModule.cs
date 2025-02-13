@@ -1,0 +1,76 @@
+﻿using Coplt.Dropping;
+using Coplt.Graphics.Native;
+
+namespace Coplt.Graphics.Core;
+
+[Dropping(Unmanaged = true)]
+public sealed unsafe partial class ShaderModule
+{
+    #region Fields
+
+    internal FShaderModule* m_ptr;
+    internal string? m_name;
+
+    #endregion
+
+    #region Props
+
+    public FShaderModule* Ptr => m_ptr;
+    public ShaderStage Stage => m_ptr->Stage.FromFFI();
+
+    #endregion
+
+    #region Ctor
+
+    internal ShaderModule(FShaderModule* ptr, string? name)
+    {
+        m_ptr = ptr;
+        m_name = name;
+    }
+
+    #endregion
+
+    #region Drop
+
+    [Drop]
+    private void Drop()
+    {
+        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
+        ptr->Release();
+    }
+
+    #endregion
+
+    #region SetName
+
+    public void SetName(string name)
+    {
+        m_name = name;
+        fixed (char* ptr = name)
+        {
+            Str8or16 str = new() { str16 = ptr, len = name.Length };
+            m_ptr->SetName(&str).TryThrow();
+        }
+    }
+
+    public void SetName(ReadOnlySpan<byte> name)
+    {
+        fixed (byte* ptr = name)
+        {
+            Str8or16 str = new() { str8 = ptr, len = name.Length };
+            m_ptr->SetName(&str).TryThrow();
+        }
+        m_name = null;
+    }
+
+    #endregion
+
+    #region ToString
+
+    public override string ToString() =>
+        m_name is null
+            ? $"{nameof(ShaderModule)}(0x{(nuint)m_ptr:X}) {{ Stage = {Stage} }}"
+            : $"{nameof(ShaderModule)}(0x{(nuint)m_ptr:X} \"{m_name}\") {{ Stage = {Stage} }}";
+
+    #endregion
+}

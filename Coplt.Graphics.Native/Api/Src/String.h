@@ -121,9 +121,19 @@ namespace Coplt
         }
 
     public:
+        static String8* Create(const char8_t* data)
+        {
+            return StringT::Create(data);
+        }
+
         static String8* Create(const char* data)
         {
             return Create(data, std::char_traits<char>::length(data));
+        }
+
+        static String8* Create(const char8_t* data, const usize size)
+        {
+            return StringT::Create(data, size);
         }
 
         static String8* Create(const char* data, const usize size)
@@ -152,6 +162,16 @@ namespace Coplt
         }
 
     public:
+        static String16* Create(const Char16* data)
+        {
+            return StringT::Create(data);
+        }
+
+        static String16* Create(const Char16* data, const usize size)
+        {
+            return StringT::Create(data, size);
+        }
+
 #if _WINDOWS
         static String16* Create(const wchar_t* data)
         {

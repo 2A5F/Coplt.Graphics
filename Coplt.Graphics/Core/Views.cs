@@ -1,6 +1,6 @@
 ﻿using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 public interface IView
 {

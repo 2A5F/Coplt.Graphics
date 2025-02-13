@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using Coplt.Graphics.Native;
 
-namespace Coplt.Graphics;
+namespace Coplt.Graphics.Core;
 
 [Flags]
 public enum ResourceState : uint

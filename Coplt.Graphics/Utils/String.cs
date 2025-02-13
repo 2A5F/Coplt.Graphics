@@ -13,7 +13,7 @@ public sealed unsafe partial class String8
     internal string? m_str_cache;
 
     #endregion
-    
+
     #region Props
 
     public FString8* Ptr => m_ptr;
@@ -22,9 +22,10 @@ public sealed unsafe partial class String8
 
     #region Ctor
 
-    public String8(FString8* ptr)
+    public String8(FString8* ptr, string? str = null)
     {
         m_ptr = ptr;
+        m_str_cache = str;
     }
 
     #endregion
@@ -73,7 +74,7 @@ public sealed unsafe partial class String16
     internal string? m_str_cache;
 
     #endregion
-    
+
     #region Props
 
     public FString16* Ptr => m_ptr;
@@ -82,9 +83,10 @@ public sealed unsafe partial class String16
 
     #region Ctor
 
-    public String16(FString16* ptr)
+    public String16(FString16* ptr, string? str = null)
     {
         m_ptr = ptr;
+        m_str_cache = str;
     }
 
     #endregion

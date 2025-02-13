@@ -216,3 +216,28 @@ FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count) noexc
     *out_count = static_cast<u32>(m_layout_item_defines.size());
     return m_layout_item_defines.data();
 }
+
+D3d12ShaderInputLayout::D3d12ShaderInputLayout(
+    Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options
+) : m_device(std::move(device))
+{
+    m_elements = std::vector(options.Element, options.Element + options.Count);
+    m_slot_names.reserve(m_elements.size());
+    for (auto& element : m_elements)
+    {
+        auto name = Rc<FString8>::UnsafeClone(element.SlotName);
+        element.SlotName = name.get();
+        m_slot_names.push_back(std::move(name));
+    }
+}
+
+FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_count) noexcept
+{
+    *out_count = static_cast<u32>(m_elements.size());
+    return m_elements.data();
+}
+
+FResult D3d12ShaderInputLayout::SetName(const Str8or16& name) noexcept
+{
+    return FResult::None();
+}

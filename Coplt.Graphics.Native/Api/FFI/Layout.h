@@ -66,4 +66,16 @@ namespace Coplt
 
         virtual FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
     };
+
+    struct FShaderInputLayoutCreateOptions
+    {
+        Str8or16 Name{};
+        FShaderInputLayoutElement* Element{};
+        u32 Count{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FShaderInputLayout, "70229c9a-fb3d-46b4-b534-72fdb167d807", FGpuObject)
+    {
+        virtual FShaderInputLayoutElement* GetElements(u32* out_count) noexcept = 0;
+    };
 }
