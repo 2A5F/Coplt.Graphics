@@ -78,4 +78,19 @@ namespace Coplt
     {
         virtual FShaderInputLayoutElement* GetElements(u32* out_count) noexcept = 0;
     };
+
+    struct FMeshLayoutCreateOptions
+    {
+        Str8or16 Name{};
+        FMeshBufferDefine* Buffers{};
+        FMeshBufferElement* Elements{};
+        u32 BufferCount{};
+        u32 ElementCount{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FMeshLayout, "8fe5121f-c2ce-46f5-aa14-f28595f35361", FGpuObject)
+    {
+        virtual FMeshBufferDefine* GetBuffers(u32* out_count) noexcept = 0;
+        virtual FMeshBufferElement* GetElements(u32* out_count) noexcept = 0;
+    };
 }

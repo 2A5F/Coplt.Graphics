@@ -231,13 +231,34 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
     }
 }
 
+FResult D3d12ShaderInputLayout::SetName(const Str8or16& name) noexcept
+{
+    return FResult::None();
+}
+
 FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_count) noexcept
 {
     *out_count = static_cast<u32>(m_elements.size());
     return m_elements.data();
 }
 
-FResult D3d12ShaderInputLayout::SetName(const Str8or16& name) noexcept
+D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options)
+{
+}
+
+FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FMeshBufferDefine* D3d12MeshLayout::GetBuffers(u32* out_count) noexcept
+{
+    *out_count = static_cast<u32>(m_buffers.size());
+    return m_buffers.data();
+}
+
+FMeshBufferElement* D3d12MeshLayout::GetElements(u32* out_count) noexcept
+{
+    *out_count = static_cast<u32>(m_elements.size());
+    return m_elements.data();
 }

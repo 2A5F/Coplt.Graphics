@@ -104,10 +104,18 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuDevice.Interface
@@ -360,6 +368,67 @@ namespace Coplt.Graphics.Native.D3d12
         }
     }
 
+    [Guid("2C6E52E9-6FA1-457A-8F99-A734D63B62C2")]
+    [NativeTypeName("struct FD3d12MeshLayout : Coplt::FMeshLayout")]
+    public unsafe partial struct FD3d12MeshLayout : FD3d12MeshLayout.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12MeshLayout));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, void>)(lpVtbl[0]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, nuint>)(lpVtbl[1]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, nuint>)(lpVtbl[2]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, Guid*, void*>)(lpVtbl[3]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+        public FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, uint*, FMeshBufferDefine*>)(lpVtbl[5]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+        public FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, uint*, FMeshBufferElement*>)(lpVtbl[6]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        public interface Interface : FMeshLayout.Interface
+        {
+        }
+    }
+
     [Guid("A1C6B8A9-1E4C-4E6C-85EA-2E64AC89AFC6")]
     [NativeTypeName("struct FD3d12GraphicsShaderPipeline : Coplt::FGraphicsShaderPipeline")]
     public unsafe partial struct FD3d12GraphicsShaderPipeline : INativeGuid
@@ -388,6 +457,8 @@ namespace Coplt.Graphics.Native.D3d12
         public static readonly Guid IID_FD3d12ShaderLayout = new Guid(0x384259CF, 0xC392, 0x4903, 0x8D, 0x2C, 0xEC, 0x95, 0x9C, 0x28, 0x79, 0x12);
 
         public static readonly Guid IID_FD3d12ShaderInputLayout = new Guid(0x3DFC8DE2, 0xBCA2, 0x48AE, 0xB8, 0x69, 0x85, 0x0C, 0xB1, 0x1B, 0x3E, 0xE9);
+
+        public static readonly Guid IID_FD3d12MeshLayout = new Guid(0x2C6E52E9, 0x6FA1, 0x457A, 0x8F, 0x99, 0xA7, 0x34, 0xD6, 0x3B, 0x62, 0xC2);
 
         public static readonly Guid IID_FD3d12GraphicsShaderPipeline = new Guid(0xA1C6B8A9, 0x1E4C, 0x4E6C, 0x85, 0xEA, 0x2E, 0x64, 0xAC, 0x89, 0xAF, 0xC6);
     }

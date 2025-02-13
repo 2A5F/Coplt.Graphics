@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <utility>
 
 #include "../FFI/Object.h"
 
@@ -45,23 +46,14 @@ namespace Coplt
         }
 
         // upgrade
-        explicit Rc(T* ptr, upgrade_t) : m_ptr(ptr)
+        explicit Rc(T* ptr, upgrade_t) : m_ptr(ptr && ptr->TryUpgrade() ? ptr : nullptr)
         {
             static_assert(std::is_base_of_v<FRcObject, T>);
-
-            if (auto p = get())
-            {
-                if (!p->TryUpgrade())
-                {
-                    this->m_ptr = nullptr;
-                    return;
-                }
-            }
         }
 
         void drop()
         {
-            if (auto p = m_ptr)
+            if (auto p = std::exchange(m_ptr, nullptr))
             {
                 p->Release();
             }
@@ -124,73 +116,68 @@ namespace Coplt
         }
 
         // copy conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         // ReSharper disable once CppNonExplicitConvertingConstructor
         Rc(const Rc<U>& r): Rc(r.get(), clone_t()) // NOLINT(*-explicit-constructor)
         {
         }
 
         // move
-        Rc(Rc&& r) noexcept: m_ptr(r.m_ptr)
+        Rc(Rc&& r) noexcept: m_ptr(std::exchange(r.m_ptr, nullptr))
         {
-            r.m_ptr = nullptr;
         }
 
         // move conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Rc(Rc<U>&& r): m_ptr(r.m_ptr) // NOLINT(*-explicit-constructor)
+        Rc(Rc<U>&& r): m_ptr(std::exchange(r.m_ptr, nullptr)) // NOLINT(*-explicit-constructor)
         {
-            r.m_ptr = nullptr;
         }
 
         Rc& operator=(T* p)
         {
-            drop();
-            new(this) Rc(p);
+            Rc(p).swap(*this);
             return *this;
         }
 
         // copy ass
         Rc& operator=(Rc const& r) noexcept
         {
-            if (this == &r) return *this;
-            drop();
-            new(this) Rc(r);
+            if (m_ptr != r.m_ptr) Rc(r).swap(*this);
             return *this;
         }
 
         // move ass
         Rc& operator=(Rc&& r) noexcept
         {
-            if (this != &r)
-            {
-                drop();
-                new(this) Rc(std::forward<Rc>(r));
-            }
+            if (this != &r) Rc(std::forward<Rc>(r)).swap(*this);
             return *this;
         }
 
         // copy ass conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         Rc& operator=(Rc<U> const& r) noexcept
         {
-            drop();
-            new(this) Rc(r);
+            Rc(r).swap(*this);
             return *this;
         }
 
         // move ass conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         Rc& operator=(Rc<U>&& r) noexcept
         {
-            drop();
-            new(this) Rc(std::forward<Rc<U>>(r));
+            Rc(std::forward<Rc<U>>(r)).swap(*this);
             return *this;
+        }
+
+        void swap(Rc& r) noexcept
+        {
+            std::swap(m_ptr, r.m_ptr);
+        }
+
+        void Swap(Rc& r) noexcept
+        {
+            swap(r);
         }
 
         Rc clone() const
@@ -276,23 +263,14 @@ namespace Coplt
         }
 
         // downgrade
-        explicit Weak(T* ptr, downgrade_t) : m_ptr(ptr)
+        explicit Weak(T* ptr, downgrade_t) : m_ptr(ptr && ptr->TryDowngrade() ? ptr : nullptr)
         {
             static_assert(std::is_base_of_v<FRcObject, T>);
-
-            if (auto p = get())
-            {
-                if (!p->TryDowngrade())
-                {
-                    this->m_ptr = nullptr;
-                    return;
-                }
-            }
         }
 
         void drop()
         {
-            if (auto p = this->m_ptr)
+            if (auto p = std::exchange(m_ptr, nullptr))
             {
                 p->ReleaseWeak();
             }
@@ -346,81 +324,69 @@ namespace Coplt
         }
 
         // copy conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         // ReSharper disable once CppNonExplicitConvertingConstructor
         Weak(const Weak<U>& r): Weak(r.get(), clone_t()) // NOLINT(*-explicit-constructor)
         {
         }
 
         // downgrade conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         // ReSharper disable once CppNonExplicitConvertingConstructor
         Weak(const Rc<U>& r): Weak(r.get(), downgrade_t()) // NOLINT(*-explicit-constructor)
         {
         }
 
         // move
-        Weak(Weak&& r) noexcept: m_ptr(r.m_ptr)
+        Weak(Weak&& r) noexcept: m_ptr(std::exchange(r.m_ptr, nullptr))
         {
-            r.m_ptr = nullptr;
         }
 
         // move conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        Weak(Weak<U>&& r): m_ptr(r.ptr) // NOLINT(*-explicit-constructor)
+        Weak(Weak<U>&& r): m_ptr(std::exchange(r.ptr, nullptr)) // NOLINT(*-explicit-constructor)
         {
-            r.ptr = nullptr;
-        }
-
-        Weak& operator=(T* p)
-        {
-            drop();
-            new(this) Weak(p);
-            return *this;
         }
 
         // copy ass
         Weak& operator=(Weak const& r) noexcept
         {
-            if (this == &r) return *this;
-            drop();
-            new(this) Weak(r);
+            if (m_ptr != r.m_ptr) Weak(r).swap(*this);
             return *this;
         }
 
         // move ass
         Weak& operator=(Weak&& r) noexcept
         {
-            if (this != &r)
-            {
-                drop();
-                new(this) Weak(std::forward<Weak>(r));
-            }
+            if (this != &r) Weak(std::forward<Weak>(r)).swap(*this);
             return *this;
         }
 
         // copy ass conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         Weak& operator=(Weak<U> const& r) noexcept
         {
-            drop();
-            new(this) Weak(r);
+            Weak(r).swap(*this);
             return *this;
         }
 
         // move ass conv
-        template <typename U>
-            requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U*, T*>
         Weak& operator=(Weak<U>&& r) noexcept
         {
-            drop();
-            new(this) Weak(std::forward<Weak<U>>(r));
+            Weak(std::forward<Weak<U>>(r)).swap(*this);
             return *this;
+        }
+
+        void swap(Weak& r) noexcept
+        {
+            std::swap(m_ptr, r.m_ptr);
+        }
+
+        void Swap(Weak& r) noexcept
+        {
+            swap(r);
         }
 
         Rc<T> upgrade() const

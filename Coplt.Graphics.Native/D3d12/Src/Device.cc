@@ -190,7 +190,7 @@ FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& opt
 }
 
 FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options,
-    FShaderInputLayout** out) noexcept
+                                                FShaderInputLayout** out) noexcept
 {
     return feb([&]
     {
@@ -202,7 +202,15 @@ FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShade
 {
     return feb([&]
     {
-        *out = new Shader(options);
+        *out = new Shader(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12MeshLayout(this->CloneThis(), options);
     });
 }
 

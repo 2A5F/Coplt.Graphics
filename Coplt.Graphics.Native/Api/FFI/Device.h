@@ -56,6 +56,8 @@ namespace Coplt
         ) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
 
+        virtual FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept = 0;
+
         virtual FResult CreateGraphicsPipeline(
             const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
         ) noexcept = 0;

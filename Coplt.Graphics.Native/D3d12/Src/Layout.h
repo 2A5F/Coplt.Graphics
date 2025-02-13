@@ -115,8 +115,22 @@ namespace Coplt
 
         explicit D3d12ShaderInputLayout(Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options);
 
+        FResult SetName(const Str8or16& name) noexcept override;
+
         FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
+    };
+
+    struct D3d12MeshLayout final : Object<D3d12MeshLayout, FD3d12MeshLayout>
+    {
+        Rc<D3d12GpuDevice> m_device{};
+        std::vector<FMeshBufferDefine> m_buffers{};
+        std::vector<FMeshBufferElement> m_elements{};
+
+        explicit D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options);
 
         FResult SetName(const Str8or16& name) noexcept override;
+
+        FMeshBufferDefine* GetBuffers(u32* out_count) noexcept override;
+        FMeshBufferElement* GetElements(u32* out_count) noexcept override;
     };
 }

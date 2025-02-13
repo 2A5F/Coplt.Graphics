@@ -50,6 +50,8 @@ namespace Coplt
         ) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept override;
 
+        FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept override;
+
         FResult CreateGraphicsPipeline(
             const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
         ) noexcept override;

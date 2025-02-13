@@ -586,10 +586,18 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[12]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -610,6 +618,9 @@ namespace Coplt.Graphics.Native
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
@@ -1793,6 +1804,90 @@ namespace Coplt.Graphics.Native
         public uint Count;
     }
 
+    public unsafe partial struct FMeshLayoutCreateOptions
+    {
+        [NativeTypeName("Coplt::Str8or16")]
+        public Str8or16 Name;
+
+        [NativeTypeName("Coplt::FMeshBufferDefine *")]
+        public FMeshBufferDefine* Buffers;
+
+        [NativeTypeName("Coplt::FMeshBufferElement *")]
+        public FMeshBufferElement* Elements;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint BufferCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ElementCount;
+    }
+
+    [Guid("8FE5121F-C2CE-46F5-AA14-F28595F35361")]
+    [NativeTypeName("struct FMeshLayout : Coplt::FGpuObject")]
+    public unsafe partial struct FMeshLayout : FMeshLayout.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FMeshLayout));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FMeshLayout*, void>)(lpVtbl[0]))((FMeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, nuint>)(lpVtbl[1]))((FMeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, nuint>)(lpVtbl[2]))((FMeshLayout*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, Guid*, void*>)(lpVtbl[3]))((FMeshLayout*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FMeshLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FMeshLayout*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+        public FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, uint*, FMeshBufferDefine*>)(lpVtbl[5]))((FMeshLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+        public FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, uint*, FMeshBufferElement*>)(lpVtbl[6]))((FMeshLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+            [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+            FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count);
+
+            [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+            FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count);
+        }
+    }
+
     public unsafe partial struct FShaderPipelineCreateOptions
     {
         [NativeTypeName("Coplt::Str8or16")]
@@ -2171,10 +2266,16 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint SlotIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Location;
     }
 
-    public partial struct FMeshLayoutElement
+    public partial struct FMeshBufferElement
     {
+        [NativeTypeName("Coplt::u32")]
+        public uint BufferIndex;
+
         [NativeTypeName("Coplt::u32")]
         public uint SlotId;
 
@@ -2185,10 +2286,16 @@ namespace Coplt.Graphics.Native
         public FTextureFormat Format;
 
         [NativeTypeName("Coplt::u32")]
-        public uint Stride;
+        public uint Offset;
 
         [NativeTypeName("Coplt::u32")]
-        public uint Offset;
+        public uint InstanceRepeat;
+    }
+
+    public partial struct FMeshBufferDefine
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Stride;
 
         [NativeTypeName("Coplt::FShaderInputElementRate")]
         public FShaderInputElementRate Rate;
@@ -2223,6 +2330,8 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FShaderLayout = new Guid(0x552A498E, 0x8F3A, 0x47FF, 0xA3, 0x35, 0x7A, 0xF2, 0xDE, 0x09, 0x01, 0xE8);
 
         public static readonly Guid IID_FShaderInputLayout = new Guid(0x70229C9A, 0xFB3D, 0x46B4, 0xB5, 0x34, 0x72, 0xFD, 0xB1, 0x67, 0xD8, 0x07);
+
+        public static readonly Guid IID_FMeshLayout = new Guid(0x8FE5121F, 0xC2CE, 0x46F5, 0xAA, 0x14, 0xF2, 0x85, 0x95, 0xF3, 0x53, 0x61);
 
         public static readonly Guid IID_FShaderPipeline = new Guid(0x356A2610, 0x34E3, 0x4C01, 0x99, 0x04, 0x22, 0xE3, 0xC5, 0xCE, 0x2F, 0x4E);
 

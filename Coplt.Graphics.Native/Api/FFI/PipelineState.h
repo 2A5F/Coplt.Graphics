@@ -214,27 +214,35 @@ namespace Coplt
     {
         // dx 后端为语义名称，必须有；其他后端可选
         FString8* SlotName{};
-        // 相同名字的 SlotName 必须具有相同的 SlotId，需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id，且缓存不应区分大小写
+        // 与 FMeshBufferElement 对应的 Id，相同 SlotName 的 SlotId 必须也相同
         u32 SlotId{};
         // 是 Slot 中第几个项，对应 dx 的 SemanticIndex
         u32 SlotIndex{};
+        // 仅 vk, 用于指定位置；dx 将忽略; u32::max 将使用 FShaderInputLayoutElement 索引顺序
+        u32 Location{COPLT_U32_MAX};
     };
 
-    struct FMeshLayoutElement
+    struct FMeshBufferElement
     {
-        // 需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id
+        // 属于 mesh 中的第几个 buffer
+        u32 BufferIndex{};
+        // 与 FShaderInputLayoutElement 对应的 Id
         u32 SlotId{};
         // 是 Slot 中第几个项，对应 dx 的 SemanticIndex
         u32 SlotIndex{};
         // 元素格式
         FTextureFormat Format{};
-        // 元素间隔
-        u32 Stride{};
         // 元素在间隔中的偏移
         u32 Offset{};
+        // 每次实例数据可重复几次，对应 dx 的 InstanceDataStepRate；对于实例 0 相当于 1；仅 dx 支持
+        u32 InstanceRepeat{};
+    };
+
+    struct FMeshBufferDefine
+    {
+        // 元素间隔
+        u32 Stride{};
         // 元素频率，指示是按顶点还是按实例
         FShaderInputElementRate Rate{};
-        // 每次实例数据可重复几次，对应 dx 的 InstanceDataStepRate；对于实例 0 相当于 1
-        u32 InstanceRepeat{};
     };
 }

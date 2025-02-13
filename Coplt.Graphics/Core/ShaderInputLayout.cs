@@ -12,16 +12,18 @@ public enum ShaderInputElementRate : byte
 
 public record struct ShaderInputLayoutElement()
 {
-    public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0) : this()
+    public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue) : this()
     {
         this.SlotName = SlotName;
         this.SlotIndex = SlotIndex;
+        this.Location = Location;
     }
 
-    public ShaderInputLayoutElement(String8 SlotName8, uint SlotIndex = 0) : this()
+    public ShaderInputLayoutElement(String8 SlotName8, uint SlotIndex = 0, uint Location = uint.MaxValue) : this()
     {
         this.SlotName8 = SlotName8;
         this.SlotIndex = SlotIndex;
+        this.Location = Location;
     }
 
     public static implicit operator ShaderInputLayoutElement(string SlotName) => new(SlotName);
@@ -35,13 +37,17 @@ public record struct ShaderInputLayoutElement()
     /// </summary>
     public string? SlotName;
     /// <summary>
-    /// 相同名字的 SlotName 必须具有相同的 SlotId，需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id，且缓存不应区分大小写，省略将自动生成
+    /// 与 <see cref="MeshBufferElement"/> 对应的 Id，相同 <see cref="SlotName"/>/<see cref="SlotName8"/> 的 <see cref="SlotId"/> 必须也相同
     /// </summary>
     public uint? SlotId;
     /// <summary>
-    /// 是 Slot 中第几个项
+    /// 是 Slot 中第几个项，对应 dx 的 SemanticIndex
     /// </summary>
     public uint SlotIndex;
+    /// <summary>
+    /// 仅 vk, 用于指定位置；dx 将忽略; -1 将使用 FShaderInputLayoutElement 索引顺序
+    /// </summary>
+    public uint Location = uint.MaxValue;
 }
 
 public record struct ShaderInputLayoutElementMeta
@@ -51,13 +57,17 @@ public record struct ShaderInputLayoutElementMeta
     /// </summary>
     public String8? SlotName8;
     /// <summary>
-    /// 相同名字的 SlotName 必须具有相同的 SlotId，需要全局唯一，建议使用 HashMap 缓存 SlotName 的 id，且缓存不应区分大小写
+    /// 与 <see cref="MeshBufferElement"/> 对应的 Id，相同 <see cref="SlotName8"/> 的 <see cref="SlotId"/> 必须也相同
     /// </summary>
     public uint SlotId;
     /// <summary>
-    /// 是 Slot 中第几个项
+    /// 是 Slot 中第几个项，对应 dx 的 SemanticIndex
     /// </summary>
     public uint SlotIndex;
+    /// <summary>
+    /// 仅 vk, 用于指定位置；dx 将忽略; -1 将使用 FShaderInputLayoutElement 索引顺序
+    /// </summary>
+    public uint Location;
 }
 
 [Dropping(Unmanaged = true)]

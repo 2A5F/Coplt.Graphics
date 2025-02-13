@@ -231,17 +231,20 @@ public sealed unsafe partial class GpuDevice
             var slot_id = item.SlotId ?? (string.IsNullOrWhiteSpace(slot_name)
                 ? throw new ArgumentException("Slot id is not provided and Slot Name is null/empty")
                 : m_instance.GetSlotId(slot_name));
+            var location = item.Location == uint.MaxValue ? (uint)i : item.Location;
             meta[i] = new()
             {
                 SlotName8 = slot_name8,
                 SlotId = slot_id,
                 SlotIndex = item.SlotIndex,
+                Location = location,
             };
             p_elements[i] = new()
             {
                 SlotName = slot_name8 == null ? null : slot_name8.m_ptr,
                 SlotId = slot_id,
                 SlotIndex = item.SlotIndex,
+                Location = location,
             };
         }
         fixed (char* p_name = Name)

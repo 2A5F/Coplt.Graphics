@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../FFI/Device.h"
 #include "../FFI/Shader.h"
 #include "../FFI/Layout.h"
 #include "../Include/Object.h"
@@ -23,6 +24,7 @@ namespace Coplt
 
     struct Shader final : Object<Shader, FShader>
     {
+        Rc<FGpuDevice> m_device{};
         // 可空
         Rc<FShaderLayout> m_layout{};
         // 可空
@@ -30,7 +32,7 @@ namespace Coplt
         // 可能的组合：[Compute] | [Pixel, Vertex] | [Pixel, Mesh, Task?]
         Rc<FShaderModule> m_modules[MaxShaderModuleCount]{};
 
-        explicit Shader(const FShaderCreateOptions& options);
+        explicit Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options);
 
         FResult SetName(const Str8or16& name) noexcept override;
 

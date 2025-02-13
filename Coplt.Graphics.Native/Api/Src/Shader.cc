@@ -32,7 +32,7 @@ FResult ShaderModule::SetName(const Str8or16& name) noexcept
     return FResult::None();
 }
 
-Shader::Shader(const FShaderCreateOptions& options)
+Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m_device(std::move(device))
 {
     m_layout = Rc<FShaderLayout>::UnsafeClone(options.Layout);
     m_input_layout = Rc<FShaderInputLayout>::UnsafeClone(options.InputLayout);

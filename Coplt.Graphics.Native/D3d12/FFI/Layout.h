@@ -13,4 +13,8 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(FD3d12ShaderInputLayout, "3dfc8de2-bca2-48ae-b869-850cb11b3ee9", FShaderInputLayout)
     {
     };
+
+    COPLT_INTERFACE_DEFINE(FD3d12MeshLayout, "2c6e52e9-6fa1-457a-8f99-a734d63b62c2", FMeshLayout)
+    {
+    };
 }
