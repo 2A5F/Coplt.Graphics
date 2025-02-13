@@ -51,25 +51,23 @@ namespace Coplt
             static_assert(std::is_base_of_v<FRcObject, T>);
         }
 
-        void drop()
-        {
-            if (auto p = std::exchange(m_ptr, nullptr))
-            {
-                p->Release();
-            }
-        }
-
     public:
         using value_t = T;
 
         ~Rc()
         {
-            drop();
+            if (auto p = m_ptr)
+            {
+                p->Release();
+            }
         }
 
         void reset()
         {
-            drop();
+            if (auto p = std::exchange(m_ptr, nullptr))
+            {
+                p->Release();
+            }
         }
 
         explicit operator bool() const
@@ -268,14 +266,6 @@ namespace Coplt
             static_assert(std::is_base_of_v<FRcObject, T>);
         }
 
-        void drop()
-        {
-            if (auto p = std::exchange(m_ptr, nullptr))
-            {
-                p->ReleaseWeak();
-            }
-        }
-
         T* get() const
         {
             return m_ptr;
@@ -288,12 +278,18 @@ namespace Coplt
 
         ~Weak()
         {
-            drop();
+            if (auto p = m_ptr)
+            {
+                p->ReleaseWeak();
+            }
         }
 
         void reset()
         {
-            drop();
+            if (auto p = std::exchange(m_ptr, nullptr))
+            {
+                p->ReleaseWeak();
+            }
         }
 
         explicit operator bool() const
