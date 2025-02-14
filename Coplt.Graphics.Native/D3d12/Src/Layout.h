@@ -104,7 +104,7 @@ namespace Coplt
 
         void* GetRootSignaturePtr() noexcept override;
 
-        FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
+        const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
     };
 
     struct D3d12ShaderInputLayout final : Object<D3d12ShaderInputLayout, FD3d12ShaderInputLayout>
@@ -117,7 +117,7 @@ namespace Coplt
 
         FResult SetName(const Str8or16& name) noexcept override;
 
-        FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
+        const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
     };
 
     struct D3d12MeshLayout final : Object<D3d12MeshLayout, FD3d12MeshLayout>
@@ -125,12 +125,15 @@ namespace Coplt
         Rc<D3d12GpuDevice> m_device{};
         std::vector<FMeshBufferDefine> m_buffers{};
         std::vector<FMeshBufferElement> m_elements{};
+        HashMap<u64, const FMeshBufferElement*> m_slot_id_index_to_element{};
 
         explicit D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options);
 
         FResult SetName(const Str8or16& name) noexcept override;
 
-        FMeshBufferDefine* GetBuffers(u32* out_count) noexcept override;
-        FMeshBufferElement* GetElements(u32* out_count) noexcept override;
+        const FMeshBufferDefine* GetBuffers(u32* out_count) noexcept override;
+        const FMeshBufferElement* GetElements(u32* out_count) noexcept override;
+
+        const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) noexcept override;
     };
 }

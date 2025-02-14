@@ -5,7 +5,8 @@
 
 using namespace Coplt;
 
-ShaderModule::ShaderModule(u8* const data, const size_t size, const FShaderStage stage)
+ShaderModule::ShaderModule(u8* const data, const size_t size, const FShaderStage stage, Rc<FString8>&& entry_point)
+    : m_entry_point(std::move(entry_point))
 {
     Data = data;
     Size = size;
@@ -18,7 +19,7 @@ ShaderModule* ShaderModule::Create(const FShaderModuleCreateOptions& options)
     const auto start = reinterpret_cast<u8*>(mem + sizeof(Self));
     memcpy(start, options.Data, options.Size);
     *reinterpret_cast<u32*>(&start[options.Size]) = 0;
-    new(mem) Self(start, options.Size, options.Stage);
+    new(mem) Self(start, options.Size, options.Stage, Rc<FString8>::UnsafeClone(options.EntryPoint));
     return reinterpret_cast<Self*>(mem);
 }
 
@@ -30,6 +31,11 @@ void ShaderModule::Free(void* self)
 FResult ShaderModule::SetName(const Str8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FString8* ShaderModule::GetEntryPoint() noexcept
+{
+    return m_entry_point.get();
 }
 
 Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m_device(std::move(device))

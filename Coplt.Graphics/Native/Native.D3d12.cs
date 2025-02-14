@@ -296,7 +296,7 @@ namespace Coplt.Graphics.Native.D3d12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FShaderLayoutItemDefine *")]
+        [return: NativeTypeName("const FShaderLayoutItemDefine *")]
         public FShaderLayoutItemDefine* GetItemDefines([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, uint*, FShaderLayoutItemDefine*>)(lpVtbl[5]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this), out_count);
@@ -357,7 +357,7 @@ namespace Coplt.Graphics.Native.D3d12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FShaderInputLayoutElement *")]
+        [return: NativeTypeName("const FShaderInputLayoutElement *")]
         public FShaderInputLayoutElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12ShaderInputLayout*, uint*, FShaderInputLayoutElement*>)(lpVtbl[5]))((FD3d12ShaderInputLayout*)Unsafe.AsPointer(ref this), out_count);
@@ -411,17 +411,24 @@ namespace Coplt.Graphics.Native.D3d12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+        [return: NativeTypeName("const FMeshBufferDefine *")]
         public FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, uint*, FMeshBufferDefine*>)(lpVtbl[5]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), out_count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+        [return: NativeTypeName("const FMeshBufferElement *")]
         public FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, uint*, FMeshBufferElement*>)(lpVtbl[6]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FMeshBufferElement *")]
+        public FMeshBufferElement* TryGetElement([NativeTypeName("Coplt::u32")] uint SlotId, [NativeTypeName("Coplt::u32")] uint SlotIndex)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, uint, uint, FMeshBufferElement*>)(lpVtbl[7]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), SlotId, SlotIndex);
         }
 
         public interface Interface : FMeshLayout.Interface

@@ -121,9 +121,9 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
                     fmt::format(L"Unknown shader layout item type {}", static_cast<u32>(item.Type))
                 );
             }
-            auto& meta = table.GetOrAdd(TableKey(item.Stage, range_type), [&](auto* p)
+            auto& meta = table.GetOrAdd(TableKey(item.Stage, range_type), [&](auto& p)
             {
-                new(p) TableMeta(table_index[static_cast<u8>(table_scope)]++, item.Stage, range_type);
+                p = TableMeta(table_index[static_cast<u8>(table_scope)]++, item.Stage, range_type);
             });
             range.NumDescriptors = item.CountOrIndex;
             range.BaseShaderRegister = item.Slot;
@@ -211,7 +211,7 @@ void* D3d12ShaderLayout::GetRootSignaturePtr() noexcept
     return m_root_signature.Get();
 }
 
-FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count) noexcept
+const FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count) noexcept
 {
     *out_count = static_cast<u32>(m_layout_item_defines.size());
     return m_layout_item_defines.data();
@@ -236,7 +236,7 @@ FResult D3d12ShaderInputLayout::SetName(const Str8or16& name) noexcept
     return FResult::None();
 }
 
-FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_count) noexcept
+const FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_count) noexcept
 {
     *out_count = static_cast<u32>(m_elements.size());
     return m_elements.data();
@@ -247,6 +247,14 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
 {
     m_buffers = std::vector(options.Buffers, options.Buffers + options.BufferCount);
     m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
+    for (u32 i = 0; i < m_elements.size(); ++i)
+    {
+        const auto& element = m_elements[i];
+        const auto key = static_cast<u64>(element.SlotId) | (static_cast<u64>(element.SlotIndex) << 32);
+        m_slot_id_index_to_element.TryAdd(key, &element);
+        if (element.BufferIndex > m_buffers.size())
+            throw WRuntimeException(fmt::format(L"BufferIndex of element {} is out of range", i));
+    }
 }
 
 FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept
@@ -254,14 +262,20 @@ FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept
     return FResult::None();
 }
 
-FMeshBufferDefine* D3d12MeshLayout::GetBuffers(u32* out_count) noexcept
+const FMeshBufferDefine* D3d12MeshLayout::GetBuffers(u32* out_count) noexcept
 {
     *out_count = static_cast<u32>(m_buffers.size());
     return m_buffers.data();
 }
 
-FMeshBufferElement* D3d12MeshLayout::GetElements(u32* out_count) noexcept
+const FMeshBufferElement* D3d12MeshLayout::GetElements(u32* out_count) noexcept
 {
     *out_count = static_cast<u32>(m_elements.size());
     return m_elements.data();
+}
+
+const FMeshBufferElement* D3d12MeshLayout::TryGetElement(const u32 SlotId, const u32 SlotIndex) noexcept
+{
+    const auto key = static_cast<u64>(SlotId) | (static_cast<u64>(SlotIndex) << 32);
+    return m_slot_id_index_to_element.GetOr(key, nullptr);
 }

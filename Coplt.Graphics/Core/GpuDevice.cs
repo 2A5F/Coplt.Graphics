@@ -2,6 +2,7 @@
 using System.Text;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -151,6 +152,7 @@ public sealed unsafe partial class GpuDevice
 
     public ShaderModule CreateShaderModule(
         ShaderStage Stage, ReadOnlySpan<byte> Blob,
+        String8? EntryPoint = null,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
@@ -161,13 +163,14 @@ public sealed unsafe partial class GpuDevice
             FShaderModuleCreateOptions f_options = new()
             {
                 Name = new(Name, Name8, p_name, p_name8),
+                EntryPoint = EntryPoint == null ? null : EntryPoint.m_ptr,
                 Data = data,
                 Size = (nuint)Blob.Length,
                 Stage = Stage.ToFFI(),
             };
             FShaderModule* ptr;
             m_ptr->CreateShaderModule(&f_options, &ptr).TryThrow();
-            return new(ptr, Name);
+            return new(ptr, Name, EntryPoint);
         }
     }
 

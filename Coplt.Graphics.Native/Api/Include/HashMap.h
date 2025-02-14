@@ -10,6 +10,7 @@
 
 #include "Concepts.h"
 #include "Utils.h"
+#include "Uninit.h"
 
 namespace Coplt
 {
@@ -63,6 +64,11 @@ namespace Coplt
         using HashHelpers = _HashMap_internal::HashHelpers;
         using InsertionBehavior = _HashMap_internal::InsertionBehavior;
         using Slot = _HashMap_internal::Slot;
+
+        template <class T>
+        using UP = Uninit<T>&;
+        template <class T>
+        using RP = T&;
 
     public:
         using Entry = std::pair<Key, Value>;
@@ -203,8 +209,8 @@ namespace Coplt
 
     public:
         template <
-            Fn<const Key&> QueryKey, Fn<void, Key*> CreateKey, Fn<void, Value&> UpdateValue, Fn<void, Value*>
-            CreateValue
+            Fn<const Key&> QueryKey, Fn<void, UP<Key>> CreateKey,
+            Fn<void, RP<Value>> UpdateValue, Fn<void, UP<Value>> CreateValue
         >
         HashMapInsertResult TryInsert(
             QueryKey query_key, CreateKey create_key, UpdateValue update_value, CreateValue create_value,
@@ -226,11 +232,11 @@ namespace Coplt
                 auto& entry = m_p_entries[i];
                 if (slot.hash_code() == hash_code && m_eq(entry.first, key))
                 {
-                    if (out_entry) *out_entry = &entry;
+                    if (out_entry) *out_entry = std::addressof(entry);
 
                     if (behavior == InsertionBehavior::OverwriteExisting)
                     {
-                        update_value(entry.second);
+                        update_value(RP<Value>(entry.second));
                         return HashMapInsertResult::Updated;
                     }
 
@@ -269,10 +275,12 @@ namespace Coplt
             auto& entry = m_p_entries[index];
             slot.hash_code() = hash_code;
             slot.next = *bucket - 1;
-            create_key(&entry.first);
-            create_value(&entry.second);
+            Uninit<Key> u_key(entry.first);
+            Uninit<Value> u_value(entry.second);
+            create_key(u_key);
+            create_value(u_value);
             *bucket = index + 1;
-            if (out_entry) *out_entry = &entry;
+            if (out_entry) *out_entry = std::addressof(entry);
 
             return HashMapInsertResult::Added;
         }
@@ -281,9 +289,9 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(std::move(key)); },
-                [&](Value& p) -> void { p = std::move(value); },
-                [&](Value* p) -> void { new(p) Value(std::move(value)); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(std::move(key)); },
+                [&](RP<Value> p) -> void { p = std::move(value); },
+                [&](UP<Value> p) -> void { new(p.unsafe_put()) Value(std::move(value)); },
                 behavior, out_entry
             );
         }
@@ -294,9 +302,9 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(key); },
-                [&](Value& p) -> void { p = std::move(value); },
-                [&](Value* p) -> void { new(p) Value(std::move(value)); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(key); },
+                [&](RP<Value> p) -> void { p = std::move(value); },
+                [&](UP<Value> p) -> void { new(p.unsafe_put()) Value(std::move(value)); },
                 behavior, out_entry
             );
         }
@@ -307,9 +315,9 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(std::move(key)); },
-                [&](Value& p) -> void { p = value; },
-                [&](Value* p) -> void { new(p) Value(value); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(std::move(key)); },
+                [&](RP<Value> p) -> void { p = value; },
+                [&](UP<Value> p) -> void { new(p.unsafe_put()) Value(value); },
                 behavior, out_entry
             );
         }
@@ -320,14 +328,14 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(key); },
-                [&](Value& p) -> void { p = value; },
-                [&](Value* p) -> void { new(p) Value(value); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(key); },
+                [&](RP<Value> p) -> void { p = value; },
+                [&](UP<Value> p) -> void { new(p.unsafe_put()) Value(value); },
                 behavior, out_entry
             );
         }
 
-        template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
+        template <Fn<void, RP<Value>> UpdateValue, Fn<void, UP<Value>> CreateValue>
         HashMapInsertResult TryInsert(
             Key&& key, UpdateValue update_value, CreateValue create_value,
             const InsertionBehavior behavior, Entry** out_entry
@@ -335,14 +343,14 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(std::move(key)); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(std::move(key)); },
                 fove(update_value),
                 fove(create_value),
                 behavior, out_entry
             );
         }
 
-        template <Fn<void, Value&> UpdateValue, Fn<void, Value*> CreateValue>
+        template <Fn<void, RP<Value>> UpdateValue, Fn<void, UP<Value>> CreateValue>
         HashMapInsertResult TryInsert(
             const Key& key, UpdateValue update_value, CreateValue create_value,
             const InsertionBehavior behavior, Entry** out_entry
@@ -350,7 +358,7 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(key); },
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(key); },
                 fove(update_value),
                 fove(create_value),
                 behavior, out_entry
@@ -377,8 +385,8 @@ namespace Coplt
                     return nullptr;
                 }
 
-                slot = &m_p_slots[i];
-                entry = &m_p_entries[i];
+                slot = std::addressof(m_p_slots[i]);
+                entry = std::addressof(m_p_entries[i]);
                 if (slot->hash_code() == hash_code && eq(entry->first, query_key))
                 {
                     return entry;
@@ -414,15 +422,29 @@ namespace Coplt
         Value* TryGet(const Key& key) const
         {
             auto entry = FindEntry(key);
-            if (entry) return &entry->second;
+            if (entry) return std::addressof(entry->value);
             return nullptr;
+        }
+
+        Value& GetOr(const Key& key, Value& Or) const
+        {
+            if (auto entry = FindEntry(key))
+                return entry->second;
+            return Or;
+        }
+
+        const Value& GetOr(const Key& key, const Value& Or) const
+        {
+            if (auto entry = FindEntry(key))
+                return entry->second;
+            return Or;
         }
 
         template <class QKey, Coplt::Hash<QKey> QHash = std::hash<QKey>, Coplt::Eq<Key, QKey> QEq = std::equal_to<Key>>
         Value* TryGet(const QKey& query_key, QHash hasher, QEq eq) const
         {
             auto entry = FindEntry(query_key, fove(hasher), fove(eq));
-            if (entry) return &entry->second;
+            if (entry) return std::addressof(entry->second);
             return nullptr;
         }
 
@@ -528,13 +550,13 @@ namespace Coplt
         }
 
         // 返回是否添加
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         bool TryAdd(Key&& key, CreateValue create_value)
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(std::move(key)); },
-                [&](Value& p)
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(std::move(key)); },
+                [&](RP<Value> p)
                 {
                     // 不需要更新
                 },
@@ -549,8 +571,8 @@ namespace Coplt
         {
             return TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(key); },
-                [&](Value& p)
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(key); },
+                [&](RP<Value> p)
                 {
                     // 不需要更新
                 },
@@ -613,14 +635,14 @@ namespace Coplt
             );
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Entry& GetOrAddEntry(Key&& key, bool& already_exist, CreateValue create_value)
         {
             Entry* entry{};
             already_exist = TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(std::move(key)); },
-                [&](Value& p) -> void
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(std::move(key)); },
+                [&](RP<Value> p) -> void
                 {
                     // 不需要更新
                 },
@@ -630,24 +652,24 @@ namespace Coplt
             return *entry;
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Entry& GetOrAddEntry(const Key& key, bool& already_exist, CreateValue create_value)
         {
             Entry* entry{};
             already_exist = TryInsert(
                 [&] -> const Key& { return key; },
-                [&](Key* p) -> void { new(p) Key(key); },
-                [&](Value& p) -> void
+                [&](UP<Key> p) -> void { new(p.unsafe_put()) Key(key); },
+                [&](RP<Value> p) -> void
                 {
                     // 不需要更新
                 },
                 fove(create_value),
-                InsertionBehavior::None, &entry
+                InsertionBehavior::None, std::addressof(entry)
             ) == HashMapInsertResult::None;
             return *entry;
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Value& GetOrAdd(Key&& key, bool& already_exist, CreateValue create_value)
         {
             return GetOrAddEntry(
@@ -655,7 +677,7 @@ namespace Coplt
             ).second;
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Value& GetOrAdd(Key&& key, CreateValue create_value)
         {
             bool already_exist{};
@@ -664,13 +686,13 @@ namespace Coplt
             ).second;
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Value& GetOrAdd(const Key& key, bool& already_exist, CreateValue create_value)
         {
             return GetOrAddEntry(key, already_exist, fove(create_value)).second;
         }
 
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         Value& GetOrAdd(const Key& key, CreateValue create_value)
         {
             bool already_exist{};
@@ -679,7 +701,7 @@ namespace Coplt
 
         Value& GetOrAddDefault(Key&& key, bool& already_exist)
         {
-            return GetOrAdd(std::forward<Key>(key), already_exist, [&](Value* p) { new(p) Value(); });
+            return GetOrAdd(std::forward<Key>(key), already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(); });
         }
 
         Value& GetOrAddDefault(Key&& key)
@@ -690,7 +712,7 @@ namespace Coplt
 
         Value& GetOrAddDefault(const Key& key, bool& already_exist)
         {
-            return GetOrAdd(key, already_exist, [&](Value* p) { new(p) Value(); });
+            return GetOrAdd(key, already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(); });
         }
 
         Value& GetOrAddDefault(const Key& key)
@@ -700,7 +722,10 @@ namespace Coplt
 
         Entry& GetOrAddDefaultEntry(Key&& key, bool& already_exist)
         {
-            return GetOrAddEntry(std::forward<Key>(key), already_exist, [&](Value* p) { new(p) Value(); });
+            return GetOrAddEntry(
+                std::forward<Key>(key), already_exist,
+                [&](UP<Value> p) { new(p.unsafe_put()) Value(); }
+            );
         }
 
         Entry& GetOrAddDefaultEntry(Key&& key)
@@ -711,7 +736,7 @@ namespace Coplt
 
         Entry& GetOrAddDefaultEntry(const Key& key, bool& already_exist)
         {
-            return GetOrAddEntry(key, already_exist, [&](Value* p) { new(p) Value(); });
+            return GetOrAddEntry(key, already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(); });
         }
 
         Entry& GetOrAddDefaultEntry(const Key& key)
@@ -763,7 +788,7 @@ namespace Coplt
 
                     if (slot.next >= -1)
                     {
-                        return &entry;
+                        return std::addressof(entry);
                     }
                 }
 
@@ -798,7 +823,7 @@ namespace Coplt
 
                     if (slot.next >= -1)
                     {
-                        return &entry;
+                        return std::addressof(entry);
                     }
                 }
 

@@ -12,14 +12,20 @@ namespace Coplt
     private:
         using Self = ShaderModule;
 
-        explicit ShaderModule(u8* data, size_t size, FShaderStage stage);
+        explicit ShaderModule(u8* data, size_t size, FShaderStage stage, Rc<FString8>&& entry_point);
 
     public:
+        // 可空
+        Rc<FString8> m_entry_point{};
+
         static ShaderModule* Create(const FShaderModuleCreateOptions& options);
 
         void Free(void* self) override;
 
         FResult SetName(const Str8or16& name) noexcept override;
+
+        // 可空
+        FString8* GetEntryPoint() noexcept override;
     };
 
     struct Shader final : Object<Shader, FShader>

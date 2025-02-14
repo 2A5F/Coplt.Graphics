@@ -3,13 +3,18 @@
 #include <directx/d3d12.h>
 #include "D3D12MemAlloc.h"
 #include "Instance.h"
+#include "../../Api/Include/HashMap.h"
 #include "../../Api/Include/Object.h"
 #include "../FFI/Device.h"
 
 namespace Coplt
 {
+    struct D3d12ShaderLayout;
+
     struct D3d12GpuDevice final : Object<D3d12GpuDevice, FD3d12GpuDevice>
     {
+        using EmptyLayouts = HashMap<FShaderLayoutFlags, Rc<D3d12ShaderLayout>>;
+
         Rc<D3d12Instance> m_instance{};
         ComPtr<ID3D12Debug> m_debug_controller{};
         ComPtr<IDXGIFactory4> m_factory{};
@@ -18,6 +23,7 @@ namespace Coplt
         ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
+        std::unique_ptr<EmptyLayouts> m_empty_layouts{};
         DWORD m_callback_cookie{};
 
         explicit D3d12GpuDevice(
@@ -55,5 +61,7 @@ namespace Coplt
         FResult CreateGraphicsPipeline(
             const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
         ) noexcept override;
+
+        const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
     };
 }

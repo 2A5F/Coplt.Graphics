@@ -42,7 +42,7 @@ namespace Coplt
         InvDstColor = 10,
         SrcAlphaSat = 11,
         BlendFactor = 14,
-        BlendInvBlendFactor = 15,
+        InvBlendFactor = 15,
         Src1Color = 16,
         InvSrc1Color = 17,
         Src1Alpha = 18,
@@ -54,7 +54,7 @@ namespace Coplt
     enum class FLogicOp : u8
     {
         None = 0,
-        Clear,
+        Zero,
         One,
         Copy,
         CopyInv,
@@ -123,10 +123,10 @@ namespace Coplt
 
     struct FDepthStencilState
     {
-        u8 Enable{true};
-        u8 DepthWrite{true};
+        b8 Enable{true};
+        b8 DepthWrite{true};
         FCmpFunc DepthFunc{FCmpFunc::Less};
-        u8 StencilEnable{false};
+        b8 StencilEnable{false};
         u8 StencilReadMask{0xFF};
         u8 StencilWriteMask{0xFF};
         FStencilState Front{};
@@ -135,7 +135,6 @@ namespace Coplt
 
     struct FRtBlendState
     {
-        u8 Enable{false};
         FBlendType Src{FBlendType::One};
         FBlendType Dst{FBlendType::Zero};
         FBlendOp Op{FBlendOp::Add};
@@ -148,8 +147,7 @@ namespace Coplt
 
     struct FBlendState
     {
-        u8 AlphaToCoverageEnable{false};
-        u8 IndependentBlendEnable{false};
+        b8 IndependentBlendEnable{false};
         FRtBlendState Rts[8]
         {
             FRtBlendState{},
@@ -163,6 +161,12 @@ namespace Coplt
         };
     };
 
+    enum class FRotationDirection : u8
+    {
+        CounterClockWise,
+        ClockWise,
+    };
+
     struct FRasterizerState
     {
         FFillMode Fill{FFillMode::Solid};
@@ -170,20 +174,30 @@ namespace Coplt
         i32 DepthBias{0};
         f32 DepthBiasClamp{0};
         f32 SlopeScaledDepthBias{0};
-        u8 DepthClip{true};
-        u8 AALine{false};
-        u8 FrontCounterClockwise{false};
+        b8 DepthClip{true};
+        b8 AlphaAALine{false};
+        FRotationDirection FrontFace{FRotationDirection::CounterClockWise};
+        b8 ConservativeRaster{false};
     };
 
-    struct FSampleState
+    struct FMultiSampleState
     {
-        u8 Count{1};
-        i8 Quality{0};
+        u32 SampleMask{0xFFFFFFFF};
+        u8 SampleCount{1};
+        b8 AlphaToCoverageEnable{false};
+    };
+
+    enum class FStripCutValue : u8
+    {
+        None = 0,
+        XFFFF = 1,
+        XFFFFFFFF = 2,
     };
 
     struct FGraphicsPipelineState
     {
         FRasterizerState RasterizerState{};
+        FMultiSampleState MultiSample{};
         FTextureFormat DsvFormat{FTextureFormat::D24_UNorm_S8_UInt};
         FTextureFormat RtvFormats[8]
         {
@@ -196,8 +210,6 @@ namespace Coplt
             FTextureFormat::R8G8B8A8_UNorm,
             FTextureFormat::R8G8B8A8_UNorm,
         };
-        u32 SampleMask{0xFFFFFFFF};
-        FSampleState SampleState{};
         FBlendState BlendState{};
         FDepthStencilState DepthStencilState{};
         u8 NumRts{1};

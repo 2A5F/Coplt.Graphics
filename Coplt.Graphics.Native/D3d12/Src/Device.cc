@@ -223,3 +223,15 @@ FResult D3d12GpuDevice::CreateGraphicsPipeline(
         *out = new D3d12GraphicsShaderPipeline(this->CloneThis(), options);
     });
 }
+
+const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyLayout(FShaderLayoutFlags flags)
+{
+    if (!m_empty_layouts) m_empty_layouts = std::make_unique<EmptyLayouts>();
+    return m_empty_layouts->GetOrAdd(flags, [&](auto& p)
+    {
+        FShaderLayoutCreateOptions options{};
+        options.Name = Str8or16(fmt::format("Empty Layout {}", static_cast<u32>(flags)));
+        options.Flags = flags;
+        p = Rc(new D3d12ShaderLayout(this->CloneThis(), options));
+    });
+}

@@ -27,6 +27,8 @@ namespace Coplt
     struct FShaderModuleCreateOptions
     {
         Str8or16 Name{};
+        // 可选
+        FString8* EntryPoint{};
         // 需要自己保证数据内容符合当前使用的后端，比如 dx 使用的 dxil，vk 使用的 spv
         void* Data{};
         usize Size{};
@@ -41,6 +43,9 @@ namespace Coplt
         usize Size{};
         // 外部只读
         FShaderStage Stage{};
+
+        // 可空
+        virtual FString8* GetEntryPoint() noexcept = 0;
     };
 
     struct FShaderLayout;

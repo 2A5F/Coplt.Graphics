@@ -1,5 +1,6 @@
 ﻿using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -10,6 +11,7 @@ public sealed unsafe partial class ShaderModule
 
     internal FShaderModule* m_ptr;
     internal string? m_name;
+    internal readonly String8? m_entry_point;
 
     #endregion
 
@@ -17,15 +19,17 @@ public sealed unsafe partial class ShaderModule
 
     public FShaderModule* Ptr => m_ptr;
     public ShaderStage Stage => m_ptr->Stage.FromFFI();
+    public String8? EntryPoint => m_entry_point;
 
     #endregion
 
     #region Ctor
 
-    internal ShaderModule(FShaderModule* ptr, string? name)
+    internal ShaderModule(FShaderModule* ptr, string? name, String8? entry_point)
     {
         m_ptr = ptr;
         m_name = name;
+        m_entry_point = entry_point;
     }
 
     #endregion

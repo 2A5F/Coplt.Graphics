@@ -90,6 +90,11 @@ namespace Coplt
             return get();
         }
 
+        T* operator&() const
+        {
+            return get();
+        }
+
         // null
         Rc() : m_ptr(nullptr)
         {
@@ -148,7 +153,7 @@ namespace Coplt
         // move ass
         Rc& operator=(Rc&& r) noexcept
         {
-            if (this != &r) Rc(std::forward<Rc>(r)).swap(*this);
+            if (&m_ptr != &r.m_ptr) Rc(std::forward<Rc>(r)).swap(*this);
             return *this;
         }
 
@@ -355,7 +360,7 @@ namespace Coplt
         // move ass
         Weak& operator=(Weak&& r) noexcept
         {
-            if (this != &r) Weak(std::forward<Weak>(r)).swap(*this);
+            if (&m_ptr != &r.m_ptr) Weak(std::forward<Weak>(r)).swap(*this);
             return *this;
         }
 
@@ -603,4 +608,36 @@ namespace Coplt
         ObjectImpl<This, Base, Interfaces...>,
         ObjectImpl<This, void, Base, Interfaces...>
     >;
+
+    template <Interface T>
+    struct TryQueryInterface_t
+    {
+    };
+
+    template <Interface T>
+    TryQueryInterface_t<T> TryQueryInterface()
+    {
+        return {};
+    }
+
+    template <Interface T,Interface U>
+    U* operator >>(T* ptr, TryQueryInterface_t<U>)
+    {
+        if (ptr == nullptr) return nullptr;
+        return ptr->template QueryInterface<U>();
+    }
+
+    template <Interface T,Interface U>
+    U* operator >>(Rc<T>& ptr, TryQueryInterface_t<U>)
+    {
+        if (ptr == nullptr) return nullptr;
+        return ptr->template QueryInterface<U>();
+    }
+
+    template <Interface T,Interface U>
+    U* operator >>(Weak<T>& ptr, TryQueryInterface_t<U>)
+    {
+        if (ptr == nullptr) return nullptr;
+        return ptr->template QueryInterface<U>();
+    }
 }

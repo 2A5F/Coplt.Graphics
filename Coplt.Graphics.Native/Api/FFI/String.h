@@ -66,6 +66,10 @@ namespace Coplt
         i32 len;
 
 #ifdef FFI_SRC
+        Str8or16() = default;
+
+        explicit Str8or16(const std::string& str) : str8(str.c_str()), str16(nullptr), len(str.length()) {}
+
         bool has8() const
         {
             return str8 != nullptr;

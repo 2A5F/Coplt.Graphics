@@ -763,6 +763,9 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::Str8or16")]
         public Str8or16 Name;
 
+        [NativeTypeName("Coplt::FString8 *")]
+        public FString8* EntryPoint;
+
         public void* Data;
 
         [NativeTypeName("Coplt::usize")]
@@ -823,8 +826,17 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FShaderModule*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderModule*)Unsafe.AsPointer(ref this), &result, name);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FString8 *")]
+        public FString8* GetEntryPoint()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, FString8*>)(lpVtbl[5]))((FShaderModule*)Unsafe.AsPointer(ref this));
+        }
+
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FString8 *")]
+            FString8* GetEntryPoint();
         }
     }
 
@@ -878,7 +890,7 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FShaderLayoutItemDefine *")]
+        [return: NativeTypeName("const FShaderLayoutItemDefine *")]
         public FShaderLayoutItemDefine* GetItemDefines([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FShaderLayout*, uint*, FShaderLayoutItemDefine*>)(lpVtbl[5]))((FShaderLayout*)Unsafe.AsPointer(ref this), out_count);
@@ -886,7 +898,7 @@ namespace Coplt.Graphics.Native
 
         public interface Interface : FGpuObject.Interface
         {
-            [return: NativeTypeName("Coplt::FShaderLayoutItemDefine *")]
+            [return: NativeTypeName("const FShaderLayoutItemDefine *")]
             FShaderLayoutItemDefine* GetItemDefines([NativeTypeName("Coplt::u32 *")] uint* out_count);
         }
     }
@@ -938,7 +950,7 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FShaderInputLayoutElement *")]
+        [return: NativeTypeName("const FShaderInputLayoutElement *")]
         public FShaderInputLayoutElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FShaderInputLayout*, uint*, FShaderInputLayoutElement*>)(lpVtbl[5]))((FShaderInputLayout*)Unsafe.AsPointer(ref this), out_count);
@@ -946,7 +958,7 @@ namespace Coplt.Graphics.Native
 
         public interface Interface : FGpuObject.Interface
         {
-            [return: NativeTypeName("Coplt::FShaderInputLayoutElement *")]
+            [return: NativeTypeName("const FShaderInputLayoutElement *")]
             FShaderInputLayoutElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count);
         }
     }
@@ -1865,26 +1877,36 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+        [return: NativeTypeName("const FMeshBufferDefine *")]
         public FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FMeshLayout*, uint*, FMeshBufferDefine*>)(lpVtbl[5]))((FMeshLayout*)Unsafe.AsPointer(ref this), out_count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+        [return: NativeTypeName("const FMeshBufferElement *")]
         public FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count)
         {
             return ((delegate* unmanaged[Thiscall]<FMeshLayout*, uint*, FMeshBufferElement*>)(lpVtbl[6]))((FMeshLayout*)Unsafe.AsPointer(ref this), out_count);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FMeshBufferElement *")]
+        public FMeshBufferElement* TryGetElement([NativeTypeName("Coplt::u32")] uint SlotId, [NativeTypeName("Coplt::u32")] uint SlotIndex)
+        {
+            return ((delegate* unmanaged[Thiscall]<FMeshLayout*, uint, uint, FMeshBufferElement*>)(lpVtbl[7]))((FMeshLayout*)Unsafe.AsPointer(ref this), SlotId, SlotIndex);
+        }
+
         public interface Interface : FGpuObject.Interface
         {
-            [return: NativeTypeName("Coplt::FMeshBufferDefine *")]
+            [return: NativeTypeName("const FMeshBufferDefine *")]
             FMeshBufferDefine* GetBuffers([NativeTypeName("Coplt::u32 *")] uint* out_count);
 
-            [return: NativeTypeName("Coplt::FMeshBufferElement *")]
+            [return: NativeTypeName("const FMeshBufferElement *")]
             FMeshBufferElement* GetElements([NativeTypeName("Coplt::u32 *")] uint* out_count);
+
+            [return: NativeTypeName("const FMeshBufferElement *")]
+            FMeshBufferElement* TryGetElement([NativeTypeName("Coplt::u32")] uint SlotId, [NativeTypeName("Coplt::u32")] uint SlotIndex);
         }
     }
 
@@ -1957,9 +1979,15 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("struct FGraphicsShaderPipelineCreateOptions : Coplt::FShaderPipelineCreateOptions")]
-    public partial struct FGraphicsShaderPipelineCreateOptions
+    public unsafe partial struct FGraphicsShaderPipelineCreateOptions
     {
         public FShaderPipelineCreateOptions Base;
+
+        [NativeTypeName("Coplt::FMeshLayout *")]
+        public FMeshLayout* MeshLayout;
+
+        [NativeTypeName("Coplt::FGraphicsPipelineState")]
+        public FGraphicsPipelineState GraphicsState;
     }
 
     [Guid("32A67D44-132C-449B-972D-BAD3413783E5")]
@@ -1969,6 +1997,9 @@ namespace Coplt.Graphics.Native
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGraphicsShaderPipeline));
 
         public FShaderPipeline Base;
+
+        [NativeTypeName("Coplt::FGraphicsPipelineState")]
+        public FGraphicsPipelineState m_graphics_state;
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -2011,7 +2042,7 @@ namespace Coplt.Graphics.Native
         InvDstColor = 10,
         SrcAlphaSat = 11,
         BlendFactor = 14,
-        BlendInvBlendFactor = 15,
+        InvBlendFactor = 15,
         Src1Color = 16,
         InvSrc1Color = 17,
         Src1Alpha = 18,
@@ -2024,7 +2055,7 @@ namespace Coplt.Graphics.Native
     public enum FLogicOp : byte
     {
         None = 0,
-        Clear,
+        Zero,
         One,
         Copy,
         CopyInv,
@@ -2104,17 +2135,17 @@ namespace Coplt.Graphics.Native
 
     public partial struct FDepthStencilState
     {
-        [NativeTypeName("Coplt::u8")]
-        public byte Enable;
+        [NativeTypeName("Coplt::b8")]
+        public B8 Enable;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte DepthWrite;
+        [NativeTypeName("Coplt::b8")]
+        public B8 DepthWrite;
 
         [NativeTypeName("Coplt::FCmpFunc")]
         public FCmpFunc DepthFunc;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte StencilEnable;
+        [NativeTypeName("Coplt::b8")]
+        public B8 StencilEnable;
 
         [NativeTypeName("Coplt::u8")]
         public byte StencilReadMask;
@@ -2131,9 +2162,6 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRtBlendState
     {
-        [NativeTypeName("Coplt::u8")]
-        public byte Enable;
-
         [NativeTypeName("Coplt::FBlendType")]
         public FBlendType Src;
 
@@ -2161,11 +2189,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FBlendState
     {
-        [NativeTypeName("Coplt::u8")]
-        public byte AlphaToCoverageEnable;
-
-        [NativeTypeName("Coplt::u8")]
-        public byte IndependentBlendEnable;
+        [NativeTypeName("Coplt::b8")]
+        public B8 IndependentBlendEnable;
 
         [NativeTypeName("FRtBlendState[8]")]
         public _Rts_e__FixedBuffer Rts;
@@ -2175,6 +2200,13 @@ namespace Coplt.Graphics.Native
         {
             public FRtBlendState e0;
         }
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FRotationDirection : byte
+    {
+        CounterClockWise,
+        ClockWise,
     }
 
     public partial struct FRasterizerState
@@ -2194,23 +2226,37 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::f32")]
         public float SlopeScaledDepthBias;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte DepthClip;
+        [NativeTypeName("Coplt::b8")]
+        public B8 DepthClip;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte AALine;
+        [NativeTypeName("Coplt::b8")]
+        public B8 AlphaAALine;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte FrontCounterClockwise;
+        [NativeTypeName("Coplt::FRotationDirection")]
+        public FRotationDirection FrontFace;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 ConservativeRaster;
     }
 
-    public partial struct FSampleState
+    public partial struct FMultiSampleState
     {
-        [NativeTypeName("Coplt::u8")]
-        public byte Count;
+        [NativeTypeName("Coplt::u32")]
+        public uint SampleMask;
 
-        [NativeTypeName("Coplt::i8")]
-        public sbyte Quality;
+        [NativeTypeName("Coplt::u8")]
+        public byte SampleCount;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 AlphaToCoverageEnable;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FStripCutValue : byte
+    {
+        None = 0,
+        XFFFF = 1,
+        XFFFFFFFF = 2,
     }
 
     public partial struct FGraphicsPipelineState
@@ -2218,17 +2264,14 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FRasterizerState")]
         public FRasterizerState RasterizerState;
 
+        [NativeTypeName("Coplt::FMultiSampleState")]
+        public FMultiSampleState MultiSample;
+
         [NativeTypeName("Coplt::FTextureFormat")]
         public FTextureFormat DsvFormat;
 
         [NativeTypeName("FTextureFormat[8]")]
         public _RtvFormats_e__FixedBuffer RtvFormats;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint SampleMask;
-
-        [NativeTypeName("Coplt::FSampleState")]
-        public FSampleState SampleState;
 
         [NativeTypeName("Coplt::FBlendState")]
         public FBlendState BlendState;

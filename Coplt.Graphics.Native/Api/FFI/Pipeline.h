@@ -2,6 +2,7 @@
 
 #include "Shader.h"
 #include "PipelineState.h"
+#include "Layout.h"
 
 namespace Coplt
 {
@@ -22,10 +23,14 @@ namespace Coplt
 
     struct FGraphicsShaderPipelineCreateOptions : FShaderPipelineCreateOptions
     {
-
+        // 可选
+        FMeshLayout* MeshLayout{};
+        FGraphicsPipelineState GraphicsState{};
     };
 
     COPLT_INTERFACE_DEFINE(FGraphicsShaderPipeline, "32a67d44-132c-449b-972d-bad3413783e5", FShaderPipeline)
     {
+        // 外部只读
+        FGraphicsPipelineState m_graphics_state{};
     };
 }

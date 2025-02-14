@@ -3,6 +3,10 @@
 #include "Object.h"
 #include "Shader.h"
 
+#if FFI_SRC
+#include <span>
+#endif
+
 namespace Coplt
 {
     enum class FShaderLayoutItemType : u8
@@ -64,7 +68,15 @@ namespace Coplt
     {
         FShaderLayoutFlags Flags{};
 
-        virtual FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
+        virtual const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
+
+#if FFI_SRC
+        std::span<const FShaderLayoutItemDefine> GetItemDefines() noexcept
+        {
+            u32 count{};
+            return std::span{GetItemDefines(&count), static_cast<usize>(count)};
+        }
+#endif
     };
 
     struct FShaderInputLayoutCreateOptions
@@ -76,7 +88,15 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FShaderInputLayout, "70229c9a-fb3d-46b4-b534-72fdb167d807", FGpuObject)
     {
-        virtual FShaderInputLayoutElement* GetElements(u32* out_count) noexcept = 0;
+        virtual const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept = 0;
+
+#if FFI_SRC
+        std::span<const FShaderInputLayoutElement> GetElements() noexcept
+        {
+            u32 count{};
+            return std::span{GetElements(&count), static_cast<usize>(count)};
+        }
+#endif
     };
 
     struct FMeshLayoutCreateOptions
@@ -90,7 +110,23 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FMeshLayout, "8fe5121f-c2ce-46f5-aa14-f28595f35361", FGpuObject)
     {
-        virtual FMeshBufferDefine* GetBuffers(u32* out_count) noexcept = 0;
-        virtual FMeshBufferElement* GetElements(u32* out_count) noexcept = 0;
+        virtual const FMeshBufferDefine* GetBuffers(u32* out_count) noexcept = 0;
+        virtual const FMeshBufferElement* GetElements(u32* out_count) noexcept = 0;
+
+        virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) noexcept = 0;
+
+#if FFI_SRC
+        std::span<const FMeshBufferDefine> GetBuffers() noexcept
+        {
+            u32 count{};
+            return std::span{GetBuffers(&count), static_cast<usize>(count)};
+        }
+
+        std::span<const FMeshBufferElement> GetElements() noexcept
+        {
+            u32 count{};
+            return std::span{GetElements(&count), static_cast<usize>(count)};
+        }
+#endif
     };
 }

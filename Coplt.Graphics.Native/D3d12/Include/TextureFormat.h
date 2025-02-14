@@ -6,7 +6,7 @@
 
 namespace Coplt {
 
-    inline DXGI_FORMAT ToDXGIFormat(FTextureFormat value)
+    inline DXGI_FORMAT ToDx(FTextureFormat value)
     {
         return static_cast<DXGI_FORMAT>(value);
     }

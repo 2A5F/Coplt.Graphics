@@ -3,7 +3,7 @@
 #include "PostProcess.h"
 #include "directx/d3dx12.h"
 
-#include "TextureFormat.h"
+#include "../Include/TextureFormat.h"
 #include "../../Api/Include/Error.h"
 
 using namespace Coplt;
@@ -30,7 +30,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     DXGI_SWAP_CHAIN_DESC1 desc{};
     desc.Width = m_width = options.Width;
     desc.Height = m_height = options.Height;
-    desc.Format = ToDXGIFormat(m_format);
+    desc.Format = ToDx(m_format);
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     switch (options.PresentMode)
@@ -255,7 +255,7 @@ void D3d12GpuSwapChainOutput::Resize_NoLock(const u32 width, const u32 height)
     {
         m_buffers[i] = nullptr;
     }
-    chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, ToDXGIFormat(m_format), 0);
+    chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, ToDx(m_format), 0);
     CreateBuffers();
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
     m_width = width;

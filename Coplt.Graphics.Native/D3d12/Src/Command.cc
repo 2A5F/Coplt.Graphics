@@ -59,9 +59,9 @@ void D3d12CommandInterpreter::InterpreterContext::ReqState(FResourceSrc res_src,
     if (new_state == res.CurrentState) return;
     auto barrier = &GetCurrentBarrier();
     bool exists{};
-    auto state_pair = barrier->m_states.GetOrAdd(res_obj, exists, [&](StatePair* p)
+    auto state_pair = barrier->m_states.GetOrAdd(res_obj, exists, [&](auto& p)
     {
-        new(p) StatePair(res.CurrentState, new_state, res.Type);
+        p = StatePair(res.CurrentState, new_state, res.Type);
         res.CurrentState = new_state;
     });
     if (exists)
