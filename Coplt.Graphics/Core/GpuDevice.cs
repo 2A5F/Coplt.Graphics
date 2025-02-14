@@ -133,17 +133,15 @@ public sealed unsafe partial class GpuDevice
     public GpuQueue CreateMainQueue(string? Name = null, ReadOnlySpan<byte> Name8 = default)
     {
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            FMainQueueCreateOptions f_options = new()
             {
-                FMainQueueCreateOptions f_options = new()
-                {
-                    Name = new(Name, Name8, p_name, p_name8),
-                };
-                FGpuQueue* ptr;
-                m_ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
-                return new(ptr, Name);
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+            };
+            FGpuQueue* ptr;
+            m_ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
+            return new(ptr, Name);
         }
     }
 
@@ -157,23 +155,19 @@ public sealed unsafe partial class GpuDevice
     )
     {
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        fixed (byte* data = Blob)
         {
-            fixed (byte* p_name8 = Name8)
+            FShaderModuleCreateOptions f_options = new()
             {
-                fixed (byte* data = Blob)
-                {
-                    FShaderModuleCreateOptions f_options = new()
-                    {
-                        Name = new(Name, Name8, p_name, p_name8),
-                        Data = data,
-                        Size = (nuint)Blob.Length,
-                        Stage = Stage.ToFFI(),
-                    };
-                    FShaderModule* ptr;
-                    m_ptr->CreateShaderModule(&f_options, &ptr).TryThrow();
-                    return new(ptr, Name);
-                }
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+                Data = data,
+                Size = (nuint)Blob.Length,
+                Stage = Stage.ToFFI(),
+            };
+            FShaderModule* ptr;
+            m_ptr->CreateShaderModule(&f_options, &ptr).TryThrow();
+            return new(ptr, Name);
         }
     }
 
@@ -189,22 +183,20 @@ public sealed unsafe partial class GpuDevice
     )
     {
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            fixed (ShaderLayoutItemDefine* p_define = Defines)
             {
-                fixed (ShaderLayoutItemDefine* p_define = Defines)
+                FShaderLayoutCreateOptions f_options = new()
                 {
-                    FShaderLayoutCreateOptions f_options = new()
-                    {
-                        Name = new(Name, Name8, p_name, p_name8),
-                        Count = (uint)Defines.Length,
-                        Items = (FShaderLayoutItemDefine*)p_define,
-                        Flags = (FShaderLayoutFlags)Flags,
-                    };
-                    FShaderLayout* ptr;
-                    m_ptr->CreateShaderLayout(&f_options, &ptr).TryThrow();
-                    return new(ptr, Name);
-                }
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Count = (uint)Defines.Length,
+                    Items = (FShaderLayoutItemDefine*)p_define,
+                    Flags = (FShaderLayoutFlags)Flags,
+                };
+                FShaderLayout* ptr;
+                m_ptr->CreateShaderLayout(&f_options, &ptr).TryThrow();
+                return new(ptr, Name);
             }
         }
     }
@@ -248,19 +240,17 @@ public sealed unsafe partial class GpuDevice
             };
         }
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            FShaderInputLayoutCreateOptions f_options = new()
             {
-                FShaderInputLayoutCreateOptions f_options = new()
-                {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    Element = p_elements,
-                    Count = (uint)Elements.Length,
-                };
-                FShaderInputLayout* ptr;
-                m_ptr->CreateShaderInputLayout(&f_options, &ptr).TryThrow();
-                return new(ptr, meta, Name);
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+                Element = p_elements,
+                Count = (uint)Elements.Length,
+            };
+            FShaderInputLayout* ptr;
+            m_ptr->CreateShaderInputLayout(&f_options, &ptr).TryThrow();
+            return new(ptr, meta, Name);
         }
     }
 
@@ -286,21 +276,48 @@ public sealed unsafe partial class GpuDevice
             p_modules[i] = module.m_ptr;
         }
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            FShaderCreateOptions f_options = new()
             {
-                FShaderCreateOptions f_options = new()
-                {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    Layout = Layout == null ? null : Layout.m_ptr,
-                    InputLayout = InputLayout == null ? null : InputLayout.m_ptr,
-                    Modules = p_modules,
-                    Count = (byte)Modules.Length,
-                };
-                FShader* ptr;
-                m_ptr->CreateShader(&f_options, &ptr).TryThrow();
-                return new(ptr, arr, Layout, InputLayout, Name);
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+                Layout = Layout == null ? null : Layout.m_ptr,
+                InputLayout = InputLayout == null ? null : InputLayout.m_ptr,
+                Modules = p_modules,
+                Count = (byte)Modules.Length,
+            };
+            FShader* ptr;
+            m_ptr->CreateShader(&f_options, &ptr).TryThrow();
+            return new(ptr, arr, Layout, InputLayout, Name);
+        }
+    }
+
+    #endregion
+
+    #region CreateMeshLayout
+
+    public MeshLayout CreateMeshLayout(
+        ReadOnlySpan<MeshBufferDefine> Buffers,
+        ReadOnlySpan<MeshBufferElement> Elements,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (MeshBufferDefine* p_buffers = Buffers)
+        fixed (MeshBufferElement* p_elements = Elements)
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FMeshLayoutCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Buffers = (FMeshBufferDefine*)p_buffers,
+                Elements = (FMeshBufferElement*)p_elements,
+                BufferCount = (uint)Buffers.Length,
+                ElementCount = (uint)Elements.Length,
+            };
+            FMeshLayout* ptr;
+            m_ptr->CreateMeshLayout(&f_options, &ptr).TryThrow();
+            return new(ptr, Name);
         }
     }
 

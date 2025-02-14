@@ -204,12 +204,6 @@ namespace Coplt
         FPrimitiveTopologyType Topology{FPrimitiveTopologyType::Triangle};
     };
 
-    enum class FShaderInputElementRate : u8
-    {
-        Vertex,
-        Instance,
-    };
-
     struct FShaderInputLayoutElement
     {
         // dx 后端为语义名称，必须有；其他后端可选
@@ -238,11 +232,17 @@ namespace Coplt
         u32 InstanceRepeat{};
     };
 
+    enum class FMeshBufferElementRate : u8
+    {
+        Vertex,
+        Instance,
+    };
+
     struct FMeshBufferDefine
     {
         // 元素间隔
         u32 Stride{};
         // 元素频率，指示是按顶点还是按实例
-        FShaderInputElementRate Rate{};
+        FMeshBufferElementRate Rate{};
     };
 }

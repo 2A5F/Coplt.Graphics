@@ -104,29 +104,27 @@ public sealed unsafe partial class GpuQueue
     )
     {
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            FGpuOutputCreateOptions f_options = new()
             {
-                FGpuOutputCreateOptions f_options = new()
+                Name = new(Name, Name8, p_name, p_name8),
+                Width = Options.Width,
+                Height = Options.Height,
+                Format = Options.Format.ToFFI(),
+                PresentMode = (FPresentMode)Options.PresentMode,
+                AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
+                VSync = Options.VSync,
+                FormatSelector =
                 {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    Width = Options.Width,
-                    Height = Options.Height,
-                    Format = Options.Format.ToFFI(),
-                    PresentMode = (FPresentMode)Options.PresentMode,
-                    AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
-                    VSync = Options.VSync,
-                    FormatSelector =
-                    {
-                        Specify = Options.FormatSelector.Specify,
-                        Srgb = Options.FormatSelector.Srgb,
-                        Hdr = (FHdrType)Options.FormatSelector.Hdr,
-                    },
-                };
-                FGpuOutput* ptr;
-                m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
-                return new(this, ptr, Name);
-            }
+                    Specify = Options.FormatSelector.Specify,
+                    Srgb = Options.FormatSelector.Srgb,
+                    Hdr = (FHdrType)Options.FormatSelector.Hdr,
+                },
+            };
+            FGpuOutput* ptr;
+            m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
+            return new(this, ptr, Name);
         }
     }
 

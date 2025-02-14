@@ -266,21 +266,19 @@ public unsafe partial class GraphicsInstance
         var QueueName8 = !Debug || Name8.Length == 0 ? Name8 : Utils.JoinUtf8String(Name8, " Main Queue"u8);
 
         fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
         {
-            fixed (byte* p_name8 = Name8)
+            FGpuDeviceCreateOptions f_options = new()
             {
-                FGpuDeviceCreateOptions f_options = new()
-                {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    D3dFeatureLevel = (FD3dFeatureLevel)options.D3dFeatureLevel,
-                    VulkanVersion = (FVulkanVersion)options.VulkanVersion,
-                    Preference = (FGpuPreference)Preference,
-                    Debug = Debug
-                };
-                FGpuDevice* ptr;
-                m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-                return new(ptr, this, Name, QueueName: QueueName, QueueName8: QueueName8);
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+                D3dFeatureLevel = (FD3dFeatureLevel)options.D3dFeatureLevel,
+                VulkanVersion = (FVulkanVersion)options.VulkanVersion,
+                Preference = (FGpuPreference)Preference,
+                Debug = Debug
+            };
+            FGpuDevice* ptr;
+            m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
+            return new(ptr, this, Name, QueueName: QueueName, QueueName8: QueueName8);
         }
     }
 

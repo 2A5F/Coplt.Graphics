@@ -167,27 +167,23 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
                 $"The command is already used by another output and cannot be presented in this output");
         cmd.Present(this);
         fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+        fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+        fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
         {
-            fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+            FCommandSubmit submit = new()
             {
-                fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
-                {
-                    FCommandSubmit submit = new()
-                    {
-                        Resources = p_resources,
-                        Items = p_commands,
-                        Payload = p_payload,
-                        Count = (uint)cmd.m_commands.Count,
-                    };
-                    try
-                    {
-                        m_ptr->Present(&submit).TryThrow();
-                    }
-                    finally
-                    {
-                        cmd.Reset();
-                    }
-                }
+                Resources = p_resources,
+                Items = p_commands,
+                Payload = p_payload,
+                Count = (uint)cmd.m_commands.Count,
+            };
+            try
+            {
+                m_ptr->Present(&submit).TryThrow();
+            }
+            finally
+            {
+                cmd.Reset();
             }
         }
     }
@@ -204,27 +200,23 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
                 $"The command is already used by another output and cannot be presented in this output");
         cmd.Present(this);
         fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
+        fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+        fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
         {
-            fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
+            FCommandSubmit submit = new()
             {
-                fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
-                {
-                    FCommandSubmit submit = new()
-                    {
-                        Resources = p_resources,
-                        Items = p_commands,
-                        Payload = p_payload,
-                        Count = (uint)cmd.m_commands.Count,
-                    };
-                    try
-                    {
-                        m_ptr->PresentNoWait(&submit).TryThrow();
-                    }
-                    finally
-                    {
-                        cmd.Reset();
-                    }
-                }
+                Resources = p_resources,
+                Items = p_commands,
+                Payload = p_payload,
+                Count = (uint)cmd.m_commands.Count,
+            };
+            try
+            {
+                m_ptr->PresentNoWait(&submit).TryThrow();
+            }
+            finally
+            {
+                cmd.Reset();
             }
         }
     }

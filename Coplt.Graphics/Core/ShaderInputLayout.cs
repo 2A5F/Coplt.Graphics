@@ -4,12 +4,6 @@ using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
-public enum ShaderInputElementRate : byte
-{
-    Vertex,
-    Instance,
-}
-
 public record struct ShaderInputLayoutElement()
 {
     public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue) : this()

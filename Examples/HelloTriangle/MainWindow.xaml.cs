@@ -129,6 +129,22 @@ public partial class MainWindow : Window
     {
         var modules = await LoadShaderModules("HelloTriangle", [ShaderStage.Vertex, ShaderStage.Pixel]);
         Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout(["POSITION", "COLOR"]));
+        var mesh_layout = Device.CreateMeshLayout(
+            [new() { Stride = sizeof(float) * 8 }],
+            [
+                new()
+                {
+                    SlotId = Graphics.GetSlotId("POSITION"),
+                    Format = TextureFormat.R32G32B32A32_Float
+                },
+                new()
+                {
+                    SlotId = Graphics.GetSlotId("COLOR"),
+                    Format = TextureFormat.R32G32B32A32_Float,
+                    Offset = sizeof(float) * 4
+                },
+            ]
+        );
 
         // todo        
     }

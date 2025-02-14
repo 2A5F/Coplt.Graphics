@@ -242,8 +242,11 @@ FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_count) n
     return m_elements.data();
 }
 
-D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options)
+D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options) : m_device(
+    std::move(device))
 {
+    m_buffers = std::vector(options.Buffers, options.Buffers + options.BufferCount);
+    m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
 }
 
 FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept

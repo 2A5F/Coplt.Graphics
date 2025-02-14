@@ -2249,13 +2249,6 @@ namespace Coplt.Graphics.Native
         }
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FShaderInputElementRate : byte
-    {
-        Vertex,
-        Instance,
-    }
-
     public unsafe partial struct FShaderInputLayoutElement
     {
         [NativeTypeName("Coplt::FString8 *")]
@@ -2292,13 +2285,20 @@ namespace Coplt.Graphics.Native
         public uint InstanceRepeat;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FMeshBufferElementRate : byte
+    {
+        Vertex,
+        Instance,
+    }
+
     public partial struct FMeshBufferDefine
     {
         [NativeTypeName("Coplt::u32")]
         public uint Stride;
 
-        [NativeTypeName("Coplt::FShaderInputElementRate")]
-        public FShaderInputElementRate Rate;
+        [NativeTypeName("Coplt::FMeshBufferElementRate")]
+        public FMeshBufferElementRate Rate;
     }
 
     public static partial class Native
