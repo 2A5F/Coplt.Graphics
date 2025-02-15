@@ -325,4 +325,37 @@ public sealed unsafe partial class GpuDevice
     }
 
     #endregion
+
+    #region CreateGraphicsShaderPipeline
+
+    public GraphicsShaderPipeline CreateGraphicsShaderPipeline(
+        Shader Shader, GraphicsPipelineState PipelineState, MeshLayout? MeshLayout = null,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        if (Shader.Vertex != null && MeshLayout == null)
+            throw new ArgumentException("The shader requires a mesh input but no mesh layout was provided");
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGraphicsShaderPipelineCreateOptions f_options = new()
+            {
+                Base = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Shader = Shader.m_ptr,
+                },
+                MeshLayout = MeshLayout == null ? null : MeshLayout.m_ptr,
+                GraphicsState = new()
+                {
+                    // todo
+                },
+            };
+            FGraphicsShaderPipeline* ptr;
+            m_ptr->CreateGraphicsPipeline(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, Shader, PipelineState, MeshLayout);
+        }
+    }
+
+    #endregion
 }

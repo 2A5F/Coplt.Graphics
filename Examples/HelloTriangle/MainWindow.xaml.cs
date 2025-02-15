@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private IntPtr Handle;
 
     private Shader Shader = null!;
+    private GraphicsShaderPipeline Pipeline = null!;
 
     private bool IsClosed = false;
 
@@ -127,7 +128,8 @@ public partial class MainWindow : Window
 
     async Task LoadResources(CommandList cmd)
     {
-        var modules = await LoadShaderModules("HelloTriangle", [ShaderStage.Vertex, ShaderStage.Pixel]);
+        var shader_name = "HelloTriangle";
+        var modules = await LoadShaderModules(shader_name, [ShaderStage.Vertex, ShaderStage.Pixel]);
         Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout(["POSITION", "COLOR"]));
         var mesh_layout = Device.CreateMeshLayout(
             [new() { Stride = sizeof(float) * 8 }],
@@ -145,7 +147,7 @@ public partial class MainWindow : Window
                 },
             ]
         );
-
+        Pipeline = Device.CreateGraphicsShaderPipeline(Shader, new() { }, mesh_layout, Name: shader_name);
         // todo        
     }
 
