@@ -187,13 +187,6 @@ namespace Coplt
         b8 AlphaToCoverageEnable{false};
     };
 
-    enum class FStripCutValue : u8
-    {
-        None = 0,
-        XFFFF = 1,
-        XFFFFFFFF = 2,
-    };
-
     struct FGraphicsPipelineState
     {
         FRasterizerState RasterizerState{};

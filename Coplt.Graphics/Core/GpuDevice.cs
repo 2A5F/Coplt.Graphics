@@ -2,6 +2,7 @@
 using System.Text;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.States;
 using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
@@ -66,7 +67,8 @@ public sealed unsafe partial class GpuDevice
 
     #region Ctor
 
-    internal GpuDevice(FGpuDevice* ptr, GraphicsInstance instance,
+    internal GpuDevice(
+        FGpuDevice* ptr, GraphicsInstance instance,
         string? name, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default
     )
     {
@@ -269,7 +271,8 @@ public sealed unsafe partial class GpuDevice
         if (Modules.Length == 0) throw new ArgumentException("No modules provided");
         if (Modules.Length > FShader.MaxShaderModuleCount)
             throw new ArgumentException(
-                $"Too many shader modules, there can be a maximum of {FShader.MaxShaderModuleCount}");
+                $"Too many shader modules, there can be a maximum of {FShader.MaxShaderModuleCount}"
+            );
         Shader.ShaderModuleArray arr = new();
         var p_modules = stackalloc FShaderModule*[Modules.Length];
         for (var i = 0; i < Modules.Length; i++)
@@ -346,10 +349,7 @@ public sealed unsafe partial class GpuDevice
                     Shader = Shader.m_ptr,
                 },
                 MeshLayout = MeshLayout == null ? null : MeshLayout.m_ptr,
-                GraphicsState = new()
-                {
-                    // todo
-                },
+                GraphicsState = PipelineState.ToFFI(),
             };
             FGraphicsShaderPipeline* ptr;
             m_ptr->CreateGraphicsPipeline(&f_options, &ptr).TryThrow();

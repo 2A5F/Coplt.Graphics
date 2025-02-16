@@ -147,7 +147,7 @@ public partial class MainWindow : Window
                 },
             ]
         );
-        Pipeline = Device.CreateGraphicsShaderPipeline(Shader, new() { }, mesh_layout, Name: shader_name);
+        Pipeline = Device.CreateGraphicsShaderPipeline(Shader, new(), mesh_layout, Name: shader_name);
         // todo        
     }
 

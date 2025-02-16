@@ -2251,14 +2251,6 @@ namespace Coplt.Graphics.Native
         public B8 AlphaToCoverageEnable;
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FStripCutValue : byte
-    {
-        None = 0,
-        XFFFF = 1,
-        XFFFFFFFF = 2,
-    }
-
     public partial struct FGraphicsPipelineState
     {
         [NativeTypeName("Coplt::FRasterizerState")]
