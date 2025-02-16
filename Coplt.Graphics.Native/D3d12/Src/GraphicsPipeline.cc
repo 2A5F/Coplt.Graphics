@@ -21,8 +21,8 @@ namespace
     void SetGraphicsState(auto& dst, const FGraphicsShaderPipelineCreateOptions& options)
     {
         const auto& src = options.GraphicsState;
-        dst.BlendState.AlphaToCoverageEnable = src.MultiSample.AlphaToCoverageEnable;
-        dst.BlendState.IndependentBlendEnable = src.BlendState.IndependentBlendEnable;
+        dst.BlendState.AlphaToCoverageEnable = static_cast<u32>(src.MultiSample.AlphaToCoverageEnable);
+        dst.BlendState.IndependentBlendEnable = static_cast<u32>(src.BlendState.IndependentBlendEnable);
         for (u8 i = 0; i < 8; ++i)
         {
             const auto& rt_src = src.BlendState.Rts[i];
@@ -47,29 +47,34 @@ namespace
         dst.RasterizerState.DepthBias = src.RasterizerState.DepthBias;
         dst.RasterizerState.DepthBiasClamp = src.RasterizerState.DepthBiasClamp;
         dst.RasterizerState.SlopeScaledDepthBias = src.RasterizerState.SlopeScaledDepthBias;
-        dst.RasterizerState.DepthClipEnable = src.RasterizerState.DepthClip;
+        dst.RasterizerState.DepthClipEnable = static_cast<u32>(src.RasterizerState.DepthClip);
         dst.RasterizerState.MultisampleEnable =
             src.RasterizerState.AlphaAALine ? false : src.MultiSample.SampleCount > 0;
-        dst.RasterizerState.AntialiasedLineEnable = src.RasterizerState.AlphaAALine;
+        dst.RasterizerState.AntialiasedLineEnable = static_cast<u32>(src.RasterizerState.AlphaAALine);
         dst.RasterizerState.ForcedSampleCount = 0;
         dst.RasterizerState.ConservativeRaster =
             src.RasterizerState.ConservativeRaster
                 ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON
                 : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-        dst.DepthStencilState.DepthEnable = src.DepthStencilState.Enable;
+        dst.DepthStencilState.DepthEnable = static_cast<u32>(src.DepthStencilState.Enable);
         dst.DepthStencilState.DepthWriteMask =
             src.DepthStencilState.DepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
         dst.DepthStencilState.DepthFunc = ToDx(src.DepthStencilState.DepthFunc);
-        dst.DepthStencilState.StencilEnable = src.DepthStencilState.StencilEnable;
+        dst.DepthStencilState.StencilEnable = static_cast<u32>(src.DepthStencilState.StencilEnable);
         dst.DepthStencilState.StencilReadMask = src.DepthStencilState.StencilReadMask;
         dst.DepthStencilState.StencilWriteMask = src.DepthStencilState.StencilWriteMask;
         StencilState(dst.DepthStencilState.FrontFace, src.DepthStencilState.Front);
         StencilState(dst.DepthStencilState.BackFace, src.DepthStencilState.Back);
         dst.PrimitiveTopologyType = ToDx(src.Topology);
-        dst.NumRenderTargets = src.NumRts;
-        for (u8 i = 0; i < 8; ++i)
+        auto num_rts = std::min(static_cast<u8>(8), src.NumRts);
+        dst.NumRenderTargets = num_rts;
+        for (u8 i = 0; i < num_rts; ++i)
         {
             dst.RTVFormats[i] = ToDx(src.RtvFormats[i]);
+        }
+        for (u8 i = num_rts; i < 8; ++i)
+        {
+            dst.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
         }
         dst.DSVFormat = ToDx(src.DsvFormat);
     }
