@@ -1575,6 +1575,11 @@ namespace Coplt.Graphics.Native
         Transition,
         Present,
         ClearColor,
+        ClearDepthStencil,
+        SetRenderTargets,
+        SetPipeline,
+        Draw,
+        Dispatch,
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -1593,7 +1598,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L34_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L40_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -1681,6 +1686,109 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FDepthStencilClearFlags : byte
+    {
+        None = 0,
+        Depth = 1,
+        Stencil = 2,
+    }
+
+    public partial struct FCommandClearDepthStencil
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint RectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectIndex;
+
+        [NativeTypeName("Coplt::FResourceSrc")]
+        public FResourceSrc Image;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Depth;
+
+        [NativeTypeName("Coplt::u8")]
+        public byte Stencil;
+
+        [NativeTypeName("Coplt::FDepthStencilClearFlags")]
+        public FDepthStencilClearFlags Clear;
+    }
+
+    public partial struct FCommandSetRenderTargets
+    {
+        [NativeTypeName("Coplt::FResourceSrc")]
+        public FResourceSrc Dsv;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumRtv;
+
+        [NativeTypeName("FResourceSrc[8]")]
+        public _Rtv_e__FixedBuffer Rtv;
+
+        [InlineArray(8)]
+        public partial struct _Rtv_e__FixedBuffer
+        {
+            public FResourceSrc e0;
+        }
+    }
+
+    public unsafe partial struct FCommandSetPipeline
+    {
+        [NativeTypeName("Coplt::FShaderPipeline *")]
+        public FShaderPipeline* Pipeline;
+    }
+
+    public unsafe partial struct FCommandDraw
+    {
+        [NativeTypeName("Coplt::FShaderPipeline *")]
+        public FShaderPipeline* Pipeline;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexOrIndexCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint InstanceCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstVertexOrIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstInstance;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexOffset;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Indexed;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FDispatchType : byte
+    {
+        Auto,
+        Compute,
+        Mesh,
+    }
+
+    public unsafe partial struct FCommandDispatch
+    {
+        [NativeTypeName("Coplt::FShaderPipeline *")]
+        public FShaderPipeline* Pipeline;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountX;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountY;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountZ;
+
+        [NativeTypeName("Coplt::FDispatchType")]
+        public FDispatchType Type;
+    }
+
     public partial struct FCommandItem
     {
         [NativeTypeName("Coplt::FCommandType")]
@@ -1689,7 +1797,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L102_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L176_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -1722,6 +1830,66 @@ namespace Coplt.Graphics.Native
             }
         }
 
+        [UnscopedRef]
+        public ref FCommandClearDepthStencil ClearDepthStencil
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.ClearDepthStencil;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetRenderTargets SetRenderTargets
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetRenderTargets;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetPipeline SetPipeline
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetPipeline;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandDraw Draw
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Draw;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandDispatch Dispatch
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Dispatch;
+            }
+        }
+
+        [UnscopedRef]
+        public Span<byte> _pad
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Anonymous._pad;
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         public partial struct _Anonymous_e__Union
         {
@@ -1736,6 +1904,36 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandClearColor")]
             public FCommandClearColor ClearColor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandClearDepthStencil")]
+            public FCommandClearDepthStencil ClearDepthStencil;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetRenderTargets")]
+            public FCommandSetRenderTargets SetRenderTargets;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetPipeline")]
+            public FCommandSetPipeline SetPipeline;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandDraw")]
+            public FCommandDraw Draw;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandDispatch")]
+            public FCommandDispatch Dispatch;
+
+            [FieldOffset(0)]
+            [NativeTypeName("u8[56]")]
+            public __pad_e__FixedBuffer _pad;
+
+            [InlineArray(56)]
+            public partial struct __pad_e__FixedBuffer
+            {
+                public byte e0;
+            }
         }
     }
 
@@ -1927,9 +2125,6 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
-        [NativeTypeName("Coplt::FShaderStageFlags")]
-        public FShaderStageFlags Stages;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
@@ -1964,18 +2159,106 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShader *")]
+        public FShader* GetShader()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, FShader*>)(lpVtbl[5]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderLayout *")]
+        public FShaderLayout* GetLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, FShaderLayout*>)(lpVtbl[6]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags GetStages()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderPipeline*, FShaderStageFlags>)(lpVtbl[7]))((FShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FShader *")]
+            FShader* GetShader();
+
+            [return: NativeTypeName("Coplt::FShaderLayout *")]
+            FShaderLayout* GetLayout();
+
+            [return: NativeTypeName("Coplt::FShaderStageFlags")]
+            FShaderStageFlags GetStages();
         }
     }
 
     [Guid("5241C089-2EE2-43EE-ADD4-0A10C04A56CE")]
     [NativeTypeName("struct FComputeShaderPipeline : Coplt::FShaderPipeline")]
-    public unsafe partial struct FComputeShaderPipeline : INativeGuid
+    public unsafe partial struct FComputeShaderPipeline : FComputeShaderPipeline.Interface, INativeGuid
     {
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FComputeShaderPipeline));
 
-        public FShaderPipeline Base;
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, void>)(lpVtbl[0]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, nuint>)(lpVtbl[1]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, nuint>)(lpVtbl[2]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, Guid*, void*>)(lpVtbl[3]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShader *")]
+        public FShader* GetShader()
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FShader*>)(lpVtbl[5]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderLayout *")]
+        public FShaderLayout* GetLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FShaderLayout*>)(lpVtbl[6]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags GetStages()
+        {
+            return ((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FShaderStageFlags>)(lpVtbl[7]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        public interface Interface : FShaderPipeline.Interface
+        {
+        }
     }
 
     [NativeTypeName("struct FGraphicsShaderPipelineCreateOptions : Coplt::FShaderPipelineCreateOptions")]
@@ -1992,14 +2275,79 @@ namespace Coplt.Graphics.Native
 
     [Guid("32A67D44-132C-449B-972D-BAD3413783E5")]
     [NativeTypeName("struct FGraphicsShaderPipeline : Coplt::FShaderPipeline")]
-    public unsafe partial struct FGraphicsShaderPipeline : INativeGuid
+    public unsafe partial struct FGraphicsShaderPipeline : FGraphicsShaderPipeline.Interface, INativeGuid
     {
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGraphicsShaderPipeline));
 
-        public FShaderPipeline Base;
+        public void** lpVtbl;
 
-        [NativeTypeName("Coplt::FGraphicsPipelineState")]
-        public FGraphicsPipelineState m_graphics_state;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, void>)(lpVtbl[0]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, nuint>)(lpVtbl[1]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, nuint>)(lpVtbl[2]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, Guid*, void*>)(lpVtbl[3]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShader *")]
+        public FShader* GetShader()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FShader*>)(lpVtbl[5]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderLayout *")]
+        public FShaderLayout* GetLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FShaderLayout*>)(lpVtbl[6]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags GetStages()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FShaderStageFlags>)(lpVtbl[7]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FGraphicsPipelineState *")]
+        public FGraphicsPipelineState* GetGraphicsState()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FGraphicsPipelineState*>)(lpVtbl[8]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        public interface Interface : FShaderPipeline.Interface
+        {
+            [return: NativeTypeName("const FGraphicsPipelineState *")]
+            FGraphicsPipelineState* GetGraphicsState();
+        }
     }
 
     [NativeTypeName("Coplt::u8")]

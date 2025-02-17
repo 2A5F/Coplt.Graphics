@@ -189,7 +189,7 @@ namespace Coplt
         }
     }
 
-    inline D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDx(const FPrimitiveTopologyType value)
+    inline D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDxType(const FPrimitiveTopologyType value)
     {
         switch (value)
         {
@@ -215,6 +215,25 @@ namespace Coplt
         case FMeshBufferElementRate::Vertex:
         default:
             return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        }
+    }
+
+    inline D3D12_PRIMITIVE_TOPOLOGY ToDx(const FPrimitiveTopologyType value)
+    {
+        switch (value)
+        {
+        case FPrimitiveTopologyType::Triangle:
+            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        case FPrimitiveTopologyType::TriangleStrip:
+            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+        case FPrimitiveTopologyType::Point:
+            return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+        case FPrimitiveTopologyType::Line:
+            return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+        case FPrimitiveTopologyType::LineStrip:
+            return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+        default:
+            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         }
     }
 }

@@ -49,6 +49,8 @@ namespace Coplt
             usize m_current_barrier{0};
             usize m_current_command{0};
 
+            Rc<FShaderPipeline> m_current_pipeline{};
+
             explicit InterpreterContext(const FCommandSubmit& submit);
 
             CommandBarrierPart& GetCurrentBarrier() const;

@@ -19,7 +19,14 @@
         <PackageReference Include="InlineIL.Fody" Version="1.10.0" PrivateAssets='All'/>
     </ItemGroup>
 
-    <Target Name="FFI" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+        <FFI_Headers Include="../Coplt.Graphics.Native/Api/FFI/**/*.h" Visible="false"/>
+        <FFI_Headers Include="../Coplt.Graphics.Native/D3d12/FFI/**/*.h" Visible="false"/>
+        <FFI_Output Include="./Native/Native.cs"/>
+        <FFI_Output Include="./Native/Native.D3d12.cs"/>
+    </ItemGroup>
+
+    <Target Name="FFI" BeforeTargets="PrepareForBuild" Inputs="@(FFI_Headers)" Outputs="@(FFI_Output)">
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.rsp"/>
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.D3d12.rsp"/>
     </Target>

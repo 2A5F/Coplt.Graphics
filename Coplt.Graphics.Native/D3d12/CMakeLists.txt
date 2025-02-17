@@ -28,11 +28,12 @@ add_library(${target_name} SHARED
     Src/Layout.cc
     Include/ShaderVisibility.h
     Include/PipelineState.h
+    Src/CmdListPack.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")
 add_library(Coplt::Graphics::D3d12 ALIAS ${target_name})
-target_compile_definitions(${target_name} PRIVATE -DFFI_SRC)
+target_compile_definitions(${target_name} PRIVATE -DFFI_SRC -DNOMINMAX)
 
 set(BUILD_XAUDIO_WIN10 OFF)
 set(BUILD_DXIL_SHADERS OFF)

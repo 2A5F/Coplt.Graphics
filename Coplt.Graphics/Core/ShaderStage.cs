@@ -34,5 +34,8 @@ namespace Coplt.Graphics.Core
         public static FShaderStageFlags ToFFI(this ShaderStageFlags value) => (FShaderStageFlags)value;
 
         public static ShaderStageFlags FromFFI(this FShaderStageFlags value) => (ShaderStageFlags)value;
+
+        public static bool HasAnyFlags(this ShaderStageFlags value, ShaderStageFlags other) => (value & other) != 0;
+        public static bool HasFlags(this ShaderStageFlags value, ShaderStageFlags other) => (value & other) == other;
     }
 }

@@ -10,7 +10,7 @@
 
 namespace Coplt
 {
-    struct D3d12GraphicsShaderPipeline final : Object<D3d12GraphicsShaderPipeline, FD3d12GraphicsShaderPipeline>
+    struct D3d12GraphicsShaderPipeline final : Object<D3d12GraphicsShaderPipeline, FD3d12GraphicsShaderPipeline, FD3d12PipelineState>
     {
         Rc<D3d12GpuDevice> m_device{};
         Rc<FShader> m_shader{};
@@ -22,11 +22,20 @@ namespace Coplt
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12PipelineState> m_pipeline{};
         std::vector<u32> m_input_slots{};
+        FGraphicsPipelineState m_graphics_state{};
 
         explicit D3d12GraphicsShaderPipeline(
             Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
         );
 
         FResult SetName(const Str8or16& name) noexcept override;
+
+        void* GetPipelineStatePtr() noexcept override;
+
+        FShader* GetShader() noexcept override;
+        FShaderLayout* GetLayout() noexcept override;
+        FShaderStageFlags GetStages() noexcept override;
+
+        const FGraphicsPipelineState* GetGraphicsState() noexcept override;
     };
 }

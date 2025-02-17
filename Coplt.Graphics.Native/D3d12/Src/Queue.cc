@@ -27,10 +27,12 @@ D3d12GpuQueue::D3d12GpuQueue(
 
     chr | m_dx_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocator));
 
+    ComPtr<ID3D12GraphicsCommandList> command_list{};
     chr | m_dx_device->CreateCommandList(
         node_mask, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_allocator.Get(),
-        nullptr, IID_PPV_ARGS(&m_command_list)
+        nullptr, IID_PPV_ARGS(&command_list)
     );
+    m_cmd = CmdListPack(std::move(command_list));
 
     if (m_device->Debug())
     {
@@ -70,7 +72,7 @@ FResult D3d12GpuQueue::CreateOutputForHwnd(
 D3d12GpuQueue::~D3d12GpuQueue() noexcept
 {
     // ReSharper disable once CppFunctionResultShouldBeUsed
-    m_command_list->Close();
+    m_cmd->Close();
 }
 
 void D3d12GpuQueue::Submit(
@@ -87,16 +89,16 @@ void D3d12GpuQueue::SubmitNoLock(
 {
     if (submit == nullptr)
     {
-        chr | m_command_list->Close();
+        chr | m_cmd->Close();
     }
     else
     {
         m_command_interpreter.Interpret(*submit);
-        chr | m_command_list->Close();
-        ID3D12CommandList* command_lists[1] = {m_command_list.Get()};
+        chr | m_cmd->Close();
+        ID3D12CommandList* command_lists[1] = {m_cmd.m_list0.Get()};
         m_queue->ExecuteCommandLists(1, command_lists);
     }
 
     std::swap(m_command_allocator, command_allocator);
-    chr | m_command_list->Reset(m_command_allocator.Get(), nullptr);
+    chr | m_cmd->Reset(m_command_allocator.Get(), nullptr);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Output.h"
+#include "Pipeline.h"
 #include "States.h"
 
 namespace Coplt
@@ -13,6 +14,11 @@ namespace Coplt
         // 仅内部使用
         Present,
         ClearColor,
+        ClearDepthStencil,
+        SetRenderTargets,
+        SetPipeline,
+        Draw,
+        Dispatch,
     };
 
     enum class FCommandFlags : u32
@@ -57,10 +63,16 @@ namespace Coplt
 
     struct FResourceSrc
     {
+        // u32::max 表示 empty
         u32 ResourceIndex{};
 
 #ifdef FFI_SRC
         FResourceMeta& Get(const FCommandSubmit& submit) const;
+
+        bool IsEmpty() const
+        {
+            return ResourceIndex == COPLT_U32_MAX;
+        }
 #endif
     };
 
@@ -94,6 +106,68 @@ namespace Coplt
         f32 Color[4]{};
     };
 
+    COPLT_ENUM_FLAGS(FDepthStencilClearFlags, u8)
+    {
+        None = 0,
+        Depth = 1,
+        Stencil = 2,
+    };
+
+    struct FCommandClearDepthStencil
+    {
+        // 有多少个 Rect
+        u32 RectCount{};
+        // Payload 内的索引
+        u32 RectIndex{};
+        FResourceSrc Image{};
+        f32 Depth{};
+        u8 Stencil{};
+        FDepthStencilClearFlags Clear{};
+    };
+
+    struct FCommandSetRenderTargets
+    {
+        // 可选
+        FResourceSrc Dsv{};
+        u32 NumRtv{};
+        FResourceSrc Rtv[8]{};
+    };
+
+    struct FCommandSetPipeline
+    {
+        FShaderPipeline* Pipeline{};
+    };
+
+    struct FCommandDraw
+    {
+        // 可选
+        FShaderPipeline* Pipeline{};
+        u32 VertexOrIndexCount{};
+        u32 InstanceCount{};
+        u32 FirstVertexOrIndex{};
+        u32 FirstInstance{};
+        // 仅 Indexed 使用
+        u32 VertexOffset{};
+        b8 Indexed{};
+    };
+
+    enum class FDispatchType : u8
+    {
+        Auto,
+        Compute,
+        Mesh,
+    };
+
+    struct FCommandDispatch
+    {
+        // 可选
+        FShaderPipeline* Pipeline{};
+        u32 GroupCountX{};
+        u32 GroupCountY{};
+        u32 GroupCountZ{};
+        FDispatchType Type{};
+    };
+
     struct FCommandItem
     {
         FCommandType Type{};
@@ -104,6 +178,13 @@ namespace Coplt
             FCommandTransition Transition;
             FCommandPresent Present;
             FCommandClearColor ClearColor;
+            FCommandClearDepthStencil ClearDepthStencil;
+            FCommandSetRenderTargets SetRenderTargets;
+            FCommandSetPipeline SetPipeline;
+            FCommandDraw Draw;
+            FCommandDispatch Dispatch;
+
+            u8 _pad[56]{};
         };
     };
 

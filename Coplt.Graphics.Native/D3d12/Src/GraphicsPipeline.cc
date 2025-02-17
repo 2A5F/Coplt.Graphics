@@ -56,16 +56,18 @@ namespace
             src.RasterizerState.ConservativeRaster
                 ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON
                 : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-        dst.DepthStencilState.DepthEnable = static_cast<u32>(src.DepthStencilState.Enable);
+        dst.DepthStencilState.DepthEnable =
+            src.DsvFormat == FTextureFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.Enable);
         dst.DepthStencilState.DepthWriteMask =
             src.DepthStencilState.DepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
         dst.DepthStencilState.DepthFunc = ToDx(src.DepthStencilState.DepthFunc);
-        dst.DepthStencilState.StencilEnable = static_cast<u32>(src.DepthStencilState.StencilEnable);
+        dst.DepthStencilState.StencilEnable =
+            src.DsvFormat == FTextureFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.StencilEnable);
         dst.DepthStencilState.StencilReadMask = src.DepthStencilState.StencilReadMask;
         dst.DepthStencilState.StencilWriteMask = src.DepthStencilState.StencilWriteMask;
         StencilState(dst.DepthStencilState.FrontFace, src.DepthStencilState.Front);
         StencilState(dst.DepthStencilState.BackFace, src.DepthStencilState.Back);
-        dst.PrimitiveTopologyType = ToDx(src.Topology);
+        dst.PrimitiveTopologyType = ToDxType(src.Topology);
         auto num_rts = std::min(static_cast<u8>(8), src.NumRts);
         dst.NumRenderTargets = num_rts;
         for (u8 i = 0; i < num_rts; ++i)
@@ -141,7 +143,7 @@ namespace
 
 D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
-) : m_device(std::move(device))
+) : m_device(std::move(device)), m_graphics_state(options.GraphicsState)
 {
     m_dx_device = m_device->m_device;
     if (options.Shader == nullptr) throw WRuntimeException(L"Shader is null");
@@ -156,15 +158,13 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     }
     else
     {
-        auto flags = FShaderLayoutFlags::BindLess;
+        auto flags = FShaderLayoutFlags::None;
         if (m_shader->InputLayout())
         {
             flags |= FShaderLayoutFlags::InputAssembler;
         }
         m_layout = m_device->GetEmptyLayout(flags);
     }
-
-    m_graphics_state = options.GraphicsState;
 
     auto root_signature = static_cast<ID3D12RootSignature*>(m_layout->GetRootSignaturePtr());
 
@@ -237,4 +237,29 @@ FResult D3d12GraphicsShaderPipeline::SetName(const Str8or16& name) noexcept
     {
         chr | m_pipeline >> SetNameEx(name);
     });
+}
+
+void* D3d12GraphicsShaderPipeline::GetPipelineStatePtr() noexcept
+{
+    return m_pipeline.Get();
+}
+
+FShader* D3d12GraphicsShaderPipeline::GetShader() noexcept
+{
+    return m_shader.get();
+}
+
+FShaderLayout* D3d12GraphicsShaderPipeline::GetLayout() noexcept
+{
+    return m_layout.get();
+}
+
+FShaderStageFlags D3d12GraphicsShaderPipeline::GetStages() noexcept
+{
+    return m_shader->Stages;
+}
+
+const FGraphicsPipelineState* D3d12GraphicsShaderPipeline::GetGraphicsState() noexcept
+{
+    return &m_graphics_state;
 }

@@ -67,39 +67,45 @@ public partial class MainWindow : Window
         try
         {
             Graphics = GraphicsInstance.LoadD3d12();
-            Graphics.SetLogger((level, _) => Log.IsEnabled(level.ToLogEventLevel()),
-                (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg));
+            Graphics.SetLogger(
+                (level, _) => Log.IsEnabled(level.ToLogEventLevel()),
+                (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg)
+            );
             Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
             Handle = new WindowInteropHelper(this).EnsureHandle();
-            Output = Device.MainQueue.CreateOutputForHwnd(new()
-            {
-                Width = (uint)Width,
-                Height = (uint)Height,
-                // VSync = true,
-            }, Handle);
+            Output = Device.MainQueue.CreateOutputForHwnd(
+                new()
+                {
+                    Width = (uint)Width,
+                    Height = (uint)Height,
+                    // VSync = true,
+                }, Handle
+            );
         }
         catch (Exception e)
         {
             Log.Error(e, "");
         }
-        new Thread(() =>
-        {
-            Thread.CurrentThread.Name = "Render Thread";
-            var cmd = Device.MainCommandList;
-            LoadResources(cmd).Wait();
-            while (!IsClosed)
+        new Thread(
+            () =>
             {
-                try
+                Thread.CurrentThread.Name = "Render Thread";
+                var cmd = Device.MainCommandList;
+                LoadResources(cmd).Wait();
+                while (!IsClosed)
                 {
-                    Render(cmd);
-                    Output.Present();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "");
+                    try
+                    {
+                        Render(cmd);
+                        Output.Present();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e, "");
+                    }
                 }
             }
-        }).Start();
+        ).Start();
     }
 
     #endregion
@@ -147,7 +153,12 @@ public partial class MainWindow : Window
                 },
             ]
         );
-        Pipeline = Device.CreateGraphicsShaderPipeline(Shader, new(), mesh_layout, Name: shader_name);
+        Pipeline = Device.CreateGraphicsShaderPipeline(
+            Shader, new()
+            {
+                DsvFormat = TextureFormat.Unknown,
+            }, mesh_layout, Name: shader_name
+        );
         // todo        
     }
 
@@ -157,7 +168,9 @@ public partial class MainWindow : Window
 
     void Render(CommandList cmd)
     {
+        cmd.SetRenderTargets([Output]);
         cmd.ClearColor(Output, new float4(1, 1, 1, 1));
+        cmd.Draw(Pipeline, 3);
     }
 
     #endregion
