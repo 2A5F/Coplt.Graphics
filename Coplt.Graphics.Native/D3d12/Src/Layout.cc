@@ -247,6 +247,14 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
 {
     m_buffers = std::vector(options.Buffers, options.Buffers + options.BufferCount);
     m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
+    // 保留 1 个 slot 永远为 0
+    if (m_buffers.size() >= 31)
+        throw WRuntimeException(
+            fmt::format(
+                L"Too many buffers, a maximum of 31 buffers are supported, but actually provided {}",
+                m_buffers.size()
+            )
+        );
     for (u32 i = 0; i < m_elements.size(); ++i)
     {
         const auto& element = m_elements[i];

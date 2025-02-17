@@ -10,6 +10,7 @@
 namespace Coplt
 {
     struct D3d12ShaderLayout;
+    struct D3d12MeshLayout;
 
     struct D3d12GpuDevice final : Object<D3d12GpuDevice, FD3d12GpuDevice>
     {
@@ -24,6 +25,7 @@ namespace Coplt
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
         std::unique_ptr<EmptyLayouts> m_empty_layouts{};
+        Rc<D3d12MeshLayout> m_empty_mesh_layout{};
         DWORD m_callback_cookie{};
 
         explicit D3d12GpuDevice(
@@ -63,5 +65,6 @@ namespace Coplt
         ) noexcept override;
 
         const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
+        const Rc<D3d12MeshLayout>& GetEmptyMeshLayout();
     };
 }

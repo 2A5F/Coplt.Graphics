@@ -229,9 +229,21 @@ const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyLayout(FShaderLayoutFlags f
     if (!m_empty_layouts) m_empty_layouts = std::make_unique<EmptyLayouts>();
     return m_empty_layouts->GetOrAdd(flags, [&](auto& p)
     {
+        const auto name = fmt::format(L"Empty Layout {}", static_cast<u32>(flags));
         FShaderLayoutCreateOptions options{};
-        options.Name = Str8or16(fmt::format("Empty Layout {}", static_cast<u32>(flags)));
+        options.Name = Str8or16(name);
         options.Flags = flags;
         p = Rc(new D3d12ShaderLayout(this->CloneThis(), options));
     });
+}
+
+const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
+{
+    if (m_empty_mesh_layout == nullptr)
+    {
+        FMeshLayoutCreateOptions options{};
+        options.Name = Str8or16(L"Empty Mesh Layout");
+        m_empty_mesh_layout = Rc(new D3d12MeshLayout(this->CloneThis(), options));
+    }
+    return m_empty_mesh_layout;
 }

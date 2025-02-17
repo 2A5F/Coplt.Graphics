@@ -336,8 +336,6 @@ public sealed unsafe partial class GpuDevice
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
-        if (Shader.Vertex != null && MeshLayout == null)
-            throw new ArgumentException("The shader requires a mesh input but no mesh layout was provided");
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
         {

@@ -14,6 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
+using Coplt.Graphics.States;
 using Coplt.Mathematics;
 using Serilog;
 using Path = System.IO.Path;
@@ -136,30 +137,22 @@ public partial class MainWindow : Window
     {
         var shader_name = "HelloTriangle";
         var modules = await LoadShaderModules(shader_name, [ShaderStage.Vertex, ShaderStage.Pixel]);
-        Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout(["POSITION", "COLOR"]));
-        var mesh_layout = Device.CreateMeshLayout(
-            [new() { Stride = sizeof(float) * 8 }],
-            [
-                new()
-                {
-                    SlotId = Graphics.GetSlotId("POSITION"),
-                    Format = TextureFormat.R32G32B32A32_Float
-                },
-                new()
-                {
-                    SlotId = Graphics.GetSlotId("COLOR"),
-                    Format = TextureFormat.R32G32B32A32_Float,
-                    Offset = sizeof(float) * 4
-                },
-            ]
-        );
+        Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout([]));
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {
                 DsvFormat = TextureFormat.Unknown,
-            }, mesh_layout, Name: shader_name
+                BlendState =
+                {
+                    Rt0 =
+                    {
+                        Src = BlendType.SrcAlpha,
+                        Dst = BlendType.InvSrcAlpha,
+                        Op = BlendOp.Add,
+                    }
+                }
+            }, Name: shader_name
         );
-        // todo        
     }
 
     #endregion
@@ -169,7 +162,7 @@ public partial class MainWindow : Window
     void Render(CommandList cmd)
     {
         cmd.SetRenderTargets([Output]);
-        cmd.ClearColor(Output, new float4(1, 1, 1, 1));
+        cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));
         cmd.Draw(Pipeline, 3);
     }
 

@@ -108,16 +108,8 @@ namespace
             }
             else
             {
-                if (device->Debug() && device->Logger().IsEnable(FLogLevel::Warn))
-                {
-                    device->Logger().LogW(
-                        FLogLevel::Warn,
-                        fmt::format(
-                            L"The input element {} ignored, because mesh layout does not provide a suitable element", i
-                        )
-                    );
-                }
-                continue;
+                desc.InputSlot = 31;
+                desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
             }
             desc.SemanticIndex = element.SlotIndex;
             if (element.SlotName != nullptr)
@@ -128,13 +120,6 @@ namespace
             {
                 tmp_strings.push_back(fmt::format("SLOT{}_", element.SlotId));
                 desc.SemanticName = tmp_strings.back().c_str();
-                if (device->Debug() && device->Logger().IsEnable(FLogLevel::Warn))
-                {
-                    device->Logger().LogW(
-                        FLogLevel::Warn,
-                        fmt::format(L"The SlotName of input element {} is null, which is required in the dx backend", i)
-                    );
-                }
             }
             dst.push_back(desc);
         }
@@ -189,10 +174,13 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         {
             auto dx_input_layout = input_layout->QueryInterface<FD3d12ShaderInputLayout>();
             if (dx_input_layout == nullptr) throw WRuntimeException(L"Input layout from different backends");
-            if (options.MeshLayout == nullptr)
-                throw WRuntimeException(L"The shader requires a mesh input but no mesh layout was provided");
-            auto dx_mesh_layout = options.MeshLayout->QueryInterface<FD3d12MeshLayout>();
-            if (dx_mesh_layout == nullptr) throw WRuntimeException(L"Mesh layout from different backends");
+            FD3d12MeshLayout* dx_mesh_layout{};
+            if (options.MeshLayout != nullptr)
+            {
+                dx_mesh_layout = options.MeshLayout->QueryInterface<FD3d12MeshLayout>();
+                if (dx_mesh_layout == nullptr) throw WRuntimeException(L"Mesh layout from different backends");
+            }
+            else dx_mesh_layout = m_device->GetEmptyMeshLayout().get();
             SetInputLayout(&m_device, tmp_strings, input_element_desc, input_slots, dx_input_layout, dx_mesh_layout);
             desc.InputLayout.NumElements = input_element_desc.size();
             desc.InputLayout.pInputElementDescs = input_element_desc.data();

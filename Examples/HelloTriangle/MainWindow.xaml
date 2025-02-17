@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Test1"
         mc:Ignorable="d"
-        Title="MainWindow"
+        Title="HelloTriangle"
         Width="960" Height="540"
         WindowStartupLocation="CenterScreen">
 </Window>

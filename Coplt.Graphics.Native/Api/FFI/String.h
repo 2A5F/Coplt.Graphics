@@ -68,7 +68,27 @@ namespace Coplt
 #ifdef FFI_SRC
         Str8or16() = default;
 
-        explicit Str8or16(const std::string& str) : str8(str.c_str()), str16(nullptr), len(str.length()) {}
+        explicit Str8or16(const std::string& str) : str8(str.c_str()), str16(nullptr), len(str.length())
+        {
+        }
+
+        template <usize N>
+        explicit Str8or16(const char (&str)[N]) : str8(str), str16(nullptr), len(N)
+        {
+        }
+
+#ifdef _WINDOWS
+
+        explicit Str8or16(const std::wstring& str)
+            : str8(nullptr), str16(reinterpret_cast<const Char16*>(str.c_str())), len(str.length())
+        {
+        }
+
+        template <usize N>
+        explicit Str8or16(const wchar_t (&str)[N]) : str8(nullptr), str16(reinterpret_cast<const Char16*>(str)), len(N)
+        {
+        }
+#endif
 
         bool has8() const
         {
@@ -120,5 +140,4 @@ namespace Coplt
     }
 
 #endif
-
 }
