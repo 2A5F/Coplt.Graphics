@@ -40,12 +40,10 @@ set(BUILD_DXIL_SHADERS OFF)
 
 add_subdirectory(ThirdParty/DirectX-Headers)
 add_subdirectory(ThirdParty/D3D12MemoryAllocator)
-add_subdirectory(ThirdParty/DirectXTK12)
 
 target_link_libraries(${target_name}
     PUBLIC
     Coplt::Graphics::Api
     Microsoft::DirectX-Headers
-    DirectXTK12
     D3D12MemoryAllocator
 )

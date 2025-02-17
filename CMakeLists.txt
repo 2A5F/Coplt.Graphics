@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.29)
 
+if (WIN32)
+    set(CMAKE_C_COMPILER "clang-cl.exe")
+    set(CMAKE_CXX_COMPILER "clang-cl.exe")
+endif ()
+
 project(Coplt_Graphics_Native)
 
 set(CMAKE_CXX_STANDARD 23)

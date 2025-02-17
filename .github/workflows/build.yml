@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+    - name: Setup Clang
+      uses: egor-tensin/setup-clang@v1
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@v1.1
+    - name: Cmake setup Debug
+      run: cmake --preset debug
+    - name: Cmake setup Release
+      run: cmake --preset release
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Restore tools
+      run: dotnet tool restore
+    - name: Build Debug
+      run: dotnet build --no-restore
+    - name: Build Release
+      run: dotnet build --no-restore -c Release
+      
