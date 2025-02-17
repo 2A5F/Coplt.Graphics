@@ -111,6 +111,7 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
         case FCommandType::SetPipeline:
         case FCommandType::Draw:
         case FCommandType::Dispatch:
+        case FCommandType::SetViewportScissor:
             goto CmdNext;
         case FCommandType::Present:
             goto Present;
@@ -241,6 +242,8 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                 goto ClearDepthStencil;
             case FCommandType::SetRenderTargets:
                 goto SetRenderTargets;
+            case FCommandType::SetViewportScissor:
+                goto SetViewportScissor;
             case FCommandType::SetPipeline:
                 goto SetPipeline;
             case FCommandType::Draw:
@@ -287,6 +290,20 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                     rtvs[n] = GetRtv(cmd.Rtv[n].Get(submit));
                 }
                 cmd_pack->OMSetRenderTargets(num_rtv, rtvs, false, dsv);
+
+                auto viewport = reinterpret_cast<const D3D12_VIEWPORT*>(&submit.Payload[cmd.ViewportIndex]);
+                auto scissor = reinterpret_cast<const D3D12_RECT*>(&submit.Payload[cmd.ScissorRectIndex]);
+                if (cmd.ViewportCount > 0) cmd_pack->RSSetViewports(cmd.ViewportCount, viewport);
+                if (cmd.ScissorRectCount > 0) cmd_pack->RSSetScissorRects(cmd.ScissorRectCount, scissor);
+                continue;
+            }
+        SetViewportScissor:
+            {
+                const auto& cmd = item.SetViewportScissor;
+                auto viewport = reinterpret_cast<const D3D12_VIEWPORT*>(&submit.Payload[cmd.ViewportIndex]);
+                auto scissor = reinterpret_cast<const D3D12_RECT*>(&submit.Payload[cmd.ScissorRectIndex]);
+                if (cmd.ViewportCount > 0) cmd_pack->RSSetViewports(cmd.ViewportCount, viewport);
+                if (cmd.ScissorRectCount > 0) cmd_pack->RSSetScissorRects(cmd.ScissorRectCount, scissor);
                 continue;
             }
         SetPipeline:

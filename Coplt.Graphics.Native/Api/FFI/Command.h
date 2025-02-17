@@ -16,6 +16,7 @@ namespace Coplt
         ClearColor,
         ClearDepthStencil,
         SetRenderTargets,
+        SetViewportScissor,
         SetPipeline,
         Draw,
         Dispatch,
@@ -84,6 +85,16 @@ namespace Coplt
         u32 bottom;
     };
 
+    struct FViewport
+    {
+        f32 X;
+        f32 Y;
+        f32 Width;
+        f32 Height;
+        f32 MinDepth;
+        f32 MaxDepth;
+    };
+
     struct FCommandTransition
     {
         FResourceSrc Resource{};
@@ -131,6 +142,27 @@ namespace Coplt
         FResourceSrc Dsv{};
         u32 NumRtv{};
         FResourceSrc Rtv[8]{};
+
+        // 有多少个 Viewport
+        u32 ViewportCount{};
+        // Payload 内的索引
+        u32 ViewportIndex{};
+        // 有多少个 Rect
+        u32 ScissorRectCount{};
+        // Payload 内的索引
+        u32 ScissorRectIndex{};
+    };
+
+    struct FCommandSetViewportScissor
+    {
+        // 有多少个 Viewport
+        u32 ViewportCount{};
+        // Payload 内的索引
+        u32 ViewportIndex{};
+        // 有多少个 Rect
+        u32 ScissorRectCount{};
+        // Payload 内的索引
+        u32 ScissorRectIndex{};
     };
 
     struct FCommandSetPipeline
@@ -180,6 +212,7 @@ namespace Coplt
             FCommandClearColor ClearColor;
             FCommandClearDepthStencil ClearDepthStencil;
             FCommandSetRenderTargets SetRenderTargets;
+            FCommandSetViewportScissor SetViewportScissor;
             FCommandSetPipeline SetPipeline;
             FCommandDraw Draw;
             FCommandDispatch Dispatch;

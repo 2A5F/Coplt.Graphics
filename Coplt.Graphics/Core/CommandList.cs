@@ -231,8 +231,13 @@ public sealed unsafe class CommandList
 
     #region SetRenderTargets
 
-    public void SetRenderTargets(ReadOnlySpan<IRtv> rtvs, IDsv? dsv = null, CommandFlags flags = CommandFlags.None)
+    public void SetRenderTargets(
+        ReadOnlySpan<IRtv> rtvs, IDsv? dsv = null,
+        bool auto_viewport_scissor = true,
+        CommandFlags flags = CommandFlags.None
+    )
     {
+        if (rtvs.Length == 0 && dsv == null) throw new ArgumentException("No Rtvs or Dsv");
         var num_rtv = Math.Min(rtvs.Length, 8);
         for (var i = 0; i < num_rtv; i++)
         {
@@ -246,9 +251,31 @@ public sealed unsafe class CommandList
             Dsv = dsv == null ? new(uint.MaxValue) : new(AddResource(dsv)),
             NumRtv = (uint)num_rtv,
         };
+        var rt_size = dsv?.Size ?? rtvs[0].Size;
         for (var i = 0; i < num_rtv; i++)
         {
             cmd.Rtv[i] = new(AddResource(rtvs[i]));
+            if (!rtvs[i].Size.Equals(rt_size))
+                throw new ArgumentException($"RenderTargets And DepthStencil must be the same size");
+        }
+        if (auto_viewport_scissor)
+        {
+            cmd.ViewportCount = 1;
+            cmd.ScissorRectCount = 1;
+            var viewport = new UViewPort
+            {
+                Width = rt_size.x,
+                Height = rt_size.y,
+            };
+            var scissor = new URect
+            {
+                Right = rt_size.x,
+                Bottom = rt_size.y,
+            };
+            cmd.ViewportIndex = (uint)m_payload.Count;
+            m_payload.AddRange(MemoryMarshal.AsBytes(new ReadOnlySpan<UViewPort>(in viewport)));
+            cmd.ScissorRectIndex = (uint)m_payload.Count;
+            m_payload.AddRange(MemoryMarshal.AsBytes(new ReadOnlySpan<URect>(in scissor)));
         }
         m_commands.Add(
             new()
@@ -263,6 +290,41 @@ public sealed unsafe class CommandList
             rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
         }
         dsv?.UnsafeChangeState(FResourceState.DepthWrite);
+    }
+
+    #endregion
+
+    #region SetViewportScissor
+
+    public void SetViewportScissor(
+        ReadOnlySpan<UViewPort> viewports,
+        ReadOnlySpan<URect> scissors,
+        CommandFlags flags = CommandFlags.None
+    )
+    {
+        var cmd = new FCommandSetViewportScissor
+        {
+            ViewportCount = (uint)viewports.Length,
+            ScissorRectCount = (uint)scissors.Length,
+        };
+        if (viewports.Length > 0)
+        {
+            cmd.ViewportIndex = (uint)m_payload.Count;
+            m_payload.AddRange(MemoryMarshal.AsBytes(viewports));
+        }
+        if (scissors.Length > 0)
+        {
+            cmd.ScissorRectIndex = (uint)m_payload.Count;
+            m_payload.AddRange(MemoryMarshal.AsBytes(scissors));
+        }
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.SetViewportScissor,
+                Flags = (FCommandFlags)flags,
+                SetViewportScissor = cmd,
+            }
+        );
     }
 
     #endregion

@@ -1577,6 +1577,7 @@ namespace Coplt.Graphics.Native
         ClearColor,
         ClearDepthStencil,
         SetRenderTargets,
+        SetViewportScissor,
         SetPipeline,
         Draw,
         Dispatch,
@@ -1598,7 +1599,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L40_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L41_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -1645,6 +1646,27 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint bottom;
+    }
+
+    public partial struct FViewport
+    {
+        [NativeTypeName("Coplt::f32")]
+        public float X;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Y;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Width;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Height;
+
+        [NativeTypeName("Coplt::f32")]
+        public float MinDepth;
+
+        [NativeTypeName("Coplt::f32")]
+        public float MaxDepth;
     }
 
     public partial struct FCommandTransition
@@ -1726,11 +1748,38 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("FResourceSrc[8]")]
         public _Rtv_e__FixedBuffer Rtv;
 
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectIndex;
+
         [InlineArray(8)]
         public partial struct _Rtv_e__FixedBuffer
         {
             public FResourceSrc e0;
         }
+    }
+
+    public partial struct FCommandSetViewportScissor
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectIndex;
     }
 
     public unsafe partial struct FCommandSetPipeline
@@ -1797,7 +1846,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L176_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L208_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -1847,6 +1896,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.SetRenderTargets;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetViewportScissor SetViewportScissor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetViewportScissor;
             }
         }
 
@@ -1912,6 +1971,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetRenderTargets")]
             public FCommandSetRenderTargets SetRenderTargets;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetViewportScissor")]
+            public FCommandSetViewportScissor SetViewportScissor;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetPipeline")]

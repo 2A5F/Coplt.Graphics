@@ -4,6 +4,7 @@ namespace Coplt.Graphics.Core;
 
 public interface IView
 {
+    public uint3 Size { get; }
     public GpuQueue Queue { get; }
     
     public FResourceMeta GetMeta();

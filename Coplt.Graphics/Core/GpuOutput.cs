@@ -78,6 +78,7 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     public FGpuOutput* Ptr => m_ptr;
 
+    public uint3 Size => new(m_ptr->m_width, m_ptr->m_height, 1);
     public GpuQueue Queue => m_queue;
 
     #endregion
@@ -164,7 +165,8 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         var cmd = Queue.m_cmd;
         if (cmd.m_current_output != null && cmd.m_current_output != this)
             throw new ArgumentException(
-                $"The command is already used by another output and cannot be presented in this output");
+                $"The command is already used by another output and cannot be presented in this output"
+            );
         cmd.Present(this);
         fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
         fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
@@ -197,7 +199,8 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         var cmd = Queue.m_cmd;
         if (cmd.m_current_output != null && cmd.m_current_output != this)
             throw new ArgumentException(
-                $"The command is already used by another output and cannot be presented in this output");
+                $"The command is already used by another output and cannot be presented in this output"
+            );
         cmd.Present(this);
         fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
         fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
