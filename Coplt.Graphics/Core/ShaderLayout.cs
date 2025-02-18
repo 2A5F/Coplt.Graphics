@@ -1,20 +1,41 @@
-﻿using Coplt.Dropping;
+﻿using System.Diagnostics;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
-public enum ShaderLayoutItemType : byte
+public enum ShaderLayoutItemView : byte
 {
     Cbv,
-    SrvTexture,
-    UavTexture,
-    SrvBuffer,
-    UavBuffer,
+    Srv,
+    Uav,
+    /// <summary>
+    /// Type 必须是 Sampler
+    /// </summary>
     Sampler,
     /// <summary>
-    /// 将使用 Push Const / Root Const, 忽略 Usage
+    /// 将使用 Push Const / Root Const, 忽略 Usage，Type 必须是 ConstantBuffer
     /// </summary>
     Constants,
+}
+
+public enum ShaderLayoutItemType : byte
+{
+    ConstantBuffer,
+    RawBuffer,
+    StructureBuffer,
+    StructureBufferWithCounter,
+    Texture1D,
+    Texture1DArray,
+    Texture2D,
+    Texture2DArray,
+    Texture2DMultisample,
+    Texture2DArrayMultisample,
+    Texture3D,
+    TextureCube,
+    TextureCubeArray,
+    Sampler,
+    RayTracingAccelerationStructure,
 }
 
 public enum ShaderLayoutItemUsage : byte
@@ -33,7 +54,7 @@ public enum ShaderLayoutItemUsage : byte
     Instant,
 }
 
-public record struct ShaderLayoutItemDefine
+public unsafe record struct ShaderLayoutItemDefine
 {
     /// <summary>
     /// dx 后端无论什么时候都是 register, vk 后端一般情况是 binding，类型为 Constants 时是 push const 的 offset，为字节偏移
@@ -45,6 +66,14 @@ public record struct ShaderLayoutItemDefine
     /// </summary>
     public uint CountOrIndex;
     public ShaderStage Stage;
+    public ShaderLayoutItemView View;
+    public ShaderLayoutItemType Type;
+    public ShaderLayoutItemUsage Usage;
+
+    static ShaderLayoutItemDefine()
+    {
+        Debug.Assert(sizeof(FShaderLayoutItemDefine) == sizeof(ShaderLayoutItemDefine));
+    }
 }
 
 [Flags]

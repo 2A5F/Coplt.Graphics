@@ -9,16 +9,34 @@
 
 namespace Coplt
 {
-    enum class FShaderLayoutItemType : u8
+    enum class FShaderLayoutItemView : u8
     {
         Cbv,
-        SrvTexture,
-        UavTexture,
-        SrvBuffer,
-        UavBuffer,
+        Srv,
+        Uav,
+        // Type 必须是 Sampler
         Sampler,
-        // 将使用 Push Const / Root Const, 忽略 Usage
+        // 将使用 Push Const / Root Const, 忽略 Usage，Type 必须是 ConstantBuffer
         Constants,
+    };
+
+    enum class FShaderLayoutItemType : u8
+    {
+        ConstantBuffer,
+        RawBuffer,
+        StructureBuffer,
+        StructureBufferWithCounter,
+        Texture1D,
+        Texture1DArray,
+        Texture2D,
+        Texture2DArray,
+        Texture2DMultisample,
+        Texture2DArrayMultisample,
+        Texture3D,
+        TextureCube,
+        TextureCubeArray,
+        Sampler,
+        RayTracingAccelerationStructure,
     };
 
     enum class FShaderLayoutItemUsage : u8
@@ -39,6 +57,7 @@ namespace Coplt
         // 类型是 Sampler并且 Usage 是 Static 时是静态采样器描述的索引；其他类型表示数量
         u32 CountOrIndex{};
         FShaderStage Stage{};
+        FShaderLayoutItemView View{};
         FShaderLayoutItemType Type{};
         FShaderLayoutItemUsage Usage{};
     };

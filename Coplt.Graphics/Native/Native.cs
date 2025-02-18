@@ -2318,15 +2318,33 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
-    public enum FShaderLayoutItemType : byte
+    public enum FShaderLayoutItemView : byte
     {
         Cbv,
-        SrvTexture,
-        UavTexture,
-        SrvBuffer,
-        UavBuffer,
+        Srv,
+        Uav,
         Sampler,
         Constants,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderLayoutItemType : byte
+    {
+        ConstantBuffer,
+        RawBuffer,
+        StructureBuffer,
+        StructureBufferWithCounter,
+        Texture1D,
+        Texture1DArray,
+        Texture2D,
+        Texture2DArray,
+        Texture2DMultisample,
+        Texture2DArrayMultisample,
+        Texture3D,
+        TextureCube,
+        TextureCubeArray,
+        Sampler,
+        RayTracingAccelerationStructure,
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -2350,6 +2368,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderStage")]
         public FShaderStage Stage;
+
+        [NativeTypeName("Coplt::FShaderLayoutItemView")]
+        public FShaderLayoutItemView View;
 
         [NativeTypeName("Coplt::FShaderLayoutItemType")]
         public FShaderLayoutItemType Type;

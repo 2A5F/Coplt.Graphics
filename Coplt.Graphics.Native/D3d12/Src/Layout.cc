@@ -23,8 +23,11 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     {
         const auto& item = m_layout_item_defines[i];
 
-        if (item.Type == FShaderLayoutItemType::Constants)
+        if (item.View == FShaderLayoutItemView::Constants)
         {
+            if (item.Type != FShaderLayoutItemType::ConstantBuffer)
+                throw WRuntimeException(L"Push Const / Root Const view must be ConstantBuffer");
+
             D3D12_ROOT_PARAMETER1 param{};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             param.Constants.ShaderRegister = item.Slot;
@@ -53,20 +56,18 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
                 table_scope = TableScope::Common;
                 goto DefineDescriptorTable;
             }
-            switch (item.Type)
+            switch (item.View)
             {
-            case FShaderLayoutItemType::Cbv:
+            case FShaderLayoutItemView::Cbv:
                 type = D3D12_ROOT_PARAMETER_TYPE_CBV;
                 goto DefineDescriptor;
-            case FShaderLayoutItemType::SrvTexture:
-            case FShaderLayoutItemType::SrvBuffer:
+            case FShaderLayoutItemView::Srv:
                 type = D3D12_ROOT_PARAMETER_TYPE_SRV;
                 goto DefineDescriptor;
-            case FShaderLayoutItemType::UavTexture:
-            case FShaderLayoutItemType::UavBuffer:
+            case FShaderLayoutItemView::Uav:
                 type = D3D12_ROOT_PARAMETER_TYPE_UAV;
                 goto DefineDescriptor;
-            case FShaderLayoutItemType::Sampler:
+            case FShaderLayoutItemView::Sampler:
                 throw WRuntimeException(L"TODO"); // 静态采样器
             default:
                 throw WRuntimeException(
@@ -96,23 +97,21 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             auto& table = tables[static_cast<u8>(table_scope)];
             RangeType range_type{};
             D3D12_DESCRIPTOR_RANGE1 range{};
-            switch (item.Type)
+            switch (item.View)
             {
-            case FShaderLayoutItemType::Cbv:
+            case FShaderLayoutItemView::Cbv:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                 range_type = RangeType::Cbv;
                 break;
-            case FShaderLayoutItemType::SrvTexture:
-            case FShaderLayoutItemType::SrvBuffer:
+            case FShaderLayoutItemView::Srv:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
                 range_type = RangeType::Srv;
                 break;
-            case FShaderLayoutItemType::UavTexture:
-            case FShaderLayoutItemType::UavBuffer:
+            case FShaderLayoutItemView::Uav:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
                 range_type = RangeType::Uav;
                 break;
-            case FShaderLayoutItemType::Sampler:
+            case FShaderLayoutItemView::Sampler:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
                 range_type = RangeType::Sampler;
                 break;
