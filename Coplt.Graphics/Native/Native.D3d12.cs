@@ -118,6 +118,14 @@ namespace Coplt.Graphics.Native.D3d12
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[13]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
         public interface Interface : FGpuDevice.Interface
         {
         }

@@ -44,6 +44,7 @@ FResult D3d12GpuQueue::SetName(const Str8or16& name) noexcept
 {
     return feb([&]
     {
+        if (!m_device->Debug()) return;
         chr | m_queue >> SetNameEx(name);
     });
 }

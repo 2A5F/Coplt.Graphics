@@ -29,6 +29,11 @@ add_library(${target_name} SHARED
     Include/ShaderVisibility.h
     Include/PipelineState.h
     Src/CmdListPack.h
+    Src/Buffer.h
+    Src/Buffer.cc
+    FFI/Resource.h
+    Src/Resource.h
+    Src/Resource.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

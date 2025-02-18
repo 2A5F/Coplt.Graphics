@@ -202,6 +202,7 @@ FResult D3d12ShaderLayout::SetName(const Str8or16& name) noexcept
 {
     return feb([&]
     {
+        if (!m_device->Debug()) return;
         chr | m_root_signature >> SetNameEx(name);
     });
 }

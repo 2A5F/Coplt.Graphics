@@ -150,6 +150,11 @@ namespace Coplt
         {
             return std::string(c_str(), m_size);
         }
+
+        Str8or16 GetStr() const noexcept override
+        {
+            return Str8or16(c_str(), size());
+        }
     };
 
     struct String16 final : StringT<String16, char16_t, FString16>
@@ -193,6 +198,11 @@ namespace Coplt
             return std::wstring(c_str(), m_size);
         }
 #endif
+
+        Str8or16 GetStr() const noexcept override
+        {
+            return Str8or16(data(), size());
+        }
     };
 
     struct CString final : StringForward<CString, char, char8_t, FString8>
@@ -204,6 +214,11 @@ namespace Coplt
         // 将复制内容
         constexpr explicit CString(const char* data, const usize size) : StringForward(data, size)
         {
+        }
+
+        Str8or16 GetStr() const noexcept override
+        {
+            return Str8or16(data(), size());
         }
     };
 
@@ -217,6 +232,11 @@ namespace Coplt
         // 将复制内容
         constexpr explicit WString(const wchar_t* data, const usize size) : StringForward(data, size)
         {
+        }
+
+        Str8or16 GetStr() const noexcept override
+        {
+            return Str8or16(data(), size());
         }
     };
 #endif

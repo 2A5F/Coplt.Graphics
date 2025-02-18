@@ -3,6 +3,15 @@
 
 namespace Coplt
 {
+    template<class T>
+    using Box = std::unique_ptr<T>;
+
+    template<class T, class... Args>
+    Box<T> box(Args&&... args)
+    {
+        return std::make_unique<T>(std::forward<Args>(args)...);
+    }
+
     // move or forward
     template<class T>
     std::remove_reference_t<T>&& fove(T&& a)

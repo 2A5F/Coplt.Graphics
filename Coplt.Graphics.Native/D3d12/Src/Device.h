@@ -49,6 +49,9 @@ namespace Coplt
 
         void* GetRawDevice() noexcept override;
 
+        const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
+        const Rc<D3d12MeshLayout>& GetEmptyMeshLayout();
+
         FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept override;
 
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept override;
@@ -64,7 +67,6 @@ namespace Coplt
             const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
         ) noexcept override;
 
-        const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
-        const Rc<D3d12MeshLayout>& GetEmptyMeshLayout();
+        FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;
     };
 }

@@ -1,10 +1,12 @@
 #include "Device.h"
 
 #include "dxgi1_6.h"
+
+#include "../../Api/Src/Shader.h"
+#include "Buffer.h"
 #include "GraphicsPipeline.h"
 #include "Layout.h"
 #include "Queue.h"
-#include "../../Api/Src/Shader.h"
 
 using namespace Coplt;
 
@@ -108,6 +110,26 @@ D3d12GpuDevice::D3d12GpuDevice(
         {
             m_debug_controller->EnableDebugLayer();
             dxgi_flags |= DXGI_CREATE_FACTORY_DEBUG;
+
+            if (options.GpuBasedValidation)
+            {
+                ComPtr<ID3D12Debug1> debug1{};
+                if (SUCCEEDED(m_debug_controller->QueryInterface<ID3D12Debug1>(&debug1)))
+                {
+                    debug1->SetEnableGPUBasedValidation(true);
+                }
+                ComPtr<ID3D12Debug2> debug2{};
+                if (SUCCEEDED(m_debug_controller->QueryInterface<ID3D12Debug2>(&debug2)))
+                {
+                    debug2->SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS_DISABLE_STATE_TRACKING);
+                }
+            }
+
+            ComPtr<ID3D12Debug5> debug5{};
+            if (SUCCEEDED(m_debug_controller->QueryInterface<ID3D12Debug5>(&debug5)))
+            {
+                debug5->SetEnableAutoName(true);
+            }
         }
         else m_debug_controller = nullptr;
     }
@@ -156,6 +178,7 @@ FResult D3d12GpuDevice::SetName(const Str8or16& name) noexcept
 {
     return feb([&]
     {
+        if (!Debug()) return;
         chr | m_device >> SetNameEx(name);
     });
 }
@@ -163,6 +186,31 @@ FResult D3d12GpuDevice::SetName(const Str8or16& name) noexcept
 void* D3d12GpuDevice::GetRawDevice() noexcept
 {
     return m_device0.Get();
+}
+
+
+const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyLayout(FShaderLayoutFlags flags)
+{
+    if (!m_empty_layouts) m_empty_layouts = std::make_unique<EmptyLayouts>();
+    return m_empty_layouts->GetOrAdd(flags, [&](auto& p)
+    {
+        const auto name = fmt::format(L"Empty Layout {}", static_cast<u32>(flags));
+        FShaderLayoutCreateOptions options{};
+        options.Name = Str8or16(name);
+        options.Flags = flags;
+        p = Rc(new D3d12ShaderLayout(this->CloneThis(), options));
+    });
+}
+
+const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
+{
+    if (m_empty_mesh_layout == nullptr)
+    {
+        FMeshLayoutCreateOptions options{};
+        options.Name = Str8or16(L"Empty Mesh Layout");
+        m_empty_mesh_layout = Rc(new D3d12MeshLayout(this->CloneThis(), options));
+    }
+    return m_empty_mesh_layout;
 }
 
 FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept
@@ -224,26 +272,10 @@ FResult D3d12GpuDevice::CreateGraphicsPipeline(
     });
 }
 
-const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyLayout(FShaderLayoutFlags flags)
+FResult D3d12GpuDevice::CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept
 {
-    if (!m_empty_layouts) m_empty_layouts = std::make_unique<EmptyLayouts>();
-    return m_empty_layouts->GetOrAdd(flags, [&](auto& p)
+    return feb([&]
     {
-        const auto name = fmt::format(L"Empty Layout {}", static_cast<u32>(flags));
-        FShaderLayoutCreateOptions options{};
-        options.Name = Str8or16(name);
-        options.Flags = flags;
-        p = Rc(new D3d12ShaderLayout(this->CloneThis(), options));
+        *out = new D3d12GpuBuffer(this->CloneThis(), options);
     });
-}
-
-const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
-{
-    if (m_empty_mesh_layout == nullptr)
-    {
-        FMeshLayoutCreateOptions options{};
-        options.Name = Str8or16(L"Empty Mesh Layout");
-        m_empty_mesh_layout = Rc(new D3d12MeshLayout(this->CloneThis(), options));
-    }
-    return m_empty_mesh_layout;
 }

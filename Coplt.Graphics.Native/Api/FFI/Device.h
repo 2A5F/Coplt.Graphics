@@ -5,6 +5,7 @@
 #include "Queue.h"
 #include "Shader.h"
 #include "Pipeline.h"
+#include "Resource.h"
 
 namespace Coplt
 {
@@ -40,6 +41,7 @@ namespace Coplt
         FVulkanVersion VulkanVersion{};
         FGpuPreference Preference{};
         b8 Debug{};
+        b8 GpuBasedValidation{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuDevice, "557f032d-ed50-403a-adc5-214fddbe6c6b", FGpuObject)
@@ -61,5 +63,7 @@ namespace Coplt
         virtual FResult CreateGraphicsPipeline(
             const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
         ) noexcept = 0;
+
+        virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;
     };
 }

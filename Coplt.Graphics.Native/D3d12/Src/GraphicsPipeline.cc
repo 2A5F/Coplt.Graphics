@@ -223,6 +223,7 @@ FResult D3d12GraphicsShaderPipeline::SetName(const Str8or16& name) noexcept
 {
     return feb([&]
     {
+        if (!m_device->Debug()) return;
         chr | m_pipeline >> SetNameEx(name);
     });
 }
