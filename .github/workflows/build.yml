@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-windows-x64:
 
     runs-on: windows-latest
 
@@ -35,4 +35,18 @@ jobs:
       run: dotnet build --no-restore
     - name: Build Release
       run: dotnet build --no-restore -c Release
-      
+    - uses: actions/upload-artifact@v4
+      with:
+        name: 'managed'
+        path: ./Coplt.Graphics/bin/Release/net9.0/
+        overwrite: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: 'native-windows-x64-debug'
+        path: ./build/debug/bin/
+        overwrite: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: 'native-windows-x64-release'
+        path: ./release/debug/bin/
+        overwrite: true
