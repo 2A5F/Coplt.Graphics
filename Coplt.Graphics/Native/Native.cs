@@ -1476,7 +1476,7 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
-    public enum TextureDimension : byte
+    public enum FImageDimension : byte
     {
         One,
         Two,
@@ -1485,7 +1485,7 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
-    public enum FTextureLayout : byte
+    public enum FImageLayout : byte
     {
         Undefined,
         RowMajor,
@@ -1498,8 +1498,8 @@ namespace Coplt.Graphics.Native
     {
         public FGpuResourceCreateOptions Base;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat Format;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
 
         [NativeTypeName("Coplt::u32")]
         public uint Width;
@@ -1522,23 +1522,23 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u8")]
         public byte MultisampleCount;
 
-        [NativeTypeName("Coplt::TextureDimension")]
-        public TextureDimension Dimension;
+        [NativeTypeName("Coplt::FImageDimension")]
+        public FImageDimension Dimension;
 
-        [NativeTypeName("Coplt::FTextureLayout")]
-        public FTextureLayout Layout;
+        [NativeTypeName("Coplt::FImageLayout")]
+        public FImageLayout Layout;
     }
 
     [Guid("667EFA36-21C7-4561-ABAD-85780FA4929E")]
-    [NativeTypeName("struct FGpuTexture : Coplt::FGpuResource")]
-    public unsafe partial struct FGpuTexture : INativeGuid
+    [NativeTypeName("struct FGpuImage : Coplt::FGpuResource")]
+    public unsafe partial struct FGpuImage : INativeGuid
     {
-        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuTexture));
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuImage));
 
         public FGpuResource Base;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat m_format;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat m_format;
 
         [NativeTypeName("Coplt::u32")]
         public uint m_width;
@@ -1555,11 +1555,11 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u8")]
         public byte m_multisample_count;
 
-        [NativeTypeName("Coplt::TextureDimension")]
-        public TextureDimension m_dimension;
+        [NativeTypeName("Coplt::FImageDimension")]
+        public FImageDimension m_dimension;
 
-        [NativeTypeName("Coplt::FTextureLayout")]
-        public FTextureLayout m_layout;
+        [NativeTypeName("Coplt::FImageLayout")]
+        public FImageLayout m_layout;
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -1609,8 +1609,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint Height;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat Format;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
 
         [NativeTypeName("Coplt::FPresentMode")]
         public FPresentMode PresentMode;
@@ -1655,8 +1655,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FResourceState")]
         public FResourceState m_state;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat m_format;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat m_format;
 
         [NativeTypeName("Coplt::u32")]
         public uint m_width;
@@ -1757,7 +1757,7 @@ namespace Coplt.Graphics.Native
         }
     }
 
-    public enum FTextureFormat
+    public enum FGraphicsFormat
     {
         Unknown = 0,
         R32G32B32A32_TypeLess = 1,
@@ -2365,6 +2365,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint CountOrIndex;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
 
         [NativeTypeName("Coplt::FShaderStage")]
         public FShaderStage Stage;
@@ -3008,10 +3011,10 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FMultiSampleState")]
         public FMultiSampleState MultiSample;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat DsvFormat;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat DsvFormat;
 
-        [NativeTypeName("FTextureFormat[8]")]
+        [NativeTypeName("FGraphicsFormat[8]")]
         public _RtvFormats_e__FixedBuffer RtvFormats;
 
         [NativeTypeName("Coplt::FBlendState")]
@@ -3029,7 +3032,7 @@ namespace Coplt.Graphics.Native
         [InlineArray(8)]
         public partial struct _RtvFormats_e__FixedBuffer
         {
-            public FTextureFormat e0;
+            public FGraphicsFormat e0;
         }
     }
 
@@ -3059,8 +3062,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint SlotIndex;
 
-        [NativeTypeName("Coplt::FTextureFormat")]
-        public FTextureFormat Format;
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
 
         [NativeTypeName("Coplt::u32")]
         public uint Offset;
@@ -3113,7 +3116,7 @@ namespace Coplt.Graphics.Native
 
         public static readonly Guid IID_FGpuBuffer = new Guid(0x283740E3, 0xFE96, 0x41D0, 0x83, 0x0A, 0x0A, 0x4C, 0x6A, 0x72, 0x53, 0x36);
 
-        public static readonly Guid IID_FGpuTexture = new Guid(0x667EFA36, 0x21C7, 0x4561, 0xAB, 0xAD, 0x85, 0x78, 0x0F, 0xA4, 0x92, 0x9E);
+        public static readonly Guid IID_FGpuImage = new Guid(0x667EFA36, 0x21C7, 0x4561, 0xAB, 0xAD, 0x85, 0x78, 0x0F, 0xA4, 0x92, 0x9E);
 
         public static readonly Guid IID_FGpuOutput = new Guid(0xF1C59CB4, 0x7EE6, 0x4EE2, 0x80, 0xF4, 0x07, 0xCC, 0x56, 0x89, 0x20, 0xD2);
 

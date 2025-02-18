@@ -237,15 +237,15 @@ namespace Coplt.Graphics.States
     {
         public RasterizerState RasterizerState = new();
         public MultiSampleState MultiSample = new();
-        public TextureFormat DsvFormat = TextureFormat.D24_UNorm_S8_UInt;
-        public TextureFormat Rtv0Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv1Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv2Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv3Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv4Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv5Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv6Format = TextureFormat.R8G8B8A8_UNorm;
-        public TextureFormat Rtv7Format = TextureFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat DsvFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+        public GraphicsFormat Rtv0Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv1Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv2Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv3Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv4Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv5Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv6Format = GraphicsFormat.R8G8B8A8_UNorm;
+        public GraphicsFormat Rtv7Format = GraphicsFormat.R8G8B8A8_UNorm;
         public BlendState BlendState = new();
         public DepthStencilState DepthStencilState = new();
         public byte NumRts = 1;
@@ -253,7 +253,7 @@ namespace Coplt.Graphics.States
 
         #region Props
 
-        public Span<TextureFormat> RtvFormats
+        public Span<GraphicsFormat> RtvFormats
         {
             get => MemoryMarshal.CreateSpan(ref Rtv0Format, 8);
             set
@@ -263,7 +263,7 @@ namespace Coplt.Graphics.States
             }
         }
 
-        public ReadOnlySpan<TextureFormat> RoRtvFormats
+        public ReadOnlySpan<GraphicsFormat> RoRtvFormats
         {
             readonly get => MemoryMarshal.CreateReadOnlySpan(in Rtv0Format, 8);
             set
@@ -499,7 +499,7 @@ namespace Coplt.Graphics
                 NumRts = value.NumRts,
                 Topology = value.Topology.ToFFI(),
             };
-            value.RoRtvFormats[..value.NumRts].CopyTo(MemoryMarshal.Cast<FTextureFormat, TextureFormat>(r.RtvFormats));
+            value.RoRtvFormats[..value.NumRts].CopyTo(MemoryMarshal.Cast<FGraphicsFormat, GraphicsFormat>(r.RtvFormats));
             return r;
         }
     }

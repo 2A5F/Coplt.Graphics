@@ -17,7 +17,7 @@ add_library(${target_name} SHARED
     FFI/Output.h
     Src/Output.cc
     Src/Output.h
-    Include/TextureFormat.h
+    Include/GraphicsFormat.h
     Src/Command.cc
     Src/Command.h
     FFI/Pipeline.h

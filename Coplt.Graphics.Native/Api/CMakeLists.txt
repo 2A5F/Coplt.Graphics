@@ -20,7 +20,7 @@ add_library(${target_name} STATIC
     FFI/GpuObject.h
     FFI/Output.h
     FFI/Queue.h
-    FFI/TextureFormat.h
+    FFI/GraphicsFormat.h
     FFI/States.h
     Src/Allocator.cc
     Src/Allocator.h

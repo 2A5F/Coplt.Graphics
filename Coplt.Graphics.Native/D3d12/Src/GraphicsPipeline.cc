@@ -4,7 +4,7 @@
 #include "../../Api/Include/Error.h"
 #include "../ThirdParty/DirectXTK12/Src/d3dx12.h"
 #include "../Include/PipelineState.h"
-#include "../Include/TextureFormat.h"
+#include "../Include/GraphicsFormat.h"
 
 using namespace Coplt;
 
@@ -57,12 +57,12 @@ namespace
                 ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON
                 : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
         dst.DepthStencilState.DepthEnable =
-            src.DsvFormat == FTextureFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.Enable);
+            src.DsvFormat == FGraphicsFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.Enable);
         dst.DepthStencilState.DepthWriteMask =
             src.DepthStencilState.DepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
         dst.DepthStencilState.DepthFunc = ToDx(src.DepthStencilState.DepthFunc);
         dst.DepthStencilState.StencilEnable =
-            src.DsvFormat == FTextureFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.StencilEnable);
+            src.DsvFormat == FGraphicsFormat::Unknown ? false : static_cast<u32>(src.DepthStencilState.StencilEnable);
         dst.DepthStencilState.StencilReadMask = src.DepthStencilState.StencilReadMask;
         dst.DepthStencilState.StencilWriteMask = src.DepthStencilState.StencilWriteMask;
         StencilState(dst.DepthStencilState.FrontFace, src.DepthStencilState.Front);

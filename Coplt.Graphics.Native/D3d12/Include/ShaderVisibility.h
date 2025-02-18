@@ -5,7 +5,7 @@
 
 namespace Coplt
 {
-    inline D3D12_SHADER_VISIBILITY ToDx(FShaderStage const value)
+    inline D3D12_SHADER_VISIBILITY ToDxVisibility(FShaderStage const value)
     {
         switch (value)
         {

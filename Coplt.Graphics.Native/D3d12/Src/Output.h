@@ -43,7 +43,7 @@ namespace Coplt
 
         ~D3d12GpuSwapChainOutput() override;
 
-        static FTextureFormat SelectFormat(const FGpuOutputCreateOptions& options, bool& is_hdr);
+        static FGraphicsFormat SelectFormat(const FGpuOutputCreateOptions& options, bool& is_hdr);
 
         FResult SetName(const Str8or16& name) noexcept override;
 

@@ -2,7 +2,7 @@
 
 #include "Object.h"
 #include "Result.h"
-#include "TextureFormat.h"
+#include "GraphicsFormat.h"
 
 namespace Coplt
 {

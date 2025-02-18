@@ -8,7 +8,7 @@ namespace Coplt
     {
     };
 
-    COPLT_INTERFACE_DEFINE(FD3d12FGpuTexture, "d10a7427-8798-4732-81ff-9c2deb938637", FGpuTexture)
+    COPLT_INTERFACE_DEFINE(FD3d12FGpuImage, "d10a7427-8798-4732-81ff-9c2deb938637", FGpuImage)
     {
     };
 }

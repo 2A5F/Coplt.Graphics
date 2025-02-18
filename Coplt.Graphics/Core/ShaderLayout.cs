@@ -65,6 +65,7 @@ public unsafe record struct ShaderLayoutItemDefine
     /// 类型是 Sampler并且 Usage 是 Static 时是静态采样器描述的索引；其他类型表示数量
     /// </summary>
     public uint CountOrIndex;
+    public GraphicsFormat Format;
     public ShaderStage Stage;
     public ShaderLayoutItemView View;
     public ShaderLayoutItemType Type;

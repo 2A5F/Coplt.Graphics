@@ -2,7 +2,7 @@
 
 #include "directx/d3dx12.h"
 
-#include "../Include/TextureFormat.h"
+#include "../Include/GraphicsFormat.h"
 #include "../../Api/Include/Error.h"
 
 using namespace Coplt;
@@ -82,7 +82,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
 
     chr | swap_chain.As(&m_swap_chain);
 
-    if (m_format == FTextureFormat::R10G10B10A2_UNorm)
+    if (m_format == FGraphicsFormat::R10G10B10A2_UNorm)
     {
         chr | m_swap_chain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
     }
@@ -125,7 +125,7 @@ D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
     CloseHandle(m_fence_event);
 }
 
-FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(
+FGraphicsFormat D3d12GpuSwapChainOutput::SelectFormat(
     const FGpuOutputCreateOptions& options, bool& is_hdr
 )
 {
@@ -133,15 +133,15 @@ FTextureFormat D3d12GpuSwapChainOutput::SelectFormat(
     if (options.FormatSelector.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
     {
         is_hdr = true;
-        return FTextureFormat::R10G10B10A2_UNorm;
+        return FGraphicsFormat::R10G10B10A2_UNorm;
     }
     if (options.FormatSelector.Hdr == FHdrType::Float16)
     {
         is_hdr = true;
-        return FTextureFormat::R16G16B16A16_Float;
+        return FGraphicsFormat::R16G16B16A16_Float;
     }
-    if (options.FormatSelector.Srgb) return FTextureFormat::R8G8B8A8_UNorm_sRGB;
-    return FTextureFormat::R8G8B8A8_UNorm;
+    if (options.FormatSelector.Srgb) return FGraphicsFormat::R8G8B8A8_UNorm_sRGB;
+    return FGraphicsFormat::R8G8B8A8_UNorm;
 }
 
 FResult D3d12GpuSwapChainOutput::SetName(const Str8or16& name) noexcept

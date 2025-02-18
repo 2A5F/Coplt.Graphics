@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common.h"
-#include "TextureFormat.h"
+#include "GraphicsFormat.h"
 #include "String.h"
 
 namespace Coplt
@@ -191,17 +191,17 @@ namespace Coplt
     {
         FRasterizerState RasterizerState{};
         FMultiSampleState MultiSample{};
-        FTextureFormat DsvFormat{FTextureFormat::D24_UNorm_S8_UInt};
-        FTextureFormat RtvFormats[8]
+        FGraphicsFormat DsvFormat{FGraphicsFormat::D24_UNorm_S8_UInt};
+        FGraphicsFormat RtvFormats[8]
         {
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
-            FTextureFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
+            FGraphicsFormat::R8G8B8A8_UNorm,
         };
         FBlendState BlendState{};
         FDepthStencilState DepthStencilState{};
@@ -230,7 +230,7 @@ namespace Coplt
         // 是 Slot 中第几个项，对应 dx 的 SemanticIndex
         u32 SlotIndex{};
         // 元素格式
-        FTextureFormat Format{};
+        FGraphicsFormat Format{};
         // 元素在间隔中的偏移
         u32 Offset{};
         // 每次实例数据可重复几次，对应 dx 的 InstanceDataStepRate；对于实例 0 相当于 1；仅 dx 支持

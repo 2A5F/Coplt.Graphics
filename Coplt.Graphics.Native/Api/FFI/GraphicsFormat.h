@@ -2,7 +2,7 @@
 
 namespace Coplt
 {
-    enum class FTextureFormat
+    enum class FGraphicsFormat
     {
         Unknown = 0,
         R32G32B32A32_TypeLess = 1,

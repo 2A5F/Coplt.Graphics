@@ -2,7 +2,7 @@
 
 #include "GpuObject.h"
 #include "States.h"
-#include "TextureFormat.h"
+#include "GraphicsFormat.h"
 #include "Resource.h"
 
 namespace Coplt
@@ -44,7 +44,7 @@ namespace Coplt
         Str8or16 Name{};
         u32 Width{};
         u32 Height{};
-        FTextureFormat Format{};
+        FGraphicsFormat Format{};
         // 呈现模式，实现可以选择忽略
         FPresentMode PresentMode{};
         FOutputAlphaMode AlphaMode{};
@@ -60,7 +60,7 @@ namespace Coplt
     {
         FResourceState m_state;
         // 外部不允许修改
-        FTextureFormat m_format;
+        FGraphicsFormat m_format;
         // 外部不允许修改
         u32 m_width;
         // 外部不允许修改

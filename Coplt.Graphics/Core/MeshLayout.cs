@@ -20,7 +20,7 @@ public record struct MeshBufferElement
     /// <summary>
     /// 元素格式
     /// </summary>
-    public TextureFormat Format;
+    public GraphicsFormat Format;
     /// <summary>
     /// 元素在间隔中的偏移
     /// </summary>

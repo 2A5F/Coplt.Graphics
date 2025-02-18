@@ -2,7 +2,7 @@
 
 namespace Coplt.Graphics
 {
-    public enum TextureFormat
+    public enum GraphicsFormat
     {
         Unknown = 0,
         R32G32B32A32_TypeLess = 1,
@@ -111,8 +111,8 @@ namespace Coplt.Graphics.Core
 {
     public static partial class GraphicsExtensions
     {
-        public static FTextureFormat ToFFI(this TextureFormat value) => (FTextureFormat)value;
+        public static FGraphicsFormat ToFFI(this GraphicsFormat value) => (FGraphicsFormat)value;
 
-        public static TextureFormat FromFFI(this FTextureFormat value) => (TextureFormat)value;
+        public static GraphicsFormat FromFFI(this FGraphicsFormat value) => (GraphicsFormat)value;
     }
 }

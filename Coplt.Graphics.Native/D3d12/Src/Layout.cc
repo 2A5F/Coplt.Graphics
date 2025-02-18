@@ -33,7 +33,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.Constants.ShaderRegister = item.Slot;
             param.Constants.RegisterSpace = item.Space;
             param.Constants.Num32BitValues = item.CountOrIndex;
-            param.ShaderVisibility = ToDx(item.Stage);
+            param.ShaderVisibility = ToDxVisibility(item.Stage);
             m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Const};
             root_parameters.push_back(param);
             continue;
@@ -87,7 +87,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.Descriptor.ShaderRegister = item.Slot;
             param.Descriptor.RegisterSpace = item.Space;
             param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
-            param.ShaderVisibility = ToDx(item.Stage);
+            param.ShaderVisibility = ToDxVisibility(item.Stage);
             m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Direct};
             root_parameters.push_back(param);
             continue;
@@ -151,7 +151,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             meta = std::move(pair.second);
             meta.RootIndex = root_parameters.size();
 
-            param.ShaderVisibility = ToDx(meta.Stage);
+            param.ShaderVisibility = ToDxVisibility(meta.Stage);
             param.DescriptorTable.NumDescriptorRanges = meta.ranges.size();
             param.DescriptorTable.pDescriptorRanges = meta.ranges.data();
 

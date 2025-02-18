@@ -54,7 +54,7 @@ public record struct GpuOutputOptions()
 {
     public required uint Width;
     public required uint Height;
-    public TextureFormat Format = TextureFormat.R8G8B8A8_UNorm;
+    public GraphicsFormat Format = GraphicsFormat.R8G8B8A8_UNorm;
     public PresentMode PresentMode = PresentMode.TripleBuffer;
     public OutputAlphaMode AlphaMode = OutputAlphaMode.Opaque;
     public bool VSync = false;

@@ -121,7 +121,7 @@ namespace Coplt
         };
     };
 
-    enum class TextureDimension : u8
+    enum class FImageDimension : u8
     {
         // 一维
         One,
@@ -133,7 +133,7 @@ namespace Coplt
         Cube,
     };
 
-    enum class FTextureLayout : u8
+    enum class FImageLayout : u8
     {
         Undefined,
         RowMajor,
@@ -144,7 +144,7 @@ namespace Coplt
     struct FGpuTextureCreateOptions : FGpuResourceCreateOptions
     {
         // 纹理格式
-        FTextureFormat Format{};
+        FGraphicsFormat Format{};
         // 宽度
         u32 Width{};
         // 高度
@@ -160,15 +160,15 @@ namespace Coplt
         // 多重采样数量
         u8 MultisampleCount{};
         // 纹理维度
-        TextureDimension Dimension{};
+        FImageDimension Dimension{};
         // 纹理布局
-        FTextureLayout Layout{};
+        FImageLayout Layout{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuTexture, "667efa36-21c7-4561-abad-85780fa4929e", FGpuResource)
+    COPLT_INTERFACE_DEFINE(FGpuImage, "667efa36-21c7-4561-abad-85780fa4929e", FGpuResource)
     {
         // 纹理格式
-        FTextureFormat m_format{};
+        FGraphicsFormat m_format{};
         // 宽度
         u32 m_width{};
         // 高度
@@ -180,8 +180,8 @@ namespace Coplt
         // 多重采样数量
         u8 m_multisample_count{};
         // 纹理维度
-        TextureDimension m_dimension{};
+        FImageDimension m_dimension{};
         // 纹理布局
-        FTextureLayout m_layout{};
+        FImageLayout m_layout{};
     };
 }

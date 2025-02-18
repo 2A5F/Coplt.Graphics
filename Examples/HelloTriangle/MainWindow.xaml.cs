@@ -141,7 +141,7 @@ public partial class MainWindow : Window
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {
-                DsvFormat = TextureFormat.Unknown,
+                DsvFormat = GraphicsFormat.Unknown,
                 BlendState =
                 {
                     Rt0 =
