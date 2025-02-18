@@ -48,5 +48,5 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: 'native-windows-x64-release'
-        path: ./release/debug/bin/
+        path: ./build/release/bin/
         overwrite: true
