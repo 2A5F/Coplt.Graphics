@@ -31,7 +31,8 @@ namespace Coplt
 
     enum class FResourceRefType : u8
     {
-        Texture,
+        Image,
+        Buffer,
         Output,
         // todo other
     };
@@ -52,7 +53,8 @@ namespace Coplt
         {
             switch (Type)
             {
-            case FResourceRefType::Texture:
+            case FResourceRefType::Image:
+            case FResourceRefType::Buffer:
                 return nullptr; // todo
             case FResourceRefType::Output:
                 return Output;

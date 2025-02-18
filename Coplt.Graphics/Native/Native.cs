@@ -1910,13 +1910,14 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("Coplt::u8")]
     public enum FResourceRefType : byte
     {
-        Texture,
+        Image,
+        Buffer,
         Output,
     }
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L41_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L42_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -2163,7 +2164,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L208_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L210_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

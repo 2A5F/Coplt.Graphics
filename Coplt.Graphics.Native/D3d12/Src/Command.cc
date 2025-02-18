@@ -372,7 +372,8 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
 {
     switch (meta.Type)
     {
-    case FResourceRefType::Texture:
+    case FResourceRefType::Image:
+    case FResourceRefType::Buffer:
         throw WRuntimeException(L"TODO");
     case FResourceRefType::Output:
         {
@@ -391,7 +392,8 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
 {
     switch (type)
     {
-    case FResourceRefType::Texture:
+    case FResourceRefType::Image:
+    case FResourceRefType::Buffer:
         throw WRuntimeException(L"TODO");
     case FResourceRefType::Output:
         {
@@ -410,7 +412,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetRtv(const FResourceMeta&
 {
     switch (meta.Type)
     {
-    case FResourceRefType::Texture:
+    case FResourceRefType::Image:
+    case FResourceRefType::Buffer:
         throw WRuntimeException(L"TODO");
     case FResourceRefType::Output:
         {
