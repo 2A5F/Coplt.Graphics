@@ -147,6 +147,15 @@ D3d12GpuDevice::D3d12GpuDevice(
 
     chr | D3D12CreateDevice(m_adapter.Get(), feature_level, IID_PPV_ARGS(&m_device));
 
+    D3D12MA::ALLOCATOR_DESC allocator_desc{};
+    D3D12MA::ALLOCATION_CALLBACKS allocation_callbacks{};
+    allocation_callbacks.pAllocate = [](auto size, auto align, auto data) { return mi_malloc_aligned(size, align); };
+    allocation_callbacks.pFree = [](auto ptr, auto data) { return mi_free(ptr); };
+    allocator_desc.pDevice = m_device.Get();
+    allocator_desc.pAdapter = m_adapter.Get();
+    allocator_desc.pAllocationCallbacks = &allocation_callbacks;
+    chr | CreateAllocator(&allocator_desc, &m_gpu_allocator);
+
     if (Debug())
     {
         chr | m_device >> SetNameEx(options.Name);
