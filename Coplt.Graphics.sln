@@ -1,10 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coplt.Graphics", "Coplt.Graphics\Coplt.Graphics.csproj", "{6813F522-1C62-499D-AD26-B87636689DB2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coplt.Graphics.Core", "Coplt.Graphics.Core\Coplt.Graphics.Core.csproj", "{6813F522-1C62-499D-AD26-B87636689DB2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{DBD91642-35A7-4287-9856-CA8E09605928}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloTriangle", "Examples\HelloTriangle\HelloTriangle.csproj", "{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloCube", "Examples\HelloCube\HelloCube.csproj", "{B52949D2-5811-4DBB-B25E-927DFB16F863}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleBase", "ExampleBase\ExampleBase.csproj", "{648436F1-B4EC-4491-B4B2-2B7EA8F964F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,8 +24,18 @@ Global
 		{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B52949D2-5811-4DBB-B25E-927DFB16F863}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B52949D2-5811-4DBB-B25E-927DFB16F863}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B52949D2-5811-4DBB-B25E-927DFB16F863}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B52949D2-5811-4DBB-B25E-927DFB16F863}.Release|Any CPU.Build.0 = Release|Any CPU
+		{648436F1-B4EC-4491-B4B2-2B7EA8F964F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{648436F1-B4EC-4491-B4B2-2B7EA8F964F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{648436F1-B4EC-4491-B4B2-2B7EA8F964F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{648436F1-B4EC-4491-B4B2-2B7EA8F964F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB} = {DBD91642-35A7-4287-9856-CA8E09605928}
+		{B52949D2-5811-4DBB-B25E-927DFB16F863} = {DBD91642-35A7-4287-9856-CA8E09605928}
+		{648436F1-B4EC-4491-B4B2-2B7EA8F964F3} = {DBD91642-35A7-4287-9856-CA8E09605928}
 	EndGlobalSection
 EndGlobal

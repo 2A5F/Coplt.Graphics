@@ -145,7 +145,7 @@ public sealed unsafe partial class GpuDevice
             };
             FGpuQueue* ptr;
             m_ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
-            return new(ptr, Name);
+            return new(ptr, Name, this);
         }
     }
 
@@ -355,6 +355,15 @@ public sealed unsafe partial class GpuDevice
             return new(ptr, Name, Shader, PipelineState, MeshLayout);
         }
     }
+
+    #endregion
+
+    #region CreateBuffer
+
+    public GpuBuffer CreateBuffer(
+        in GpuBufferCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainQueue.CreateBuffer(in options, Name, Name8);
 
     #endregion
 }

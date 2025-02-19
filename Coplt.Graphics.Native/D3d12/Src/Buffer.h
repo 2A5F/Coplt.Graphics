@@ -17,5 +17,7 @@ namespace Coplt
         explicit D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCreateOptions& options);
 
         FResult SetName(const Str8or16& name) noexcept override;
+
+        FResult GetCurrentResourcePtr(void* out) const noexcept override;
     };
 }

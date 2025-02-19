@@ -7,6 +7,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
 {
     m_allocator = m_device->m_gpu_allocator;
 
+    m_state = FResourceState::Common;
     m_purpose = options.Purpose;
     m_cpu_access = options.CpuAccess;
     m_life_time = options.LifeTime;
@@ -35,7 +36,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     // 瞬态资源不会立即创建
     if (m_life_time != FLifeTime::Transient)
     {
-        m_resource = box<ResourcePack>(m_allocator.Get(), m_cpu_access, &m_desc, nullptr);
+        m_resource = box<ResourcePack>(m_allocator.Get(), m_cpu_access, m_state, &m_desc, nullptr);
 
         if (m_device->Debug())
         {
@@ -52,4 +53,11 @@ FResult D3d12GpuBuffer::SetName(const Str8or16& name) noexcept
         if (m_life_time == FLifeTime::Transient) return;
         chr | m_resource->m_resource >> SetNameEx(name);
     });
+}
+
+FResult D3d12GpuBuffer::GetCurrentResourcePtr(void* out) const noexcept
+{
+    // todo 瞬态
+    *static_cast<ID3D12Resource**>(out) = m_resource->m_resource.Get();
+    return FResult::None();
 }

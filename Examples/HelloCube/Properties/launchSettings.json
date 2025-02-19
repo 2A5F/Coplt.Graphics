@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "HelloCube": {
+      "commandName": "Project",
+      "nativeDebugging": true,
+      "commandLineArgs": "-D"
+    }
+  }
+}

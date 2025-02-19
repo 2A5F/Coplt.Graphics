@@ -1,7 +1,7 @@
 ﻿using Coplt.Graphics.Native;
 using Serilog.Events;
 
-namespace Test1;
+namespace Examples;
 
 public static class Utils
 {

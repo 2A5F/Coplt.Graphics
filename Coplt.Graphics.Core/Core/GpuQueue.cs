@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Coplt.Dropping;
+﻿using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
@@ -25,6 +24,7 @@ public sealed unsafe partial class GpuQueue
 
     internal FGpuQueue* m_ptr;
     internal string? m_name;
+    internal readonly GpuDevice m_device;
     internal readonly Lock m_lock = new();
     internal readonly CommandList m_cmd;
 
@@ -33,19 +33,19 @@ public sealed unsafe partial class GpuQueue
     #region Props
 
     public FGpuQueue* Ptr => m_ptr;
-
+    public GpuDevice Device => m_device;
     public GpuQueueType QueueType => m_ptr->m_queue_type.FromFFI();
-
     public CommandList CommandList => m_cmd;
 
     #endregion
 
     #region Ctor
 
-    internal GpuQueue(FGpuQueue* ptr, string? name)
+    internal GpuQueue(FGpuQueue* ptr, string? name, GpuDevice device)
     {
         m_name = name;
         m_ptr = ptr;
+        m_device = device;
         m_cmd = new(this);
     }
 
@@ -125,6 +125,38 @@ public sealed unsafe partial class GpuQueue
             FGpuOutput* ptr;
             m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
             return new(this, ptr, Name);
+        }
+    }
+
+    #endregion
+
+    #region CreateBuffer
+
+    public GpuBuffer CreateBuffer(
+        in GpuBufferCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuBufferCreateOptions f_options = new()
+            {
+                Base = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Purpose = options.Purpose.ToFFI(),
+                    CpuAccess = options.CpuAccess.ToFFI(),
+                    LifeTime = options.LifeTime.ToFFI(),
+                },
+                Size = options.Size,
+                Count = options.Count,
+                Stride = options.Stride,
+                Usage = options.Usage.ToFFI(),
+            };
+            FGpuBuffer* ptr;
+            m_device.m_ptr->CreateBuffer(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, this);
         }
     }
 

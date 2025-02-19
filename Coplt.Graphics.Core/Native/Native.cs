@@ -1341,6 +1341,9 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
+        [NativeTypeName("Coplt::FResourceState")]
+        public FResourceState m_state;
+
         [NativeTypeName("Coplt::FResourcePurpose")]
         public FResourcePurpose m_purpose;
 
@@ -1436,7 +1439,7 @@ namespace Coplt.Graphics.Native
         public _Color_e__FixedBuffer Color;
 
         [FieldOffset(0)]
-        [NativeTypeName("__AnonymousRecord_Resource_L117_C9")]
+        [NativeTypeName("__AnonymousRecord_Resource_L119_C9")]
         public _Anonymous_e__Struct Anonymous;
 
         [UnscopedRef]
@@ -1883,6 +1886,7 @@ namespace Coplt.Graphics.Native
         RayTracing = 1 << 15,
         ShadingRate = 1 << 16,
         StreamOutput = 1 << 17,
+        GenericRead = VertexBuffer | ConstantBuffer | ShaderResource | IndirectBuffer | CopySrc,
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -1936,12 +1940,26 @@ namespace Coplt.Graphics.Native
             }
         }
 
+        [UnscopedRef]
+        public ref FGpuBuffer* Buffer
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Buffer;
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         public unsafe partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FGpuOutput *")]
             public FGpuOutput* Output;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuBuffer *")]
+            public FGpuBuffer* Buffer;
         }
     }
 
@@ -2164,7 +2182,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L210_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L212_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

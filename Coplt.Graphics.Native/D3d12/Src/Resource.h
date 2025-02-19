@@ -14,7 +14,7 @@ namespace Coplt
         ResourcePack() = default;
 
         explicit ResourcePack(
-            D3D12MA::Allocator* allocator, FCpuAccess cpu_access,
+            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, FResourceState& state,
             const D3D12_RESOURCE_DESC* desc, const D3D12_CLEAR_VALUE* clear_value
         );
     };

@@ -41,7 +41,8 @@ namespace Coplt
     {
         union
         {
-            FGpuOutput* Output{};
+            FGpuOutput* Output;
+            FGpuBuffer* Buffer;
             // todo other
         };
 
@@ -54,12 +55,13 @@ namespace Coplt
             switch (Type)
             {
             case FResourceRefType::Image:
-            case FResourceRefType::Buffer:
                 return nullptr; // todo
+            case FResourceRefType::Buffer:
+                return Buffer;
             case FResourceRefType::Output:
                 return Output;
             }
-            return nullptr; // todo
+            return nullptr;
         }
 #endif
     };

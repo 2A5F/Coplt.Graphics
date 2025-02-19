@@ -8,6 +8,7 @@
 #include "../FFI/Layout.h"
 #include "../FFI/Output.h"
 #include "../FFI/Pipeline.h"
+#include "../FFI/Resource.h"
 #include "../Include/PipelineState.h"
 
 using namespace Coplt;
@@ -370,22 +371,7 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
 {
-    switch (meta.Type)
-    {
-    case FResourceRefType::Image:
-    case FResourceRefType::Buffer:
-        throw WRuntimeException(L"TODO");
-    case FResourceRefType::Output:
-        {
-            const auto output = meta.Output->QueryInterface<FD3d12GpuOutput>();
-            if (!output) throw WRuntimeException(L"The memory may be corrupted");
-            ID3D12Resource* ptr{};
-            output->GetCurrentResourcePtr(&ptr).TryThrow();
-            return ptr;
-        }
-    default:
-        throw WRuntimeException(fmt::format(L"Unknown resource ref type {}", static_cast<u8>(meta.Type)));
-    }
+    return GetResource(meta.Output, meta.Type);
 }
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResourceRefType type)
@@ -393,8 +379,15 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
     switch (type)
     {
     case FResourceRefType::Image:
-    case FResourceRefType::Buffer:
         throw WRuntimeException(L"TODO");
+    case FResourceRefType::Buffer:
+        {
+            const auto buffer = object->QueryInterface<FD3d12GpuBuffer>();
+            if (!buffer) throw WRuntimeException(L"The memory may be corrupted");
+            ID3D12Resource* ptr{};
+            buffer->GetCurrentResourcePtr(&ptr).TryThrow();
+            return ptr;
+        }
     case FResourceRefType::Output:
         {
             const auto output = object->QueryInterface<FD3d12GpuOutput>();

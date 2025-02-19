@@ -4,9 +4,10 @@ namespace Coplt.Graphics.Core;
 
 public interface IView
 {
+    public ulong LongSize => Size.x;
     public uint3 Size { get; }
     public GpuQueue Queue { get; }
-    
+
     public FResourceMeta GetMeta();
 
     /// <summary>
@@ -19,30 +20,37 @@ public interface ICbv : IView
 {
     public bool TryCbv();
 }
+
 public interface ISrv : IView
 {
     public bool TrySrv();
 }
+
 public interface IUav : IView
 {
     public bool TryUav();
 }
+
 public interface IRtv : IView
 {
     public bool TryRtv();
 }
+
 public interface IDsv : IView
 {
     public bool TryDsv();
 }
+
 public interface IIbv : IView
 {
     public bool TryIbv();
 }
+
 public interface IVbv : IView
 {
     public bool TryVbv();
 }
+
 public interface ISov : IView
 {
     public bool TrySov();

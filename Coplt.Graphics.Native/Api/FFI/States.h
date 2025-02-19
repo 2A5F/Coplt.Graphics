@@ -27,6 +27,8 @@ namespace Coplt
         RayTracing = 1 << 15,
         ShadingRate = 1 << 16,
         StreamOutput = 1 << 17,
+
+        GenericRead = VertexBuffer | ConstantBuffer | ShaderResource | IndirectBuffer | CopySrc,
     };
 
 #ifdef FFI_SRC

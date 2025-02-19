@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "States.h"
 
 namespace Coplt
 {
@@ -81,6 +82,7 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuObject)
     {
+        FResourceState m_state{};
         FResourcePurpose m_purpose{};
         FCpuAccess m_cpu_access{};
         FLifeTime m_life_time{};
