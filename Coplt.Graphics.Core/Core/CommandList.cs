@@ -96,7 +96,7 @@ public sealed unsafe class CommandList
 
     #region Present
 
-    internal void Present(GpuOutput output)
+    internal void Present(GpuOutput output, CommandFlags flags = CommandFlags.None)
     {
         var index = AddResource(output);
         var cmd = new FCommandPresent
@@ -107,7 +107,7 @@ public sealed unsafe class CommandList
             new()
             {
                 Type = FCommandType.Present,
-                Flags = FCommandFlags.None,
+                Flags = (FCommandFlags)flags,
                 Present = cmd,
             }
         );
@@ -460,6 +460,43 @@ public sealed unsafe class CommandList
                 Dispatch = cmd,
             }
         );
+    }
+
+    #endregion
+
+    #region BufferCopy
+
+    public void BufferCopy(
+        GpuBuffer Dst,
+        ulong DstOffset,
+        GpuBuffer Src,
+        ulong SrcOffset,
+        ulong Size,
+        CommandFlags flags = CommandFlags.None
+    )
+    {
+        var dst = AddResource(Dst);
+        var src = AddResource(Src);
+        var cmd = new FCommandBufferCopy
+        {
+            Size = Size,
+            DstOffset = DstOffset,
+            SrcOffset = SrcOffset,
+            DstType = FBufferRefType.Buffer,
+            SrcType = FBufferRefType.Buffer,
+        };
+        cmd.Dst.Buffer = new(dst);
+        cmd.Src.Buffer = new(src);
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.BufferCopy,
+                Flags = (FCommandFlags)flags,
+                BufferCopy = cmd,
+            }
+        );
+        Dst.UnsafeChangeState(FResourceState.CopyDst);
+        Src.UnsafeChangeState(FResourceState.CopySrc);
     }
 
     #endregion

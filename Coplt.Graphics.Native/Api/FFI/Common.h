@@ -1,5 +1,13 @@
 #pragma once
 
+#ifndef COPLT_FINAL
+#ifdef FFI_SRC
+#define COPLT_FINAL final
+#else
+#define COPLT_FINAL
+#endif
+#endif
+
 #ifndef COPLT_CDECL
 #ifdef _MSC_VER
 #define COPLT_CDECL __cdecl

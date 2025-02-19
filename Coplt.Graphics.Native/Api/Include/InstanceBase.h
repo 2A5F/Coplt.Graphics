@@ -54,5 +54,13 @@ namespace Coplt
                 *out = String16::Create(data, size);
             });
         }
+
+        FResult CreateBlob(const usize size, FBlob** out) noexcept override
+        {
+            return feb([&]
+            {
+                *out = FBlob::Create(size);
+            });
+        }
     };
 }

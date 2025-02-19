@@ -122,6 +122,8 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             goto ClearDepthStencil;
         case FCommandType::SetRenderTargets:
             goto SetRenderTargets;
+        case FCommandType::BufferCopy:
+            goto BufferCopy;
         }
         throw WRuntimeException(fmt::format(L"Unknown command type {}", static_cast<u32>(item.Type)));
 
@@ -154,6 +156,27 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             for (u32 n = 0; n < std::min(cmd.NumRtv, 8u); ++n)
             {
                 context.ReqState(cmd.Rtv[n], FResourceState::RenderTarget);
+            }
+            continue;
+        }
+    BufferCopy:
+        {
+            const auto& cmd = item.BufferCopy;
+            switch (cmd.SrcType)
+            {
+            case FBufferRefType::Buffer:
+                context.ReqState(cmd.Src.Buffer, FResourceState::CopySrc);
+                break;
+            case FBufferRefType::Blob:
+                break;
+            }
+            switch (cmd.DstType)
+            {
+            case FBufferRefType::Buffer:
+                context.ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
+                break;
+            case FBufferRefType::Blob:
+                break;
             }
             continue;
         }
@@ -251,6 +274,8 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                 goto Draw;
             case FCommandType::Dispatch:
                 goto Dispatch;
+            case FCommandType::BufferCopy:
+                goto BufferCopy;
             }
             throw WRuntimeException(fmt::format(L"Unknown command type {}", static_cast<u32>(item.Type)));
 
@@ -362,6 +387,35 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                         throw WRuntimeException(L"Mesh Shader is not supported on this device");
                     cmd_pack.m_list7->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
                     break;
+                }
+                continue;
+            }
+        BufferCopy:
+            {
+                const auto& cmd = item.BufferCopy;
+                if (cmd.SrcType == cmd.DstType)
+                {
+                    if (cmd.SrcType == FBufferRefType::Blob)
+                    {
+                        throw WRuntimeException(fmt::format(L"Pure cpu buffer copy found in command {}", i));
+                    }
+                    else if (cmd.SrcType == FBufferRefType::Buffer)
+                    {
+                        auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
+                        auto src = GetResource(cmd.Src.Buffer.Get(submit));
+                        cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
+                    }
+                    else
+                    {
+                        throw WRuntimeException(
+                            fmt::format(L"Unknown BufferRefType {} at command {}", static_cast<u8>(cmd.SrcType), i)
+                        );
+                    }
+                }
+                else
+                {
+                    // todo
+                    throw WRuntimeException(L"TODO");
                 }
                 continue;
             }

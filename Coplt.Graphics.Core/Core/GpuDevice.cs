@@ -132,6 +132,12 @@ public sealed unsafe partial class GpuDevice
 
     #endregion
 
+    #region Blob
+
+    public Blob CreateBlob(nuint size) => m_instance.CreateBlob(size);
+
+    #endregion
+
     #region CreateMainQueue
 
     public GpuQueue CreateMainQueue(string? Name = null, ReadOnlySpan<byte> Name8 = default)

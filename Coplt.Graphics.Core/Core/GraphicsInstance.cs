@@ -156,7 +156,8 @@ public unsafe partial class GraphicsInstance
 
     private sealed class LoggerProxy1(
         Func<FLogLevel, FLogType, bool> enable,
-        Action<FLogLevel, FLogType, string> logger)
+        Action<FLogLevel, FLogType, string> logger
+    )
     {
         private readonly Func<FLogLevel, FLogType, bool> enable = enable;
         private readonly Action<FLogLevel, FLogType, string> logger = logger;
@@ -207,6 +208,17 @@ public unsafe partial class GraphicsInstance
     }
 
     #endregion
+
+    #endregion
+
+    #region Blob
+
+    public Blob CreateBlob(nuint size)
+    {
+        FBlob* ptr;
+        m_ptr->CreateBlob(size, &ptr).TryThrow();
+        return new(ptr);
+    }
 
     #endregion
 

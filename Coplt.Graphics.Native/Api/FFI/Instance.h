@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Blob.h"
 #include "Logger.h"
 #include "Result.h"
 
@@ -27,6 +28,8 @@ namespace Coplt
 
         virtual FResult CreateString8(const Char8* data, usize size, FString8** out) noexcept = 0;
         virtual FResult CreateString16(const Char16* data, usize size, FString16** out) noexcept = 0;
+
+        virtual FResult CreateBlob(usize size, FBlob** out) noexcept = 0;
 
         virtual FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept = 0;
     };

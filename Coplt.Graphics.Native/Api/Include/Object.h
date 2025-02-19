@@ -210,18 +210,14 @@ namespace Coplt
         }
 
         // Direct leakage, out of RAII management
-        template <class Self>
-        T* leak(this Self& self)
+        T* leak() noexcept
         {
-            auto s = std::move(self);
-            if (s) s->AddRef();
-            return s.get();
+            return std::exchange(m_ptr, nullptr);
         }
 
-        template <class Self>
-        T* Leak(this Self& self)
+        T* Leak() noexcept
         {
-            return self.leak();
+            return leak();
         }
 
         Weak<T> downgrade() const

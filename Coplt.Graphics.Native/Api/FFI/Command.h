@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Blob.h"
 #include "Output.h"
 #include "Pipeline.h"
 #include "States.h"
@@ -20,6 +21,7 @@ namespace Coplt
         SetPipeline,
         Draw,
         Dispatch,
+        BufferCopy,
     };
 
     enum class FCommandFlags : u32
@@ -204,6 +206,29 @@ namespace Coplt
         FDispatchType Type{};
     };
 
+    union FBufferRef
+    {
+        FResourceSrc Buffer{};
+        FBlob* Blob;
+    };
+
+    enum class FBufferRefType : u8
+    {
+        Buffer = 0,
+        Blob,
+    };
+
+    struct FCommandBufferCopy
+    {
+        u64 Size{};
+        u64 DstOffset{};
+        u64 SrcOffset{};
+        FBufferRef Dst{};
+        FBufferRef Src{};
+        FBufferRefType DstType{};
+        FBufferRefType SrcType{};
+    };
+
     struct FCommandItem
     {
         FCommandType Type{};
@@ -220,6 +245,7 @@ namespace Coplt
             FCommandSetPipeline SetPipeline;
             FCommandDraw Draw;
             FCommandDispatch Dispatch;
+            FCommandBufferCopy BufferCopy;
 
             u8 _pad[56]{};
         };
