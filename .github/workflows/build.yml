@@ -30,9 +30,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build Debug
-      run: dotnet build --no-restore -p:NoGen=true;
+      run: dotnet build --no-restore -p:NoGen=true
     - name: Build Release
-      run: dotnet build --no-restore -p:NoGen=true; -c Release
+      run: dotnet build --no-restore -p:NoGen=true -c Release
     - uses: actions/upload-artifact@v4
       with:
         name: 'managed'
