@@ -9,6 +9,7 @@
         <IsAotCompatible>true</IsAotCompatible>
         <RootNamespace>Coplt.Graphics</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <NoGen>false</NoGen>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,7 +29,7 @@
         <FFI_Output Include="./Native/Native.D3d12.cs"/>
     </ItemGroup>
 
-    <Target Name="FFI" BeforeTargets="PrepareForBuild" Inputs="@(FFI_Headers)" Outputs="@(FFI_Output)">
+    <Target Name="FFI" BeforeTargets="PrepareForBuild" Inputs="@(FFI_Headers)" Outputs="@(FFI_Output)" Condition="'$(NoGen)' != 'true'">
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.rsp"/>
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.D3d12.rsp"/>
     </Target>
