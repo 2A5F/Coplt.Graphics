@@ -16,7 +16,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj"/>
-        <ProjectReference Include="..\..\Coplt.Graphics.Native.D3d12\Coplt.Graphics.Native.D3d12.csproj" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\ExampleBase\ExampleBase.csproj"/>
         <PackageReference Include="Serilog" Version="4.2.0"/>
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>

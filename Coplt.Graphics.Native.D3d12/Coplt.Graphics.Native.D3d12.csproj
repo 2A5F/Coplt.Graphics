@@ -8,6 +8,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <NoWarn>NU5128</NoWarn>
+        <AssemblyName>_d3d12_native_stub_</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
