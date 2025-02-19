@@ -38,15 +38,15 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: 'managed'
-        path: ./Coplt.Graphics/bin/Release/net9.0/
+        path: ./Coplt.Graphics.Core/bin/Release/*.nupkg
         overwrite: true
     - uses: actions/upload-artifact@v4
       with:
-        name: 'native-windows-x64-debug'
-        path: ./build/debug/bin/
+        name: 'native-d3d12-debug'
+        path: ./Coplt.Graphics.Native.D3d12/bin/Debug/*.nupkg
         overwrite: true
     - uses: actions/upload-artifact@v4
       with:
-        name: 'native-windows-x64-release'
-        path: ./build/release/bin/
+        name: 'native-d3d12-release'
+        path: ./Coplt.Graphics.Native.D3d12/bin/Release/*.nupkg
         overwrite: true

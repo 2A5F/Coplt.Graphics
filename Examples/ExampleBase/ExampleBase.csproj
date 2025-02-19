@@ -7,7 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj" />
+        <ProjectReference Include="..\..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj" />
+        <ProjectReference Include="..\..\Coplt.Graphics.Native.D3d12\Coplt.Graphics.Native.D3d12.csproj" ReferenceOutputAssembly="false" />
         <PackageReference Include="Serilog" Version="4.2.0"/>
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
         <PackageReference Include="Serilog.Exceptions" Version="8.4.0"/>

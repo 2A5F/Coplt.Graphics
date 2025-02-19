@@ -8,6 +8,7 @@
         <NoWarn>CS8500</NoWarn>
         <IsAotCompatible>true</IsAotCompatible>
         <RootNamespace>Coplt.Graphics</RootNamespace>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,24 +31,6 @@
     <Target Name="FFI" BeforeTargets="PrepareForBuild" Inputs="@(FFI_Headers)" Outputs="@(FFI_Output)">
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.rsp"/>
         <Exec Command="ClangSharpPInvokeGenerator -std=c++23 @GenerateBinding.D3d12.rsp"/>
-    </Target>
-
-    <Target Name="NativeBuildDebug" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-        <Exec Command="cmake --build --target Coplt_Graphics_Native_D3d12 --preset debug" WorkingDirectory=".."/>
-        <ItemGroup>
-            <NativeOutputs Include="../build/debug/bin/**/*.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
-            <NativeOutputs Include="../build/debug/bin/**/*.pdb" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
-            <!--            <NativeOutputs Include="../build/debug/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false"/>-->
-        </ItemGroup>
-        <Copy SourceFiles="@(NativeOutputs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" UseHardlinksIfPossible="true"/>
-    </Target>
-    <Target Name="NativeBuildRelease" AfterTargets="Build" Condition="'$(Configuration)' != 'Debug'">
-        <Exec Command="cmake --build --target Coplt_Graphics_Native_D3d12 --preset release" WorkingDirectory=".."/>
-        <ItemGroup>
-            <NativeOutputs Include="../build/release/bin/**/*.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
-            <!--            <NativeOutputs Include="../build/release/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false"/>-->
-        </ItemGroup>
-        <Copy SourceFiles="@(NativeOutputs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" UseHardlinksIfPossible="true"/>
     </Target>
 
 </Project>

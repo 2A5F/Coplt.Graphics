@@ -16,7 +16,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj" />
-        <ProjectReference Include="..\..\ExampleBase\ExampleBase.csproj" />
+        <ProjectReference Include="..\ExampleBase\ExampleBase.csproj" />
         <PackageReference Include="Serilog" Version="4.2.0"/>
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
         <PackageReference Include="Serilog.Exceptions" Version="8.4.0"/>
