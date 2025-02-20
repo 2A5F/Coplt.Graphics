@@ -2,7 +2,12 @@
 
 using namespace Coplt;
 
-D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
+namespace
+{
+    std::atomic<u64> s_id_inc{0};
+}
+
+D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue)), m_id(s_id_inc++)
 {
     m_device = m_queue->m_device;
     m_dx_device = m_queue->m_dx_device;
@@ -11,6 +16,10 @@ D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::m
     chr | m_dx_device->CreateCommandAllocator(
         ToDx(m_queue->m_queue_type), IID_PPV_ARGS(&m_command_allocator)
     );
+    if (m_device->Debug())
+    {
+        chr | m_command_allocator >> SetNameEx(Str8or16(fmt::format(L"Frame Context ({}) Command Allocator", m_id)));
+    }
 }
 
 FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcept
@@ -29,6 +38,13 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
         );
         const auto& upload_buffer = m_upload_buffers.back();
         void* mapped_ptr{};
+        if (m_device->Debug())
+        {
+            const auto name = fmt::format(
+                L"Frame Context ({}) Upload Buffer ({})", m_id, upload_buffer.m_size
+            );
+            chr | upload_buffer.m_resource.m_resource >> SetNameEx(Str8or16(name));
+        }
         chr | upload_buffer.m_resource.m_resource->Map(0, nullptr, &mapped_ptr);
         m_upload_buffer.Add(FUploadBufferBlock{
             .mapped_ptr = static_cast<volatile u8*>(mapped_ptr),

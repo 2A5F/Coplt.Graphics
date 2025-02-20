@@ -43,7 +43,7 @@ void D3d12GpuSwapChainOutput::Init()
     chr | m_dx_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&m_srv_heap));
     m_srv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    CreateBuffers();
+    CreateRts();
 
     for (u32 i = 0; i < m_frame_count; ++i)
     {
@@ -285,7 +285,7 @@ void D3d12GpuSwapChainOutput::Resize_NoLock(const u32 width, const u32 height)
         m_buffers[i] = nullptr;
     }
     chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, ToDx(m_format), 0);
-    CreateBuffers();
+    CreateRts();
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
     m_width = width;
     m_height = height;
@@ -325,7 +325,7 @@ void D3d12GpuSwapChainOutput::WaitFenceValue_NoLock(const u32 fence_value)
     }
 }
 
-void D3d12GpuSwapChainOutput::CreateBuffers()
+void D3d12GpuSwapChainOutput::CreateRts()
 {
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
     CD3DX12_CPU_DESCRIPTOR_HANDLE srv_handle(m_srv_heap->GetCPUDescriptorHandleForHeapStart());

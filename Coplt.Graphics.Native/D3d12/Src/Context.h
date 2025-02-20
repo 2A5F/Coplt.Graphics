@@ -13,6 +13,7 @@ namespace Coplt
     {
         constexpr static u64 InitUploadBufferSize = 1024 * 1024;
 
+        u64 m_id{};
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<D3d12GpuQueue> m_queue{};
