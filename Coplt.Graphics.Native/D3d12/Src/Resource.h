@@ -18,4 +18,17 @@ namespace Coplt
             const D3D12_RESOURCE_DESC* desc, const D3D12_CLEAR_VALUE* clear_value
         );
     };
+
+    struct BufferPack final
+    {
+        ResourcePack m_resource{};
+        u64 m_size{};
+        FResourceState m_state{};
+
+        BufferPack() = default;
+
+        explicit BufferPack(
+            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, u64 size
+        );
+    };
 }

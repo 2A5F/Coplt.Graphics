@@ -468,13 +468,19 @@ public sealed unsafe class CommandList
 
     public void BufferCopy(
         GpuBuffer Dst,
-        ulong DstOffset,
         GpuBuffer Src,
-        ulong SrcOffset,
-        ulong Size,
+        ulong DstOffset = 0,
+        ulong SrcOffset = 0,
+        ulong Size = ulong.MaxValue,
         CommandFlags flags = CommandFlags.None
     )
     {
+        if (Size != ulong.MaxValue)
+        {
+            if (DstOffset + Size > Dst.Size) throw new ArgumentException("The copy range exceeds the buffer range");
+            if (SrcOffset + Size > Src.Size) throw new ArgumentException("The copy range exceeds the buffer range");
+        }
+        else if (Dst == Src || Dst.Size != Src.Size) Size = Math.Min(Dst.Size, Src.Size);
         var dst = AddResource(Dst);
         var src = AddResource(Src);
         var cmd = new FCommandBufferCopy

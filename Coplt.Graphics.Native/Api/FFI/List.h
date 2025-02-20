@@ -9,8 +9,11 @@
 
 namespace Coplt
 {
-    template <typename T> requires std::is_trivially_copyable_v<T>
-    struct FList
+    template <typename T>
+#ifdef FFI_SRC
+        requires std::is_trivially_copyable_v<T>
+#endif
+    struct FList COPLT_FINAL
     {
         FAllocator* m_allocator{};
         T* m_ptr{};
@@ -19,12 +22,20 @@ namespace Coplt
 
 #ifdef FFI_SRC
 
-        constexpr size_t InitCapacity = 4;
+        constexpr static size_t InitCapacity = 4;
 
         FList() = default;
 
         explicit FList(FAllocator* allocator) : m_allocator(allocator), m_ptr(nullptr)
         {
+        }
+
+        void Swap(FList& other)
+        {
+            std::swap(m_allocator, other.m_allocator);
+            std::swap(m_ptr, other.m_ptr);
+            std::swap(m_len, other.m_len);
+            std::swap(m_cap, other.m_cap);
         }
 
         FList(FList&& other) noexcept
@@ -36,9 +47,8 @@ namespace Coplt
 
         FList& operator=(FList&& other) noexcept
         {
-            if (this != &other) return *this;
-            FList _(std::move(this));
-            new(this) FList(std::move(other));
+            if (&m_ptr == &other.m_ptr) return *this;
+            FList(std::forward<FList>(other)).Swap(*this);
             return *this;
         }
 
@@ -100,7 +110,12 @@ namespace Coplt
             return slot;
         }
 
-        void Add(T& item) // 不使用 move，因为 trivially_copyable
+        void Add(const T& item) // 不使用 move，因为 trivially_copyable
+        {
+            UnsafeAdd() = item;
+        }
+
+        void Add(T&& item) // 不使用 move，因为 trivially_copyable
         {
             UnsafeAdd() = item;
         }

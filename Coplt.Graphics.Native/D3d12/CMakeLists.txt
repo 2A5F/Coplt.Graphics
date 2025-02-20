@@ -34,6 +34,8 @@ add_library(${target_name} SHARED
     FFI/Resource.h
     Src/Resource.h
     Src/Resource.cc
+    Src/Context.h
+    Src/Context.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

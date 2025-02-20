@@ -47,7 +47,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 Size = sizeof(float) * 4 * 3 * 2,
             }, "Test Buffer"
         );
-        cmd.BufferCopy(MeshBuffer, 0, TestBuffer, 0, TestBuffer.Size);
+        cmd.BufferCopy(MeshBuffer, TestBuffer);
     }
     protected override void Render(CommandList cmd)
     {

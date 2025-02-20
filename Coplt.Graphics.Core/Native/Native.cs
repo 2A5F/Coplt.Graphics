@@ -1237,6 +1237,69 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    public unsafe partial struct FUploadBufferBlock
+    {
+        [NativeTypeName("Coplt::u8 *")]
+        public byte* mapped_ptr;
+
+        [NativeTypeName("Coplt::u64")]
+        public ulong cur_offset;
+
+        [NativeTypeName("Coplt::u64")]
+        public ulong size;
+    }
+
+    [Guid("3A22DE68-8377-4E57-A167-3EFDB97C102A")]
+    [NativeTypeName("struct FFrameContext : Coplt::FUnknown")]
+    public unsafe partial struct FFrameContext : FFrameContext.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FFrameContext));
+
+        public void** lpVtbl;
+
+        public FList<FUploadBufferBlock> m_upload_buffer;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FFrameContext*, void>)(lpVtbl[0]))((FFrameContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext*, nuint>)(lpVtbl[1]))((FFrameContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext*, nuint>)(lpVtbl[2]))((FFrameContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext*, Guid*, void*>)(lpVtbl[3]))((FFrameContext*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult GrowUploadBuffer([NativeTypeName("Coplt::u64")] ulong min_required_size)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FFrameContext*, FResult*, ulong, FResult*>)(lpVtbl[4]))((FFrameContext*)Unsafe.AsPointer(ref this), &result, min_required_size);
+        }
+
+        public interface Interface : FUnknown.Interface
+        {
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult GrowUploadBuffer([NativeTypeName("Coplt::u64")] ulong min_required_size);
+        }
+    }
+
     public partial struct FMainQueueCreateOptions
     {
         [NativeTypeName("Coplt::Str8or16")]
@@ -1258,6 +1321,9 @@ namespace Coplt.Graphics.Native
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuQueue));
 
         public void** lpVtbl;
+
+        [NativeTypeName("Coplt::FFrameContext *")]
+        public FFrameContext* m_context;
 
         [NativeTypeName("Coplt::FGpuQueueType")]
         public FGpuQueueType m_queue_type;
@@ -1304,15 +1370,26 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateOutputFromRawSwapchain([NativeTypeName("const FGpuOutputFromSwapChainCreateOptions &")] FGpuOutputFromSwapChainCreateOptions* options, void* swapchain, FGpuOutput** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuOutputFromSwapChainCreateOptions*, void*, FGpuOutput**, FResult*>)(lpVtbl[6]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, options, swapchain, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateOutputForHwnd([NativeTypeName("const FGpuOutputCreateOptions &")] FGpuOutputCreateOptions* options, void* hwnd, FGpuOutput** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuOutputCreateOptions*, void*, FGpuOutput**, FResult*>)(lpVtbl[6]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuOutputCreateOptions*, void*, FGpuOutput**, FResult*>)(lpVtbl[7]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
         }
 
         public interface Interface : FGpuObject.Interface
         {
             void* GetRawQueue();
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateOutputFromRawSwapchain([NativeTypeName("const FGpuOutputFromSwapChainCreateOptions &")] FGpuOutputFromSwapChainCreateOptions* options, void* swapchain, FGpuOutput** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateOutputForHwnd([NativeTypeName("const FGpuOutputCreateOptions &")] FGpuOutputCreateOptions* options, void* hwnd, FGpuOutput** @out);
@@ -1655,6 +1732,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FHdrType")]
         public FHdrType Hdr;
+    }
+
+    public partial struct FGpuOutputFromSwapChainCreateOptions
+    {
+        [NativeTypeName("Coplt::b8")]
+        public B8 VSync;
     }
 
     public partial struct FGpuOutputCreateOptions
@@ -2282,7 +2365,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L237_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L238_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3244,6 +3327,8 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FShaderModule = new Guid(0x5C0E1FDB, 0x2ACD, 0x4FCE, 0xB9, 0x85, 0x09, 0xE1, 0x2A, 0x7A, 0x1A, 0xAD);
 
         public static readonly Guid IID_FShader = new Guid(0xDE1352D5, 0x023D, 0x42B0, 0xBE, 0xAC, 0x12, 0x2B, 0x3B, 0x29, 0x6C, 0x9C);
+
+        public static readonly Guid IID_FFrameContext = new Guid(0x3A22DE68, 0x8377, 0x4E57, 0xA1, 0x67, 0x3E, 0xFD, 0xB9, 0x7C, 0x10, 0x2A);
 
         public static readonly Guid IID_FGpuQueue = new Guid(0x95E60E28, 0xE387, 0x4055, 0x9B, 0x33, 0x2D, 0x23, 0xAF, 0x90, 0x1F, 0x8A);
 

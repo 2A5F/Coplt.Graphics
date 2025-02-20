@@ -220,6 +220,7 @@ namespace Coplt
 
     struct FCommandBufferCopy
     {
+        // Size 为 u64::max 时复制整个
         u64 Size{};
         u64 DstOffset{};
         u64 SrcOffset{};

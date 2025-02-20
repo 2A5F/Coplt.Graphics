@@ -7,10 +7,7 @@
 
 using namespace Coplt;
 
-D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
-    Rc<D3d12GpuQueue>&& queue,
-    const FGpuOutputCreateOptions& options, const HWND hwnd
-) : m_queue(std::move(queue))
+D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
 {
     if (m_queue->m_queue_type != FGpuQueueType::Direct)
         throw WRuntimeException(L"Cannot create output on a non direct queue.");
@@ -19,10 +16,72 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     m_dx_device = m_queue->m_dx_device;
     m_dx_queue = m_queue->m_queue;
 
+    m_state = FResourceState::Present;
+}
+
+D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue, const FGpuOutputCreateOptions& options)
+    : D3d12GpuSwapChainOutput(std::move(queue))
+{
+    m_v_sync = options.VSync;
+}
+
+void D3d12GpuSwapChainOutput::Init()
+{
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc{};
+    rtv_heap_desc.NumDescriptors = m_frame_count;
+    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    chr | m_dx_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap));
+    m_rtv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc{};
+    srv_heap_desc.NumDescriptors = m_frame_count;
+    srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    chr | m_dx_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&m_srv_heap));
+    m_srv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    CreateBuffers();
+
+    for (u32 i = 0; i < m_frame_count; ++i)
+    {
+        m_frame_contexts[i] = new D3d12FrameContext(m_queue->CloneThis());
+    }
+
+    chr | m_dx_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+    m_fence_value = 1;
+
+    m_fence_event = CreateEvent(nullptr, false, false, nullptr);
+    if (m_fence_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
+}
+
+D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
+    Rc<D3d12GpuQueue>&& queue,
+    const FGpuOutputFromSwapChainCreateOptions& options,
+    IDXGISwapChain3* swap_chain
+) : D3d12GpuSwapChainOutput(std::move(queue))
+{
+    m_swap_chain = swap_chain;
     m_v_sync = options.VSync;
 
-    m_state = FResourceState::Present;
+    DXGI_SWAP_CHAIN_DESC1 desc{};
+    chr | m_swap_chain->GetDesc1(&desc);
 
+    m_format = FromDx(desc.Format);
+    m_width = desc.Width;
+    m_height = desc.Height;
+    m_frame_count = desc.BufferCount;
+
+    Init();
+}
+
+D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
+    Rc<D3d12GpuQueue>&& queue,
+    const FGpuOutputCreateOptions& options, const HWND hwnd
+) : D3d12GpuSwapChainOutput(std::move(queue), options)
+{
     bool is_hdr = false;
     m_format = SelectFormat(options, is_hdr);
 
@@ -87,36 +146,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
         chr | m_swap_chain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
     }
 
-    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-
-    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc{};
-    rtv_heap_desc.NumDescriptors = m_frame_count;
-    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    chr | m_dx_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap));
-    m_rtv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-    D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc{};
-    srv_heap_desc.NumDescriptors = m_frame_count;
-    srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    chr | m_dx_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&m_srv_heap));
-    m_srv_descriptor_size = m_dx_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    CreateBuffers();
-
-    for (u32 i = 0; i < m_frame_count; ++i)
-    {
-        chr | m_dx_device->CreateCommandAllocator(
-            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocators[i])
-        );
-    }
-
-    chr | m_dx_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
-    m_fence_value = 1;
-
-    m_fence_event = CreateEvent(nullptr, false, false, nullptr);
-    if (m_fence_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
+    Init();
 }
 
 D3d12GpuSwapChainOutput::~D3d12GpuSwapChainOutput()
@@ -216,7 +246,7 @@ FResult D3d12GpuSwapChainOutput::WaitNextFrame() noexcept
 
 void D3d12GpuSwapChainOutput::Submit_NoLock(const FCommandSubmit* submit)
 {
-    m_queue->SubmitNoLock(m_command_allocators[m_frame_index], submit);
+    m_queue->SubmitNoLock(m_frame_contexts[m_frame_index], submit);
 }
 
 void D3d12GpuSwapChainOutput::Present_NoLock()
@@ -243,7 +273,7 @@ void D3d12GpuSwapChainOutput::WaitNextFrame_NoLock()
         const auto fence_value = m_frame_m_fence_values[m_frame_index];
         WaitFenceValue_NoLock(fence_value);
     }
-    chr | m_command_allocators[m_frame_index]->Reset();
+    m_frame_contexts[m_frame_index]->Recycle();
 }
 
 void D3d12GpuSwapChainOutput::Resize_NoLock(const u32 width, const u32 height)

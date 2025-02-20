@@ -12,12 +12,14 @@
 
 namespace Coplt
 {
+    struct D3d12FrameContext;
+
     struct D3d12GpuQueue final : Object<D3d12GpuQueue, FD3d12GpuQueue>
     {
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12CommandQueue> m_queue{};
-        ComPtr<ID3D12CommandAllocator> m_command_allocator{};
+        Rc<D3d12FrameContext> m_frame_context{};
         CmdListPack m_cmd{};
         std::mutex m_mutex{};
 
@@ -29,6 +31,12 @@ namespace Coplt
 
         void* GetRawQueue() noexcept override;
 
+        FResult CreateOutputFromRawSwapchain(
+            const FGpuOutputFromSwapChainCreateOptions& options,
+            void* swapchain,
+            FGpuOutput** out
+        ) noexcept override;
+
         FResult CreateOutputForHwnd(
             const FGpuOutputCreateOptions& options,
             void* hwnd,
@@ -37,9 +45,24 @@ namespace Coplt
 
         ~D3d12GpuQueue() noexcept override;
 
-        // 提交命令，并互换命令分配器，参数提供的 command_allocator 必须可用
-        void Submit(ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit);
-        // 提交命令，并互换命令分配器，但是无锁，需要外部手动锁，参数提供的 command_allocator 必须可用
-        void SubmitNoLock(ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit);
+        // 提交命令，并互换帧上下文，参数提供的帧上下文必须可用
+        void Submit(Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit);
+        // 提交命令，并互换帧上下文，但是无锁，需要外部手动锁，参数提供的帧上下文必须可用
+        void SubmitNoLock(Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit);
     };
+
+    inline D3D12_COMMAND_LIST_TYPE ToDx(const FGpuQueueType value)
+    {
+        switch (value)
+        {
+        case FGpuQueueType::Direct:
+            return D3D12_COMMAND_LIST_TYPE_DIRECT;
+        case FGpuQueueType::Compute:
+            return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+        case FGpuQueueType::Copy:
+            return D3D12_COMMAND_LIST_TYPE_COPY;
+        default:
+            return D3D12_COMMAND_LIST_TYPE_DIRECT;
+        }
+    }
 } // Coplt

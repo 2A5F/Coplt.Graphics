@@ -3,6 +3,7 @@
 #include "GpuObject.h"
 #include "Output.h"
 #include "Command.h"
+#include "Context.h"
 
 namespace Coplt
 {
@@ -21,11 +22,20 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FGpuQueue, "95e60e28-e387-4055-9b33-2d23af901f8a", FGpuObject)
     {
+        // 不安全的内存暴露，外部不能修改，每帧必须保证当前指向可用的帧上下文
+        FFrameContext* m_context{};
         // 不安全的内存暴露，外部不能修改
         FGpuQueueType m_queue_type{};
 
         // d3d12 返回 ID3D12CommandQueue*
         virtual void* GetRawQueue() noexcept = 0;
+
+        // swapchain：d3d12 为 IDXGISwapChain3*
+        virtual FResult CreateOutputFromRawSwapchain(
+            const FGpuOutputFromSwapChainCreateOptions& options,
+            void* swapchain,
+            FGpuOutput** out
+        ) noexcept = 0;
 
         // 在非 windows 平台调用会报错
         virtual FResult CreateOutputForHwnd(

@@ -30,7 +30,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     m_desc.SampleDesc.Quality = 0;
     m_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     m_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    if (HasAnyFlags(m_purpose, FResourcePurpose::UnorderedAccess | FResourcePurpose::RayTracing))
+    if (HasAnyFlags(m_purpose, FResourcePurpose::UnorderedAccess))
         m_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
     // 瞬态资源不会立即创建

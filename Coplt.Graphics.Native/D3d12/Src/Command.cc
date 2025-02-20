@@ -401,9 +401,16 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                     }
                     else if (cmd.SrcType == FBufferRefType::Buffer)
                     {
-                        auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
-                        auto src = GetResource(cmd.Src.Buffer.Get(submit));
-                        cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
+                        const auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
+                        const auto src = GetResource(cmd.Src.Buffer.Get(submit));
+                        if (cmd.Size == std::numeric_limits<u64>::max())
+                        {
+                            cmd_pack->CopyResource(dst, src);
+                        }
+                        else
+                        {
+                            cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
+                        }
                     }
                     else
                     {

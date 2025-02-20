@@ -32,3 +32,23 @@ ResourcePack::ResourcePack(
         &alloc_desc, desc, init_state, clear_value, &m_allocation, IID_PPV_ARGS(&m_resource)
     );
 }
+
+BufferPack::BufferPack(
+    D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, const u64 size
+) : m_size(size)
+{
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Alignment = 0;
+    desc.Width = size;
+    desc.Height = 1;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.SampleDesc.Count = 1;
+    desc.SampleDesc.Quality = 0;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    m_resource = ResourcePack(allocator, cpu_access, m_state, &desc, nullptr);
+}

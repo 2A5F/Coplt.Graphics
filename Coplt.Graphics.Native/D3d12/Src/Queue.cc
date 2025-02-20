@@ -20,16 +20,17 @@ D3d12GpuQueue::D3d12GpuQueue(
     D3D12_COMMAND_QUEUE_DESC desc{};
     desc.NodeMask = node_mask;
     desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    desc.Type = ToDx(m_queue_type);
     desc.Priority = 0;
 
     chr | m_dx_device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_queue));
 
-    chr | m_dx_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_command_allocator));
+    m_frame_context = new D3d12FrameContext(CloneThis());
+    m_context = m_frame_context.get();
 
     ComPtr<ID3D12GraphicsCommandList> command_list{};
     chr | m_dx_device->CreateCommandList(
-        node_mask, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_allocator.Get(),
+        node_mask, desc.Type, m_frame_context->m_command_allocator.Get(),
         nullptr, IID_PPV_ARGS(&command_list)
     );
     m_cmd = CmdListPack(std::move(command_list));
@@ -54,6 +55,18 @@ void* D3d12GpuQueue::GetRawQueue() noexcept
     return m_queue.Get();
 }
 
+FResult D3d12GpuQueue::CreateOutputFromRawSwapchain(
+    const FGpuOutputFromSwapChainCreateOptions& options,
+    void* swapchain,
+    FGpuOutput** out
+) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GpuSwapChainOutput(this->CloneThis(), options, static_cast<IDXGISwapChain3*>(swapchain));
+    });
+}
+
 FResult D3d12GpuQueue::CreateOutputForHwnd(
     const FGpuOutputCreateOptions& options,
     void* hwnd,
@@ -62,11 +75,7 @@ FResult D3d12GpuQueue::CreateOutputForHwnd(
 {
     return feb([&]
     {
-#ifdef _WINDOWS
         *out = new D3d12GpuSwapChainOutput(this->CloneThis(), options, static_cast<HWND>(hwnd));
-#else
-        return FResult::Error(u"Calling Windows platform-specific APIs on non-Windows platforms");
-#endif
     });
 }
 
@@ -77,15 +86,15 @@ D3d12GpuQueue::~D3d12GpuQueue() noexcept
 }
 
 void D3d12GpuQueue::Submit(
-    ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit
+    Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit
 )
 {
     std::lock_guard lock(m_mutex);
-    SubmitNoLock(command_allocator, submit);
+    SubmitNoLock(frame_context, submit);
 }
 
 void D3d12GpuQueue::SubmitNoLock(
-    ComPtr<ID3D12CommandAllocator>& command_allocator, /* 可选 */ const FCommandSubmit* submit
+    Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit
 )
 {
     if (submit == nullptr)
@@ -100,6 +109,7 @@ void D3d12GpuQueue::SubmitNoLock(
         m_queue->ExecuteCommandLists(1, command_lists);
     }
 
-    std::swap(m_command_allocator, command_allocator);
-    chr | m_cmd->Reset(m_command_allocator.Get(), nullptr);
+    std::swap(m_frame_context, frame_context);
+    chr | m_cmd->Reset(m_frame_context->m_command_allocator.Get(), nullptr);
+    m_context = m_frame_context.get();
 }

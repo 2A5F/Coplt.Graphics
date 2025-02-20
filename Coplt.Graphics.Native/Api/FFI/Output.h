@@ -39,6 +39,11 @@ namespace Coplt
         FHdrType Hdr{};
     };
 
+    struct FGpuOutputFromSwapChainCreateOptions
+    {
+        b8 VSync{};
+    };
+
     struct FGpuOutputCreateOptions
     {
         Str8or16 Name{};
