@@ -34,7 +34,8 @@ ResourcePack::ResourcePack(
 }
 
 BufferPack::BufferPack(
-    D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, const u64 size
+    D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, const u64 size,
+    const D3D12_RESOURCE_FLAGS Flags
 ) : m_size(size)
 {
     D3D12_RESOURCE_DESC desc{};
@@ -48,7 +49,6 @@ BufferPack::BufferPack(
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
     desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    desc.Flags = Flags;
     m_resource = ResourcePack(allocator, cpu_access, m_state, &desc, nullptr);
 }

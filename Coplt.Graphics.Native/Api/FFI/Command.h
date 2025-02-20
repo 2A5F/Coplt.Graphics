@@ -68,7 +68,7 @@ namespace Coplt
 #endif
     };
 
-    struct FResourceSrc
+    struct FResourceRef
     {
         // u32::max 表示 empty
         u32 ResourceIndex{};
@@ -103,14 +103,14 @@ namespace Coplt
 
     struct FCommandTransition
     {
-        FResourceSrc Resource{};
+        FResourceRef Resource{};
         FResourceState SrcState{};
         FResourceState DstState{};
     };
 
     struct FCommandPresent
     {
-        FResourceSrc Image{};
+        FResourceRef Image{};
     };
 
     struct FCommandClearColor
@@ -119,7 +119,7 @@ namespace Coplt
         u32 RectCount{};
         // Payload 内的索引
         u32 RectIndex{};
-        FResourceSrc Image{};
+        FResourceRef Image{};
         f32 Color[4]{};
     };
 
@@ -136,7 +136,7 @@ namespace Coplt
         u32 RectCount{};
         // Payload 内的索引
         u32 RectIndex{};
-        FResourceSrc Image{};
+        FResourceRef Image{};
         f32 Depth{};
         u8 Stencil{};
         FDepthStencilClearFlags Clear{};
@@ -145,9 +145,9 @@ namespace Coplt
     struct FCommandSetRenderTargets
     {
         // 可选
-        FResourceSrc Dsv{};
+        FResourceRef Dsv{};
         u32 NumRtv{};
-        FResourceSrc Rtv[8]{};
+        FResourceRef Rtv[8]{};
 
         // 有多少个 Viewport
         u32 ViewportCount{};
@@ -206,16 +206,23 @@ namespace Coplt
         FDispatchType Type{};
     };
 
+    struct FUploadLoc
+    {
+        u32 Index{};
+    };
+
     union FBufferRef
     {
-        FResourceSrc Buffer{};
-        FBlob* Blob;
+        FResourceRef Buffer;
+        FUploadLoc Upload;
     };
 
     enum class FBufferRefType : u8
     {
+        // GpuBuffer 对象资源引用
         Buffer = 0,
-        Blob,
+        // 当前帧上下文中第几个上传缓冲区
+        Upload,
     };
 
     struct FCommandBufferCopy
@@ -266,7 +273,7 @@ namespace Coplt
 
 #ifdef FFI_SRC
 
-    inline FResourceMeta& FResourceSrc::Get(const FCommandSubmit& submit) const
+    inline FResourceMeta& FResourceRef::Get(const FCommandSubmit& submit) const
     {
         return submit.Resources[ResourceIndex];
     }

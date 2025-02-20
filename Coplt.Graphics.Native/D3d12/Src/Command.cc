@@ -1,6 +1,7 @@
 #include "Command.h"
 #include "../../Api/FFI/Command.h"
 
+#include "Context.h"
 #include "fmt/format.h"
 #include "fmt/xchar.h"
 
@@ -54,7 +55,7 @@ D3d12CommandInterpreter::CommandItemPart& D3d12CommandInterpreter::InterpreterCo
     return std::get<CommandItemPart>(m_items[m_current_command]);
 }
 
-void D3d12CommandInterpreter::InterpreterContext::ReqState(FResourceSrc res_src, const FResourceState req_state)
+void D3d12CommandInterpreter::InterpreterContext::ReqState(FResourceRef res_src, const FResourceState req_state)
 {
     auto& res = m_submit->Resources[res_src.ResourceIndex];
     const auto res_obj = res.GetObjectPtr();
@@ -167,7 +168,8 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             case FBufferRefType::Buffer:
                 context.ReqState(cmd.Src.Buffer, FResourceState::CopySrc);
                 break;
-            case FBufferRefType::Blob:
+            case FBufferRefType::Upload:
+                // 上传缓冲区状态永远在 GenericRead 不需要屏障
                 break;
             }
             switch (cmd.DstType)
@@ -175,8 +177,10 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             case FBufferRefType::Buffer:
                 context.ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
                 break;
-            case FBufferRefType::Blob:
-                break;
+            case FBufferRefType::Upload:
+                throw new WRuntimeException(
+                    fmt::format(L"The upload buffer cannot be used as a copy target at command {}", i)
+                );
             }
             continue;
         }
@@ -393,36 +397,38 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
         BufferCopy:
             {
                 const auto& cmd = item.BufferCopy;
-                if (cmd.SrcType == cmd.DstType)
+                if (cmd.SrcType == FBufferRefType::Buffer && cmd.DstType == FBufferRefType::Buffer)
                 {
-                    if (cmd.SrcType == FBufferRefType::Blob)
+                    const auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
+                    const auto src = GetResource(cmd.Src.Buffer.Get(submit));
+                    if (cmd.Size == std::numeric_limits<u64>::max())
                     {
-                        throw WRuntimeException(fmt::format(L"Pure cpu buffer copy found in command {}", i));
-                    }
-                    else if (cmd.SrcType == FBufferRefType::Buffer)
-                    {
-                        const auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
-                        const auto src = GetResource(cmd.Src.Buffer.Get(submit));
-                        if (cmd.Size == std::numeric_limits<u64>::max())
-                        {
-                            cmd_pack->CopyResource(dst, src);
-                        }
-                        else
-                        {
-                            cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
-                        }
+                        cmd_pack->CopyResource(dst, src);
                     }
                     else
                     {
-                        throw WRuntimeException(
-                            fmt::format(L"Unknown BufferRefType {} at command {}", static_cast<u8>(cmd.SrcType), i)
-                        );
+                        cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
                     }
+                }
+                else if (cmd.SrcType == FBufferRefType::Upload && cmd.DstType == FBufferRefType::Buffer)
+                {
+                    const auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
+                    if (cmd.Src.Upload.Index >= m_queue->m_frame_context->m_upload_buffers.size())
+                        throw WRuntimeException(fmt::format(L"Index out of bounds at command {}", i));
+                    const auto& src_obj = m_queue->m_frame_context->m_upload_buffers[cmd.Src.Upload.Index];
+                    if (cmd.SrcOffset + cmd.Size >= src_obj.m_size)
+                        throw WRuntimeException(fmt::format(L"Size out of range at command {}", i));
+                    const auto src = src_obj.m_resource.m_resource.Get();
+                    cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
                 }
                 else
                 {
-                    // todo
-                    throw WRuntimeException(L"TODO");
+                    throw WRuntimeException(
+                        fmt::format(
+                            L"Unsupported copy combination {{ SrcType = {} DstType = {} }} at command {}",
+                            static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
+                        )
+                    );
                 }
                 continue;
             }

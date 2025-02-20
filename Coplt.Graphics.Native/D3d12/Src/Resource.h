@@ -28,7 +28,8 @@ namespace Coplt
         BufferPack() = default;
 
         explicit BufferPack(
-            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, u64 size
+            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, u64 size,
+            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE
         );
     };
 }

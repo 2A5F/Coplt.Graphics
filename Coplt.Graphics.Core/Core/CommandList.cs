@@ -466,7 +466,7 @@ public sealed unsafe class CommandList
 
     #region BufferCopy
 
-    public void BufferCopy(
+    public void Copy(
         GpuBuffer Dst,
         GpuBuffer Src,
         ulong DstOffset = 0,
@@ -503,6 +503,49 @@ public sealed unsafe class CommandList
         );
         Dst.UnsafeChangeState(FResourceState.CopyDst);
         Src.UnsafeChangeState(FResourceState.CopySrc);
+    }
+
+    #endregion
+
+    #region BufferUpload
+
+    public void Upload<T>(
+        GpuBuffer Dst,
+        ReadOnlySpan<T> Data,
+        ulong DstOffset = 0,
+        CommandFlags flags = CommandFlags.None
+    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset, flags);
+
+    public void Upload(
+        GpuBuffer Dst,
+        ReadOnlySpan<byte> Data,
+        ulong DstOffset = 0,
+        CommandFlags flags = CommandFlags.None
+    )
+    {
+        if (Data.Length == 0) return;
+        var Size = Math.Min(Dst.Size, (uint)Data.Length);
+        var dst = AddResource(Dst);
+        var src = m_queue.WriteToUpload(Data);
+        var cmd = new FCommandBufferCopy
+        {
+            Size = Size,
+            DstOffset = DstOffset,
+            SrcOffset = src.Offset,
+            DstType = FBufferRefType.Buffer,
+            SrcType = FBufferRefType.Upload,
+        };
+        cmd.Dst.Buffer = new(dst);
+        cmd.Src.Upload = new(src);
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.BufferCopy,
+                Flags = (FCommandFlags)flags,
+                BufferCopy = cmd,
+            }
+        );
+        Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     #endregion

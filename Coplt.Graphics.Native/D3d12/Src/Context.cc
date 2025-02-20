@@ -45,7 +45,8 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
             );
             chr | upload_buffer.m_resource.m_resource >> SetNameEx(Str8or16(name));
         }
-        chr | upload_buffer.m_resource.m_resource->Map(0, nullptr, &mapped_ptr);
+        constexpr D3D12_RANGE read_range{.Begin = 0, .End = 0};
+        chr | upload_buffer.m_resource.m_resource->Map(0, &read_range, &mapped_ptr);
         m_upload_buffer.Add(FUploadBufferBlock{
             .mapped_ptr = static_cast<volatile u8*>(mapped_ptr),
             .cur_offset = 0,

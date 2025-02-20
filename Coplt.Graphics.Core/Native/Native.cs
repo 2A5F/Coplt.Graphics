@@ -2103,7 +2103,7 @@ namespace Coplt.Graphics.Native
         }
     }
 
-    public partial struct FResourceSrc
+    public partial struct FResourceRef
     {
         [NativeTypeName("Coplt::u32")]
         public uint ResourceIndex;
@@ -2147,8 +2147,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandTransition
     {
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Resource;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Resource;
 
         [NativeTypeName("Coplt::FResourceState")]
         public FResourceState SrcState;
@@ -2159,8 +2159,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandPresent
     {
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Image;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
     }
 
     public partial struct FCommandClearColor
@@ -2171,8 +2171,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint RectIndex;
 
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Image;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
 
         [NativeTypeName("f32[4]")]
         public _Color_e__FixedBuffer Color;
@@ -2200,8 +2200,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint RectIndex;
 
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Image;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
 
         [NativeTypeName("Coplt::f32")]
         public float Depth;
@@ -2215,13 +2215,13 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandSetRenderTargets
     {
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Dsv;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Dsv;
 
         [NativeTypeName("Coplt::u32")]
         public uint NumRtv;
 
-        [NativeTypeName("FResourceSrc[8]")]
+        [NativeTypeName("FResourceRef[8]")]
         public _Rtv_e__FixedBuffer Rtv;
 
         [NativeTypeName("Coplt::u32")]
@@ -2239,7 +2239,7 @@ namespace Coplt.Graphics.Native
         [InlineArray(8)]
         public partial struct _Rtv_e__FixedBuffer
         {
-            public FResourceSrc e0;
+            public FResourceRef e0;
         }
     }
 
@@ -2314,23 +2314,29 @@ namespace Coplt.Graphics.Native
         public FDispatchType Type;
     }
 
+    public partial struct FUploadLoc
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe partial struct FBufferRef
+    public partial struct FBufferRef
     {
         [FieldOffset(0)]
-        [NativeTypeName("Coplt::FResourceSrc")]
-        public FResourceSrc Buffer;
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Buffer;
 
         [FieldOffset(0)]
-        [NativeTypeName("Coplt::FBlob *")]
-        public FBlob* Blob;
+        [NativeTypeName("Coplt::FUploadLoc")]
+        public FUploadLoc Upload;
     }
 
     [NativeTypeName("Coplt::u8")]
     public enum FBufferRefType : byte
     {
         Buffer = 0,
-        Blob,
+        Upload,
     }
 
     public partial struct FCommandBufferCopy
@@ -2365,7 +2371,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L238_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L245_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

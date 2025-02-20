@@ -10,7 +10,6 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
     private GpuBuffer MeshBuffer = null!;
-    private GpuBuffer TestBuffer = null!;
 
     public override string Name => "HelloCube";
     protected override async Task LoadResources(CommandList cmd)
@@ -40,14 +39,13 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 Size = sizeof(float) * 4 * 3 * 2,
             }, "Cube Mesh"
         );
-        TestBuffer = Device.CreateBuffer(
-            new()
-            {
-                Purpose = ResourcePurpose.VertexBuffer,
-                Size = sizeof(float) * 4 * 3 * 2,
-            }, "Test Buffer"
+        cmd.Upload(
+            MeshBuffer, [
+                new float3(0.0f, 0.5f * 1.7f, 0f),
+                new float3(0.5f, -0.5f * 1.7f, 0f),
+                new float3(-0.5f, -0.5f * 1.7f, 0f),
+            ]
         );
-        cmd.BufferCopy(MeshBuffer, TestBuffer);
     }
     protected override void Render(CommandList cmd)
     {

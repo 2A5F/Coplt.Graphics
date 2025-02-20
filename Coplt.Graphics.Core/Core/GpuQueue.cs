@@ -161,4 +161,36 @@ public sealed unsafe partial class GpuQueue
     }
 
     #endregion
+
+    #region WriteToUpload
+
+    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data)
+    {
+        using var _ = m_lock.EnterScope();
+        ref var upload_buffers = ref m_ptr->m_context->m_upload_buffer;
+        for (nuint i = 0; i < upload_buffers.LongLength; i++)
+        {
+            ref var block = ref upload_buffers[i];
+            if (block.cur_offset + (uint)Data.Length < block.size)
+            {
+                Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
+                var loc = new UploadLoc(i, block.cur_offset);
+                block.cur_offset += (uint)Data.Length;
+                return loc;
+            }
+        }
+        m_ptr->m_context->GrowUploadBuffer((uint)Data.Length).TryThrow();
+        upload_buffers = ref m_ptr->m_context->m_upload_buffer;
+        {
+            var i = upload_buffers.LongLength - 1;
+            ref var block = ref upload_buffers[i];
+            if (block.cur_offset + (uint)Data.Length >= block.size) throw new OutOfMemoryException();
+            Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
+            var loc = new UploadLoc(i, block.cur_offset);
+            block.cur_offset += (uint)Data.Length;
+            return loc;
+        }
+    }
+
+    #endregion
 }

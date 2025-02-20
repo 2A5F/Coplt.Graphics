@@ -58,7 +58,7 @@ namespace Coplt
 
             CommandItemPart& GetCurrentCommand();
 
-            void ReqState(FResourceSrc res_src, FResourceState req_state);
+            void ReqState(FResourceRef res_src, FResourceState req_state);
             void CmdNext();
         };
 

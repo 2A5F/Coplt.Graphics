@@ -1,12 +1,12 @@
 ﻿namespace Coplt.Graphics.Native;
 
-public partial struct FResourceSrc
+public partial struct FResourceRef
 {
-    public FResourceSrc(uint index)
+    public FResourceRef(uint index)
     {
         ResourceIndex = index;
     }
-    public FResourceSrc(int index)
+    public FResourceRef(int index)
     {
         ResourceIndex = (uint)index;
     }
