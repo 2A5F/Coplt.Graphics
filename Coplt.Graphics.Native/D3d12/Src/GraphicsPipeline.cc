@@ -252,3 +252,13 @@ const FGraphicsPipelineState* D3d12GraphicsShaderPipeline::GetGraphicsState() no
 {
     return &m_graphics_state;
 }
+
+const FShaderInputLayout* D3d12GraphicsShaderPipeline::GetInputLayout() noexcept
+{
+    return m_input_layout.get();
+}
+
+const FMeshLayout* D3d12GraphicsShaderPipeline::GetMeshLayout() noexcept
+{
+    return m_mesh_layout.get();
+}

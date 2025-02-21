@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
 
@@ -28,6 +29,7 @@ public sealed unsafe class CommandList
     internal readonly HashSet<object> m_objects = new();
     internal readonly List<byte> m_payload = new();
     internal GpuOutput? m_current_output;
+    internal ShaderPipeline? m_current_pipeline;
 
     #endregion
 
@@ -337,7 +339,7 @@ public sealed unsafe class CommandList
 
     public void SetPipeline(ShaderPipeline Pipeline, CommandFlags Flags = CommandFlags.None)
     {
-        AddObject(Pipeline);
+        AddObject(m_current_pipeline = Pipeline);
         var cmd = new FCommandSetPipeline
         {
             Pipeline = Pipeline.m_ptr,
@@ -425,6 +427,14 @@ public sealed unsafe class CommandList
                 SetMeshBuffers = cmd,
             }
         );
+        if (IndexBuffer.HasValue)
+        {
+            IndexBuffer.Value.Buffer.UnsafeChangeState(FResourceState.IndexBuffer);
+        }
+        foreach (var buffer in VertexBuffers)
+        {
+            buffer.Buffer.UnsafeChangeState(FResourceState.VertexBuffer);
+        }
     }
 
     #endregion
@@ -466,9 +476,16 @@ public sealed unsafe class CommandList
     {
         if (Pipeline != null)
         {
+            m_current_pipeline = Pipeline;
             if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
                 throw new ArgumentException("Non Vertex pipelines cannot use Draw");
             AddObject(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+                throw new ArgumentException("Non Vertex pipelines cannot use Draw");
         }
         var cmd = new FCommandDraw
         {
@@ -518,9 +535,28 @@ public sealed unsafe class CommandList
     {
         if (Pipeline != null)
         {
+            m_current_pipeline = Pipeline;
             if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
                 throw new ArgumentException("Non Mesh and Compute pipelines cannot use Dispatch");
             AddObject(Pipeline);
+            if (Type == DispatchType.Auto)
+            {
+                if (Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute)) Type = DispatchType.Compute;
+                else if (Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh)) Type = DispatchType.Mesh;
+                else throw new UnreachableException();
+            }
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
+                throw new ArgumentException("Non Mesh and Compute pipelines cannot use Dispatch");
+            if (Type == DispatchType.Auto)
+            {
+                if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute)) Type = DispatchType.Compute;
+                else if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh)) Type = DispatchType.Mesh;
+                else throw new UnreachableException();
+            }
         }
         var cmd = new FCommandDispatch
         {
@@ -528,7 +564,13 @@ public sealed unsafe class CommandList
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,
-            Type = (FDispatchType)Type,
+            Type = Type switch
+            {
+                DispatchType.Auto => throw new UnreachableException(),
+                DispatchType.Compute => FDispatchType.Compute,
+                DispatchType.Mesh    => FDispatchType.Mesh,
+                _                    => throw new ArgumentOutOfRangeException(nameof(Type), Type, null)
+            },
         };
         m_commands.Add(
             new()

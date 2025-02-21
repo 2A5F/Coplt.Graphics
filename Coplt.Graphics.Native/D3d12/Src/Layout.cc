@@ -270,19 +270,19 @@ FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept
     return FResult::None();
 }
 
-const FMeshBufferDefine* D3d12MeshLayout::GetBuffers(u32* out_count) noexcept
+const FMeshBufferDefine* D3d12MeshLayout::GetBuffers(u32* out_count) const noexcept
 {
     *out_count = static_cast<u32>(m_buffers.size());
     return m_buffers.data();
 }
 
-const FMeshBufferElement* D3d12MeshLayout::GetElements(u32* out_count) noexcept
+const FMeshBufferElement* D3d12MeshLayout::GetElements(u32* out_count) const noexcept
 {
     *out_count = static_cast<u32>(m_elements.size());
     return m_elements.data();
 }
 
-const FMeshBufferElement* D3d12MeshLayout::TryGetElement(const u32 SlotId, const u32 SlotIndex) noexcept
+const FMeshBufferElement* D3d12MeshLayout::TryGetElement(const u32 SlotId, const u32 SlotIndex) const noexcept
 {
     const auto key = static_cast<u64>(SlotId) | (static_cast<u64>(SlotIndex) << 32);
     return m_slot_id_index_to_element.GetOr(key, nullptr);

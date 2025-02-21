@@ -218,7 +218,6 @@ namespace Coplt
 
     enum class FDispatchType : u8
     {
-        Auto,
         Compute,
         Mesh,
     };

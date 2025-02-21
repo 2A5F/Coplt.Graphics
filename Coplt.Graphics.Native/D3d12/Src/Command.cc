@@ -16,6 +16,21 @@
 
 using namespace Coplt;
 
+void D3d12CommandInterpreter::Context::ResetPipeline()
+{
+    Pipeline = nullptr;
+    D3dPipeline = nullptr;
+}
+
+void D3d12CommandInterpreter::Context::Reset()
+{
+    ResetPipeline();
+    NumRtv = 0;
+    Dsv = {COPLT_U32_MAX};
+    Ibv = {COPLT_U32_MAX};
+    NumVbv = 0;
+}
+
 D3d12CommandInterpreter::D3d12CommandInterpreter(D3d12GpuQueue* queue) : m_queue(queue)
 {
 }
@@ -34,43 +49,54 @@ void D3d12CommandInterpreter::CmdNext()
     m_items.back().CommandCount++;
 }
 
-void D3d12CommandInterpreter::ReqState(const u32 CmdIndex, const FResourceRef ResSrc, const FResourceState ReqState)
+void D3d12CommandInterpreter::ReqState(const FResourceRef ResSrc, const FResourceState ReqState)
 {
     auto& state = m_states[ResSrc.ResourceIndex];
     const auto old_state = state.CurrentState;
-    const auto new_state = ChangeState(old_state, ReqState);
-    if (new_state == old_state) return;
-    const auto has_barrier = state.CurrentBarrierIndex != COPLT_U32_MAX;
-    if (!has_barrier) AddBarrier(state, ResSrc);
-    else if (!IsCompatible(old_state, new_state))
+    const auto new_state = ChangeState(old_state, ToDx(ReqState));
+    const auto last_item_size = state.CurrentItemsSize;
+    if (new_state == old_state)
     {
-        BarNext();
-        AddBarrier(state, ResSrc);
+        state.CurrentItemsSize = m_items.size();
+        return;
     }
     state.CurrentState = new_state;
+    if (!state.HasBarrier()) AddBarrier(state, ResSrc);
+    else if (!IsCompatible(old_state, new_state))
+    {
+        if (last_item_size >= m_items.size()) BarNext();
+        state.LastState = old_state;
+        AddBarrier(state, ResSrc);
+    }
+    else
+    {
+        state.CurrentItemsSize = m_items.size();
+        m_barriers[state.CurrentBarrierIndex].Transition.StateAfter = state.CurrentState;
+    }
+}
+
+void D3d12CommandInterpreter::MarkResUse(const FResourceRef ResSrc)
+{
+    auto& state = m_states[ResSrc.ResourceIndex];
+    state.CurrentItemsSize = m_items.size();
 }
 
 void D3d12CommandInterpreter::AddBarrier(ResState& state, const FResourceRef ResSrc)
 {
+    state.CurrentItemsSize = m_items.size();
     state.CurrentBarrierIndex = m_barriers.size();
     D3D12_RESOURCE_BARRIER barrier{};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = state.Resource;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = ToDx(state.LastState);
+    barrier.Transition.StateBefore = state.LastState;
+    barrier.Transition.StateAfter = state.CurrentState;
     m_barriers.push_back(barrier);
     m_barrier_resources.push_back(ResSrc.ResourceIndex);
 }
 
 void D3d12CommandInterpreter::BarNext()
 {
-    for (u32 i = m_last_barrier_index; i < m_barriers.size(); ++i)
-    {
-        auto& state = m_states[m_barrier_resources[i]];
-        auto& barrier = m_barriers[i];
-        barrier.Transition.StateAfter = ToDx(state.CurrentState);
-        state.LastState = state.CurrentState;
-    }
     auto& item = m_items.back();
     const auto size = m_barriers.size();
     const auto count = size - m_last_barrier_index;
@@ -86,12 +112,12 @@ void D3d12CommandInterpreter::Init()
 
 void D3d12CommandInterpreter::Reset()
 {
-    m_current_pipeline = nullptr;
     m_states.clear();
     m_barriers.clear();
     m_barrier_resources.clear();
     m_items.clear();
     m_last_barrier_index = 0;
+    m_context.Reset();
 }
 
 void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
@@ -104,7 +130,7 @@ void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
         ResState state{};
         state.Resource = GetResource(res);
         state.Type = res.Type;
-        state.CurrentState = state.LastState = res.CurrentState;
+        state.CurrentState = state.LastState = ToDx(res.CurrentState);
         m_states.push_back(std::move(state));
     }
 }
@@ -119,9 +145,6 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
         {
         case FCommandType::None:
         case FCommandType::Transition:
-        case FCommandType::SetPipeline:
-        case FCommandType::Draw:
-        case FCommandType::Dispatch:
         case FCommandType::SetViewportScissor:
             goto CmdNext;
         case FCommandType::Present:
@@ -132,8 +155,14 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             goto ClearDepthStencil;
         case FCommandType::SetRenderTargets:
             goto SetRenderTargets;
+        case FCommandType::SetPipeline:
+            goto SetPipeline;
         case FCommandType::SetMeshBuffers:
             goto SetMeshBuffers;
+        case FCommandType::Draw:
+            goto Draw;
+        case FCommandType::Dispatch:
+            goto Dispatch;
         case FCommandType::BufferCopy:
             goto BufferCopy;
         }
@@ -146,41 +175,103 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
     Present:
         {
             const auto& cmd = item.Present;
-            ReqState(i, cmd.Image, FResourceState::Present);
+            ReqState(cmd.Image, FResourceState::Present);
             continue;
         }
     ClearColor:
         {
             const auto& cmd = item.ClearColor;
-            ReqState(i, cmd.Image, FResourceState::RenderTarget);
+            ReqState(cmd.Image, FResourceState::RenderTarget);
             continue;
         }
     ClearDepthStencil:
         {
             const auto& cmd = item.ClearDepthStencil;
-            ReqState(i, cmd.Image, FResourceState::DepthWrite);
+            ReqState(cmd.Image, FResourceState::DepthWrite);
             continue;
         }
     SetRenderTargets:
         {
             const auto& cmd = item.SetRenderTargets;
-            if (!cmd.Dsv.IsEmpty()) ReqState(i, cmd.Dsv, FResourceState::DepthWrite);
-            for (u32 n = 0; n < std::min(cmd.NumRtv, 8u); ++n)
+            if (!cmd.Dsv.IsEmpty())
             {
-                ReqState(i, cmd.Rtv[n], FResourceState::RenderTarget);
+                ReqState(cmd.Dsv, FResourceState::DepthWrite);
+                m_context.Dsv = cmd.Dsv;
+            }
+            m_context.NumRtv = std::min(cmd.NumRtv, 8u);
+            for (u32 n = 0; n < m_context.NumRtv; ++n)
+            {
+                ReqState(cmd.Rtv[n], FResourceState::RenderTarget);
+                m_context.Rtv[n] = cmd.Rtv[n];
             }
             continue;
+        }
+    SetPipeline:
+        {
+            const auto& cmd = item.SetPipeline;
+            SetPipelineContext(cmd.Pipeline, i);
         }
     SetMeshBuffers:
         {
             const auto& cmd = item.SetMeshBuffers;
             if (!cmd.IndexBuffer.Buffer.IsEmpty())
-                ReqState(i, cmd.IndexBuffer.Buffer, FResourceState::IndexBuffer);
+            {
+                ReqState(cmd.IndexBuffer.Buffer, FResourceState::IndexBuffer);
+                m_context.Ibv = cmd.IndexBuffer.Buffer;
+            }
             const auto vbs = reinterpret_cast<const FVertexBufferRange*>(&submit.Payload[cmd.VertexBuffersIndex]);
+            if (cmd.VertexStartSlot + cmd.VertexBufferCount >= 31)
+                throw WRuntimeException(fmt::format(
+                    L"The number of input buffers is out of range, the maximum allowed input slots is 31; at command {}",
+                    i
+                ));
             for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
             {
-                ReqState(i, vbs[n].Buffer, FResourceState::VertexBuffer);
+                const auto& vb = vbs[n];
+                ReqState(vb.Buffer, FResourceState::VertexBuffer);
+                m_context.Vbv[cmd.VertexStartSlot + n] = vb.Buffer;
             }
+            continue;
+        }
+    Graphics_MarkResUse:
+        {
+            const auto g_state = m_context.GPipeline->GetGraphicsState();
+            if (g_state->DsvFormat != FGraphicsFormat::Unknown && !m_context.Dsv.IsEmpty())
+            {
+                MarkResUse(m_context.Dsv);
+            }
+            const auto num_rts = std::min(m_context.NumRtv, static_cast<u32>(g_state->NumRts));
+            for (u32 n = 0; n < num_rts; ++n)
+            {
+                const auto rt = m_context.Rtv[n];
+                if (!rt.IsEmpty()) MarkResUse(rt);
+            }
+            if (const auto mesh_layout = m_context.GPipeline->GetMeshLayout())
+            {
+                auto buffers = mesh_layout->GetBuffers();
+                for (u32 n = 0; n < buffers.size(); ++n)
+                {
+                    const auto vb = m_context.Vbv[n];
+                    if (!vb.IsEmpty()) MarkResUse(vb);
+                }
+            }
+            continue;
+        }
+    Draw:
+        {
+            const auto& cmd = item.Draw;
+            if (cmd.Pipeline != nullptr) SetPipelineContext(cmd.Pipeline, i);
+            if (m_context.Pipeline == nullptr)
+                throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+            goto Graphics_MarkResUse;
+        }
+    Dispatch:
+        {
+            const auto& cmd = item.Dispatch;
+            if (cmd.Pipeline != nullptr) SetPipelineContext(cmd.Pipeline, i);
+            if (m_context.Pipeline == nullptr)
+                throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+            if (cmd.Type == FDispatchType::Mesh && m_context.GPipeline) goto Graphics_MarkResUse;
             continue;
         }
     BufferCopy:
@@ -189,7 +280,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             switch (cmd.SrcType)
             {
             case FBufferRefType::Buffer:
-                ReqState(i, cmd.Src.Buffer, FResourceState::CopySrc);
+                ReqState(cmd.Src.Buffer, FResourceState::CopySrc);
                 break;
             case FBufferRefType::Upload:
                 // 上传缓冲区状态永远在 GenericRead 不需要屏障
@@ -198,7 +289,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             switch (cmd.DstType)
             {
             case FBufferRefType::Buffer:
-                ReqState(i, cmd.Dst.Buffer, FResourceState::CopyDst);
+                ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
                 break;
             case FBufferRefType::Upload:
                 throw new WRuntimeException(
@@ -213,6 +304,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
 
 void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
 {
+    m_context.ResetPipeline();
     const auto& cmd_pack = m_queue->m_cmd;
     for (const auto& cmd_item : m_items)
     {
@@ -327,16 +419,17 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                     cmd_pack->IASetIndexBuffer(&view);
                 }
                 {
-                    D3D12_VERTEX_BUFFER_VIEW views[32]{};
+                    D3D12_VERTEX_BUFFER_VIEW views[cmd.VertexBufferCount];
                     for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
                     {
                         auto& range = vbs[n];
-                        auto& view = views[n];
                         const auto& def = defs[range.Index];
                         const auto resource = GetResource(range.Buffer.Get(submit));
+                        D3D12_VERTEX_BUFFER_VIEW view{};
                         view.BufferLocation = resource->GetGPUVirtualAddress() + range.Offset;
                         view.SizeInBytes = range.Size;
                         view.StrideInBytes = def.Stride;
+                        views[n] = view;
                     }
                     cmd_pack->IASetVertexBuffers(cmd.VertexStartSlot, cmd.VertexBufferCount, views);
                 }
@@ -346,8 +439,9 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             {
                 const auto& cmd = item.Draw;
                 if (cmd.Pipeline != nullptr) SetPipeline(cmd_pack, cmd.Pipeline, i);
-                if (m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
-                const auto stages = m_current_pipeline->GetStages();
+                if (m_context.Pipeline == nullptr)
+                    throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+                const auto stages = m_context.Pipeline->GetStages();
                 if (!HasFlags(stages, FShaderStageFlags::Vertex))
                     throw WRuntimeException(L"Non Vertex pipelines cannot use Draw");
                 if (cmd.Indexed)
@@ -373,27 +467,18 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                 FShaderStageFlags stages{};
                 switch (cmd.Type)
                 {
-                case FDispatchType::Auto:
-                    if (m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
-                    stages = m_current_pipeline->GetStages();
-                    if (HasFlags(stages, FShaderStageFlags::Compute))
-                        goto Dispatch_Compute;
-                    if (HasFlags(stages, FShaderStageFlags::Mesh))
-                        goto Dispatch_Mesh;
-                    throw WRuntimeException(L"Non Mesh and Compute pipelines cannot use Dispatch");
                 case FDispatchType::Compute:
-                Dispatch_Compute:
                     cmd_pack->Dispatch(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
                     break;
                 case FDispatchType::Mesh:
-                Dispatch_Mesh:
                     if (!cmd_pack.m_list7)
                         throw WRuntimeException(L"Mesh Shader is not supported on this device");
                     cmd_pack.m_list7->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
                     break;
                 default:
-                    throw WRuntimeException(fmt::format(L"Unknown dispatch type {} at command {}",
-                                                        static_cast<u32>(cmd.Type), i));
+                    throw WRuntimeException(
+                        fmt::format(L"Unknown dispatch type {} at command {}", static_cast<u32>(cmd.Type), i)
+                    );
                 }
                 continue;
             }
@@ -439,38 +524,49 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
     }
 }
 
-void D3d12CommandInterpreter::SetPipeline(
-    const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i
-)
+void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, const u32 i)
 {
-    if (pipeline == m_current_pipeline) return;
-    m_current_pipeline = pipeline;
-    const auto ps = pipeline->QueryInterface<FD3d12PipelineState>();
-    if (!ps)
+    if (pipeline == m_context.Pipeline) return;
+    m_context.Pipeline = pipeline;
+    m_context.D3dPipeline = pipeline->QueryInterface<FD3d12PipelineState>();
+    if (!m_context.D3dPipeline)
         throw WRuntimeException(
             fmt::format(
                 L"Pipeline({:#x}) comes from different backends at cmd {}",
                 reinterpret_cast<size_t>(pipeline), i
             )
         );
-    const auto stages = pipeline->GetStages();
-    const auto layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
-    if (!layout)
+    m_context.Layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
+    if (!m_context.Layout)
         throw WRuntimeException(L"Shader layout from different backends");
+    const auto stages = pipeline->GetStages();
+    m_context.GPipeline = nullptr;
+    if (HasFlags(stages, FShaderStageFlags::Pixel))
+    {
+        m_context.GPipeline = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
+        if (!m_context.GPipeline)
+            throw WRuntimeException(L"Pipeline from different backends or pipeline not a graphics pipeline");
+    }
+}
+
+void D3d12CommandInterpreter::SetPipeline(
+    const CmdListPack& cmd_pack, FShaderPipeline* pipeline, const u32 i
+)
+{
+    if (pipeline == m_context.Pipeline) return;
+    SetPipelineContext(pipeline, i);
+    const auto stages = pipeline->GetStages();
     if (HasFlags(stages, FShaderStageFlags::Compute))
     {
-        cmd_pack->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
+        cmd_pack->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(m_context.Layout->GetRootSignaturePtr()));
     }
     else if (HasFlags(stages, FShaderStageFlags::Pixel))
     {
-        const auto gp = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
-        if (!gp)
-            throw WRuntimeException(L"Pipeline from different backends or pipeline not a graphics pipeline");
-        const auto& states = gp->GetGraphicsState();
-        cmd_pack->IASetPrimitiveTopology(Coplt::ToDx(states->Topology));
-        cmd_pack->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
+        const auto& states = m_context.GPipeline->GetGraphicsState();
+        cmd_pack->IASetPrimitiveTopology(ToDx(states->Topology));
+        cmd_pack->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(m_context.Layout->GetRootSignaturePtr()));
     }
-    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(ps->GetPipelineStatePtr()));
+    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(m_context.D3dPipeline->GetPipelineStatePtr()));
 }
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
@@ -523,42 +619,4 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetRtv(const FResourceMeta&
     default:
         throw WRuntimeException(fmt::format(L"Unknown resource ref type {}", static_cast<u8>(meta.Type)));
     }
-}
-
-D3D12_RESOURCE_STATES D3d12CommandInterpreter::ToDx(const FResourceState state)
-{
-    switch (state)
-    {
-    case FResourceState::Common:
-    case FResourceState::Present:
-        return D3D12_RESOURCE_STATE_COMMON;
-    case FResourceState::RenderTarget:
-        return D3D12_RESOURCE_STATE_RENDER_TARGET;
-    case FResourceState::DepthWrite:
-        return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    case FResourceState::UnorderedAccess:
-        return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    case FResourceState::CopyDst:
-        return D3D12_RESOURCE_STATE_COPY_DEST;
-    case FResourceState::ResolveDst:
-        return D3D12_RESOURCE_STATE_RESOLVE_DEST;
-    case FResourceState::RayTracing:
-        return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-    case FResourceState::ShadingRate:
-        return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-    case FResourceState::StreamOutput:
-        return D3D12_RESOURCE_STATE_STREAM_OUT;
-    default:
-        break;
-    }
-    D3D12_RESOURCE_STATES r = D3D12_RESOURCE_STATE_COMMON;
-    if (HasAnyFlags(state, FResourceState::ConstantBuffer | FResourceState::VertexBuffer))
-        r |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    if (HasFlags(state, FResourceState::IndexBuffer)) r |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-    if (HasFlags(state, FResourceState::IndirectBuffer)) r |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-    if (HasFlags(state, FResourceState::DepthRead)) r |= D3D12_RESOURCE_STATE_DEPTH_READ;
-    if (HasFlags(state, FResourceState::ShaderResource)) r |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
-    if (HasFlags(state, FResourceState::CopySrc)) r |= D3D12_RESOURCE_STATE_COPY_SOURCE;
-    if (HasFlags(state, FResourceState::ResolveSrc)) r |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-    return r;
 }

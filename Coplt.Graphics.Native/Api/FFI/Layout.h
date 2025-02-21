@@ -122,6 +122,7 @@ namespace Coplt
     struct FMeshLayoutCreateOptions
     {
         Str8or16 Name{};
+        // Buffers 按顺序定义到 InputSlot，不允许随机隔空的 InputSlot
         FMeshBufferDefine* Buffers{};
         FMeshBufferElement* Elements{};
         u32 BufferCount{};
@@ -130,19 +131,19 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FMeshLayout, "8fe5121f-c2ce-46f5-aa14-f28595f35361", FGpuObject)
     {
-        virtual const FMeshBufferDefine* GetBuffers(u32* out_count) noexcept = 0;
-        virtual const FMeshBufferElement* GetElements(u32* out_count) noexcept = 0;
+        virtual const FMeshBufferDefine* GetBuffers(u32* out_count) const  noexcept = 0;
+        virtual const FMeshBufferElement* GetElements(u32* out_count) const  noexcept = 0;
 
-        virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) noexcept = 0;
+        virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const  noexcept = 0;
 
 #if FFI_SRC
-        std::span<const FMeshBufferDefine> GetBuffers() noexcept
+        std::span<const FMeshBufferDefine> GetBuffers() const noexcept
         {
             u32 count{};
             return std::span{GetBuffers(&count), static_cast<usize>(count)};
         }
 
-        std::span<const FMeshBufferElement> GetElements() noexcept
+        std::span<const FMeshBufferElement> GetElements() const  noexcept
         {
             u32 count{};
             return std::span{GetElements(&count), static_cast<usize>(count)};

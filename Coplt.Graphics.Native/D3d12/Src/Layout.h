@@ -131,9 +131,9 @@ namespace Coplt
 
         FResult SetName(const Str8or16& name) noexcept override;
 
-        const FMeshBufferDefine* GetBuffers(u32* out_count) noexcept override;
-        const FMeshBufferElement* GetElements(u32* out_count) noexcept override;
+        const FMeshBufferDefine* GetBuffers(u32* out_count) const noexcept override;
+        const FMeshBufferElement* GetElements(u32* out_count) const noexcept override;
 
-        const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) noexcept override;
+        const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const noexcept override;
     };
 }

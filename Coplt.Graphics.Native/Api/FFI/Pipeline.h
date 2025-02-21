@@ -33,5 +33,9 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(FGraphicsShaderPipeline, "32a67d44-132c-449b-972d-bad3413783e5", FShaderPipeline)
     {
         virtual const FGraphicsPipelineState* GetGraphicsState() noexcept = 0;
+        // 可空
+        virtual const FShaderInputLayout* GetInputLayout() noexcept = 0;
+        // 可空
+        virtual const FMeshLayout* GetMeshLayout() noexcept = 0;
     };
 }

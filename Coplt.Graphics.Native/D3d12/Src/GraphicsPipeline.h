@@ -37,5 +37,7 @@ namespace Coplt
         FShaderStageFlags GetStages() noexcept override;
 
         const FGraphicsPipelineState* GetGraphicsState() noexcept override;
+        const FShaderInputLayout* GetInputLayout() noexcept override;
+        const FMeshLayout* GetMeshLayout() noexcept override;
     };
 }

@@ -2337,7 +2337,6 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("Coplt::u8")]
     public enum FDispatchType : byte
     {
-        Auto,
         Compute,
         Mesh,
     }
@@ -2417,7 +2416,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L272_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L271_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
