@@ -589,6 +589,20 @@ namespace Coplt.Graphics.Native.D3d12
             return ((delegate* unmanaged[Thiscall]<FD3d12GraphicsShaderPipeline*, FGraphicsPipelineState*>)(lpVtbl[8]))((FD3d12GraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderInputLayout *")]
+        public FShaderInputLayout* GetInputLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GraphicsShaderPipeline*, FShaderInputLayout*>)(lpVtbl[9]))((FD3d12GraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FMeshLayout *")]
+        public FMeshLayout* GetMeshLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GraphicsShaderPipeline*, FMeshLayout*>)(lpVtbl[10]))((FD3d12GraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
         public interface Interface : FGraphicsShaderPipeline.Interface
         {
         }

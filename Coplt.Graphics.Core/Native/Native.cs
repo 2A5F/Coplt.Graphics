@@ -3028,10 +3028,30 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FGraphicsPipelineState*>)(lpVtbl[8]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderInputLayout *")]
+        public FShaderInputLayout* GetInputLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FShaderInputLayout*>)(lpVtbl[9]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FMeshLayout *")]
+        public FMeshLayout* GetMeshLayout()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FMeshLayout*>)(lpVtbl[10]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this));
+        }
+
         public interface Interface : FShaderPipeline.Interface
         {
             [return: NativeTypeName("const FGraphicsPipelineState *")]
             FGraphicsPipelineState* GetGraphicsState();
+
+            [return: NativeTypeName("const FShaderInputLayout *")]
+            FShaderInputLayout* GetInputLayout();
+
+            [return: NativeTypeName("const FMeshLayout *")]
+            FMeshLayout* GetMeshLayout();
         }
     }
 

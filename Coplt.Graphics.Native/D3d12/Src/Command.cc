@@ -131,7 +131,7 @@ void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
         state.Resource = GetResource(res);
         state.Type = res.Type;
         state.CurrentState = state.LastState = ToDx(res.CurrentState);
-        m_states.push_back(std::move(state));
+        m_states.push_back(state);
     }
 }
 
@@ -292,7 +292,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
                 ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
                 break;
             case FBufferRefType::Upload:
-                throw new WRuntimeException(
+                throw WRuntimeException(
                     fmt::format(L"The upload buffer cannot be used as a copy target at command {}", i)
                 );
             }
