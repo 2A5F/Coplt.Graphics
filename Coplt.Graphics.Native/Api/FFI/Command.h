@@ -19,6 +19,7 @@ namespace Coplt
         SetRenderTargets,
         SetViewportScissor,
         SetPipeline,
+        SetMeshBuffers,
         Draw,
         Dispatch,
         BufferCopy,
@@ -176,6 +177,32 @@ namespace Coplt
         FShaderPipeline* Pipeline{};
     };
 
+    struct FBufferRange
+    {
+        FResourceRef Buffer{};
+        u32 Offset{};
+        u32 Size{};
+    };
+
+    struct FVertexBufferRange : FBufferRange
+    {
+        u32 Index{};
+    };
+
+    struct FCommandSetMeshBuffers
+    {
+        FMeshLayout* MeshLayout{};
+        FGraphicsFormat IndexFormat{};
+        // 可选
+        FBufferRange IndexBuffer{};
+        // 0 .. 31
+        u32 VertexStartSlot{};
+        // 0 .. 31
+        u32 VertexBufferCount{};
+        // Payload 内的索引，类型为 FVertexBufferRange
+        u32 VertexBuffersIndex{};
+    };
+
     struct FCommandDraw
     {
         // 可选
@@ -251,6 +278,7 @@ namespace Coplt
             FCommandSetRenderTargets SetRenderTargets;
             FCommandSetViewportScissor SetViewportScissor;
             FCommandSetPipeline SetPipeline;
+            FCommandSetMeshBuffers SetMeshBuffers;
             FCommandDraw Draw;
             FCommandDispatch Dispatch;
             FCommandBufferCopy BufferCopy;

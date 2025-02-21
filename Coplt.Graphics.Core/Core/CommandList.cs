@@ -96,9 +96,9 @@ public sealed unsafe class CommandList
 
     #region Present
 
-    internal void Present(GpuOutput output, CommandFlags flags = CommandFlags.None)
+    internal void Present(GpuOutput Output, CommandFlags Flags = CommandFlags.None)
     {
-        var index = AddResource(output);
+        var index = AddResource(Output);
         var cmd = new FCommandPresent
         {
             Image = new(index),
@@ -107,11 +107,11 @@ public sealed unsafe class CommandList
             new()
             {
                 Type = FCommandType.Present,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 Present = cmd,
             }
         );
-        output.UnsafeChangeState(FResourceState.Present);
+        Output.UnsafeChangeState(FResourceState.Present);
     }
 
     #endregion
@@ -122,45 +122,45 @@ public sealed unsafe class CommandList
     /// 使用 (0, 0, 0, 1) 清空 Rtv
     /// </summary>
     public void ClearColor<Rtv>(
-        Rtv image, ReadOnlySpan<URect> rects = default,
-        CommandFlags flags = CommandFlags.None
-    ) where Rtv : IRtv => ClearColor(image, new(0, 0, 0, 1), rects, flags);
+        Rtv Image, ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
+    ) where Rtv : IRtv => ClearColor(Image, new(0, 0, 0, 1), Rects, Flags);
 
     /// <summary>
     /// 使用指定的颜色清空 Rtv
     /// </summary>
     public void ClearColor<Rtv>(
-        Rtv image, float4 color, ReadOnlySpan<URect> rects = default,
-        CommandFlags flags = CommandFlags.None
+        Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
     ) where Rtv : IRtv
     {
-        if (!image.TryRtv()) throw new ArgumentException($"Resource {image} cannot be used as Rtv");
+        if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
-        var index = AddResource(image);
+        var index = AddResource(Image);
 
         var cmd = new FCommandClearColor
         {
-            RectCount = (uint)rects.Length,
+            RectCount = (uint)Rects.Length,
             Image = new(index),
         };
-        cmd.Color[0] = color.r;
-        cmd.Color[1] = color.g;
-        cmd.Color[2] = color.b;
-        cmd.Color[3] = color.a;
-        if (rects.Length > 0)
+        cmd.Color[0] = Color.r;
+        cmd.Color[1] = Color.g;
+        cmd.Color[2] = Color.b;
+        cmd.Color[3] = Color.a;
+        if (Rects.Length > 0)
         {
             cmd.RectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(rects));
+            m_payload.AddRange(MemoryMarshal.AsBytes(Rects));
         }
         m_commands.Add(
             new()
             {
                 Type = FCommandType.ClearColor,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 ClearColor = cmd,
             }
         );
-        image.UnsafeChangeState(FResourceState.RenderTarget);
+        Image.UnsafeChangeState(FResourceState.RenderTarget);
     }
 
     #endregion
@@ -171,60 +171,64 @@ public sealed unsafe class CommandList
     /// 使用指定的 1 深度 和 0 模板 清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
-        Dsv image,
-        ReadOnlySpan<URect> rects = default, CommandFlags flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(image, 1, 0, DsvClear.All, rects, flags);
+        Dsv Image,
+        ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
+    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects, Flags);
 
     /// <summary>
     /// 使用指定的深度清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
-        Dsv image, float depth,
-        ReadOnlySpan<URect> rects = default, CommandFlags flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(image, depth, 0, DsvClear.Depth, rects, flags);
+        Dsv Image, float Depth,
+        ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
+    ) where Dsv : IDsv => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects, Flags);
 
     /// <summary>
     /// 使用指定的模板清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
-        Dsv image, byte stencil,
-        ReadOnlySpan<URect> rects = default, CommandFlags flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(image, 1, stencil, DsvClear.Stencil, rects, flags);
+        Dsv Image, byte Stencil,
+        ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
+    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects, Flags);
 
     /// <summary>
     /// 使用指定的深度和模板清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
-        Dsv image, float depth, byte stencil, DsvClear clear = DsvClear.All,
-        ReadOnlySpan<URect> rects = default, CommandFlags flags = CommandFlags.None
+        Dsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
+        ReadOnlySpan<URect> Rects = default,
+        CommandFlags Flags = CommandFlags.None
     ) where Dsv : IDsv
     {
-        if (!image.TryDsv()) throw new ArgumentException($"Resource {image} cannot be used as Dsv");
+        if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
-        var index = AddResource(image);
+        var index = AddResource(Image);
 
         var cmd = new FCommandClearDepthStencil
         {
-            RectCount = (uint)rects.Length,
+            RectCount = (uint)Rects.Length,
             Image = new(index),
-            Depth = depth,
-            Stencil = stencil,
-            Clear = (FDepthStencilClearFlags)clear,
+            Depth = Depth,
+            Stencil = Stencil,
+            Clear = (FDepthStencilClearFlags)Clear,
         };
-        if (rects.Length > 0)
+        if (Rects.Length > 0)
         {
             cmd.RectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(rects));
+            m_payload.AddRange(MemoryMarshal.AsBytes(Rects));
         }
         m_commands.Add(
             new()
             {
                 Type = FCommandType.ClearDepthStencil,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 ClearDepthStencil = cmd,
             }
         );
-        image.UnsafeChangeState(FResourceState.DepthWrite);
+        Image.UnsafeChangeState(FResourceState.DepthWrite);
     }
 
     #endregion
@@ -232,33 +236,33 @@ public sealed unsafe class CommandList
     #region SetRenderTargets
 
     public void SetRenderTargets(
-        ReadOnlySpan<IRtv> rtvs, IDsv? dsv = null,
-        bool auto_viewport_scissor = true,
-        CommandFlags flags = CommandFlags.None
+        ReadOnlySpan<IRtv> Rtvs, IDsv? Dsv = null,
+        bool AutoViewportScissor = true,
+        CommandFlags Flags = CommandFlags.None
     )
     {
-        if (rtvs.Length == 0 && dsv == null) throw new ArgumentException("No Rtvs or Dsv");
-        var num_rtv = Math.Min(rtvs.Length, 8);
+        if (Rtvs.Length == 0 && Dsv == null) throw new ArgumentException("No Rtvs or Dsv");
+        var num_rtv = Math.Min(Rtvs.Length, 8);
         for (var i = 0; i < num_rtv; i++)
         {
-            var rtv = rtvs[i];
+            var rtv = Rtvs[i];
             if (!rtv.TryRtv()) throw new ArgumentException($"Resource {rtv} cannot be used as Rtv");
         }
-        if (dsv != null && !dsv.TryDsv()) throw new ArgumentException($"Resource {dsv} cannot be used as Dsv");
+        if (Dsv != null && !Dsv.TryDsv()) throw new ArgumentException($"Resource {Dsv} cannot be used as Dsv");
 
         var cmd = new FCommandSetRenderTargets
         {
-            Dsv = dsv == null ? new(uint.MaxValue) : new(AddResource(dsv)),
+            Dsv = Dsv == null ? new(uint.MaxValue) : new(AddResource(Dsv)),
             NumRtv = (uint)num_rtv,
         };
-        var rt_size = dsv?.Size ?? rtvs[0].Size;
+        var rt_size = Dsv?.Size ?? Rtvs[0].Size;
         for (var i = 0; i < num_rtv; i++)
         {
-            cmd.Rtv[i] = new(AddResource(rtvs[i]));
-            if (!rtvs[i].Size.Equals(rt_size))
+            cmd.Rtv[i] = new(AddResource(Rtvs[i]));
+            if (!Rtvs[i].Size.Equals(rt_size))
                 throw new ArgumentException($"RenderTargets And DepthStencil must be the same size");
         }
-        if (auto_viewport_scissor)
+        if (AutoViewportScissor)
         {
             cmd.ViewportCount = 1;
             cmd.ScissorRectCount = 1;
@@ -281,15 +285,15 @@ public sealed unsafe class CommandList
             new()
             {
                 Type = FCommandType.SetRenderTargets,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 SetRenderTargets = cmd,
             }
         );
         for (var i = 0; i < num_rtv; i++)
         {
-            rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
+            Rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
         }
-        dsv?.UnsafeChangeState(FResourceState.DepthWrite);
+        Dsv?.UnsafeChangeState(FResourceState.DepthWrite);
     }
 
     #endregion
@@ -297,31 +301,31 @@ public sealed unsafe class CommandList
     #region SetViewportScissor
 
     public void SetViewportScissor(
-        ReadOnlySpan<UViewPort> viewports,
-        ReadOnlySpan<URect> scissors,
-        CommandFlags flags = CommandFlags.None
+        ReadOnlySpan<UViewPort> Viewports,
+        ReadOnlySpan<URect> Scissors,
+        CommandFlags Flags = CommandFlags.None
     )
     {
         var cmd = new FCommandSetViewportScissor
         {
-            ViewportCount = (uint)viewports.Length,
-            ScissorRectCount = (uint)scissors.Length,
+            ViewportCount = (uint)Viewports.Length,
+            ScissorRectCount = (uint)Scissors.Length,
         };
-        if (viewports.Length > 0)
+        if (Viewports.Length > 0)
         {
             cmd.ViewportIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(viewports));
+            m_payload.AddRange(MemoryMarshal.AsBytes(Viewports));
         }
-        if (scissors.Length > 0)
+        if (Scissors.Length > 0)
         {
             cmd.ScissorRectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(scissors));
+            m_payload.AddRange(MemoryMarshal.AsBytes(Scissors));
         }
         m_commands.Add(
             new()
             {
                 Type = FCommandType.SetViewportScissor,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 SetViewportScissor = cmd,
             }
         );
@@ -331,19 +335,94 @@ public sealed unsafe class CommandList
 
     #region SetPipeline
 
-    public void SetPipeline(ShaderPipeline pipeline, CommandFlags flags = CommandFlags.None)
+    public void SetPipeline(ShaderPipeline Pipeline, CommandFlags Flags = CommandFlags.None)
     {
-        AddObject(pipeline);
+        AddObject(Pipeline);
         var cmd = new FCommandSetPipeline
         {
-            Pipeline = pipeline.m_ptr,
+            Pipeline = Pipeline.m_ptr,
         };
         m_commands.Add(
             new()
             {
                 Type = FCommandType.SetPipeline,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 SetPipeline = cmd,
+            }
+        );
+    }
+
+    #endregion
+
+    #region SetMeshBuffers
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers,
+        CommandFlags Flags = CommandFlags.None
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, VertexStartSlot, VertexBuffers, Flags);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers,
+        CommandFlags Flags = CommandFlags.None
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, 0, VertexBuffers, Flags);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        FGraphicsFormat IndexFormat,
+        BufferRange<IIbv>? IndexBuffer,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers,
+        CommandFlags Flags = CommandFlags.None
+    )
+    {
+        AddObject(MeshLayout);
+        var cmd = new FCommandSetMeshBuffers
+        {
+            MeshLayout = MeshLayout.m_ptr,
+            IndexFormat = IndexFormat,
+            IndexBuffer = IndexBuffer is { } index_buffer
+                ? new()
+                {
+                    Buffer = new(AddResource(index_buffer.Buffer)),
+                    Offset = index_buffer.Offset,
+                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.LongSize : index_buffer.Size,
+                }
+                : new()
+                {
+                    Buffer = new(uint.MaxValue),
+                },
+            VertexStartSlot = VertexStartSlot,
+            VertexBufferCount = (uint)VertexBuffers.Length,
+        };
+        if (VertexBuffers.Length > 0)
+        {
+            cmd.VertexBuffersIndex = (uint)m_payload.Count;
+            Span<FVertexBufferRange> vbs = stackalloc FVertexBufferRange[VertexBuffers.Length];
+            for (var i = 0; i < VertexBuffers.Length; i++)
+            {
+                var buffer = VertexBuffers[i];
+                vbs[i] = new()
+                {
+                    Base =
+                    {
+                        Buffer = new(AddResource(buffer.Buffer)),
+                        Offset = buffer.Offset,
+                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.LongSize : buffer.Size,
+                    },
+                    Index = buffer.Index,
+                };
+            }
+            m_payload.AddRange(MemoryMarshal.AsBytes(vbs));
+        }
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.SetMeshBuffers,
+                Flags = (FCommandFlags)Flags,
+                SetMeshBuffers = cmd,
             }
         );
     }
@@ -353,60 +432,59 @@ public sealed unsafe class CommandList
     #region Draw
 
     public void Draw(
-        uint vertex_count, uint instance_count = 1,
-        uint first_vertex = 0, uint first_instance = 0,
-        CommandFlags flags = CommandFlags.None
-    ) => Draw(null, false, vertex_count, instance_count, first_vertex, first_instance, 0, flags);
+        uint VertexCount, uint InstanceCount = 1,
+        uint FirstVertex = 0, uint FirstInstance = 0,
+        CommandFlags Flags = CommandFlags.None
+    ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Flags);
 
     public void Draw(
-        ShaderPipeline? pipeline,
-        uint vertex_count, uint instance_count = 1,
-        uint first_vertex = 0, uint first_instance = 0,
-        CommandFlags flags = CommandFlags.None
-    ) => Draw(pipeline, false, vertex_count, instance_count, first_vertex, first_instance, 0, flags);
+        ShaderPipeline? Pipeline,
+        uint VertexCount, uint InstanceCount = 1,
+        uint FirstVertex = 0, uint FirstInstance = 0,
+        CommandFlags Flags = CommandFlags.None
+    ) => Draw(Pipeline, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Flags);
 
     public void DrawIndexed(
-        uint index_count, uint instance_count = 1,
-        uint first_index = 0, uint first_instance = 0, uint vertex_offset = 0,
-        CommandFlags flags = CommandFlags.None
-    ) => Draw(null, true, index_count, instance_count, first_index, first_instance, vertex_offset, flags);
+        uint IndexCount, uint InstanceCount = 1,
+        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        CommandFlags Flags = CommandFlags.None
+    ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Flags);
 
     public void DrawIndexed(
-        ShaderPipeline? pipeline,
-        uint index_count, uint instance_count = 1,
-        uint first_index = 0, uint first_instance = 0, uint vertex_offset = 0,
-        CommandFlags flags = CommandFlags.None
-    ) => Draw(pipeline, true, index_count, instance_count, first_index, first_instance, vertex_offset, flags);
+        ShaderPipeline? Pipeline,
+        uint IndexCount, uint InstanceCount = 1,
+        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        CommandFlags Flags = CommandFlags.None
+    ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Flags);
 
     public void Draw(
-        ShaderPipeline? pipeline, bool indexed,
-        uint vertex_or_index_count, uint instance_count = 1,
-        uint first_vertex_or_index = 0, uint first_instance = 0, uint vertex_offset = 0,
-        CommandFlags flags = CommandFlags.None
+        ShaderPipeline? Pipeline, bool Indexed,
+        uint VertexOrIndexCount, uint InstanceCount = 1,
+        uint FirstVertexOrIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        CommandFlags Flags = CommandFlags.None
     )
     {
-        if (pipeline != null) AddObject(pipeline);
-        if (pipeline != null)
+        if (Pipeline != null)
         {
-            if (!pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
                 throw new ArgumentException("Non Vertex pipelines cannot use Draw");
-            AddObject(pipeline);
+            AddObject(Pipeline);
         }
         var cmd = new FCommandDraw
         {
-            Pipeline = pipeline == null ? null : pipeline.m_ptr,
-            VertexOrIndexCount = vertex_or_index_count,
-            InstanceCount = instance_count,
-            FirstVertexOrIndex = first_vertex_or_index,
-            FirstInstance = first_instance,
-            VertexOffset = vertex_offset,
-            Indexed = indexed,
+            Pipeline = Pipeline == null ? null : Pipeline.m_ptr,
+            VertexOrIndexCount = VertexOrIndexCount,
+            InstanceCount = InstanceCount,
+            FirstVertexOrIndex = FirstVertexOrIndex,
+            FirstInstance = FirstInstance,
+            VertexOffset = VertexOffset,
+            Indexed = Indexed,
         };
         m_commands.Add(
             new()
             {
                 Type = FCommandType.Draw,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 Draw = cmd,
             }
         );
@@ -418,45 +496,45 @@ public sealed unsafe class CommandList
 
     public void Dispatch(
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags flags = CommandFlags.None
+        CommandFlags Flags = CommandFlags.None
     ) => Dispatch(null, DispatchType.Compute);
 
     public void DispatchMesh(
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags flags = CommandFlags.None
+        CommandFlags Flags = CommandFlags.None
     ) => Dispatch(null, DispatchType.Mesh);
 
     public void Dispatch(
-        ShaderPipeline pipeline,
+        ShaderPipeline Pipeline,
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags flags = CommandFlags.None
-    ) => Dispatch(pipeline, DispatchType.Auto);
+        CommandFlags Flags = CommandFlags.None
+    ) => Dispatch(Pipeline, DispatchType.Auto);
 
     public void Dispatch(
-        ShaderPipeline? pipeline, DispatchType type,
+        ShaderPipeline? Pipeline, DispatchType Type,
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags flags = CommandFlags.None
+        CommandFlags Flags = CommandFlags.None
     )
     {
-        if (pipeline != null)
+        if (Pipeline != null)
         {
-            if (!pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
+            if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
                 throw new ArgumentException("Non Mesh and Compute pipelines cannot use Dispatch");
-            AddObject(pipeline);
+            AddObject(Pipeline);
         }
         var cmd = new FCommandDispatch
         {
-            Pipeline = pipeline == null ? null : pipeline.m_ptr,
+            Pipeline = Pipeline == null ? null : Pipeline.m_ptr,
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,
-            Type = (FDispatchType)type,
+            Type = (FDispatchType)Type,
         };
         m_commands.Add(
             new()
             {
                 Type = FCommandType.Dispatch,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 Dispatch = cmd,
             }
         );
@@ -472,7 +550,7 @@ public sealed unsafe class CommandList
         ulong DstOffset = 0,
         ulong SrcOffset = 0,
         ulong Size = ulong.MaxValue,
-        CommandFlags flags = CommandFlags.None
+        CommandFlags Flags = CommandFlags.None
     )
     {
         if (Size != ulong.MaxValue)
@@ -497,7 +575,7 @@ public sealed unsafe class CommandList
             new()
             {
                 Type = FCommandType.BufferCopy,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 BufferCopy = cmd,
             }
         );
@@ -513,14 +591,14 @@ public sealed unsafe class CommandList
         GpuBuffer Dst,
         ReadOnlySpan<T> Data,
         ulong DstOffset = 0,
-        CommandFlags flags = CommandFlags.None
-    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset, flags);
+        CommandFlags Flags = CommandFlags.None
+    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset, Flags);
 
     public void Upload(
         GpuBuffer Dst,
         ReadOnlySpan<byte> Data,
         ulong DstOffset = 0,
-        CommandFlags flags = CommandFlags.None
+        CommandFlags Flags = CommandFlags.None
     )
     {
         if (Data.Length == 0) return;
@@ -541,7 +619,7 @@ public sealed unsafe class CommandList
             new()
             {
                 Type = FCommandType.BufferCopy,
-                Flags = (FCommandFlags)flags,
+                Flags = (FCommandFlags)Flags,
                 BufferCopy = cmd,
             }
         );

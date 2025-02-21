@@ -3,44 +3,51 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
-public record struct MeshBufferElement
+public record struct MeshBufferElement(
+    uint SlotId,
+    GraphicsFormat Format,
+    uint BufferIndex = 0,
+    uint SlotIndex = 0,
+    uint Offset = 0,
+    uint InstanceRepeat = 0
+)
 {
     /// <summary>
     /// 属于 mesh 中的第几个 buffer
     /// </summary>
-    public uint BufferIndex;
+    public uint BufferIndex = BufferIndex;
     /// <summary>
     /// 与 <see cref="ShaderInputLayoutElement"/> 对应的 Id
     /// </summary>
-    public uint SlotId;
+    public uint SlotId = SlotId;
     /// <summary>
     /// 是 Slot 中第几个项，对应 dx 的 SemanticIndex
     /// </summary>
-    public uint SlotIndex;
+    public uint SlotIndex = SlotIndex;
     /// <summary>
     /// 元素格式
     /// </summary>
-    public GraphicsFormat Format;
+    public GraphicsFormat Format = Format;
     /// <summary>
     /// 元素在间隔中的偏移
     /// </summary>
-    public uint Offset;
+    public uint Offset = Offset;
     /// <summary>
     /// 每次实例数据可重复几次，对应 dx 的 InstanceDataStepRate；对于实例(<see cref="MeshBufferElementRate.Instance"/>) 0 相当于 1；仅 dx 支持
     /// </summary>
-    public uint InstanceRepeat;
+    public uint InstanceRepeat = InstanceRepeat;
 }
 
-public record struct MeshBufferDefine
+public record struct MeshBufferDefine(uint Stride, MeshBufferElementRate Rate = MeshBufferElementRate.Vertex)
 {
     /// <summary>
     /// 元素间隔
     /// </summary>
-    public uint Stride;
+    public uint Stride = Stride;
     /// <summary>
     /// 元素频率，指示是按顶点还是按实例
     /// </summary>
-    public MeshBufferElementRate Rate;
+    public MeshBufferElementRate Rate = Rate;
 }
 
 /// <summary>

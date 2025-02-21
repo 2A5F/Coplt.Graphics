@@ -10,7 +10,9 @@
 #include "../FFI/Output.h"
 #include "../FFI/Pipeline.h"
 #include "../FFI/Resource.h"
+#include "../Include/GraphicsFormat.h"
 #include "../Include/PipelineState.h"
+#include "../ThirdParty/DirectXTK12/Src/d3dx12.h"
 
 using namespace Coplt;
 
@@ -123,6 +125,8 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             goto ClearDepthStencil;
         case FCommandType::SetRenderTargets:
             goto SetRenderTargets;
+        case FCommandType::SetMeshBuffers:
+            goto SetMeshBuffers;
         case FCommandType::BufferCopy:
             goto BufferCopy;
         }
@@ -157,6 +161,18 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             for (u32 n = 0; n < std::min(cmd.NumRtv, 8u); ++n)
             {
                 context.ReqState(cmd.Rtv[n], FResourceState::RenderTarget);
+            }
+            continue;
+        }
+    SetMeshBuffers:
+        {
+            const auto& cmd = item.SetMeshBuffers;
+            if (!cmd.IndexBuffer.Buffer.IsEmpty())
+                context.ReqState(cmd.IndexBuffer.Buffer, FResourceState::IndexBuffer);
+            const auto vbs = reinterpret_cast<const FVertexBufferRange*>(&submit.Payload[cmd.VertexBuffersIndex]);
+            for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
+            {
+                context.ReqState(vbs[n].Buffer, FResourceState::VertexBuffer);
             }
             continue;
         }
@@ -274,6 +290,8 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                 goto SetViewportScissor;
             case FCommandType::SetPipeline:
                 goto SetPipeline;
+            case FCommandType::SetMeshBuffers:
+                goto SetMeshBuffers;
             case FCommandType::Draw:
                 goto Draw;
             case FCommandType::Dispatch:
@@ -340,6 +358,36 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
             {
                 const auto& cmd = item.SetPipeline;
                 SetPipeline(context, cmd_pack, cmd.Pipeline, i);
+                continue;
+            }
+        SetMeshBuffers:
+            {
+                const auto& cmd = item.SetMeshBuffers;
+                const auto defs = cmd.MeshLayout->GetBuffers();
+                const auto vbs = reinterpret_cast<const FVertexBufferRange*>(&submit.Payload[cmd.VertexBuffersIndex]);
+                if (!cmd.IndexBuffer.Buffer.IsEmpty())
+                {
+                    const auto resource = GetResource(cmd.IndexBuffer.Buffer.Get(submit));
+                    D3D12_INDEX_BUFFER_VIEW view{};
+                    view.BufferLocation = resource->GetGPUVirtualAddress() + cmd.IndexBuffer.Offset;
+                    view.SizeInBytes = cmd.IndexBuffer.Size;
+                    view.Format = Coplt::ToDx(cmd.IndexFormat);
+                    cmd_pack->IASetIndexBuffer(&view);
+                }
+                {
+                    D3D12_VERTEX_BUFFER_VIEW views[32]{};
+                    for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
+                    {
+                        auto& range = vbs[n];
+                        auto& view = views[n];
+                        const auto& def = defs[range.Index];
+                        const auto resource = GetResource(range.Buffer.Get(submit));
+                        view.BufferLocation = resource->GetGPUVirtualAddress() + range.Offset;
+                        view.SizeInBytes = range.Size;
+                        view.StrideInBytes = def.Stride;
+                    }
+                    cmd_pack->IASetVertexBuffers(cmd.VertexStartSlot, cmd.VertexBufferCount, views);
+                }
                 continue;
             }
         Draw:

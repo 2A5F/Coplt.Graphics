@@ -6,18 +6,20 @@ namespace Coplt.Graphics.Core;
 
 public record struct ShaderInputLayoutElement()
 {
-    public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue) : this()
+    public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue, uint? SlotId = new uint()) : this()
     {
         this.SlotName = SlotName;
         this.SlotIndex = SlotIndex;
         this.Location = Location;
+        this.SlotId = SlotId;
     }
 
-    public ShaderInputLayoutElement(String8 SlotName8, uint SlotIndex = 0, uint Location = uint.MaxValue) : this()
+    public ShaderInputLayoutElement(String8 SlotName8, uint SlotIndex = 0, uint Location = uint.MaxValue, uint? SlotId = new uint()) : this()
     {
         this.SlotName8 = SlotName8;
         this.SlotIndex = SlotIndex;
         this.Location = Location;
+        this.SlotId = SlotId;
     }
 
     public static implicit operator ShaderInputLayoutElement(string SlotName) => new(SlotName);

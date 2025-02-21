@@ -62,8 +62,8 @@
     </Target>
 
     <Target Name="BuildShader" AfterTargets="Build">
-        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T vs_6_6 -E Vertex -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloTriangle.Vertex.dxil ./Shaders/HelloTriangle.hlsl"/>
-        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T ps_6_6 -E Pixel -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloTriangle.Pixel.dxil ./Shaders/HelloTriangle.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T vs_6_6 -E Vertex -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloCube.Vertex.dxil ./Shaders/HelloCube.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T ps_6_6 -E Pixel -Od -Zi -Qembed_debug -Fo $(OutDir)/HelloCube.Pixel.dxil ./Shaders/HelloCube.hlsl"/>
     </Target>
 
     <ItemGroup>

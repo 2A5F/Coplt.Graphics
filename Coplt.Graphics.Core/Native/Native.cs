@@ -2039,6 +2039,7 @@ namespace Coplt.Graphics.Native
         SetRenderTargets,
         SetViewportScissor,
         SetPipeline,
+        SetMeshBuffers,
         Draw,
         Dispatch,
         BufferCopy,
@@ -2061,7 +2062,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L44_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L45_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -2264,6 +2265,48 @@ namespace Coplt.Graphics.Native
         public FShaderPipeline* Pipeline;
     }
 
+    public partial struct FBufferRange
+    {
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Buffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Offset;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+    }
+
+    [NativeTypeName("struct FVertexBufferRange : Coplt::FBufferRange")]
+    public partial struct FVertexBufferRange
+    {
+        public FBufferRange Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
+    public unsafe partial struct FCommandSetMeshBuffers
+    {
+        [NativeTypeName("Coplt::FMeshLayout *")]
+        public FMeshLayout* MeshLayout;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat IndexFormat;
+
+        [NativeTypeName("Coplt::FBufferRange")]
+        public FBufferRange IndexBuffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexStartSlot;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBufferCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBuffersIndex;
+    }
+
     public unsafe partial struct FCommandDraw
     {
         [NativeTypeName("Coplt::FShaderPipeline *")]
@@ -2371,7 +2414,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L245_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L272_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2445,6 +2488,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCommandSetMeshBuffers SetMeshBuffers
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetMeshBuffers;
+            }
+        }
+
+        [UnscopedRef]
         public ref FCommandDraw Draw
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2514,6 +2567,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetPipeline")]
             public FCommandSetPipeline SetPipeline;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetMeshBuffers")]
+            public FCommandSetMeshBuffers SetMeshBuffers;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandDraw")]
