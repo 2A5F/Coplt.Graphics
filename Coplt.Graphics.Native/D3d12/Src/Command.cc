@@ -20,93 +20,100 @@ D3d12CommandInterpreter::D3d12CommandInterpreter(D3d12GpuQueue* queue) : m_queue
 {
 }
 
-D3d12CommandInterpreter::StatePair::StatePair(
-    FResourceState StartState, FResourceState FinalState, FResourceRefType Type
-) : StartState(StartState), FinalState(FinalState), Type(Type)
+void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 {
+    Init();
+    InitStates(submit);
+    CollectBarrier(submit);
+    Translate(submit);
+    Reset();
 }
 
-D3d12CommandInterpreter::InterpreterContext::InterpreterContext(const FCommandSubmit& submit) : m_submit(&submit)
+void D3d12CommandInterpreter::CmdNext()
 {
-    m_items.reserve(submit.Count + (submit.Count >> 1));
-    m_current_barrier = m_items.size();
-    m_items.push_back(std::make_unique<CommandBarrierPart>());
-    m_current_command = m_items.size();
-    m_items.push_back(CommandItemPart{.index = 0, .count = 0});
+    m_items.back().CommandCount++;
 }
 
-D3d12CommandInterpreter::CommandBarrierPart& D3d12CommandInterpreter::InterpreterContext::GetCurrentBarrier() const
+void D3d12CommandInterpreter::ReqState(const u32 CmdIndex, const FResourceRef ResSrc, const FResourceState ReqState)
 {
-    return *std::get<std::unique_ptr<CommandBarrierPart>>(m_items[m_current_barrier]);
-}
-
-D3d12CommandInterpreter::CommandBarrierPart& D3d12CommandInterpreter::InterpreterContext::AddBarrier()
-{
-    m_current_barrier = m_items.size();
-    m_items.push_back(std::make_unique<CommandBarrierPart>());
-
-    const auto [index, count] = GetCurrentCommand();
-    m_current_command = m_items.size();
-    m_items.push_back(CommandItemPart{.index = index + count, .count = 0});
-
-    return GetCurrentBarrier();
-}
-
-D3d12CommandInterpreter::CommandItemPart& D3d12CommandInterpreter::InterpreterContext::GetCurrentCommand()
-{
-    return std::get<CommandItemPart>(m_items[m_current_command]);
-}
-
-void D3d12CommandInterpreter::InterpreterContext::ReqState(FResourceRef res_src, const FResourceState req_state)
-{
-    auto& res = m_submit->Resources[res_src.ResourceIndex];
-    const auto res_obj = res.GetObjectPtr();
-    if (res_obj == nullptr) throw WRuntimeException(fmt::format(L"Resource is null at {}", res_src.ResourceIndex));
-    const auto new_state = ChangeState(res.CurrentState, req_state);
-    if (new_state == res.CurrentState) return;
-    auto barrier = &GetCurrentBarrier();
-    bool exists{};
-    auto state_pair = barrier->m_states.GetOrAdd(res_obj, exists, [&](auto& p)
+    auto& state = m_states[ResSrc.ResourceIndex];
+    const auto old_state = state.CurrentState;
+    const auto new_state = ChangeState(old_state, ReqState);
+    if (new_state == old_state) return;
+    const auto has_barrier = state.CurrentBarrierIndex != COPLT_U32_MAX;
+    if (!has_barrier) AddBarrier(state, ResSrc);
+    else if (!IsCompatible(old_state, new_state))
     {
-        p = StatePair(res.CurrentState, new_state, res.Type);
-        res.CurrentState = new_state;
-    });
-    if (exists)
+        BarNext();
+        AddBarrier(state, ResSrc);
+    }
+    state.CurrentState = new_state;
+}
+
+void D3d12CommandInterpreter::AddBarrier(ResState& state, const FResourceRef ResSrc)
+{
+    state.CurrentBarrierIndex = m_barriers.size();
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = state.Resource;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = ToDx(state.LastState);
+    m_barriers.push_back(barrier);
+    m_barrier_resources.push_back(ResSrc.ResourceIndex);
+}
+
+void D3d12CommandInterpreter::BarNext()
+{
+    for (u32 i = m_last_barrier_index; i < m_barriers.size(); ++i)
     {
-        if (IsCompatible(state_pair.FinalState, new_state))
-        {
-            state_pair.FinalState |= new_state;
-            res.CurrentState = state_pair.FinalState;
-        }
-        else
-        {
-            barrier = &AddBarrier();
-            barrier->m_states.TryAdd(
-                res_obj, StatePair(res.CurrentState, new_state, res.Type)
-            );
-            res.CurrentState = new_state;
-        }
+        auto& state = m_states[m_barrier_resources[i]];
+        auto& barrier = m_barriers[i];
+        barrier.Transition.StateAfter = ToDx(state.CurrentState);
+        state.LastState = state.CurrentState;
+    }
+    auto& item = m_items.back();
+    const auto size = m_barriers.size();
+    const auto count = size - m_last_barrier_index;
+    item.BarrierCount = count;
+    m_last_barrier_index = size;
+    m_items.push_back({.CommandIndex = item.CommandIndex + item.CommandCount, .BarrierIndex = m_last_barrier_index});
+}
+
+void D3d12CommandInterpreter::Init()
+{
+    m_items.push_back({});
+}
+
+void D3d12CommandInterpreter::Reset()
+{
+    m_current_pipeline = nullptr;
+    m_states.clear();
+    m_barriers.clear();
+    m_barrier_resources.clear();
+    m_items.clear();
+    m_last_barrier_index = 0;
+}
+
+void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
+{
+    m_states.reserve(submit.ResourceCount);
+    for (u32 i = 0; i < submit.ResourceCount; ++i)
+    {
+        const auto& res = submit.Resources[i];
+        if (res.GetObjectPtr() == nullptr) throw WRuntimeException(fmt::format(L"Resource is null at {}", i));
+        ResState state{};
+        state.Resource = GetResource(res);
+        state.Type = res.Type;
+        state.CurrentState = state.LastState = res.CurrentState;
+        m_states.push_back(std::move(state));
     }
 }
 
-void D3d12CommandInterpreter::InterpreterContext::CmdNext()
+void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
 {
-    GetCurrentCommand().count++;
-}
-
-void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit) const
-{
-    InterpreterContext context(submit);
-
-    CollectBarrier(context, submit);
-    Interpret(context, submit);
-}
-
-void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const FCommandSubmit& submit)
-{
-    for (u32 i = 0; i < submit.Count; ++i, context.CmdNext())
+    for (u32 i = 0; i < submit.CommandCount; ++i, CmdNext())
     {
-        const auto& item = submit.Items[i];
+        const auto& item = submit.Commands[i];
 
         switch (item.Type)
         {
@@ -139,28 +146,28 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
     Present:
         {
             const auto& cmd = item.Present;
-            context.ReqState(cmd.Image, FResourceState::Present);
+            ReqState(i, cmd.Image, FResourceState::Present);
             continue;
         }
     ClearColor:
         {
             const auto& cmd = item.ClearColor;
-            context.ReqState(cmd.Image, FResourceState::RenderTarget);
+            ReqState(i, cmd.Image, FResourceState::RenderTarget);
             continue;
         }
     ClearDepthStencil:
         {
             const auto& cmd = item.ClearDepthStencil;
-            context.ReqState(cmd.Image, FResourceState::DepthWrite);
+            ReqState(i, cmd.Image, FResourceState::DepthWrite);
             continue;
         }
     SetRenderTargets:
         {
             const auto& cmd = item.SetRenderTargets;
-            if (!cmd.Dsv.IsEmpty()) context.ReqState(cmd.Dsv, FResourceState::DepthWrite);
+            if (!cmd.Dsv.IsEmpty()) ReqState(i, cmd.Dsv, FResourceState::DepthWrite);
             for (u32 n = 0; n < std::min(cmd.NumRtv, 8u); ++n)
             {
-                context.ReqState(cmd.Rtv[n], FResourceState::RenderTarget);
+                ReqState(i, cmd.Rtv[n], FResourceState::RenderTarget);
             }
             continue;
         }
@@ -168,11 +175,11 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
         {
             const auto& cmd = item.SetMeshBuffers;
             if (!cmd.IndexBuffer.Buffer.IsEmpty())
-                context.ReqState(cmd.IndexBuffer.Buffer, FResourceState::IndexBuffer);
+                ReqState(i, cmd.IndexBuffer.Buffer, FResourceState::IndexBuffer);
             const auto vbs = reinterpret_cast<const FVertexBufferRange*>(&submit.Payload[cmd.VertexBuffersIndex]);
             for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
             {
-                context.ReqState(vbs[n].Buffer, FResourceState::VertexBuffer);
+                ReqState(i, vbs[n].Buffer, FResourceState::VertexBuffer);
             }
             continue;
         }
@@ -182,7 +189,7 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             switch (cmd.SrcType)
             {
             case FBufferRefType::Buffer:
-                context.ReqState(cmd.Src.Buffer, FResourceState::CopySrc);
+                ReqState(i, cmd.Src.Buffer, FResourceState::CopySrc);
                 break;
             case FBufferRefType::Upload:
                 // 上传缓冲区状态永远在 GenericRead 不需要屏障
@@ -191,7 +198,7 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             switch (cmd.DstType)
             {
             case FBufferRefType::Buffer:
-                context.ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
+                ReqState(i, cmd.Dst.Buffer, FResourceState::CopyDst);
                 break;
             case FBufferRefType::Upload:
                 throw new WRuntimeException(
@@ -201,77 +208,22 @@ void D3d12CommandInterpreter::CollectBarrier(InterpreterContext& context, const 
             continue;
         }
     }
+    BarNext();
 }
 
-void SetPipeline(
-    D3d12CommandInterpreter::InterpreterContext& context, const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i
-)
-{
-    if (pipeline == context.m_current_pipeline.get()) return;
-    context.m_current_pipeline = Rc<FShaderPipeline>::UnsafeClone(pipeline);
-    const auto ps = pipeline->QueryInterface<FD3d12PipelineState>();
-    if (!ps)
-        throw WRuntimeException(
-            fmt::format(
-                L"Pipeline({:#x}) comes from different backends at cmd {}",
-                reinterpret_cast<size_t>(pipeline), i
-            )
-        );
-    const auto stages = pipeline->GetStages();
-    const auto layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
-    if (!layout)
-        throw WRuntimeException(L"Shader layout from different backends");
-    if (HasFlags(stages, FShaderStageFlags::Compute))
-    {
-        cmd_pack->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
-    }
-    else if (HasFlags(stages, FShaderStageFlags::Pixel))
-    {
-        const auto gp = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
-        if (!gp)
-            throw WRuntimeException(L"Pipeline from different backends or pipeline not a graphics pipeline");
-        const auto& states = gp->GetGraphicsState();
-        cmd_pack->IASetPrimitiveTopology(ToDx(states->Topology));
-        cmd_pack->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
-    }
-    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(ps->GetPipelineStatePtr()));
-}
-
-void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FCommandSubmit& submit) const
+void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
 {
     const auto& cmd_pack = m_queue->m_cmd;
-    for (const auto& cmd_item : context.m_items)
+    for (const auto& cmd_item : m_items)
     {
-        if (std::holds_alternative<std::unique_ptr<CommandBarrierPart>>(cmd_item))
+        if (cmd_item.BarrierCount > 0)
         {
-            const auto& barrier_map = std::get<std::unique_ptr<CommandBarrierPart>>(cmd_item)->m_states;
-
-            std::vector<D3D12_RESOURCE_BARRIER> barriers{};
-            barriers.reserve(barrier_map.Count());
-
-            for (const auto& [obj, pair] : barrier_map)
-            {
-                if (pair.StartState == pair.FinalState) continue;
-                D3D12_RESOURCE_BARRIER barrier{};
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = GetResource(obj, pair.Type);
-                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                barrier.Transition.StateBefore = ToDx(pair.StartState);
-                barrier.Transition.StateAfter = ToDx(pair.FinalState);
-                barriers.push_back(barrier);
-            }
-
-            if (!barriers.empty())
-            {
-                cmd_pack->ResourceBarrier(barriers.size(), barriers.data());
-            }
-            continue;
+            cmd_pack->ResourceBarrier(cmd_item.BarrierCount, m_barriers.data() + cmd_item.BarrierIndex);
         }
 
-        const auto [cmd_index, cmd_count] = std::get<CommandItemPart>(cmd_item);
-        for (u32 i = 0; i < cmd_count; ++i)
+        for (u32 i = 0; i < cmd_item.CommandCount; ++i)
         {
-            const auto& item = submit.Items[cmd_index + i];
+            const auto& item = submit.Commands[cmd_item.CommandIndex + i];
 
             switch (item.Type)
             {
@@ -357,7 +309,7 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
         SetPipeline:
             {
                 const auto& cmd = item.SetPipeline;
-                SetPipeline(context, cmd_pack, cmd.Pipeline, i);
+                SetPipeline(cmd_pack, cmd.Pipeline, i);
                 continue;
             }
         SetMeshBuffers:
@@ -393,9 +345,9 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
         Draw:
             {
                 const auto& cmd = item.Draw;
-                if (cmd.Pipeline != nullptr) SetPipeline(context, cmd_pack, cmd.Pipeline, i);
-                if (context.m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
-                const auto stages = context.m_current_pipeline->GetStages();
+                if (cmd.Pipeline != nullptr) SetPipeline(cmd_pack, cmd.Pipeline, i);
+                if (m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
+                const auto stages = m_current_pipeline->GetStages();
                 if (!HasFlags(stages, FShaderStageFlags::Vertex))
                     throw WRuntimeException(L"Non Vertex pipelines cannot use Draw");
                 if (cmd.Indexed)
@@ -417,13 +369,13 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
         Dispatch:
             {
                 const auto& cmd = item.Dispatch;
-                if (cmd.Pipeline != nullptr) SetPipeline(context, cmd_pack, cmd.Pipeline, i);
+                if (cmd.Pipeline != nullptr) SetPipeline(cmd_pack, cmd.Pipeline, i);
                 FShaderStageFlags stages{};
                 switch (cmd.Type)
                 {
                 case FDispatchType::Auto:
-                    if (context.m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
-                    stages = context.m_current_pipeline->GetStages();
+                    if (m_current_pipeline == nullptr) throw WRuntimeException(L"Pipeline not set");
+                    stages = m_current_pipeline->GetStages();
                     if (HasFlags(stages, FShaderStageFlags::Compute))
                         goto Dispatch_Compute;
                     if (HasFlags(stages, FShaderStageFlags::Mesh))
@@ -439,6 +391,9 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
                         throw WRuntimeException(L"Mesh Shader is not supported on this device");
                     cmd_pack.m_list7->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
                     break;
+                default:
+                    throw WRuntimeException(fmt::format(L"Unknown dispatch type {} at command {}",
+                                                        static_cast<u32>(cmd.Type), i));
                 }
                 continue;
             }
@@ -482,6 +437,40 @@ void D3d12CommandInterpreter::Interpret(InterpreterContext& context, const FComm
             }
         }
     }
+}
+
+void D3d12CommandInterpreter::SetPipeline(
+    const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i
+)
+{
+    if (pipeline == m_current_pipeline) return;
+    m_current_pipeline = pipeline;
+    const auto ps = pipeline->QueryInterface<FD3d12PipelineState>();
+    if (!ps)
+        throw WRuntimeException(
+            fmt::format(
+                L"Pipeline({:#x}) comes from different backends at cmd {}",
+                reinterpret_cast<size_t>(pipeline), i
+            )
+        );
+    const auto stages = pipeline->GetStages();
+    const auto layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
+    if (!layout)
+        throw WRuntimeException(L"Shader layout from different backends");
+    if (HasFlags(stages, FShaderStageFlags::Compute))
+    {
+        cmd_pack->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
+    }
+    else if (HasFlags(stages, FShaderStageFlags::Pixel))
+    {
+        const auto gp = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
+        if (!gp)
+            throw WRuntimeException(L"Pipeline from different backends or pipeline not a graphics pipeline");
+        const auto& states = gp->GetGraphicsState();
+        cmd_pack->IASetPrimitiveTopology(Coplt::ToDx(states->Topology));
+        cmd_pack->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(layout->GetRootSignaturePtr()));
+    }
+    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(ps->GetPipelineStatePtr()));
 }
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)

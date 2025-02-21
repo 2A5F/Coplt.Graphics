@@ -289,14 +289,16 @@ namespace Coplt
 
     struct FCommandSubmit
     {
-        // 提交操作可能会修改此内存，提交后内存将无效
-        FResourceMeta* Resources{};
-        // 命令项里面的对象制造需要保证生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
-        FCommandItem* Items{};
-        // 提交操作可能会修改此内存，提交后内存将无效
-        u8* Payload{};
         // 有多少命令
-        u32 Count{};
+        u32 CommandCount{};
+        // 有多少资源
+        u32 ResourceCount{};
+        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
+        FCommandItem* Commands{};
+        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
+        FResourceMeta* Resources{};
+        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
+        u8* Payload{};
     };
 
 #ifdef FFI_SRC

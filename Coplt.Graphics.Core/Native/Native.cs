@@ -1773,17 +1773,20 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCommandSubmit
     {
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ResourceCount;
+
+        [NativeTypeName("Coplt::FCommandItem *")]
+        public FCommandItem* Commands;
+
         [NativeTypeName("Coplt::FResourceMeta *")]
         public FResourceMeta* Resources;
 
-        [NativeTypeName("Coplt::FCommandItem *")]
-        public FCommandItem* Items;
-
         [NativeTypeName("Coplt::u8 *")]
         public byte* Payload;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Count;
     }
 
     [Guid("F1C59CB4-7EE6-4EE2-80F4-07CC568920D2")]

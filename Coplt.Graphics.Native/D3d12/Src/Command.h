@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "CmdListPack.h"
 #include "../../Api/Include/HashMap.h"
 
 #include "../Include/Utils.h"
@@ -16,58 +17,60 @@ namespace Coplt
     {
         D3d12GpuQueue* m_queue{};
 
+    private:
+        struct ResState
+        {
+            ID3D12Resource* Resource{};
+            FResourceState LastState{};
+            FResourceState CurrentState{};
+            u32 CurrentBarrierIndex{COPLT_U32_MAX};
+            FResourceRefType Type{};
+        };
+
+        enum class ItemType
+        {
+            Command,
+            Barrier,
+        };
+
+        struct Item
+        {
+            u32 CommandIndex{};
+            u32 CommandCount{};
+            u32 BarrierIndex{};
+            u32 BarrierCount{};
+        };
+
+        FShaderPipeline* m_current_pipeline{};
+        std::vector<ResState> m_states{};
+        std::vector<D3D12_RESOURCE_BARRIER> m_barriers{};
+        std::vector<u32> m_barrier_resources{};
+        std::vector<Item> m_items{};
+        u32 m_last_barrier_index{};
+
+    public:
         explicit D3d12CommandInterpreter(D3d12GpuQueue* queue);
 
-        struct StatePair
-        {
-            FResourceState StartState{};
-            FResourceState FinalState{};
-            FResourceRefType Type{};
+        void Interpret(const FCommandSubmit& submit);
 
-            explicit StatePair() = default;
-
-            explicit StatePair(FResourceState StartState, FResourceState FinalState, FResourceRefType Type);
-        };
-
-        struct CommandBarrierPart
-        {
-            HashMap<FUnknown*, StatePair> m_states{};
-        };
-
-        struct CommandItemPart
-        {
-            u32 index{};
-            u32 count{};
-        };
-
-        using CommandItem = std::variant<CommandItemPart, std::unique_ptr<CommandBarrierPart>>;
-
-        struct InterpreterContext
-        {
-            const FCommandSubmit* m_submit;
-            std::vector<CommandItem> m_items{};
-            usize m_current_barrier{0};
-            usize m_current_command{0};
-
-            Rc<FShaderPipeline> m_current_pipeline{};
-
-            explicit InterpreterContext(const FCommandSubmit& submit);
-
-            CommandBarrierPart& GetCurrentBarrier() const;
-            CommandBarrierPart& AddBarrier();
-
-            CommandItemPart& GetCurrentCommand();
-
-            void ReqState(FResourceRef res_src, FResourceState req_state);
-            void CmdNext();
-        };
-
-        void Interpret(const FCommandSubmit& submit) const;
+        void CmdNext();
+        void ReqState(u32 CmdIndex, FResourceRef ResSrc, FResourceState ReqState);
+        void AddBarrier(ResState& state, const FResourceRef ResSrc);
+        void BarNext();
 
     private:
-        static void CollectBarrier(InterpreterContext& context, const FCommandSubmit& submit);
+        void Init();
+        void Reset();
 
-        void Interpret(InterpreterContext& context, const FCommandSubmit& submit) const;
+        void InitStates(const FCommandSubmit& submit);
+
+        void CollectBarrier(const FCommandSubmit& submit);
+
+        void Translate(const FCommandSubmit& submit);
+
+        void SetPipeline(
+            const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i
+        );
 
         static ID3D12Resource* GetResource(const FResourceMeta& meta);
 

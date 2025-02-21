@@ -174,10 +174,11 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         {
             FCommandSubmit submit = new()
             {
+                CommandCount = (uint)cmd.m_commands.Count,
+                ResourceCount = (uint)cmd.m_resource_metas.Count,
+                Commands = p_commands,
                 Resources = p_resources,
-                Items = p_commands,
                 Payload = p_payload,
-                Count = (uint)cmd.m_commands.Count,
             };
             try
             {
@@ -208,10 +209,11 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
         {
             FCommandSubmit submit = new()
             {
+                CommandCount = (uint)cmd.m_commands.Count,
+                ResourceCount = (uint)cmd.m_resource_metas.Count,
+                Commands = p_commands,
                 Resources = p_resources,
-                Items = p_commands,
                 Payload = p_payload,
-                Count = (uint)cmd.m_commands.Count,
             };
             try
             {
