@@ -6,7 +6,18 @@ namespace Coplt.Graphics.Core;
 
 public record struct ShaderInputLayoutElement()
 {
-    public ShaderInputLayoutElement(string SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue, uint? SlotId = new uint()) : this()
+    public ShaderInputLayoutElement(
+        SlotId SlotId, uint SlotIndex = 0, uint Location = uint.MaxValue
+    ) : this()
+    {
+        this.SlotId = SlotId;
+        this.SlotIndex = SlotIndex;
+        this.Location = Location;
+    }
+
+    public ShaderInputLayoutElement(
+        string? SlotName, uint SlotIndex = 0, uint Location = uint.MaxValue, SlotId? SlotId = default
+    ) : this()
     {
         this.SlotName = SlotName;
         this.SlotIndex = SlotIndex;
@@ -14,7 +25,9 @@ public record struct ShaderInputLayoutElement()
         this.SlotId = SlotId;
     }
 
-    public ShaderInputLayoutElement(String8 SlotName8, uint SlotIndex = 0, uint Location = uint.MaxValue, uint? SlotId = new uint()) : this()
+    public ShaderInputLayoutElement(
+        String8? SlotName8, uint SlotIndex = 0, uint Location = uint.MaxValue, SlotId? SlotId = default
+    ) : this()
     {
         this.SlotName8 = SlotName8;
         this.SlotIndex = SlotIndex;
@@ -35,7 +48,7 @@ public record struct ShaderInputLayoutElement()
     /// <summary>
     /// 与 <see cref="MeshBufferElement"/> 对应的 Id，相同 <see cref="SlotName"/>/<see cref="SlotName8"/> 的 <see cref="SlotId"/> 必须也相同
     /// </summary>
-    public uint? SlotId;
+    public SlotId? SlotId;
     /// <summary>
     /// 是 Slot 中第几个项，对应 dx 的 SemanticIndex
     /// </summary>

@@ -10,11 +10,10 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
     
-    public override string Name => "HelloTriangle";
+    public override string Name => "Hello Triangle";
     protected override async Task LoadResources(CommandList cmd)
     {
-        var shader_name = "HelloTriangle";
-        var modules = await LoadShaderModules(shader_name, [ShaderStage.Vertex, ShaderStage.Pixel]);
+        var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
         Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout([]));
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
@@ -29,7 +28,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                         Op = BlendOp.Add,
                     }
                 }
-            }, Name: shader_name
+            }, Name: Name
         );
     }
     protected override void Render(CommandList cmd)

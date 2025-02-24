@@ -12,12 +12,11 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     private GraphicsShaderPipeline Pipeline = null!;
     private GpuBuffer MeshBuffer = null!;
 
-    public override string Name => "HelloCube";
+    public override string Name => "Rotating Cube";
     protected override async Task LoadResources(CommandList cmd)
     {
-        var shader_name = "HelloCube";
         var SlotId_Position = Graphics.GetSlotId("Position");
-        var modules = await LoadShaderModules(shader_name, [ShaderStage.Vertex, ShaderStage.Pixel]);
+        var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
         Shader = Device.CreateShader(
             modules, null,
             Device.CreateShaderInputLayout([new("Position", SlotId: SlotId_Position)])
@@ -28,7 +27,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             Name: "Cube"
         );
         Pipeline = Device.CreateGraphicsShaderPipeline(
-            Shader, new() { DsvFormat = GraphicsFormat.Unknown, }, MeshLayout, Name: shader_name
+            Shader, new() { DsvFormat = GraphicsFormat.Unknown, }, MeshLayout, Name: Name
         );
         MeshBuffer = Device.CreateBuffer(
             new()

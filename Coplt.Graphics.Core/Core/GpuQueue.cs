@@ -35,6 +35,7 @@ public sealed unsafe partial class GpuQueue
     public FGpuQueue* Ptr => m_ptr;
     public GpuDevice Device => m_device;
     public GpuQueueType QueueType => m_ptr->m_queue_type.FromFFI();
+    public SubmitId SubmitId => new(m_ptr->m_submit_id);
     public CommandList CommandList => m_cmd;
 
     #endregion
@@ -174,7 +175,7 @@ public sealed unsafe partial class GpuQueue
             if (block.cur_offset + (uint)Data.Length < block.size)
             {
                 Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
-                var loc = new UploadLoc(i, block.cur_offset);
+                var loc = new UploadLoc(i, block.cur_offset, (uint)Data.Length, SubmitId);
                 block.cur_offset += (uint)Data.Length;
                 return loc;
             }
@@ -186,7 +187,7 @@ public sealed unsafe partial class GpuQueue
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + (uint)Data.Length >= block.size) throw new OutOfMemoryException();
             Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
-            var loc = new UploadLoc(i, block.cur_offset);
+            var loc = new UploadLoc(i, block.cur_offset, (uint)Data.Length, SubmitId);
             block.cur_offset += (uint)Data.Length;
             return loc;
         }

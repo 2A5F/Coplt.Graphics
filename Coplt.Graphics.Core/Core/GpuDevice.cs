@@ -230,7 +230,8 @@ public sealed unsafe partial class GpuDevice
         {
             ref readonly var item = ref Elements[i];
             var slot_name8 =
-                item.SlotName8 ?? (item.SlotName == null ? null : m_instance.CacheString8(item.SlotName));
+                (item.SlotName8 ?? (item.SlotName == null ? null : m_instance.CacheString8(item.SlotName))) ??
+                (item.SlotId.HasValue ? m_instance.TryGetSlotName8(item.SlotId.Value) : null);
             var slot_name = item.SlotName8?.ToString() ?? item.SlotName;
             var slot_id = item.SlotId ?? (string.IsNullOrWhiteSpace(slot_name)
                 ? throw new ArgumentException("Slot id is not provided and Slot Name is null/empty")
@@ -239,14 +240,14 @@ public sealed unsafe partial class GpuDevice
             meta[i] = new()
             {
                 SlotName8 = slot_name8,
-                SlotId = slot_id,
+                SlotId = slot_id.Value,
                 SlotIndex = item.SlotIndex,
                 Location = location,
             };
             p_elements[i] = new()
             {
                 SlotName = slot_name8 == null ? null : slot_name8.m_ptr,
-                SlotId = slot_id,
+                SlotId = slot_id.Value,
                 SlotIndex = item.SlotIndex,
                 Location = location,
             };

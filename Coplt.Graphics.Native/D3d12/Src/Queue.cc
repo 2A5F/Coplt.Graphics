@@ -112,4 +112,5 @@ void D3d12GpuQueue::SubmitNoLock(
     std::swap(m_frame_context, frame_context);
     chr | m_cmd->Reset(m_frame_context->m_command_allocator.Get(), nullptr);
     m_context = m_frame_context.get();
+    m_submit_id++;
 }

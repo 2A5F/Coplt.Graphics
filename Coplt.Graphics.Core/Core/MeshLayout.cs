@@ -4,7 +4,7 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 public record struct MeshBufferElement(
-    uint SlotId,
+    SlotId SlotId,
     GraphicsFormat Format,
     uint BufferIndex = 0,
     uint SlotIndex = 0,
@@ -19,7 +19,7 @@ public record struct MeshBufferElement(
     /// <summary>
     /// 与 <see cref="ShaderInputLayoutElement"/> 对应的 Id
     /// </summary>
-    public uint SlotId = SlotId;
+    public SlotId SlotId = SlotId;
     /// <summary>
     /// 是 Slot 中第几个项，对应 dx 的 SemanticIndex
     /// </summary>

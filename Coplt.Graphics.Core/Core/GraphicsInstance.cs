@@ -24,7 +24,9 @@ public unsafe partial class GraphicsInstance
 
     internal FInstance* m_ptr;
     internal readonly ConcurrentDictionary<string, String8> m_string_cache = new();
-    internal readonly ConcurrentDictionary<string, uint> m_slot_id_cache = new(StringComparer.OrdinalIgnoreCase);
+    internal readonly ConcurrentDictionary<string, SlotId> m_slot_id_cache = new(StringComparer.OrdinalIgnoreCase);
+    internal readonly ConcurrentDictionary<SlotId, string> m_slot_id_name = new();
+    internal readonly ConcurrentDictionary<SlotId, String8> m_slot_id_name8 = new();
     internal uint m_slot_id_inc;
 
     #endregion
@@ -258,9 +260,17 @@ public unsafe partial class GraphicsInstance
 
     #region SlotId
 
-    private uint AllocSlotId(string _) => m_slot_id_inc++;
-    private Func<string, uint>? m_cache_AllocSlotId;
-    public uint GetSlotId(string name) => m_slot_id_cache.GetOrAdd(name, m_cache_AllocSlotId ??= AllocSlotId);
+    private SlotId AllocSlotId(string name)
+    {
+        var id = new SlotId(m_slot_id_inc++);
+        m_slot_id_name.TryAdd(id, name);
+        m_slot_id_name8.TryAdd(id, CacheString8(name));
+        return id;
+    }
+    private Func<string, SlotId>? m_cache_AllocSlotId;
+    public SlotId GetSlotId(string name) => m_slot_id_cache.GetOrAdd(name, m_cache_AllocSlotId ??= AllocSlotId);
+    public string? TryGetSlotName(SlotId SlotId) => m_slot_id_name.GetValueOrDefault(SlotId);
+    public String8? TryGetSlotName8(SlotId SlotId) => m_slot_id_name8.GetValueOrDefault(SlotId);
 
     #endregion
 

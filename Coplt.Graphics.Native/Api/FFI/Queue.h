@@ -24,6 +24,8 @@ namespace Coplt
     {
         // 不安全的内存暴露，外部不能修改，每帧必须保证当前指向可用的帧上下文
         FFrameContext* m_context{};
+        // 不安全的内存暴露，外部不能修改，每次提交都会增加计数
+        u64 m_submit_id{};
         // 不安全的内存暴露，外部不能修改
         FGpuQueueType m_queue_type{};
 

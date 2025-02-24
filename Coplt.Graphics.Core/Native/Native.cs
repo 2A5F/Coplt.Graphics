@@ -1325,6 +1325,9 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FFrameContext *")]
         public FFrameContext* m_context;
 
+        [NativeTypeName("Coplt::u64")]
+        public ulong m_submit_id;
+
         [NativeTypeName("Coplt::FGpuQueueType")]
         public FGpuQueueType m_queue_type;
 

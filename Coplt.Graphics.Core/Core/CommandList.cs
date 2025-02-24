@@ -566,7 +566,7 @@ public sealed unsafe class CommandList
             GroupCountZ = GroupCountZ,
             Type = Type switch
             {
-                DispatchType.Auto => throw new UnreachableException(),
+                DispatchType.Auto    => throw new UnreachableException(),
                 DispatchType.Compute => FDispatchType.Compute,
                 DispatchType.Mesh    => FDispatchType.Mesh,
                 _                    => throw new ArgumentOutOfRangeException(nameof(Type), Type, null)
@@ -657,6 +657,38 @@ public sealed unsafe class CommandList
         };
         cmd.Dst.Buffer = new(dst);
         cmd.Src.Upload = new(src);
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.BufferCopy,
+                Flags = (FCommandFlags)Flags,
+                BufferCopy = cmd,
+            }
+        );
+        Dst.UnsafeChangeState(FResourceState.CopyDst);
+    }
+
+    public void Upload(
+        GpuBuffer Dst,
+        UploadLoc Loc,
+        ulong DstOffset = 0,
+        CommandFlags Flags = CommandFlags.None
+    )
+    {
+        if (Loc.SubmitId != m_queue.SubmitId)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        var Size = Math.Min(Dst.Size, Loc.Size);
+        var dst = AddResource(Dst);
+        var cmd = new FCommandBufferCopy
+        {
+            Size = Size,
+            DstOffset = DstOffset,
+            SrcOffset = Loc.Offset,
+            DstType = FBufferRefType.Buffer,
+            SrcType = FBufferRefType.Upload,
+        };
+        cmd.Dst.Buffer = new(dst);
+        cmd.Src.Upload = new(Loc);
         m_commands.Add(
             new()
             {
