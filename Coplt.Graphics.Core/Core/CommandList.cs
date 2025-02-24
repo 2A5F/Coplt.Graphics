@@ -64,7 +64,7 @@ public sealed unsafe class CommandList
 
     #region AddResource
 
-    private int AddResource<T>(T resource) where T : IView
+    private int AddResource<T>(T resource) where T : IGpuResource
     {
         if (resource.Queue != m_queue)
             throw new ArgumentException($"Resource {resource} does not belong to queue {m_queue}");
@@ -126,7 +126,7 @@ public sealed unsafe class CommandList
     public void ClearColor<Rtv>(
         Rtv Image, ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Rtv : IRtv => ClearColor(Image, new(0, 0, 0, 1), Rects, Flags);
+    ) where Rtv : IRtvRes => ClearColor(Image, new(0, 0, 0, 1), Rects, Flags);
 
     /// <summary>
     /// 使用指定的颜色清空 Rtv
@@ -134,7 +134,7 @@ public sealed unsafe class CommandList
     public void ClearColor<Rtv>(
         Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Rtv : IRtv
+    ) where Rtv : IRtvRes
     {
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
@@ -176,7 +176,7 @@ public sealed unsafe class CommandList
         Dsv Image,
         ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects, Flags);
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects, Flags);
 
     /// <summary>
     /// 使用指定的深度清空 Dsv
@@ -185,7 +185,7 @@ public sealed unsafe class CommandList
         Dsv Image, float Depth,
         ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects, Flags);
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects, Flags);
 
     /// <summary>
     /// 使用指定的模板清空 Dsv
@@ -194,7 +194,7 @@ public sealed unsafe class CommandList
         Dsv Image, byte Stencil,
         ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects, Flags);
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects, Flags);
 
     /// <summary>
     /// 使用指定的深度和模板清空 Dsv
@@ -203,7 +203,7 @@ public sealed unsafe class CommandList
         Dsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
         ReadOnlySpan<URect> Rects = default,
         CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsv
+    ) where Dsv : IDsvRes
     {
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
@@ -238,7 +238,7 @@ public sealed unsafe class CommandList
     #region SetRenderTargets
 
     public void SetRenderTargets(
-        ReadOnlySpan<IRtv> Rtvs, IDsv? Dsv = null,
+        ReadOnlySpan<IRtvRes> Rtvs, IDsvRes? Dsv = null,
         bool AutoViewportScissor = true,
         CommandFlags Flags = CommandFlags.None
     )
@@ -374,7 +374,7 @@ public sealed unsafe class CommandList
     public void SetMeshBuffers(
         MeshLayout MeshLayout,
         FGraphicsFormat IndexFormat,
-        BufferRange<IIbv>? IndexBuffer,
+        BufferRange<IIbvRes>? IndexBuffer,
         uint VertexStartSlot,
         ReadOnlySpan<VertexBufferRange> VertexBuffers,
         CommandFlags Flags = CommandFlags.None

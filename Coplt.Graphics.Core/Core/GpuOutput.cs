@@ -64,7 +64,7 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : IRtv, ISrv
+public sealed unsafe partial class GpuOutput : IRtvRes, ISrvRes
 {
     #region Fields
 
@@ -140,13 +140,13 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     #region Views
 
-    FResourceMeta IView.GetMeta() => new()
+    FResourceMeta IGpuResource.GetMeta() => new()
     {
         CurrentState = m_ptr->m_state,
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
-    void IView.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
+    void IGpuResource.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
     internal void UnsafeChangeState(FResourceState state) => m_ptr->m_state.ChangeState(state);
 
     public bool TrySrv() => true;

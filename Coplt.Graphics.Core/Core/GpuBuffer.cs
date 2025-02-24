@@ -8,7 +8,6 @@ public record struct GpuBufferCreateOptions()
     public Str8or16 Name;
     public required ResourcePurpose Purpose;
     public CpuAccess CpuAccess = CpuAccess.None;
-    public LifeTime LifeTime = LifeTime.Common;
     public required ulong Size;
     public uint Count;
     public uint Stride;
@@ -16,7 +15,8 @@ public record struct GpuBufferCreateOptions()
 }
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IRtv, IIbv, IVbv
+public sealed unsafe partial class GpuBuffer
+    : GpuResource, ICbvRes, ISrvRes, IUavRes, IRtvRes, IIbvRes, IVbvRes
 {
     #region Fields
 
@@ -28,8 +28,8 @@ public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IR
 
     public new FGpuBuffer* Ptr => m_ptr;
     public ulong Size => m_ptr->m_size;
-    ulong IView.LongSize => Size;
-    uint3 IView.Size => new((uint)Size, 1, 1);
+    ulong IGpuView.LongSize => Size;
+    uint3 IGpuView.Size => new((uint)Size, 1, 1);
     public uint Count => m_ptr->m_count;
     public uint Stride => m_ptr->m_stride;
     public BufferUsage Usage => (BufferUsage)m_ptr->m_usage;
@@ -66,13 +66,13 @@ public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IR
 
     #region View
 
-    FResourceMeta IView.GetMeta() => new()
+    FResourceMeta IGpuResource.GetMeta() => new()
     {
         CurrentState = m_ptr->Base.m_state,
         Type = FResourceRefType.Buffer,
         Buffer = m_ptr,
     };
-    void IView.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
+    void IGpuResource.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
     internal void UnsafeChangeState(FResourceState state) => m_ptr->Base.m_state.ChangeState(state);
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);

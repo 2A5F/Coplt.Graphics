@@ -143,12 +143,14 @@ public sealed unsafe partial class GpuQueue
         {
             FGpuBufferCreateOptions f_options = new()
             {
-                Base = new()
+                Base =
                 {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    Purpose = options.Purpose.ToFFI(),
+                    Base =
+                    {
+                        Name = new(Name, Name8, p_name, p_name8),
+                        Purpose = options.Purpose.ToFFI(),
+                    },
                     CpuAccess = options.CpuAccess.ToFFI(),
-                    LifeTime = options.LifeTime.ToFFI(),
                 },
                 Size = options.Size,
                 Count = options.Count,

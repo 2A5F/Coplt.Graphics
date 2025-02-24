@@ -10,7 +10,6 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     m_state = FResourceState::Common;
     m_purpose = options.Purpose;
     m_cpu_access = options.CpuAccess;
-    m_life_time = options.LifeTime;
     m_size = options.Size;
     m_count = options.Count;
     m_stride = options.Stride;
@@ -33,15 +32,11 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     if (HasAnyFlags(m_purpose, FResourcePurpose::UnorderedAccess))
         m_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-    // 瞬态资源不会立即创建
-    if (m_life_time != FLifeTime::Transient)
-    {
-        m_resource = box<ResourcePack>(m_allocator.Get(), m_cpu_access, m_state, &m_desc, nullptr);
+    m_resource = box<ResourcePack>(m_allocator.Get(), m_cpu_access, m_state, &m_desc, nullptr);
 
-        if (m_device->Debug())
-        {
-            chr | m_resource->m_resource >> SetNameEx(options.Name);
-        }
+    if (m_device->Debug())
+    {
+        chr | m_resource->m_resource >> SetNameEx(options.Name);
     }
 }
 
@@ -50,7 +45,6 @@ FResult D3d12GpuBuffer::SetName(const Str8or16& name) noexcept
     return feb([&]
     {
         if (!m_device->Debug()) return;
-        if (m_life_time == FLifeTime::Transient) return;
         chr | m_resource->m_resource >> SetNameEx(name);
     });
 }

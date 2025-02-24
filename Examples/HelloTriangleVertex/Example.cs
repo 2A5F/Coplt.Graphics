@@ -82,7 +82,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             ]
         );
     }
-    protected override void Render(CommandList cmd)
+    protected override void Render(CommandList cmd, Time time)
     {
         cmd.SetRenderTargets([Output]);
         cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));

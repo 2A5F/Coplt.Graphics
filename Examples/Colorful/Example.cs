@@ -9,12 +9,14 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
 {
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
-    
-    public override string Name => "Hello Triangle";
+
+    public override string Name => "Colorful";
     protected override async Task LoadResources(CommandList cmd)
     {
         var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
-        Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout([]));
+        Shader = Device.CreateShader(
+            modules, null, Device.CreateShaderInputLayout([])
+        );
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {
@@ -27,7 +29,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                         Dst = BlendType.InvSrcAlpha,
                         Op = BlendOp.Add,
                     }
-                }
+                },
+                Topology = PrimitiveTopologyType.TriangleStrip,
             }, Name: Name
         );
     }
@@ -35,6 +38,6 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     {
         cmd.SetRenderTargets([Output]);
         cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));
-        cmd.Draw(Pipeline, 3);
+        cmd.Draw(Pipeline, 4);
     }
 }

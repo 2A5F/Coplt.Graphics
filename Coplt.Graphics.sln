@@ -12,7 +12,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleBase", "Examples\Exa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloTriangleVertex", "Examples\HelloTriangleVertex\HelloTriangleVertex.csproj", "{1173C015-4D34-4DD1-85F6-98C68FDC50BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RotatingCube", "Examples\RotatingCube\RotatingCube.csproj", "{C4C82737-D197-447B-B663-2DEFE3CE6679}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Colorful", "Examples\Colorful\Colorful.csproj", "{C4C82737-D197-447B-B663-2DEFE3CE6679}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

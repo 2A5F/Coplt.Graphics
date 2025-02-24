@@ -5,35 +5,28 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuResource
+public abstract unsafe partial class GpuResource : GpuView
 {
     #region Fields
 
-    internal FGpuResource* m_ptr;
-    internal string? m_name;
-    internal GpuQueue m_queue;
+    internal new FGpuResource* m_ptr;
 
     #endregion
 
     #region Props
 
-    public FGpuResource* Ptr => m_ptr;
-    public GpuDevice Device => m_queue.m_device;
-    public GpuQueue Queue => m_queue;
+    public new FGpuResource* Ptr => m_ptr;
     public ResourceState State => m_ptr->m_state.FromFFI();
-    public ResourcePurpose Purpose => (ResourcePurpose)m_ptr->m_purpose;
     public CpuAccess CpuAccess => (CpuAccess)m_ptr->m_cpu_access;
-    public LifeTime LifeTime => (LifeTime)m_ptr->m_life_time;
 
     #endregion
 
     #region Ctor
 
-    internal GpuResource(FGpuResource* ptr, string? name, GpuQueue queue)
+    internal GpuResource(FGpuResource* ptr, string? name, GpuQueue queue) : base(&ptr->Base, name, queue)
     {
         m_ptr = ptr;
         m_name = name;
-        m_queue = queue;
     }
 
     #endregion
@@ -43,32 +36,7 @@ public abstract unsafe partial class GpuResource
     [Drop]
     private void Drop()
     {
-        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
-        ptr->Release();
-    }
-
-    #endregion
-
-    #region SetName
-
-    public void SetName(string name)
-    {
-        m_name = name;
-        fixed (char* ptr = name)
-        {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    public void SetName(ReadOnlySpan<byte> name)
-    {
-        fixed (byte* ptr = name)
-        {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
-            m_ptr->SetName(&str).TryThrow();
-        }
-        m_name = null;
+        m_ptr = null;
     }
 
     #endregion
