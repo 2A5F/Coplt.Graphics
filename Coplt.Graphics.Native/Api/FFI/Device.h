@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Binding.h"
 #include "GpuObject.h"
 #include "Layout.h"
 #include "Queue.h"
@@ -57,6 +58,9 @@ namespace Coplt
             const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
         ) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
+        virtual FResult CreateShaderBinding(
+            const FShaderBindingCreateOptions& options, FShaderBinding** out
+        ) noexcept = 0;
 
         virtual FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept = 0;
 

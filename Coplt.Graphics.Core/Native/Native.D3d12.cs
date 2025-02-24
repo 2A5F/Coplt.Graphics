@@ -104,10 +104,18 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -115,7 +123,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[13]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,7 +131,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[13]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[14]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuDevice.Interface
@@ -444,6 +452,61 @@ namespace Coplt.Graphics.Native.D3d12
         }
     }
 
+    [Guid("AACE0F36-A59E-45EA-88C7-7807D20D2750")]
+    [NativeTypeName("struct FD3d12ShaderBinding : Coplt::FShaderBinding")]
+    public unsafe partial struct FD3d12ShaderBinding : FD3d12ShaderBinding.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12ShaderBinding));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, void>)(lpVtbl[0]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, nuint>)(lpVtbl[1]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, nuint>)(lpVtbl[2]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, Guid*, void*>)(lpVtbl[3]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[5]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
+        }
+
+        public interface Interface : FShaderBinding.Interface
+        {
+        }
+    }
+
     [Guid("6D9C7DB7-3261-4D79-BD21-1F1BB5E01E4D")]
     [NativeTypeName("struct FD3d12PipelineState : Coplt::FShaderPipeline")]
     public unsafe partial struct FD3d12PipelineState : FD3d12PipelineState.Interface, INativeGuid
@@ -629,6 +692,8 @@ namespace Coplt.Graphics.Native.D3d12
         public static readonly Guid IID_FD3d12ShaderInputLayout = new Guid(0x3DFC8DE2, 0xBCA2, 0x48AE, 0xB8, 0x69, 0x85, 0x0C, 0xB1, 0x1B, 0x3E, 0xE9);
 
         public static readonly Guid IID_FD3d12MeshLayout = new Guid(0x2C6E52E9, 0x6FA1, 0x457A, 0x8F, 0x99, 0xA7, 0x34, 0xD6, 0x3B, 0x62, 0xC2);
+
+        public static readonly Guid IID_FD3d12ShaderBinding = new Guid(0xAACE0F36, 0xA59E, 0x45EA, 0x88, 0xC7, 0x78, 0x07, 0xD2, 0x0D, 0x27, 0x50);
 
         public static readonly Guid IID_FD3d12PipelineState = new Guid(0x6D9C7DB7, 0x3261, 0x4D79, 0xBD, 0x21, 0x1F, 0x1B, 0xB5, 0xE0, 0x1E, 0x4D);
 

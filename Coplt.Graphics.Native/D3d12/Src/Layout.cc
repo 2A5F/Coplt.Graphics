@@ -217,6 +217,16 @@ const FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count)
     return m_layout_item_defines.data();
 }
 
+std::span<ID3d12ShaderLayout::ItemMeta> D3d12ShaderLayout::GetItemMeta() noexcept
+{
+    return m_item_metas;
+}
+
+std::array<std::span<ID3d12ShaderLayout::TableMeta>, 2> D3d12ShaderLayout::GetTableMetas() noexcept
+{
+    return std::array<std::span<TableMeta>, 2>{m_table_metas[0], m_table_metas[1]};
+}
+
 D3d12ShaderInputLayout::D3d12ShaderInputLayout(
     Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options
 ) : m_device(std::move(device))

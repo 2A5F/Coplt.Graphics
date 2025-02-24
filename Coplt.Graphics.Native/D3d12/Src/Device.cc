@@ -1,7 +1,9 @@
 #include "Device.h"
 
+#include "Binding.h"
 #include "dxgi1_6.h"
 
+#include "DescriptorManager.h"
 #include "../../Api/Src/Shader.h"
 #include "Buffer.h"
 #include "GraphicsPipeline.h"
@@ -173,6 +175,8 @@ D3d12GpuDevice::D3d12GpuDevice(
     }
 
     chr | m_device->QueryInterface(IID_PPV_ARGS(&m_device0));
+
+    m_descriptor_manager = box<DescriptorManager>(this);
 }
 
 D3d12GpuDevice::~D3d12GpuDevice()
@@ -260,6 +264,14 @@ FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShade
     return feb([&]
     {
         *out = new Shader(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12ShaderBinding(this->CloneThis(), options);
     });
 }
 

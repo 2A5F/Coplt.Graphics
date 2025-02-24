@@ -9,6 +9,7 @@
 
 namespace Coplt
 {
+    struct DescriptorManager;
     struct D3d12ShaderLayout;
     struct D3d12MeshLayout;
 
@@ -24,7 +25,8 @@ namespace Coplt
         ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
-        std::unique_ptr<EmptyLayouts> m_empty_layouts{};
+        Box<DescriptorManager> m_descriptor_manager{};
+        Box<EmptyLayouts> m_empty_layouts{};
         Rc<D3d12MeshLayout> m_empty_mesh_layout{};
         DWORD m_callback_cookie{};
 
@@ -60,6 +62,7 @@ namespace Coplt
             const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
         ) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept override;
+        FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
 
         FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept override;
 
