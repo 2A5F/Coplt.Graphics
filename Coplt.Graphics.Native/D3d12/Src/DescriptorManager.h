@@ -3,6 +3,33 @@
 
 namespace Coplt
 {
+    struct CpuDescriptorSet
+    {
+        ComPtr<ID3D12Device2> m_device{};
+
+        D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
+        ComPtr<ID3D12DescriptorHeap> m_heap{};
+
+        u32 m_used{};
+        u32 m_cap{};
+
+        explicit CpuDescriptorSet(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_cap);
+    };
+
+    struct GpuDescriptorSet
+    {
+        ComPtr<ID3D12Device2> m_device{};
+
+        D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
+        ComPtr<ID3D12DescriptorHeap> m_Cpu_heap{};
+        ComPtr<ID3D12DescriptorHeap> m_Gpu_heap{};
+
+        u32 m_used{};
+        u32 m_cap{};
+
+        explicit GpuDescriptorSet(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_cap);
+    };
+
     struct DescriptorManager final
     {
         constexpr static u32 RtvDsvInitCap = 128;
@@ -12,26 +39,10 @@ namespace Coplt
         D3d12GpuDevice* m_device;
         ComPtr<ID3D12Device2> m_dx_device{};
 
-        ComPtr<ID3D12DescriptorHeap> m_rtv_heap{};
-        ComPtr<ID3D12DescriptorHeap> m_dsv_heap{};
-
-        ComPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_Cpu_heap{};
-        ComPtr<ID3D12DescriptorHeap> m_sampler_Cpu_heap{};
-
-        ComPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_Gpu_heap{};
-        ComPtr<ID3D12DescriptorHeap> m_sampler_Gpu_heap{};
-
-        u32 m_rtv_used{};
-        u32 m_rtv_cap{};
-
-        u32 m_dsv_used{};
-        u32 m_dsv_cap{};
-
-        u32 m_cbv_srv_uav_used{};
-        u32 m_cbv_srv_uav_cap{};
-
-        u32 m_sampler_used{};
-        u32 m_sampler_cap{};
+        Box<CpuDescriptorSet> m_rtv_set{};
+        Box<CpuDescriptorSet> m_dsv_set{};
+        Box<GpuDescriptorSet> m_cbv_srv_uav_set{};
+        Box<GpuDescriptorSet> m_sampler_set{};
 
         explicit DescriptorManager(D3d12GpuDevice* device);
     };

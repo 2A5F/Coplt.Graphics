@@ -2,6 +2,7 @@
 #include "../../Api/FFI/Command.h"
 
 #include "Context.h"
+#include "DescriptorManager.h"
 #include "fmt/format.h"
 #include "fmt/xchar.h"
 
@@ -306,6 +307,14 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
 {
     m_context.ResetPipeline();
     const auto& cmd_pack = m_queue->m_cmd;
+    {
+        const auto& descriptor_manager = *m_queue->m_device->m_descriptor_manager;
+        ID3D12DescriptorHeap* heaps[] = {
+            descriptor_manager.m_cbv_srv_uav_set->m_Gpu_heap.Get(),
+            descriptor_manager.m_sampler_set->m_Gpu_heap.Get()
+        };
+        cmd_pack->SetDescriptorHeaps(2, heaps);
+    }
     for (const auto& cmd_item : m_items)
     {
         if (cmd_item.BarrierCount > 0)
