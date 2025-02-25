@@ -131,6 +131,29 @@ public sealed unsafe partial class GpuQueue
 
     #endregion
 
+    #region CreateShaderBinding
+
+    public ShaderBinding CreateShaderBinding(
+        ShaderLayout Layout,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FShaderBindingCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Layout = Layout.m_ptr,
+            };
+            FShaderBinding* ptr;
+            m_device.m_ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, m_device, this, Layout);
+        }
+    }
+
+    #endregion
+
     #region CreateBuffer
 
     public GpuBuffer CreateBuffer(

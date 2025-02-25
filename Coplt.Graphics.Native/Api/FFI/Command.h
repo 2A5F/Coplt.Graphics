@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Binding.h"
 #include "Blob.h"
 #include "Output.h"
 #include "Pipeline.h"
@@ -18,6 +19,7 @@ namespace Coplt
         ClearDepthStencil,
         SetRenderTargets,
         SetViewportScissor,
+        Bind,
         SetPipeline,
         SetMeshBuffers,
         Draw,
@@ -135,7 +137,7 @@ namespace Coplt
     {
         // 有多少个 Rect
         u32 RectCount{};
-        // Payload 内的索引
+        // Payload 内的索引, 类型为 FRect
         u32 RectIndex{};
         FResourceRef Image{};
         f32 Depth{};
@@ -152,11 +154,11 @@ namespace Coplt
 
         // 有多少个 Viewport
         u32 ViewportCount{};
-        // Payload 内的索引
+        // Payload 内的索引, 类型为 FViewport
         u32 ViewportIndex{};
         // 有多少个 Rect
         u32 ScissorRectCount{};
-        // Payload 内的索引
+        // Payload 内的索引, 类型为 FRect
         u32 ScissorRectIndex{};
     };
 
@@ -168,13 +170,31 @@ namespace Coplt
         u32 ViewportIndex{};
         // 有多少个 Rect
         u32 ScissorRectCount{};
-        // Payload 内的索引
+        // Payload 内的索引, 类型为 FRect
         u32 ScissorRectIndex{};
+    };
+
+    struct FBindItem
+    {
+        FView View{};
+        u32 Index{};
+    };
+
+    struct FCommandBind
+    {
+        // 要修改的绑定集
+        FShaderBinding* Binding{};
+        // 有多少个绑定修改
+        u32 ItemCount{};
+        // Payload 内的索引, 类型为 FBindItem
+        u32 ItemsIndex{};
     };
 
     struct FCommandSetPipeline
     {
         FShaderPipeline* Pipeline{};
+        // 可选
+        FShaderBinding* Binding{};
     };
 
     struct FBufferRange
@@ -207,6 +227,8 @@ namespace Coplt
     {
         // 可选
         FShaderPipeline* Pipeline{};
+        // 可选
+        FShaderBinding* Binding{};
         u32 VertexOrIndexCount{};
         u32 InstanceCount{};
         u32 FirstVertexOrIndex{};
@@ -226,6 +248,8 @@ namespace Coplt
     {
         // 可选
         FShaderPipeline* Pipeline{};
+        // 可选
+        FShaderBinding* Binding{};
         u32 GroupCountX{};
         u32 GroupCountY{};
         u32 GroupCountZ{};
@@ -276,6 +300,7 @@ namespace Coplt
             FCommandClearDepthStencil ClearDepthStencil;
             FCommandSetRenderTargets SetRenderTargets;
             FCommandSetViewportScissor SetViewportScissor;
+            FCommandBind Bind;
             FCommandSetPipeline SetPipeline;
             FCommandSetMeshBuffers SetMeshBuffers;
             FCommandDraw Draw;

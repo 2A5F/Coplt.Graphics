@@ -14,7 +14,10 @@ public sealed unsafe partial class ShaderBinding
     internal FShaderBinding* m_ptr;
     internal string? m_name;
     internal readonly GpuDevice m_device;
+    internal readonly GpuQueue m_queue;
     internal readonly ShaderLayout m_layout;
+    internal readonly FRoSlice<FView> m_native_views;
+    internal readonly View[] m_views;
 
     #endregion
 
@@ -22,18 +25,32 @@ public sealed unsafe partial class ShaderBinding
 
     public FShaderBinding* Ptr => m_ptr;
     public GpuDevice Device => m_device;
+    public GpuQueue Queue => m_queue;
     public ShaderLayout Layout => m_layout;
+    public ReadOnlySpan<FView> NativeViews => m_native_views.Span;
+    public ReadOnlySpan<View> Views => m_views;
+    internal Span<View> MutViews => m_views;
+    public ref readonly View this[int index] => ref m_views[index];
 
     #endregion
 
     #region Ctor
 
-    internal ShaderBinding(FShaderBinding* ptr, string? name, GpuDevice device, ShaderLayout layout)
+    internal ShaderBinding(FShaderBinding* ptr, string? name, GpuDevice device, GpuQueue queue, ShaderLayout layout)
     {
         m_name = name;
         m_ptr = ptr;
         m_device = device;
+        m_queue = queue;
         m_layout = layout;
+
+        {
+            uint size = 0;
+            var views = m_ptr->GetViews(&size);
+            m_native_views = new(views, size);
+        }
+
+        m_views = new View[m_native_views.Length];
     }
 
     #endregion
@@ -79,57 +96,6 @@ public sealed unsafe partial class ShaderBinding
         m_name is null
             ? $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X})"
             : $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X} \"{m_name}\")";
-
-    #endregion
-
-    #region Set
-
-    public void Set(ReadOnlySpan<ShaderBindingSetItem> Items)
-    {
-        if (Items.Length < 32)
-        {
-            var p = stackalloc FShaderBindingBatchSet[Items.Length];
-            DoSet(m_ptr, p, Items);
-        }
-        else
-        {
-            var arr = ArrayPool<FShaderBindingBatchSet>.Shared.Rent(Items.Length);
-            try
-            {
-                fixed (FShaderBindingBatchSet* p = arr)
-                {
-                    DoSet(m_ptr, p, Items);
-                }
-            }
-            finally
-            {
-                ArrayPool<FShaderBindingBatchSet>.Shared.Return(arr);
-            }
-        }
-        return;
-
-        static void DoSet(FShaderBinding* ptr, FShaderBindingBatchSet* p, ReadOnlySpan<ShaderBindingSetItem> Items)
-        {
-            for (var i = 0; i < Items.Length; i++)
-            {
-                ref readonly var item = ref Items[i];
-                p[i] = new()
-                {
-                    Index = item.Index,
-                    View = item.View.ToFFI(),
-                };
-            }
-            ptr->Set((uint)Items.Length, p).TryThrow();
-        }
-    }
-
-    public void UnsafeSet(ReadOnlySpan<FShaderBindingBatchSet> Items)
-    {
-        fixed (FShaderBindingBatchSet* ptr = Items)
-        {
-            m_ptr->Set((uint)Items.Length, ptr).TryThrow();
-        }
-    }
 
     #endregion
 }

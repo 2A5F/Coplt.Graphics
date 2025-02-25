@@ -157,6 +157,8 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             goto ClearDepthStencil;
         case FCommandType::SetRenderTargets:
             goto SetRenderTargets;
+        case FCommandType::Bind:
+            goto Bind;
         case FCommandType::SetPipeline:
             goto SetPipeline;
         case FCommandType::SetMeshBuffers:
@@ -208,10 +210,17 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             }
             continue;
         }
+    Bind:
+        {
+            const auto& cmd = item.Bind;
+            // todo
+            continue;
+        }
     SetPipeline:
         {
             const auto& cmd = item.SetPipeline;
             SetPipelineContext(cmd.Pipeline, i);
+            continue;
         }
     SetMeshBuffers:
         {
@@ -345,6 +354,8 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                 goto SetRenderTargets;
             case FCommandType::SetViewportScissor:
                 goto SetViewportScissor;
+            case FCommandType::Bind:
+                goto Bind;
             case FCommandType::SetPipeline:
                 goto SetPipeline;
             case FCommandType::SetMeshBuffers:
@@ -409,6 +420,12 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                 auto scissor = reinterpret_cast<const D3D12_RECT*>(&submit.Payload[cmd.ScissorRectIndex]);
                 if (cmd.ViewportCount > 0) cmd_pack->RSSetViewports(cmd.ViewportCount, viewport);
                 if (cmd.ScissorRectCount > 0) cmd_pack->RSSetScissorRects(cmd.ScissorRectCount, scissor);
+                continue;
+            }
+        Bind:
+            {
+                const auto& cmd = item.Bind;
+                // todo
                 continue;
             }
         SetPipeline:

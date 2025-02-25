@@ -2273,6 +2273,7 @@ namespace Coplt.Graphics.Native
         ClearDepthStencil,
         SetRenderTargets,
         SetViewportScissor,
+        Bind,
         SetPipeline,
         SetMeshBuffers,
         Draw,
@@ -2297,7 +2298,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L45_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L47_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -2494,10 +2495,34 @@ namespace Coplt.Graphics.Native
         public uint ScissorRectIndex;
     }
 
+    public partial struct FBindItem
+    {
+        [NativeTypeName("Coplt::FView")]
+        public FView View;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
+    public unsafe partial struct FCommandBind
+    {
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ItemCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ItemsIndex;
+    }
+
     public unsafe partial struct FCommandSetPipeline
     {
         [NativeTypeName("Coplt::FShaderPipeline *")]
         public FShaderPipeline* Pipeline;
+
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
     }
 
     public partial struct FBufferRange
@@ -2547,6 +2572,9 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FShaderPipeline *")]
         public FShaderPipeline* Pipeline;
 
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
+
         [NativeTypeName("Coplt::u32")]
         public uint VertexOrIndexCount;
 
@@ -2577,6 +2605,9 @@ namespace Coplt.Graphics.Native
     {
         [NativeTypeName("Coplt::FShaderPipeline *")]
         public FShaderPipeline* Pipeline;
+
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
 
         [NativeTypeName("Coplt::u32")]
         public uint GroupCountX;
@@ -2648,7 +2679,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCommandFlags")]
         public FCommandFlags Flags;
 
-        [NativeTypeName("__AnonymousRecord_Command_L271_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L295_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2708,6 +2739,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.SetViewportScissor;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandBind Bind
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Bind;
             }
         }
 
@@ -2797,6 +2838,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetViewportScissor")]
             public FCommandSetViewportScissor SetViewportScissor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBind")]
+            public FCommandBind Bind;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetPipeline")]

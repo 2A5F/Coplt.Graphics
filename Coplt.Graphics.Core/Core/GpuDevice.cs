@@ -334,21 +334,7 @@ public sealed unsafe partial class GpuDevice
     public ShaderBinding CreateShaderBinding(
         ShaderLayout Layout,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
-    )
-    {
-        fixed (char* p_name = Name)
-        fixed (byte* p_name8 = Name8)
-        {
-            FShaderBindingCreateOptions f_options = new()
-            {
-                Name = new(Name, Name8, p_name, p_name8),
-                Layout = Layout.m_ptr,
-            };
-            FShaderBinding* ptr;
-            m_ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
-            return new(ptr, Name, this, Layout);
-        }
-    }
+    ) => MainQueue.CreateShaderBinding(Layout, Name, Name8);
 
     #endregion
 

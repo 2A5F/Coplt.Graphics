@@ -5,6 +5,7 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
+[Flags]
 public enum CommandFlags : uint
 {
     None = 0,
@@ -30,6 +31,7 @@ public sealed unsafe class CommandList
     internal readonly List<byte> m_payload = new();
     internal GpuOutput? m_current_output;
     internal ShaderPipeline? m_current_pipeline;
+    internal ShaderBinding? m_current_binding;
 
     #endregion
 
@@ -58,6 +60,8 @@ public sealed unsafe class CommandList
         m_objects.Clear();
         m_payload.Clear();
         m_current_output = null;
+        m_current_pipeline = null;
+        m_current_binding = null;
     }
 
     #endregion
@@ -113,7 +117,8 @@ public sealed unsafe class CommandList
                 Present = cmd,
             }
         );
-        Output.UnsafeChangeState(FResourceState.Present);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+            Output.UnsafeChangeState(FResourceState.Present);
     }
 
     #endregion
@@ -162,7 +167,8 @@ public sealed unsafe class CommandList
                 ClearColor = cmd,
             }
         );
-        Image.UnsafeChangeState(FResourceState.RenderTarget);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+            Image.UnsafeChangeState(FResourceState.RenderTarget);
     }
 
     #endregion
@@ -230,7 +236,8 @@ public sealed unsafe class CommandList
                 ClearDepthStencil = cmd,
             }
         );
-        Image.UnsafeChangeState(FResourceState.DepthWrite);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+            Image.UnsafeChangeState(FResourceState.DepthWrite);
     }
 
     #endregion
@@ -291,11 +298,14 @@ public sealed unsafe class CommandList
                 SetRenderTargets = cmd,
             }
         );
-        for (var i = 0; i < num_rtv; i++)
+        if ((Flags & CommandFlags.DontTransition) == 0)
         {
-            Rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
+            for (var i = 0; i < num_rtv; i++)
+            {
+                Rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
+            }
+            Dsv?.UnsafeChangeState(FResourceState.DepthWrite);
         }
-        Dsv?.UnsafeChangeState(FResourceState.DepthWrite);
     }
 
     #endregion
@@ -335,11 +345,70 @@ public sealed unsafe class CommandList
 
     #endregion
 
+    #region Bind
+
+    public void Bind(
+        ShaderBinding Binding, ReadOnlySpan<ShaderBindingSetItem> Items, CommandFlags Flags = CommandFlags.None
+    )
+    {
+        AddObject(Binding);
+        var cmd = new FCommandBind
+        {
+            Binding = Binding.m_ptr,
+            ItemCount = (uint)Items.Length,
+            ItemsIndex = 0
+        };
+        if (Items.Length > 0)
+        {
+            var index = m_payload.Count;
+            cmd.ItemsIndex = (uint)index;
+            var size = Items.Length * sizeof(FBindItem);
+            CollectionsMarshal.SetCount(m_payload, m_payload.Count + size);
+            var dst = MemoryMarshal.Cast<byte, FBindItem>(
+                CollectionsMarshal.AsSpan(m_payload).Slice(index, size)
+            );
+            var defines = Binding.Layout.NativeDefines;
+            var views = Binding.MutViews;
+            for (var i = 0; i < Items.Length; i++)
+            {
+                var src = Items[i];
+                ref readonly var define = ref defines[(int)src.Index];
+                define.CheckCompatible(src.View, (int)src.Index);
+                dst[i] = new()
+                {
+                    Index = src.Index,
+                    View = src.View.ToFFI(),
+                };
+                views[(int)src.Index] = src.View;
+            }
+        }
+        m_commands.Add(
+            new()
+            {
+                Type = FCommandType.Bind,
+                Flags = (FCommandFlags)Flags,
+                Bind = cmd,
+            }
+        );
+    }
+
+    #endregion
+
     #region SetPipeline
 
-    public void SetPipeline(ShaderPipeline Pipeline, CommandFlags Flags = CommandFlags.None)
+    public void SetPipeline(
+        ShaderPipeline Pipeline, ShaderBinding? Binding = null, CommandFlags Flags = CommandFlags.None
+    )
     {
         AddObject(m_current_pipeline = Pipeline);
+        if (Binding != null)
+        {
+            if (m_current_pipeline.Shader.Layout != Binding.Layout)
+                throw new ArgumentException(
+                    "The layout of the shader bindings is incompatible with the layout of the shader pipeline"
+                );
+            AddObject(m_current_binding = Binding);
+        }
         var cmd = new FCommandSetPipeline
         {
             Pipeline = Pipeline.m_ptr,
@@ -427,13 +496,16 @@ public sealed unsafe class CommandList
                 SetMeshBuffers = cmd,
             }
         );
-        if (IndexBuffer.HasValue)
+        if ((Flags & CommandFlags.DontTransition) == 0)
         {
-            IndexBuffer.Value.Buffer.UnsafeChangeState(FResourceState.IndexBuffer);
-        }
-        foreach (var buffer in VertexBuffers)
-        {
-            buffer.Buffer.UnsafeChangeState(FResourceState.VertexBuffer);
+            if (IndexBuffer.HasValue)
+            {
+                IndexBuffer.Value.Buffer.UnsafeChangeState(FResourceState.IndexBuffer);
+            }
+            foreach (var buffer in VertexBuffers)
+            {
+                buffer.Buffer.UnsafeChangeState(FResourceState.VertexBuffer);
+            }
         }
     }
 
@@ -444,33 +516,38 @@ public sealed unsafe class CommandList
     public void Draw(
         uint VertexCount, uint InstanceCount = 1,
         uint FirstVertex = 0, uint FirstInstance = 0,
+        ShaderBinding? Binding = null,
         CommandFlags Flags = CommandFlags.None
-    ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Flags);
+    ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding, Flags);
 
     public void Draw(
         ShaderPipeline? Pipeline,
         uint VertexCount, uint InstanceCount = 1,
         uint FirstVertex = 0, uint FirstInstance = 0,
+        ShaderBinding? Binding = null,
         CommandFlags Flags = CommandFlags.None
-    ) => Draw(Pipeline, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Flags);
+    ) => Draw(Pipeline, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding, Flags);
 
     public void DrawIndexed(
         uint IndexCount, uint InstanceCount = 1,
         uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null,
         CommandFlags Flags = CommandFlags.None
-    ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Flags);
+    ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding, Flags);
 
     public void DrawIndexed(
         ShaderPipeline? Pipeline,
         uint IndexCount, uint InstanceCount = 1,
         uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null,
         CommandFlags Flags = CommandFlags.None
-    ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Flags);
+    ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding, Flags);
 
     public void Draw(
         ShaderPipeline? Pipeline, bool Indexed,
         uint VertexOrIndexCount, uint InstanceCount = 1,
         uint FirstVertexOrIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null,
         CommandFlags Flags = CommandFlags.None
     )
     {
@@ -486,6 +563,14 @@ public sealed unsafe class CommandList
             if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
             if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
                 throw new ArgumentException("Non Vertex pipelines cannot use Draw");
+        }
+        if (Binding != null)
+        {
+            if (m_current_pipeline.Shader.Layout != Binding.Layout)
+                throw new ArgumentException(
+                    "The layout of the shader bindings is incompatible with the layout of the shader pipeline"
+                );
+            AddObject(m_current_binding = Binding);
         }
         var cmd = new FCommandDraw
         {
@@ -621,8 +706,11 @@ public sealed unsafe class CommandList
                 BufferCopy = cmd,
             }
         );
-        Dst.UnsafeChangeState(FResourceState.CopyDst);
-        Src.UnsafeChangeState(FResourceState.CopySrc);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+        {
+            Dst.UnsafeChangeState(FResourceState.CopyDst);
+            Src.UnsafeChangeState(FResourceState.CopySrc);
+        }
     }
 
     #endregion
@@ -665,7 +753,8 @@ public sealed unsafe class CommandList
                 BufferCopy = cmd,
             }
         );
-        Dst.UnsafeChangeState(FResourceState.CopyDst);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+            Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     public void Upload(
@@ -697,7 +786,8 @@ public sealed unsafe class CommandList
                 BufferCopy = cmd,
             }
         );
-        Dst.UnsafeChangeState(FResourceState.CopyDst);
+        if ((Flags & CommandFlags.DontTransition) == 0)
+            Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     #endregion

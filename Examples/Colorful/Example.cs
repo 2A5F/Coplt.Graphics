@@ -56,7 +56,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             },
             Name: "Args"
         );
-        ShaderBinding.Set([new(0, ArgBuffer)]);
+        cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
     }
     protected override void Render(CommandList cmd, Time time)
     {
