@@ -61,6 +61,41 @@ namespace Coplt
         FShaderLayoutItemView View{};
         FShaderLayoutItemType Type{};
         FShaderLayoutItemUsage Usage{};
+
+#ifdef FFI_SRC
+        bool IsAllowBuffer() const
+        {
+            switch (Type)
+            {
+            case FShaderLayoutItemType::ConstantBuffer:
+            case FShaderLayoutItemType::RawBuffer:
+            case FShaderLayoutItemType::StructureBuffer:
+            case FShaderLayoutItemType::StructureBufferWithCounter:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        bool IsAllowTexture() const
+        {
+            switch (Type)
+            {
+            case FShaderLayoutItemType::Texture1D:
+            case FShaderLayoutItemType::Texture1DArray:
+            case FShaderLayoutItemType::Texture2D:
+            case FShaderLayoutItemType::Texture2DArray:
+            case FShaderLayoutItemType::Texture2DMultisample:
+            case FShaderLayoutItemType::Texture2DArrayMultisample:
+            case FShaderLayoutItemType::Texture3D:
+            case FShaderLayoutItemType::TextureCube:
+            case FShaderLayoutItemType::TextureCubeArray:
+                return true;
+            default:
+                return false;
+            }
+        }
+#endif
     };
 
     COPLT_ENUM_FLAGS(FShaderLayoutFlags, u8)
@@ -136,10 +171,10 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FMeshLayout, "8fe5121f-c2ce-46f5-aa14-f28595f35361", FGpuObject)
     {
-        virtual const FMeshBufferDefine* GetBuffers(u32* out_count) const  noexcept = 0;
-        virtual const FMeshBufferElement* GetElements(u32* out_count) const  noexcept = 0;
+        virtual const FMeshBufferDefine* GetBuffers(u32* out_count) const noexcept = 0;
+        virtual const FMeshBufferElement* GetElements(u32* out_count) const noexcept = 0;
 
-        virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const  noexcept = 0;
+        virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const noexcept = 0;
 
 #if FFI_SRC
         std::span<const FMeshBufferDefine> GetBuffers() const noexcept
@@ -148,7 +183,7 @@ namespace Coplt
             return std::span{GetBuffers(&count), static_cast<usize>(count)};
         }
 
-        std::span<const FMeshBufferElement> GetElements() const  noexcept
+        std::span<const FMeshBufferElement> GetElements() const noexcept
         {
             u32 count{};
             return std::span{GetElements(&count), static_cast<usize>(count)};

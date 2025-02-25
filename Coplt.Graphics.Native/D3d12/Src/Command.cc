@@ -127,7 +127,8 @@ void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
     for (u32 i = 0; i < submit.ResourceCount; ++i)
     {
         const auto& res = submit.Resources[i];
-        if (res.GetObjectPtr() == nullptr) throw WRuntimeException(fmt::format(L"Resource is null at {}", i));
+        if (res.GetObjectPtr() == nullptr)
+            COPLT_THROW_FMT("Resource is null at {}", i);
         ResState state{};
         state.Resource = GetResource(res);
         state.Type = res.Type;
@@ -167,7 +168,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
         case FCommandType::BufferCopy:
             goto BufferCopy;
         }
-        throw WRuntimeException(fmt::format(L"Unknown command type {}", static_cast<u32>(item.Type)));
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
 
     CmdNext:
         {
@@ -222,10 +223,12 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             }
             const auto vbs = reinterpret_cast<const FVertexBufferRange*>(&submit.Payload[cmd.VertexBuffersIndex]);
             if (cmd.VertexStartSlot + cmd.VertexBufferCount >= 31)
-                throw WRuntimeException(fmt::format(
-                    L"The number of input buffers is out of range, the maximum allowed input slots is 31; at command {}",
+            {
+                COPLT_THROW_FMT(
+                    "The number of input buffers is out of range, the maximum allowed input slots is 31; at command {}",
                     i
-                ));
+                );
+            }
             for (u32 n = 0; n < cmd.VertexBufferCount; ++n)
             {
                 const auto& vb = vbs[n];
@@ -263,7 +266,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             const auto& cmd = item.Draw;
             if (cmd.Pipeline != nullptr) SetPipelineContext(cmd.Pipeline, i);
             if (m_context.Pipeline == nullptr)
-                throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+                COPLT_THROW_FMT("Pipeline not set at command {}", i);
             goto Graphics_MarkResUse;
         }
     Dispatch:
@@ -271,7 +274,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             const auto& cmd = item.Dispatch;
             if (cmd.Pipeline != nullptr) SetPipelineContext(cmd.Pipeline, i);
             if (m_context.Pipeline == nullptr)
-                throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+                COPLT_THROW_FMT("Pipeline not set at command {}", i);
             if (cmd.Type == FDispatchType::Mesh && m_context.GPipeline) goto Graphics_MarkResUse;
             continue;
         }
@@ -293,8 +296,9 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
                 ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
                 break;
             case FBufferRefType::Upload:
-                throw WRuntimeException(
-                    fmt::format(L"The upload buffer cannot be used as a copy target at command {}", i)
+                COPLT_THROW_FMT(
+                    "The upload buffer cannot be used as a copy target at command {}",
+                    i
                 );
             }
             continue;
@@ -352,10 +356,10 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             case FCommandType::BufferCopy:
                 goto BufferCopy;
             }
-            throw WRuntimeException(fmt::format(L"Unknown command type {}", static_cast<u32>(item.Type)));
+            COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
 
         Transition:
-            throw WRuntimeException(L"TODO");
+            COPLT_THROW("TODO");
             continue;
         ClearColor:
             {
@@ -449,10 +453,10 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                 const auto& cmd = item.Draw;
                 if (cmd.Pipeline != nullptr) SetPipeline(cmd_pack, cmd.Pipeline, i);
                 if (m_context.Pipeline == nullptr)
-                    throw WRuntimeException(fmt::format(L"Pipeline not set at command {}", i));
+                    COPLT_THROW_FMT("Pipeline not set at command {}", i);
                 const auto stages = m_context.Pipeline->GetStages();
                 if (!HasFlags(stages, FShaderStageFlags::Vertex))
-                    throw WRuntimeException(L"Non Vertex pipelines cannot use Draw");
+                    COPLT_THROW("Non Vertex pipelines cannot use Draw");
                 if (cmd.Indexed)
                 {
                     cmd_pack->DrawIndexedInstanced(
@@ -481,12 +485,12 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                     break;
                 case FDispatchType::Mesh:
                     if (!cmd_pack.m_list7)
-                        throw WRuntimeException(L"Mesh Shader is not supported on this device");
+                        COPLT_THROW("Mesh Shader is not supported on this device");
                     cmd_pack.m_list7->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
                     break;
                 default:
-                    throw WRuntimeException(
-                        fmt::format(L"Unknown dispatch type {} at command {}", static_cast<u32>(cmd.Type), i)
+                    COPLT_THROW_FMT(
+                        "Unknown dispatch type {} at command {}", static_cast<u32>(cmd.Type), i
                     );
                 }
                 continue;
@@ -511,20 +515,18 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
                 {
                     const auto dst = GetResource(cmd.Dst.Buffer.Get(submit));
                     if (cmd.Src.Upload.Index >= m_queue->m_frame_context->m_upload_buffers.size())
-                        throw WRuntimeException(fmt::format(L"Index out of bounds at command {}", i));
+                        COPLT_THROW_FMT("Index out of bounds at command {}", i);
                     const auto& src_obj = m_queue->m_frame_context->m_upload_buffers[cmd.Src.Upload.Index];
                     if (cmd.SrcOffset + cmd.Size >= src_obj.m_size)
-                        throw WRuntimeException(fmt::format(L"Size out of range at command {}", i));
+                        COPLT_THROW_FMT("Size out of range at command {}", i);
                     const auto src = src_obj.m_resource.m_resource.Get();
                     cmd_pack->CopyBufferRegion(dst, cmd.DstOffset, src, cmd.SrcOffset, cmd.Size);
                 }
                 else
                 {
-                    throw WRuntimeException(
-                        fmt::format(
-                            L"Unsupported copy combination {{ SrcType = {} DstType = {} }} at command {}",
-                            static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
-                        )
+                    COPLT_THROW_FMT(
+                        "Unsupported copy combination {{ SrcType = {} DstType = {} }} at command {}",
+                        static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
                     );
                 }
                 continue;
@@ -539,22 +541,22 @@ void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, cons
     m_context.Pipeline = pipeline;
     m_context.D3dPipeline = pipeline->QueryInterface<FD3d12PipelineState>();
     if (!m_context.D3dPipeline)
-        throw WRuntimeException(
-            fmt::format(
-                L"Pipeline({:#x}) comes from different backends at cmd {}",
-                reinterpret_cast<size_t>(pipeline), i
-            )
+    {
+        COPLT_THROW_FMT(
+            "Pipeline({:#x}) comes from different backends at cmd {}",
+            reinterpret_cast<size_t>(pipeline), i
         );
+    }
     m_context.Layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
     if (!m_context.Layout)
-        throw WRuntimeException(L"Shader layout from different backends");
+        COPLT_THROW("Shader layout from different backends");
     const auto stages = pipeline->GetStages();
     m_context.GPipeline = nullptr;
     if (HasFlags(stages, FShaderStageFlags::Pixel))
     {
         m_context.GPipeline = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
         if (!m_context.GPipeline)
-            throw WRuntimeException(L"Pipeline from different backends or pipeline not a graphics pipeline");
+            COPLT_THROW("Pipeline from different backends or pipeline not a graphics pipeline");
     }
 }
 
@@ -588,11 +590,12 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
     switch (type)
     {
     case FResourceRefType::Image:
-        throw WRuntimeException(L"TODO");
+        COPLT_THROW("TODO");
     case FResourceRefType::Buffer:
         {
             const auto buffer = object->QueryInterface<FD3d12GpuBuffer>();
-            if (!buffer) throw WRuntimeException(L"The memory may be corrupted");
+            if (!buffer)
+                COPLT_THROW("The memory may be corrupted");
             ID3D12Resource* ptr{};
             buffer->GetCurrentResourcePtr(&ptr).TryThrow();
             return ptr;
@@ -600,13 +603,14 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
     case FResourceRefType::Output:
         {
             const auto output = object->QueryInterface<FD3d12GpuOutput>();
-            if (!output) throw WRuntimeException(L"The memory may be corrupted");
+            if (!output)
+                COPLT_THROW("The memory may be corrupted");
             ID3D12Resource* ptr{};
             output->GetCurrentResourcePtr(&ptr).TryThrow();
             return ptr;
         }
     default:
-        throw WRuntimeException(fmt::format(L"Unknown resource ref type {}", static_cast<u8>(type)));
+        COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(type));
     }
 }
 
@@ -616,16 +620,17 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetRtv(const FResourceMeta&
     {
     case FResourceRefType::Image:
     case FResourceRefType::Buffer:
-        throw WRuntimeException(L"TODO");
+        COPLT_THROW("TODO");
     case FResourceRefType::Output:
         {
             const auto output = meta.Output->QueryInterface<FD3d12GpuOutput>();
-            if (!output) throw WRuntimeException(L"The memory may be corrupted");
+            if (!output)
+                COPLT_THROW("The memory may be corrupted");
             D3D12_CPU_DESCRIPTOR_HANDLE rtv{};
             output->GetCurrentRtv(&rtv).TryThrow();
             return rtv;
         }
     default:
-        throw WRuntimeException(fmt::format(L"Unknown resource ref type {}", static_cast<u8>(meta.Type)));
+        COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(meta.Type));
     }
 }

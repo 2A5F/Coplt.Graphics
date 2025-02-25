@@ -16,7 +16,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     m_usage = options.Usage;
 
     if (HasAnyFlags(m_purpose, FResourcePurpose::DepthStencil | FResourcePurpose::ShadingRate))
-        throw WRuntimeException(L"Buffer does not support this purpose combination.");
+        COPLT_THROW("Buffer does not support this purpose combination.");
 
     m_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     m_desc.Alignment = 0;

@@ -26,13 +26,13 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
         if (item.View == FShaderLayoutItemView::Constants)
         {
             if (item.Type != FShaderLayoutItemType::ConstantBuffer)
-                throw WRuntimeException(L"Push Const / Root Const view must be ConstantBuffer");
+                COPLT_THROW("Push Const / Root Const view must be ConstantBuffer");
 
             D3D12_ROOT_PARAMETER1 param{};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             param.Constants.ShaderRegister = item.Slot;
             param.Constants.RegisterSpace = item.Space;
-            param.Constants.Num32BitValues = item.CountOrIndex;
+            param.Constants.Num32BitValues = std::max(1u, item.CountOrIndex);
             param.ShaderVisibility = ToDxVisibility(item.Stage);
             m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Const};
             root_parameters.push_back(param);
@@ -68,14 +68,12 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
                 type = D3D12_ROOT_PARAMETER_TYPE_UAV;
                 goto DefineDescriptor;
             case FShaderLayoutItemView::Sampler:
-                throw WRuntimeException(L"TODO"); // 静态采样器
+                COPLT_THROW("TODO"); // 静态采样器
             default:
-                throw WRuntimeException(
-                    fmt::format(L"Unknown shader layout item type {}", static_cast<u32>(item.Type))
-                );
+                COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
             }
         default:
-            throw WRuntimeException(fmt::format(L"Unknown shader layout item usage {}", static_cast<u32>(item.Usage)));
+            COPLT_THROW_FMT("Unknown shader layout item usage {}", static_cast<u32>(item.Usage));
         }
 
         continue;
@@ -116,15 +114,13 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
                 range_type = RangeType::Sampler;
                 break;
             default:
-                throw WRuntimeException(
-                    fmt::format(L"Unknown shader layout item type {}", static_cast<u32>(item.Type))
-                );
+                COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
             }
             auto& meta = table.GetOrAdd(TableKey(item.Stage, range_type), [&](auto& p)
             {
                 p = TableMeta(table_index[static_cast<u8>(table_scope)]++, item.Stage, range_type);
             });
-            range.NumDescriptors = item.CountOrIndex;
+            range.NumDescriptors = std::max(1u, item.CountOrIndex);
             range.BaseShaderRegister = item.Slot;
             range.RegisterSpace = item.Space;
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -217,7 +213,7 @@ const FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count)
     return m_layout_item_defines.data();
 }
 
-std::span<ID3d12ShaderLayout::ItemMeta> D3d12ShaderLayout::GetItemMeta() noexcept
+std::span<ID3d12ShaderLayout::ItemMeta> D3d12ShaderLayout::GetItemMetas() noexcept
 {
     return m_item_metas;
 }
@@ -259,19 +255,19 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
     m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
     // 保留 1 个 slot 永远为 0
     if (m_buffers.size() >= 31)
-        throw WRuntimeException(
-            fmt::format(
-                L"Too many buffers, a maximum of 31 buffers are supported, but actually provided {}",
-                m_buffers.size()
-            )
+    {
+        COPLT_THROW_FMT(
+            "Too many buffers, a maximum of 31 buffers are supported, but actually provided {}",
+            m_buffers.size()
         );
+    }
     for (u32 i = 0; i < m_elements.size(); ++i)
     {
         const auto& element = m_elements[i];
         const auto key = static_cast<u64>(element.SlotId) | (static_cast<u64>(element.SlotIndex) << 32);
         m_slot_id_index_to_element.TryAdd(key, &element);
         if (element.BufferIndex > m_buffers.size())
-            throw WRuntimeException(fmt::format(L"BufferIndex of element {} is out of range", i));
+            COPLT_THROW_FMT("BufferIndex of element {} is out of range", i);
     }
 }
 

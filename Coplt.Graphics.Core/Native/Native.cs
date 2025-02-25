@@ -1307,10 +1307,10 @@ namespace Coplt.Graphics.Native
         public FShaderLayout* Layout;
     }
 
-    public unsafe partial struct FShaderBindingBatchSet
+    public partial struct FShaderBindingBatchSet
     {
-        [NativeTypeName("Coplt::FGpuView *")]
-        public FGpuView* View;
+        [NativeTypeName("Coplt::FView")]
+        public FView View;
 
         [NativeTypeName("Coplt::u32")]
         public uint Index;
@@ -1359,15 +1359,25 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FView *")]
+        public FView* GetViews([NativeTypeName("Coplt::u32 *")] uint* out_size)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderBinding*, uint*, FView*>)(lpVtbl[5]))((FShaderBinding*)Unsafe.AsPointer(ref this), out_size);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
         public FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[5]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
+            return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[6]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
         }
 
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FView *")]
+            FView* GetViews([NativeTypeName("Coplt::u32 *")] uint* out_size);
+
             [return: NativeTypeName("Coplt::FResult")]
             FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings);
         }
@@ -1884,6 +1894,40 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FImageLayout")]
         public FImageLayout m_layout;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FViewType : byte
+    {
+        None,
+        Buffer,
+    }
+
+    public unsafe partial struct FView
+    {
+        [NativeTypeName("__AnonymousRecord_Resource_L222_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [NativeTypeName("Coplt::FViewType")]
+        public FViewType Type;
+
+        [UnscopedRef]
+        public ref FGpuBuffer* Buffer
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Buffer;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public unsafe partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuBuffer *")]
+            public FGpuBuffer* Buffer;
+        }
     }
 
     [NativeTypeName("Coplt::u8")]

@@ -10,7 +10,7 @@ using namespace Coplt;
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
 {
     if (m_queue->m_queue_type != FGpuQueueType::Direct)
-        throw WRuntimeException(L"Cannot create output on a non direct queue.");
+        COPLT_THROW("Cannot create output on a non direct queue.");
 
     m_device = m_queue->m_device;
     m_dx_device = m_queue->m_dx_device;

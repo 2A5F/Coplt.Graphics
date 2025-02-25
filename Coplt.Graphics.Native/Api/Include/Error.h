@@ -374,4 +374,12 @@ namespace Coplt
         }
         return r;
     }
+
+#ifdef _WINDOWS
+#define COPLT_THROW(msg) throw WRuntimeException(L##msg)
+#define COPLT_THROW_FMT(msg, ...) throw WRuntimeException(fmt::format(L##msg, __VA_ARGS__))
+#else
+#define COPLT_THROW(msg) throw RuntimeException(msg)
+#define COPLT_THROW_FMT(msg, ...) throw RuntimeException(fmt::format(msg, __VA_ARGS__))
+#endif
 }

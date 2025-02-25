@@ -284,6 +284,10 @@ public sealed unsafe partial class GpuDevice
         }
     }
 
+    private ShaderInputLayout? m_empty_shader_input_layout;
+    public ShaderInputLayout EmptyShaderInputLayout =>
+        m_empty_shader_input_layout ??= CreateShaderInputLayout([], "Empty Shader Input Layout");
+
     #endregion
 
     #region CreateShader

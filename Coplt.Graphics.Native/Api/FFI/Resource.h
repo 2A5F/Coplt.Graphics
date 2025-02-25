@@ -210,4 +210,19 @@ namespace Coplt
         // 纹理布局
         FImageLayout m_layout{};
     };
+
+    enum class FViewType : u8
+    {
+        None,
+        Buffer,
+    };
+
+    struct FView
+    {
+        union
+        {
+            FGpuBuffer* Buffer;
+        };
+        FViewType Type;
+    };
 }

@@ -145,7 +145,7 @@ D3d12GpuDevice::D3d12GpuDevice(
 
     GetAdapter(m_factory.Get(), &m_adapter, feature_level, options);
     if (!m_adapter)
-        throw WRuntimeException(L"No matching devices found");
+        COPLT_THROW("No matching devices found");
 
     chr | D3D12CreateDevice(m_adapter.Get(), feature_level, IID_PPV_ARGS(&m_device));
 

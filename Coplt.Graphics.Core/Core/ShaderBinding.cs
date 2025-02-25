@@ -1,7 +1,10 @@
-﻿using Coplt.Dropping;
+﻿using System.Buffers;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
+
+public record struct ShaderBindingSetItem(uint Index, View View);
 
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class ShaderBinding
@@ -76,6 +79,57 @@ public sealed unsafe partial class ShaderBinding
         m_name is null
             ? $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X})"
             : $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X} \"{m_name}\")";
+
+    #endregion
+
+    #region Set
+
+    public void Set(ReadOnlySpan<ShaderBindingSetItem> Items)
+    {
+        if (Items.Length < 32)
+        {
+            var p = stackalloc FShaderBindingBatchSet[Items.Length];
+            DoSet(m_ptr, p, Items);
+        }
+        else
+        {
+            var arr = ArrayPool<FShaderBindingBatchSet>.Shared.Rent(Items.Length);
+            try
+            {
+                fixed (FShaderBindingBatchSet* p = arr)
+                {
+                    DoSet(m_ptr, p, Items);
+                }
+            }
+            finally
+            {
+                ArrayPool<FShaderBindingBatchSet>.Shared.Return(arr);
+            }
+        }
+        return;
+
+        static void DoSet(FShaderBinding* ptr, FShaderBindingBatchSet* p, ReadOnlySpan<ShaderBindingSetItem> Items)
+        {
+            for (var i = 0; i < Items.Length; i++)
+            {
+                ref readonly var item = ref Items[i];
+                p[i] = new()
+                {
+                    Index = item.Index,
+                    View = item.View.ToFFI(),
+                };
+            }
+            ptr->Set((uint)Items.Length, p).TryThrow();
+        }
+    }
+
+    public void UnsafeSet(ReadOnlySpan<FShaderBindingBatchSet> Items)
+    {
+        fixed (FShaderBindingBatchSet* ptr = Items)
+        {
+            m_ptr->Set((uint)Items.Length, ptr).TryThrow();
+        }
+    }
 
     #endregion
 }

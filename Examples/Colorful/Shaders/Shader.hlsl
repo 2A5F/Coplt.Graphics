@@ -24,8 +24,13 @@ Varying Vertex(Attribute input)
     return output;
 }
 
+cbuffer Args : register(b0)
+{
+    float time;
+} 
+
 [shader("pixel")]
 float4 Pixel(Varying input) : SV_Target
 {
-    return float4(input.Uv, 0, 1);
+    return float4(input.Uv, time, 1);
 }

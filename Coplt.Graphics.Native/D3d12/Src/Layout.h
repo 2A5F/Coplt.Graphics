@@ -90,7 +90,7 @@ namespace Coplt
             RangeType RangeType{};
         };
 
-        virtual std::span<ItemMeta> GetItemMeta() noexcept = 0;
+        virtual std::span<ItemMeta> GetItemMetas() noexcept = 0;
         virtual std::array<std::span<TableMeta>, 2> GetTableMetas() noexcept = 0;
     };
 
@@ -113,7 +113,7 @@ namespace Coplt
 
         const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
 
-        std::span<ItemMeta> GetItemMeta() noexcept override;
+        std::span<ItemMeta> GetItemMetas() noexcept override;
         std::array<std::span<TableMeta>, 2> GetTableMetas() noexcept override;
     };
 

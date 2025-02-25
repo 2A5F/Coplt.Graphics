@@ -503,11 +503,18 @@ namespace Coplt.Graphics.Native.D3d12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FView *")]
+        public FView* GetViews([NativeTypeName("Coplt::u32 *")] uint* out_size)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, uint*, FView*>)(lpVtbl[5]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), out_size);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
         public FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[5]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[6]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
         }
 
         public interface Interface : FShaderBinding.Interface

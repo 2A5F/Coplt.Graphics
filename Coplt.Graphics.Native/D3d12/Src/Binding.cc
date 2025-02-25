@@ -13,15 +13,23 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     m_dx_device = m_device->m_device;
 
     m_layout = Rc<ID3d12ShaderLayout>::UnsafeClone(options.Layout->QueryInterface<ID3d12ShaderLayout>());
-    if (m_layout == nullptr) throw WRuntimeException(L"Layout from different backends");
+    if (m_layout == nullptr)
+        COPLT_THROW("Layout from different backends");
 
-    const auto item_metas = m_layout->GetItemMeta();
-    m_views = std::vector<Rc<FGpuView>>(item_metas.size(), {});
+    const auto item_metas = m_layout->GetItemMetas();
+    m_f_views = std::vector<FView>(item_metas.size(), {});
+    m_views = std::vector<View>(item_metas.size(), {});
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FView* D3d12ShaderBinding::GetViews(u32* out_size) noexcept
+{
+    *out_size = m_f_views.size();
+    return m_f_views.data();
 }
 
 FResult D3d12ShaderBinding::Set(const u32 count, const FShaderBindingBatchSet* bindings) noexcept
@@ -34,16 +42,23 @@ FResult D3d12ShaderBinding::Set(const u32 count, const FShaderBindingBatchSet* b
 
 void D3d12ShaderBinding::Set(const std::span<const FShaderBindingBatchSet> bindings)
 {
+    auto item_metas = m_layout->GetItemMetas();
+    auto item_defines = m_layout->GetItemDefines();
     for (const auto& [View, Index] : bindings)
     {
-        if (Index >= m_views.size()) throw WRuntimeException(L"Index out of bounds");
-        if (View == nullptr)
+        if (Index >= m_views.size())
+            COPLT_THROW("Index out of bounds");
+        const auto& define = item_defines[Index];
+        switch (View.Type)
         {
-            m_views[Index] = nullptr;
-            continue;
+        case FViewType::None:
+            break;
+        case FViewType::Buffer:
+            if (!define.IsAllowBuffer())
+                COPLT_THROW_FMT("Binding index {} is not allowed to bind to buffer.", Index);
+            break;
         }
-        Rc<FGpuView> view = Rc<FGpuView>::UnsafeClone(View);
-        // todo check
-        m_views[Index] = std::move(view);
+        m_f_views[Index] = View;
+        m_views[Index] = View;
     }
 }
