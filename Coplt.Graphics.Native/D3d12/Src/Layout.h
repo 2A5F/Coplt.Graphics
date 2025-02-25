@@ -107,7 +107,7 @@ namespace Coplt
 
         explicit D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRootSignaturePtr() noexcept override;
 
@@ -125,7 +125,7 @@ namespace Coplt
 
         explicit D3d12ShaderInputLayout(Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
     };
@@ -139,7 +139,7 @@ namespace Coplt
 
         explicit D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         const FMeshBufferDefine* GetBuffers(u32* out_count) const noexcept override;
         const FMeshBufferElement* GetElements(u32* out_count) const noexcept override;

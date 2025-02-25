@@ -46,7 +46,7 @@ namespace Coplt
 
     struct FGpuOutputCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         u32 Width{};
         u32 Height{};
         FGraphicsFormat Format{};

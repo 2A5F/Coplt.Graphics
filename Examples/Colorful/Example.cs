@@ -9,14 +9,16 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
 {
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
+    private ShaderBinding ShaderBinding = null!;
 
     public override string Name => "Colorful";
     protected override async Task LoadResources(CommandList cmd)
     {
         var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
         Shader = Device.CreateShader(
-            modules, null, Device.CreateShaderInputLayout([])
+            modules, Device.CreateShaderLayout([]), Device.CreateShaderInputLayout([])
         );
+        ShaderBinding = Device.CreateShaderBinding(Shader.Layout!, Name: Name);
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {

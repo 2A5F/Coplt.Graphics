@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using Coplt.Dropping;
@@ -99,7 +100,7 @@ public sealed unsafe partial class GpuDevice
         m_name = name;
         fixed (char* ptr = name)
         {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
@@ -109,7 +110,7 @@ public sealed unsafe partial class GpuDevice
         m_name = null;
         fixed (byte* ptr = name)
         {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
@@ -213,6 +214,22 @@ public sealed unsafe partial class GpuDevice
         }
     }
 
+    private readonly ConcurrentDictionary<ShaderLayoutFlags, ShaderLayout> m_empty_shader_layouts = new();
+
+    public ShaderLayout GetEmptyShaderLayout(ShaderLayoutFlags Flags = ShaderLayoutFlags.None) =>
+        m_empty_shader_layouts.GetOrAdd(
+            Flags, static (flags, self) =>
+            {
+                FGetEmptyShaderLayoutOptions f_options = new()
+                {
+                    Flags = (FShaderLayoutFlags)flags,
+                };
+                FShaderLayout* ptr;
+                self.m_ptr->GetEmptyShaderLayout(&f_options, &ptr).TryThrow();
+                return new(ptr, $"Empty Shader Layout ({flags})");
+            }, this
+        );
+
     #endregion
 
     #region CreateShaderInputLayout
@@ -303,6 +320,29 @@ public sealed unsafe partial class GpuDevice
             FShader* ptr;
             m_ptr->CreateShader(&f_options, &ptr).TryThrow();
             return new(ptr, arr, Layout, InputLayout, Name);
+        }
+    }
+
+    #endregion
+
+    #region CreateShaderBinding
+
+    public ShaderBinding CreateShaderBinding(
+        ShaderLayout Layout,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FShaderBindingCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Layout = Layout.m_ptr,
+            };
+            FShaderBinding* ptr;
+            m_ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, this, Layout);
         }
     }
 

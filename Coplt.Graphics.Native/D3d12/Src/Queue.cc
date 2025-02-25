@@ -41,7 +41,7 @@ D3d12GpuQueue::D3d12GpuQueue(
     }
 }
 
-FResult D3d12GpuQueue::SetName(const Str8or16& name) noexcept
+FResult D3d12GpuQueue::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {

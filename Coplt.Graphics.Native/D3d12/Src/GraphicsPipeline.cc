@@ -219,7 +219,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     m_input_slots = std::move(input_slots);
 }
 
-FResult D3d12GraphicsShaderPipeline::SetName(const Str8or16& name) noexcept
+FResult D3d12GraphicsShaderPipeline::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {

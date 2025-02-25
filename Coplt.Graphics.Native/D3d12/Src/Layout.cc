@@ -197,7 +197,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     }
 }
 
-FResult D3d12ShaderLayout::SetName(const Str8or16& name) noexcept
+FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {
@@ -241,7 +241,7 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
     }
 }
 
-FResult D3d12ShaderInputLayout::SetName(const Str8or16& name) noexcept
+FResult D3d12ShaderInputLayout::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
 }
@@ -275,7 +275,7 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
     }
 }
 
-FResult D3d12MeshLayout::SetName(const Str8or16& name) noexcept
+FResult D3d12MeshLayout::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
 }

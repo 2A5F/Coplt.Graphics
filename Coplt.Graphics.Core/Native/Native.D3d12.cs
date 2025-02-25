@@ -50,10 +50,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,10 +88,18 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGetEmptyShaderLayoutOptions*, FShaderLayout**, FResult*>)(lpVtbl[9]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[9]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[10]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -99,7 +107,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[10]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,7 +115,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[11]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -115,7 +123,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[12]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[13]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,7 +131,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[13]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[14]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -131,7 +139,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[14]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[15]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuDevice.Interface
@@ -186,10 +194,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -305,10 +313,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -366,10 +374,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderInputLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderInputLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderInputLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderInputLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -420,10 +428,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12MeshLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12MeshLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -488,10 +496,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12ShaderBinding*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12ShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -543,10 +551,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12PipelineState*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12PipelineState*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12PipelineState*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12PipelineState*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -618,10 +626,10 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GraphicsShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FD3d12GraphicsShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GraphicsShaderPipeline*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FD3d12GraphicsShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

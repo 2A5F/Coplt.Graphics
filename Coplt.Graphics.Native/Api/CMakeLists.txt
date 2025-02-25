@@ -54,4 +54,5 @@ target_link_libraries(${target_name}
     glm::glm
     mimalloc-static
     fmt::fmt
+    concurrentqueue
 )

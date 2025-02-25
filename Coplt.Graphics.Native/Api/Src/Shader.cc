@@ -28,7 +28,7 @@ void ShaderModule::Free(void* self)
     mi_free_aligned(self, alignof(Self));
 }
 
-FResult ShaderModule::SetName(const Str8or16& name) noexcept
+FResult ShaderModule::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
 }
@@ -95,7 +95,7 @@ Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m
         throw RuntimeException("Having a task stage must also have a mesh stage");
 }
 
-FResult Shader::SetName(const Str8or16& name) noexcept
+FResult Shader::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
 }

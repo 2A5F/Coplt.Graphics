@@ -27,7 +27,7 @@ namespace Coplt
 
         explicit D3d12GpuQueue(Rc<D3d12GpuDevice>&& device, const FMainQueueCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRawQueue() noexcept override;
 

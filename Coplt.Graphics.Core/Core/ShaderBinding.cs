@@ -1,35 +1,36 @@
 ﻿using Coplt.Dropping;
 using Coplt.Graphics.Native;
-using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class ShaderModule
+public sealed unsafe partial class ShaderBinding
 {
     #region Fields
 
-    internal FShaderModule* m_ptr;
+    internal FShaderBinding* m_ptr;
     internal string? m_name;
-    internal readonly String8? m_entry_point;
+    internal readonly GpuDevice m_device;
+    internal readonly ShaderLayout m_layout;
 
     #endregion
 
     #region Props
 
-    public FShaderModule* Ptr => m_ptr;
-    public ShaderStage Stage => m_ptr->Stage.FromFFI();
-    public String8? EntryPoint => m_entry_point;
+    public FShaderBinding* Ptr => m_ptr;
+    public GpuDevice Device => m_device;
+    public ShaderLayout Layout => m_layout;
 
     #endregion
 
     #region Ctor
 
-    internal ShaderModule(FShaderModule* ptr, string? name, String8? entry_point)
+    internal ShaderBinding(FShaderBinding* ptr, string? name, GpuDevice device, ShaderLayout layout)
     {
-        m_ptr = ptr;
         m_name = name;
-        m_entry_point = entry_point;
+        m_ptr = ptr;
+        m_device = device;
+        m_layout = layout;
     }
 
     #endregion
@@ -73,8 +74,8 @@ public sealed unsafe partial class ShaderModule
 
     public override string ToString() =>
         m_name is null
-            ? $"{nameof(ShaderModule)}(0x{(nuint)m_ptr:X}) {{ Stage = {Stage} }}"
-            : $"{nameof(ShaderModule)}(0x{(nuint)m_ptr:X} \"{m_name}\") {{ Stage = {Stage} }}";
+            ? $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X})"
+            : $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

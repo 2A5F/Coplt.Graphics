@@ -142,17 +142,17 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 GetStr()
+        [return: NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 GetStr()
         {
-            Str8or16 result;
-            return *((delegate* unmanaged[Thiscall]<FString*, Str8or16*, Str8or16*>)(lpVtbl[4]))((FString*)Unsafe.AsPointer(ref this), &result);
+            FStr8or16 result;
+            return *((delegate* unmanaged[Thiscall]<FString*, FStr8or16*, FStr8or16*>)(lpVtbl[4]))((FString*)Unsafe.AsPointer(ref this), &result);
         }
 
         public interface Interface : FUnknown.Interface
         {
-            [return: NativeTypeName("Coplt::Str8or16")]
-            Str8or16 GetStr();
+            [return: NativeTypeName("Coplt::FStr8or16")]
+            FStr8or16 GetStr();
         }
     }
 
@@ -197,11 +197,11 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 GetStr()
+        [return: NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 GetStr()
         {
-            Str8or16 result;
-            return *((delegate* unmanaged[Thiscall]<FString8*, Str8or16*, Str8or16*>)(lpVtbl[4]))((FString8*)Unsafe.AsPointer(ref this), &result);
+            FStr8or16 result;
+            return *((delegate* unmanaged[Thiscall]<FString8*, FStr8or16*, FStr8or16*>)(lpVtbl[4]))((FString8*)Unsafe.AsPointer(ref this), &result);
         }
 
         public interface Interface : FString.Interface
@@ -250,11 +250,11 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 GetStr()
+        [return: NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 GetStr()
         {
-            Str8or16 result;
-            return *((delegate* unmanaged[Thiscall]<FString16*, Str8or16*, Str8or16*>)(lpVtbl[4]))((FString16*)Unsafe.AsPointer(ref this), &result);
+            FStr8or16 result;
+            return *((delegate* unmanaged[Thiscall]<FString16*, FStr8or16*, FStr8or16*>)(lpVtbl[4]))((FString16*)Unsafe.AsPointer(ref this), &result);
         }
 
         public interface Interface : FString.Interface
@@ -313,7 +313,7 @@ namespace Coplt.Graphics.Native
         public FMessageType type;
     }
 
-    public unsafe partial struct Str8
+    public unsafe partial struct FStr8
     {
         [NativeTypeName("const char *")]
         public byte* str;
@@ -322,7 +322,7 @@ namespace Coplt.Graphics.Native
         public int len;
     }
 
-    public unsafe partial struct Str16
+    public unsafe partial struct FStr16
     {
         [NativeTypeName("const Char16 *")]
         public char* str;
@@ -331,19 +331,58 @@ namespace Coplt.Graphics.Native
         public int len;
     }
 
-    public unsafe partial struct Str8or16
+    [NativeTypeName("Coplt::u8")]
+    public enum FStrType : byte
     {
-        [NativeTypeName("const char *")]
-        public byte* str8;
+        Str16,
+        Str8,
+    }
 
-        [NativeTypeName("const Char16 *")]
-        public char* str16;
+    public unsafe partial struct FStr8or16
+    {
+        [NativeTypeName("__AnonymousRecord_String_L77_C9")]
+        public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::i32")]
         public int len;
+
+        [NativeTypeName("Coplt::FStrType")]
+        public FStrType type;
+
+        [UnscopedRef]
+        public ref char* str16
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.str16;
+            }
+        }
+
+        [UnscopedRef]
+        public ref byte* str8
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.str8;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public unsafe partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("const Char16 *")]
+            public char* str16;
+
+            [FieldOffset(0)]
+            [NativeTypeName("const char *")]
+            public byte* str8;
+        }
     }
 
-    public unsafe partial struct CStr8or16
+    public unsafe partial struct FCStr8or16
     {
         [NativeTypeName("const char *")]
         public byte* str8;
@@ -481,16 +520,16 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuObject*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuObject*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuObject*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuObject*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         public interface Interface : FUnknown.Interface
         {
             [return: NativeTypeName("Coplt::FResult")]
-            FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name);
+            FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name);
         }
     }
 
@@ -586,8 +625,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FGpuDeviceCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FD3dFeatureLevel")]
         public FD3dFeatureLevel D3dFeatureLevel;
@@ -645,10 +684,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -683,10 +722,18 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGetEmptyShaderLayoutOptions*, FShaderLayout**, FResult*>)(lpVtbl[9]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[9]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[10]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -694,7 +741,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[10]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -702,7 +749,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[12]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -710,7 +757,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[12]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[13]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -718,7 +765,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[13]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[14]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -726,7 +773,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[14]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[15]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -741,6 +788,9 @@ namespace Coplt.Graphics.Native
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateShaderLayout([NativeTypeName("const FShaderLayoutCreateOptions &")] FShaderLayoutCreateOptions* options, FShaderLayout** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out);
@@ -906,8 +956,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FShaderModuleCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FString8 *")]
         public FString8* EntryPoint;
@@ -966,10 +1016,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderModule*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderModule*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShaderModule*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderModule*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1029,10 +1079,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShaderLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1089,10 +1139,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderInputLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderInputLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShaderInputLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderInputLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1111,8 +1161,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FShaderCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FShaderLayout *")]
         public FShaderLayout* Layout;
@@ -1168,10 +1218,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShader*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShader*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShader*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShader*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1250,8 +1300,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FShaderBindingCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FShaderLayout *")]
         public FShaderLayout* Layout;
@@ -1302,10 +1352,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1388,8 +1438,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FMainQueueCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -1445,10 +1495,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1534,8 +1584,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FGpuViewCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FResourcePurpose")]
         public FResourcePurpose Purpose;
@@ -1580,10 +1630,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuView*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuView*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuView*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuView*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -1880,8 +1930,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FGpuOutputCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::u32")]
         public uint Width;
@@ -1975,10 +2025,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2812,8 +2862,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FShaderLayoutCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::u32")]
         public uint Count;
@@ -2825,10 +2875,16 @@ namespace Coplt.Graphics.Native
         public FShaderLayoutFlags Flags;
     }
 
+    public partial struct FGetEmptyShaderLayoutOptions
+    {
+        [NativeTypeName("Coplt::FShaderLayoutFlags")]
+        public FShaderLayoutFlags Flags;
+    }
+
     public unsafe partial struct FShaderInputLayoutCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FShaderInputLayoutElement *")]
         public FShaderInputLayoutElement* Element;
@@ -2839,8 +2895,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FMeshLayoutCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FMeshBufferDefine *")]
         public FMeshBufferDefine* Buffers;
@@ -2891,10 +2947,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FMeshLayout*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FMeshLayout*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FMeshLayout*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FMeshLayout*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2933,8 +2989,8 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FShaderPipelineCreateOptions
     {
-        [NativeTypeName("Coplt::Str8or16")]
-        public Str8or16 Name;
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
 
         [NativeTypeName("Coplt::FShader *")]
         public FShader* Shader;
@@ -2976,10 +3032,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FShaderPipeline*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3052,10 +3108,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FComputeShaderPipeline*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FComputeShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3132,10 +3188,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const Str8or16 &")] Str8or16* name)
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FResult*, Str8or16*, FResult*>)(lpVtbl[4]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
+            return *((delegate* unmanaged[Thiscall]<FGraphicsShaderPipeline*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGraphicsShaderPipeline*)Unsafe.AsPointer(ref this), &result, name);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

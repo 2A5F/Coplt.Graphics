@@ -151,9 +151,9 @@ namespace Coplt
             return std::string(c_str(), m_size);
         }
 
-        Str8or16 GetStr() const noexcept override
+        FStr8or16 GetStr() const noexcept override
         {
-            return Str8or16(c_str(), size());
+            return FStr8or16(c_str(), size());
         }
     };
 
@@ -199,9 +199,9 @@ namespace Coplt
         }
 #endif
 
-        Str8or16 GetStr() const noexcept override
+        FStr8or16 GetStr() const noexcept override
         {
-            return Str8or16(data(), size());
+            return FStr8or16(data(), size());
         }
     };
 
@@ -216,9 +216,9 @@ namespace Coplt
         {
         }
 
-        Str8or16 GetStr() const noexcept override
+        FStr8or16 GetStr() const noexcept override
         {
-            return Str8or16(data(), size());
+            return FStr8or16(data(), size());
         }
     };
 
@@ -234,9 +234,9 @@ namespace Coplt
         {
         }
 
-        Str8or16 GetStr() const noexcept override
+        FStr8or16 GetStr() const noexcept override
         {
-            return Str8or16(data(), size());
+            return FStr8or16(data(), size());
         }
     };
 #endif

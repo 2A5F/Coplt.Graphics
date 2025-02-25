@@ -5,7 +5,6 @@ namespace Coplt.Graphics.Core;
 
 public record struct GpuBufferCreateOptions()
 {
-    public Str8or16 Name;
     public required ResourcePurpose Purpose;
     public CpuAccess CpuAccess = CpuAccess.None;
     public required ulong Size;

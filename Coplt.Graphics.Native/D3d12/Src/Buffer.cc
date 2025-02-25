@@ -40,7 +40,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     }
 }
 
-FResult D3d12GpuBuffer::SetName(const Str8or16& name) noexcept
+FResult D3d12GpuBuffer::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {

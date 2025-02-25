@@ -76,11 +76,16 @@ namespace Coplt
 
     struct FShaderLayoutCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         u32 Count{};
         FShaderLayoutItemDefine* Items{};
         // todo 静态采样器
 
+        FShaderLayoutFlags Flags{};
+    };
+
+    struct FGetEmptyShaderLayoutOptions
+    {
         FShaderLayoutFlags Flags{};
     };
 
@@ -101,7 +106,7 @@ namespace Coplt
 
     struct FShaderInputLayoutCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         FShaderInputLayoutElement* Element{};
         u32 Count{};
     };
@@ -121,7 +126,7 @@ namespace Coplt
 
     struct FMeshLayoutCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         // Buffers 按顺序定义到 InputSlot，不允许随机隔空的 InputSlot
         FMeshBufferDefine* Buffers{};
         FMeshBufferElement* Elements{};

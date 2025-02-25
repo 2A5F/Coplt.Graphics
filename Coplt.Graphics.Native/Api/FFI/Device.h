@@ -35,7 +35,7 @@ namespace Coplt
     struct FGpuDeviceCreateOptions
     {
         // 可选
-        Str8or16 Name{};
+        FStr8or16 Name{};
         // 仅 dx 后端时可用
         FD3dFeatureLevel D3dFeatureLevel{};
         // 仅 vk 后端时可用
@@ -54,6 +54,7 @@ namespace Coplt
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
         virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
+        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out) noexcept = 0;
         virtual FResult CreateShaderInputLayout(
             const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
         ) noexcept = 0;

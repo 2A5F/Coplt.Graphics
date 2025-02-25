@@ -8,7 +8,7 @@ namespace Coplt
 {
     struct FShaderBindingCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         FShaderLayout* Layout{};
     };
 

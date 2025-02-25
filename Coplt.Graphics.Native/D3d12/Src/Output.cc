@@ -174,7 +174,7 @@ FGraphicsFormat D3d12GpuSwapChainOutput::SelectFormat(
     return FGraphicsFormat::R8G8B8A8_UNorm;
 }
 
-FResult D3d12GpuSwapChainOutput::SetName(const Str8or16& name) noexcept
+FResult D3d12GpuSwapChainOutput::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {

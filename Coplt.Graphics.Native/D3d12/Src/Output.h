@@ -55,7 +55,7 @@ namespace Coplt
 
         static FGraphicsFormat SelectFormat(const FGpuOutputCreateOptions& options, bool& is_hdr);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         FResult SetVSync(b8 Enable) noexcept override;
 

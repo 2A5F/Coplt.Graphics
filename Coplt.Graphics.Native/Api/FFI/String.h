@@ -8,11 +8,11 @@
 
 namespace Coplt
 {
-    struct Str8or16;
+    struct FStr8or16;
 
     COPLT_INTERFACE_DEFINE(FString, "5a478800-e7da-4a6b-b428-1e3fda55997f", FUnknown)
     {
-        virtual Str8or16 GetStr() const noexcept = 0;
+        virtual FStr8or16 GetStr() const noexcept = 0;
     };
 
     COPLT_INTERFACE_DEFINE(FString8, "63c7fc71-d775-42bb-891a-69dbb26e75c5", FString)
@@ -54,87 +54,108 @@ namespace Coplt
         FMessageType type;
     };
 
-    struct Str8
+    struct FStr8
     {
         const char* str;
         i32 len;
     };
 
-    struct Str16
+    struct FStr16
     {
         const Char16* str;
         i32 len;
     };
 
-    struct Str8or16
+    enum class FStrType : u8
     {
-        const char* str8;
-        const Char16* str16;
+        Str16,
+        Str8,
+    };
+
+    struct FStr8or16
+    {
+        union
+        {
+            const Char16* str16;
+            const char* str8;
+        };
+
         i32 len;
+        FStrType type;
 
 #ifdef FFI_SRC
-        Str8or16() = default;
+        FStr8or16() = default;
 
-        explicit Str8or16(const char* ptr, const usize len) : str8(ptr), str16(nullptr), len(len)
+        explicit FStr8or16(const char* ptr, const usize len)
+            : str8(ptr), len(static_cast<i32>(static_cast<u32>(len))), type(FStrType::Str8)
         {
         }
 
-        explicit Str8or16(const Char8* ptr, const usize len)
-            : str8(reinterpret_cast<const char*>(ptr)), str16(nullptr), len(len)
+        explicit FStr8or16(const Char8* ptr, const usize len)
+            : str8(reinterpret_cast<const char*>(ptr)),
+              len(static_cast<i32>(static_cast<u32>(len))), type(FStrType::Str8)
         {
         }
 
-        explicit Str8or16(const Char16* ptr, const usize len) : str8(nullptr), str16(ptr), len(len)
+        explicit FStr8or16(const Char16* ptr, const usize len)
+            : str16(ptr), len(static_cast<i32>(static_cast<u32>(len))), type(FStrType::Str16)
         {
         }
 
-        explicit Str8or16(const std::string& str) : str8(str.c_str()), str16(nullptr), len(str.length())
+        explicit FStr8or16(const std::string& str)
+            : str8(str.c_str()), len(static_cast<i32>(static_cast<u32>(str.length()))), type(FStrType::Str8)
         {
         }
 
         template <usize N>
-        explicit Str8or16(const char (&str)[N]) : str8(str), str16(nullptr), len(N)
+        explicit FStr8or16(const char (&str)[N])
+            : str8(str), len(static_cast<i32>(static_cast<u32>(N))), type(FStrType::Str8)
         {
         }
 
 #ifdef _WINDOWS
 
-        explicit Str8or16(const wchar_t* ptr, const usize len)
-            : str8(nullptr), str16(reinterpret_cast<const Char16*>(ptr)), len(len)
+        explicit FStr8or16(const wchar_t* ptr, const usize len)
+            : str16(reinterpret_cast<const Char16*>(ptr)),
+              len(static_cast<i32>(static_cast<u32>(len))), type(FStrType::Str16)
         {
         }
 
-        explicit Str8or16(const std::wstring& str)
-            : str8(nullptr), str16(reinterpret_cast<const Char16*>(str.c_str())), len(str.length())
+        explicit FStr8or16(const std::wstring& str)
+            : str16(reinterpret_cast<const Char16*>(str.c_str())),
+              len(static_cast<i32>(static_cast<u32>(str.length()))), type(FStrType::Str16)
         {
         }
 
         template <usize N>
-        explicit Str8or16(const wchar_t (&str)[N]) : str8(nullptr), str16(reinterpret_cast<const Char16*>(str)), len(N)
+        explicit FStr8or16(const wchar_t (&str)[N]) :
+            str16(reinterpret_cast<const Char16*>(str)),
+            len(static_cast<i32>(static_cast<u32>(N))), type(FStrType::Str16)
         {
         }
+
 #endif
 
-        bool has8() const
+        bool is8() const
         {
-            return str8 != nullptr;
+            return type == FStrType::Str8;
         }
 
-        bool has16() const
+        bool is16() const
         {
-            return str16 != nullptr;
+            return type == FStrType::Str16;
         }
 
         bool is_null() const
         {
-            return str8 == nullptr && str16 == nullptr;
+            return str16 == nullptr;
         }
 
         FString* ToString() const;
 #endif
     };
 
-    struct CStr8or16
+    struct FCStr8or16
     {
         const char* str8;
         const Char16* str16;

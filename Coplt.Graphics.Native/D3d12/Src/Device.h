@@ -47,7 +47,7 @@ namespace Coplt
             return m_debug_controller != nullptr;
         }
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRawDevice() noexcept override;
 
@@ -58,6 +58,9 @@ namespace Coplt
 
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept override;
         FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept override;
+        FResult GetEmptyShaderLayout(
+            const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out
+        ) noexcept override;
         FResult CreateShaderInputLayout(
             const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
         ) noexcept override;

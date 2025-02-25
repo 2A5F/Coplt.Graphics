@@ -53,7 +53,7 @@ namespace Coplt
         T str;
     };
 
-    inline auto SetNameEx(const Str8or16& str)
+    inline auto SetNameEx(const FStr8or16& str)
     {
         return SetName_t{&str};
     }
@@ -64,14 +64,13 @@ namespace Coplt
         return obj.Get() >> arg;
     }
 
-    inline HRESULT operator >>(ID3D12Object* obj, const SetName_t<const Str8or16*> arg)
+    inline HRESULT operator >>(ID3D12Object* obj, const SetName_t<const FStr8or16*> arg)
     {
-        if (arg.str->has16())
+        switch (arg.str->type)
         {
+        case FStrType::Str16:
             return obj->SetPrivateData(WKPDID_D3DDebugObjectNameW, static_cast<UINT>(arg.str->len * 2), arg.str->str16);
-        }
-        else if (arg.str->has8())
-        {
+        case FStrType::Str8:
             return obj->SetPrivateData(WKPDID_D3DDebugObjectName, static_cast<UINT>(arg.str->len), arg.str->str8);
         }
         return S_OK;

@@ -64,7 +64,7 @@ namespace Coplt
 
     struct FGpuViewCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         FResourcePurpose Purpose{};
     };
 

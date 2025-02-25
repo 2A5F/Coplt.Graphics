@@ -10,7 +10,7 @@ namespace Coplt
     struct FMainQueueCreateOptions
     {
         // 可选
-        Str8or16 Name{};
+        FStr8or16 Name{};
     };
 
     enum class FGpuQueueType : u8

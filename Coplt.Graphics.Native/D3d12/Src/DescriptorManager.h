@@ -1,4 +1,7 @@
 #pragma once
+
+#include <concurrent_queue.h>
+
 #include "Device.h"
 
 namespace Coplt

@@ -19,7 +19,7 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     m_views = std::vector<Rc<FGpuView>>(item_metas.size(), {});
 }
 
-FResult D3d12ShaderBinding::SetName(const Str8or16& name) noexcept
+FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
 }
