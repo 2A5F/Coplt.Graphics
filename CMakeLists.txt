@@ -30,6 +30,7 @@ add_subdirectory(ThirdParty/cpptrace)
 add_subdirectory(ThirdParty/glm)
 add_subdirectory(ThirdParty/fmt)
 add_subdirectory(ThirdParty/mimalloc)
+add_subdirectory(ThirdParty/concurrentqueue)
 
 add_subdirectory(Coplt.Graphics.Native/Api)
 add_subdirectory(Coplt.Graphics.Native/D3d12)
