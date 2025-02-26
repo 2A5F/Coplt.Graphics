@@ -45,5 +45,10 @@ namespace Coplt
             void* hwnd,
             FGpuOutput** out
         ) noexcept = 0;
+
+        // 提交命令并等待执行器可用
+        virtual FResult Submit(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept = 0;
+        // 提交命令但是不等待执行器可用，必须先等待才能重新使用此执行器提交
+        virtual FResult SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept = 0;
     };
 }

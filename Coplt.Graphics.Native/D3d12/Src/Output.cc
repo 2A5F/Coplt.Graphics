@@ -214,34 +214,32 @@ FResult D3d12GpuSwapChainOutput::Resize(const u32 Width, const u32 Height) noexc
     });
 }
 
-FResult D3d12GpuSwapChainOutput::Present(/* 可选 */ const FCommandSubmit* submit) noexcept
-{
-    return feb([&]
-    {
-        std::lock_guard lock(m_queue->m_mutex);
-        Submit_NoLock(submit);
-        Present_NoLock();
-        WaitNextFrame_NoLock();
-    });
-}
-
-FResult D3d12GpuSwapChainOutput::PresentNoWait(/* 可选 */ const FCommandSubmit* submit) noexcept
-{
-    return feb([&]
-    {
-        std::lock_guard lock(m_queue->m_mutex);
-        Submit_NoLock(submit);
-        Present_NoLock();
-    });
-}
-
-FResult D3d12GpuSwapChainOutput::WaitNextFrame() noexcept
+FResult D3d12GpuSwapChainOutput::Wait() noexcept
 {
     return feb([&]
     {
         std::lock_guard lock(m_queue->m_mutex);
         WaitNextFrame_NoLock();
     });
+}
+
+void D3d12GpuSwapChainOutput::Submit(D3d12GpuQueue* Queue, const FCommandSubmit* submit)
+{
+    if (Queue != m_queue)
+        COPLT_THROW("The executor does not belong to this queue");
+    std::lock_guard lock(m_queue->m_mutex);
+    Submit_NoLock(submit);
+    Present_NoLock();
+    WaitNextFrame_NoLock();
+}
+
+void D3d12GpuSwapChainOutput::SubmitNoWait(D3d12GpuQueue* Queue, const FCommandSubmit* submit)
+{
+    if (Queue != m_queue)
+        COPLT_THROW("The executor does not belong to this queue");
+    std::lock_guard lock(m_queue->m_mutex);
+    Submit_NoLock(submit);
+    Present_NoLock();
 }
 
 void D3d12GpuSwapChainOutput::Submit_NoLock(const FCommandSubmit* submit)

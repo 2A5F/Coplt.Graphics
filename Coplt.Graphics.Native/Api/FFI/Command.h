@@ -11,28 +11,43 @@ namespace Coplt
     enum class FCommandType : u32
     {
         None,
-        // 手动资源过渡
-        Transition,
+        // Render / Compute
+        End,
+
+        Label,
+        BeginScope,
+        EndScope,
+
         // 仅内部使用
         Present,
+
+        // 手动屏障
+        Barrier,
+
         ClearColor,
         ClearDepthStencil,
-        SetRenderTargets,
-        SetViewportScissor,
+
         Bind,
+
+        BufferCopy,
+
+        Render,
+        Compute,
+
+        // Render / Compute
         SetPipeline,
+        SetBinding,
+
+        // Render
+        SetViewportScissor,
         SetMeshBuffers,
         Draw,
+
+        // Render / Compute
         Dispatch,
-        BufferCopy,
     };
 
-    enum class FCommandFlags : u32
-    {
-        None = 0,
-        // 不要自动计算资源过渡
-        DontTransition = 1 << 0,
-    };
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     enum class FResourceRefType : u8
     {
@@ -81,7 +96,7 @@ namespace Coplt
 
         bool IsEmpty() const
         {
-            return ResourceIndex == COPLT_U32_MAX;
+            return ResourceIndex == 0;
         }
 #endif
     };
@@ -104,28 +119,6 @@ namespace Coplt
         f32 MaxDepth;
     };
 
-    struct FCommandTransition
-    {
-        FResourceRef Resource{};
-        FResourceState SrcState{};
-        FResourceState DstState{};
-    };
-
-    struct FCommandPresent
-    {
-        FResourceRef Image{};
-    };
-
-    struct FCommandClearColor
-    {
-        // 有多少个 Rect
-        u32 RectCount{};
-        // Payload 内的索引
-        u32 RectIndex{};
-        FResourceRef Image{};
-        f32 Color[4]{};
-    };
-
     COPLT_ENUM_FLAGS(FDepthStencilClearFlags, u8)
     {
         None = 0,
@@ -133,127 +126,11 @@ namespace Coplt
         Stencil = 2,
     };
 
-    struct FCommandClearDepthStencil
-    {
-        // 有多少个 Rect
-        u32 RectCount{};
-        // Payload 内的索引, 类型为 FRect
-        u32 RectIndex{};
-        FResourceRef Image{};
-        f32 Depth{};
-        u8 Stencil{};
-        FDepthStencilClearFlags Clear{};
-    };
-
-    struct FCommandSetRenderTargets
-    {
-        // 可选
-        FResourceRef Dsv{};
-        u32 NumRtv{};
-        FResourceRef Rtv[8]{};
-
-        // 有多少个 Viewport
-        u32 ViewportCount{};
-        // Payload 内的索引, 类型为 FViewport
-        u32 ViewportIndex{};
-        // 有多少个 Rect
-        u32 ScissorRectCount{};
-        // Payload 内的索引, 类型为 FRect
-        u32 ScissorRectIndex{};
-    };
-
-    struct FCommandSetViewportScissor
-    {
-        // 有多少个 Viewport
-        u32 ViewportCount{};
-        // Payload 内的索引
-        u32 ViewportIndex{};
-        // 有多少个 Rect
-        u32 ScissorRectCount{};
-        // Payload 内的索引, 类型为 FRect
-        u32 ScissorRectIndex{};
-    };
-
     struct FBindItem
     {
+        FCommandType Type{};
         FView View{};
         u32 Index{};
-    };
-
-    struct FCommandBind
-    {
-        // 要修改的绑定集
-        FShaderBinding* Binding{};
-        // 有多少个绑定修改
-        u32 ItemCount{};
-        // Payload 内的索引, 类型为 FBindItem
-        u32 ItemsIndex{};
-    };
-
-    struct FCommandSetPipeline
-    {
-        FShaderPipeline* Pipeline{};
-        // 可选
-        FShaderBinding* Binding{};
-    };
-
-    struct FBufferRange
-    {
-        FResourceRef Buffer{};
-        u32 Offset{};
-        u32 Size{};
-    };
-
-    struct FVertexBufferRange : FBufferRange
-    {
-        u32 Index{};
-    };
-
-    struct FCommandSetMeshBuffers
-    {
-        FMeshLayout* MeshLayout{};
-        FGraphicsFormat IndexFormat{};
-        // 可选
-        FBufferRange IndexBuffer{};
-        // 0 .. 31
-        u32 VertexStartSlot{};
-        // 0 .. 31
-        u32 VertexBufferCount{};
-        // Payload 内的索引，类型为 FVertexBufferRange
-        u32 VertexBuffersIndex{};
-    };
-
-    struct FCommandDraw
-    {
-        // 可选
-        FShaderPipeline* Pipeline{};
-        // 可选
-        FShaderBinding* Binding{};
-        u32 VertexOrIndexCount{};
-        u32 InstanceCount{};
-        u32 FirstVertexOrIndex{};
-        u32 FirstInstance{};
-        // 仅 Indexed 使用
-        u32 VertexOffset{};
-        b8 Indexed{};
-    };
-
-    enum class FDispatchType : u8
-    {
-        Compute,
-        Mesh,
-    };
-
-    struct FCommandDispatch
-    {
-        // 可选
-        FShaderPipeline* Pipeline{};
-        // 可选
-        FShaderBinding* Binding{};
-        u32 GroupCountX{};
-        u32 GroupCountY{};
-        u32 GroupCountZ{};
-        FDispatchType Type{};
     };
 
     struct FUploadLoc
@@ -275,61 +152,352 @@ namespace Coplt
         Upload,
     };
 
-    struct FCommandBufferCopy
+    struct FBufferCopyRange
     {
         // Size 为 u64::max 时复制整个
         u64 Size{};
         u64 DstOffset{};
         u64 SrcOffset{};
+    };
+
+    enum class FResolveMode : u8
+    {
+        Decompress,
+        Min,
+        Max,
+        Average,
+    };
+
+    struct FResolveInfo
+    {
+        FResourceRef Src{};
+        FResourceRef Dst{};
+        FGraphicsFormat Format{};
+        FResolveMode Mode{};
+    };
+
+    enum class FLoadOp : u8
+    {
+        Load,
+        Clear,
+        Discard,
+        NoAccess,
+    };
+
+    enum class FStoreOp : u8
+    {
+        Store,
+        Discard,
+        Resolve,
+        NoAccess,
+    };
+
+    struct FRenderInfo
+    {
+        // 可选
+        FResourceRef Dsv{};
+        u32 NumRtv{};
+        FResourceRef Rtv[8]{};
+        // 类型为 FResolveInfo
+        u32 ResolveInfoIndex[8]{};
+        f32 Color[4 * 8]{};
+        f32 Depth{};
+        u8 Stencil{};
+        FLoadOp DsvLoadOp[2]{};
+        FStoreOp DsvStoreOp[2]{};
+        FLoadOp RtvLoadOp[8]{};
+        FStoreOp RtvStoreOp[8]{};
+    };
+
+    struct FBufferRange
+    {
+        FResourceRef Buffer{};
+        u32 Offset{};
+        u32 Size{};
+    };
+
+    struct FVertexBufferRange : FBufferRange
+    {
+        u32 Index{};
+    };
+
+    struct FMeshBuffers
+    {
+        FMeshLayout* MeshLayout{};
+        // 可选
+        FBufferRange IndexBuffer{};
+        // 0 .. 31
+        u32 VertexBufferCount{};
+        // Payload 内的索引，类型为 FVertexBufferRange
+        u32 VertexBuffersIndex{};
+    };
+
+    enum class FDispatchType : u8
+    {
+        Compute,
+        Mesh,
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandBase
+    {
+        FCommandType Type{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandLabel : FCommandBase
+    {
+        u32 StringIndex{};
+        u32 StringLength{};
+        FStrType StrType{};
+    };
+
+    struct FCommandBeginScope : FCommandBase
+    {
+        u32 StringIndex{};
+        u32 StringLength{};
+        FStrType StrType{};
+    };
+
+    struct FCommandEndScope : FCommandBase
+    {
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandPresent : FCommandBase
+    {
+        FResourceRef Image{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandBarrier : FCommandBase
+    {
+        // todo
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandClearColor : FCommandBase
+    {
+        // 有多少个 Rect
+        u32 RectCount{};
+        // Payload 内的索引
+        u32 RectIndex{};
+        FResourceRef Image{};
+        f32 Color[4]{};
+    };
+
+    struct FCommandClearDepthStencil : FCommandBase
+    {
+        // 有多少个 Rect
+        u32 RectCount{};
+        // Payload 内的索引, 类型为 FRect
+        u32 RectIndex{};
+        FResourceRef Image{};
+        f32 Depth{};
+        u8 Stencil{};
+        FDepthStencilClearFlags Clear{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandBind : FCommandBase
+    {
+        // 有多少个绑定修改
+        u32 ItemCount{};
+        // Payload 内的索引, 类型为 FBindItem
+        u32 ItemsIndex{};
+        // 要修改的绑定集
+        FShaderBinding* Binding{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandBufferCopy : FCommandBase
+    {
+        // 类型为 FBufferCopyRange
+        u32 RangeIndex{};
         FBufferRef Dst{};
         FBufferRef Src{};
         FBufferRefType DstType{};
         FBufferRefType SrcType{};
     };
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandRender : FCommandBase
+    {
+        // 类型为 FRenderInfo
+        u32 InfoIndex{};
+        u32 CommandStartIndex{};
+    };
+
+    struct FCommandCompute : FCommandBase
+    {
+        u32 CommandStartIndex{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandSetPipeline : FCommandBase
+    {
+        FShaderPipeline* Pipeline{};
+    };
+
+    struct FCommandSetBinding : FCommandBase
+    {
+        FShaderBinding* Binding{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandSetViewportScissor : FCommandBase
+    {
+        // 有多少个 Viewport
+        u32 ViewportCount{};
+        // Payload 内的索引
+        u32 ViewportIndex{};
+        // 有多少个 Rect
+        u32 ScissorRectCount{};
+        // Payload 内的索引, 类型为 FRect
+        u32 ScissorRectIndex{};
+    };
+
+    struct FCommandSetMeshBuffers : FCommandBase
+    {
+        FGraphicsFormat IndexFormat{};
+        // 0 .. 31
+        u32 VertexStartSlot{};
+        // 类型为 FMeshBuffers
+        u32 PayloadIndex{};
+    };
+
+    struct FCommandDraw : FCommandBase
+    {
+        u32 VertexOrIndexCount{};
+        u32 InstanceCount{};
+        u32 FirstVertexOrIndex{};
+        u32 FirstInstance{};
+        // 仅 Indexed 使用
+        u32 VertexOffset{};
+        b8 Indexed{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCommandDispatch : FCommandBase
+    {
+        u32 GroupCountX{};
+        u32 GroupCountY{};
+        u32 GroupCountZ{};
+        FDispatchType Type{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCommandItem
     {
-        FCommandType Type{};
-        FCommandFlags Flags{};
-
         union
         {
-            FCommandTransition Transition;
+            FCommandType Type{};
+
+            FCommandLabel Label;
+            FCommandBeginScope BeginScope;
+            FCommandEndScope EndScope;
+
             FCommandPresent Present;
+
+            FCommandBarrier Barrier;
+
             FCommandClearColor ClearColor;
             FCommandClearDepthStencil ClearDepthStencil;
-            FCommandSetRenderTargets SetRenderTargets;
-            FCommandSetViewportScissor SetViewportScissor;
+
             FCommandBind Bind;
-            FCommandSetPipeline SetPipeline;
-            FCommandSetMeshBuffers SetMeshBuffers;
-            FCommandDraw Draw;
-            FCommandDispatch Dispatch;
+
             FCommandBufferCopy BufferCopy;
 
-            u8 _pad[56]{};
+            FCommandRender Render;
+            FCommandCompute Compute;
+
+            u8 _pad[32];
         };
     };
 
+    struct FRenderCommandItem
+    {
+        union
+        {
+            FCommandType Type{};
+
+            FCommandLabel Label;
+            FCommandBeginScope BeginScope;
+            FCommandEndScope EndScope;
+
+            FCommandSetPipeline SetPipeline;
+            FCommandSetBinding SetBinding;
+
+            FCommandSetViewportScissor SetViewportScissor;
+            FCommandSetMeshBuffers SetMeshBuffers;
+            FCommandDraw Draw;
+
+            FCommandDispatch Dispatch;
+
+            u8 _pad[32];
+        };
+    };
+
+    struct FComputeCommandItem
+    {
+        union
+        {
+            FCommandType Type{};
+
+            FCommandLabel Label;
+            FCommandBeginScope BeginScope;
+            FCommandEndScope EndScope;
+
+            FCommandSetPipeline SetPipeline;
+            FCommandSetBinding SetBinding;
+
+            FCommandDispatch Dispatch;
+
+            u8 _pad[32];
+        };
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCommandSubmit
     {
-        // 有多少命令
-        u32 CommandCount{};
-        // 有多少资源
-        u32 ResourceCount{};
-        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
         FCommandItem* Commands{};
-        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
+        FRenderCommandItem* RenderCommands{};
+        FComputeCommandItem* ComputeCommands{};
         FResourceMeta* Resources{};
-        // 需要保证对象指针生命周期 >= FCommandSubmit 的生命周期，提交操作可能会修改此内存，提交后内存将无效
-        u8* Payload{};
+        FRenderInfo* RenderInfos{};
+        FResolveInfo* ResolveInfos{};
+        FRect* Rects{};
+        FViewport* Viewports{};
+        FMeshBuffers* MeshBuffers{};
+        FVertexBufferRange* VertexBufferRanges{};
+        FBufferCopyRange* BufferCopyRanges{};
+        FBindItem* BindItems{};
+        Char8* Str8{};
+        Char16* Str16{};
+        u32 CommandCount{};
+        u32 ResourceCount{};
     };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef FFI_SRC
 
     inline FResourceMeta& FResourceRef::Get(const FCommandSubmit& submit) const
     {
-        return submit.Resources[ResourceIndex];
+        return submit.Resources[ResourceIndex - 1];
     }
 
 #endif

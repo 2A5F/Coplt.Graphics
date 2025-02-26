@@ -97,6 +97,24 @@ public sealed unsafe partial class GpuQueue
 
     #endregion
 
+    #region Submit
+
+    public void Submit(GpuExecutor Executor, bool NoWait = false)
+    {
+        using var _ = m_lock.EnterScope();
+        if (Executor is GpuOutput output)
+        {
+            if (m_cmd.m_current_output != null && m_cmd.m_current_output != output)
+                throw new ArgumentException(
+                    $"The command is already used by another output and cannot be presented in this output"
+                );
+            m_cmd.Present(output);
+        }
+        m_cmd.Submit(this, Executor, NoWait);
+    }
+
+    #endregion
+
     #region CreateOutputForHwnd
 
     public GpuOutput CreateOutputForHwnd(
@@ -125,7 +143,7 @@ public sealed unsafe partial class GpuQueue
             };
             FGpuOutput* ptr;
             m_ptr->CreateOutputForHwnd(&f_options, (void*)Hwnd, &ptr).TryThrow();
-            return new(this, ptr, Name);
+            return new(ptr, Name, this);
         }
     }
 

@@ -202,10 +202,18 @@ namespace Coplt.Graphics.Native.D3d12
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult Wait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[5]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, B8, FResult*>)(lpVtbl[6]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -213,31 +221,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult Present([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FCommandSubmit*, FResult*>)(lpVtbl[7]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, submit);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult PresentNoWait([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FCommandSubmit*, FResult*>)(lpVtbl[8]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, submit);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult WaitNextFrame()
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, FResult*>)(lpVtbl[9]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[7]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -245,7 +229,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult GetCurrentResourcePtr(void* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, void*, FResult*>)(lpVtbl[10]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, void*, FResult*>)(lpVtbl[8]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -253,7 +237,7 @@ namespace Coplt.Graphics.Native.D3d12
         public FResult GetCurrentRtv(void* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, void*, FResult*>)(lpVtbl[11]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, @out);
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuOutput*, FResult*, void*, FResult*>)(lpVtbl[9]))((FD3d12GpuOutput*)Unsafe.AsPointer(ref this), &result, @out);
         }
 
         public interface Interface : FGpuOutput.Interface

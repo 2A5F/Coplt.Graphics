@@ -8,4 +8,6 @@ public partial struct FUploadLoc
     {
         Index = (uint)loc.Index;
     }
+
+    public static implicit operator FUploadLoc(in UploadLoc loc) => new(loc);
 }

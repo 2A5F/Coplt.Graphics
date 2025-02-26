@@ -43,6 +43,7 @@ add_library(${target_name} SHARED
     Src/DescriptorManager.h
     Src/DescriptorManager.cc
     Include/View.h
+    Src/Executor.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

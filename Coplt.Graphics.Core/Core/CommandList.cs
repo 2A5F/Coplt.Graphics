@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Union;
 
 namespace Coplt.Graphics.Core;
 
@@ -25,13 +27,22 @@ public sealed unsafe class CommandList
 
     internal readonly GpuQueue m_queue;
     internal readonly List<FCommandItem> m_commands = new();
+    internal readonly List<FRenderCommandItem> m_render_commands = new();
+    internal readonly List<FComputeCommandItem> m_compute_commands = new();
     internal readonly List<FResourceMeta> m_resource_metas = new();
+    internal readonly List<FRenderInfo> m_render_infos = new();
+    internal readonly List<FResolveInfo> m_resolve_infos = new();
+    internal readonly List<FRect> m_rects = new();
+    internal readonly List<FViewport> m_viewports = new();
+    internal readonly List<FMeshBuffers> m_mesh_buffers = new();
+    internal readonly List<FVertexBufferRange> m_vertex_buffer_ranges = new();
+    internal readonly List<FBufferCopyRange> m_buffer_copy_ranges = new();
+    internal readonly List<FBindItem> m_bind_items = new();
+    internal readonly List<byte> m_string8 = new();
+    internal readonly List<char> m_string16 = new();
     internal readonly Dictionary<object, int> m_resources = new();
     internal readonly HashSet<object> m_objects = new();
-    internal readonly List<byte> m_payload = new();
     internal GpuOutput? m_current_output;
-    internal ShaderPipeline? m_current_pipeline;
-    internal ShaderBinding? m_current_binding;
 
     #endregion
 
@@ -55,20 +66,80 @@ public sealed unsafe class CommandList
     internal void Reset()
     {
         m_commands.Clear();
+        m_render_commands.Clear();
+        m_compute_commands.Clear();
+        m_render_infos.Clear();
+        m_resolve_infos.Clear();
+        m_rects.Clear();
+        m_viewports.Clear();
+        m_mesh_buffers.Clear();
+        m_vertex_buffer_ranges.Clear();
+        m_buffer_copy_ranges.Clear();
+        m_string8.Clear();
+        m_string16.Clear();
         m_resource_metas.Clear();
         m_resources.Clear();
         m_objects.Clear();
-        m_payload.Clear();
         m_current_output = null;
-        m_current_pipeline = null;
-        m_current_binding = null;
+    }
+
+    #endregion
+
+    #region Submit
+
+    internal void Submit(GpuQueue Queue, GpuExecutor Executor, bool NoWait)
+    {
+        fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(m_commands))
+        fixed (FRenderCommandItem* p_render_commands = CollectionsMarshal.AsSpan(m_render_commands))
+        fixed (FComputeCommandItem* p_compute_commands = CollectionsMarshal.AsSpan(m_compute_commands))
+        fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(m_resource_metas))
+        fixed (FRenderInfo* p_render_infos = CollectionsMarshal.AsSpan(m_render_infos))
+        fixed (FResolveInfo* p_resolve_infos = CollectionsMarshal.AsSpan(m_resolve_infos))
+        fixed (FRect* p_rects = CollectionsMarshal.AsSpan(m_rects))
+        fixed (FViewport* p_viewports = CollectionsMarshal.AsSpan(m_viewports))
+        fixed (FMeshBuffers* p_mesh_buffers = CollectionsMarshal.AsSpan(m_mesh_buffers))
+        fixed (FVertexBufferRange* p_vertex_buffer_ranges = CollectionsMarshal.AsSpan(m_vertex_buffer_ranges))
+        fixed (FBufferCopyRange* p_buffer_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_copy_ranges))
+        fixed (FBindItem* p_bind_items = CollectionsMarshal.AsSpan(m_bind_items))
+        fixed (byte* p_string8 = CollectionsMarshal.AsSpan(m_string8))
+        fixed (char* p_string16 = CollectionsMarshal.AsSpan(m_string16))
+        {
+            FCommandSubmit submit = new()
+            {
+                Commands = p_commands,
+                RenderCommands = p_render_commands,
+                ComputeCommands = p_compute_commands,
+                Resources = p_resources,
+                RenderInfos = p_render_infos,
+                ResolveInfos = p_resolve_infos,
+                Rects = p_rects,
+                Viewports = p_viewports,
+                MeshBuffers = p_mesh_buffers,
+                VertexBufferRanges = p_vertex_buffer_ranges,
+                BufferCopyRanges = p_buffer_copy_ranges,
+                BindItems = p_bind_items,
+                Str8 = p_string8,
+                Str16 = p_string16,
+                CommandCount = (uint)m_commands.Count,
+                ResourceCount = (uint)m_resource_metas.Count,
+            };
+            try
+            {
+                if (NoWait) Queue.m_ptr->SubmitNoWait(Executor.m_ptr, &submit).TryThrow();
+                else Queue.m_ptr->Submit(Executor.m_ptr, &submit).TryThrow();
+            }
+            finally
+            {
+                Reset();
+            }
+        }
     }
 
     #endregion
 
     #region AddResource
 
-    private int AddResource<T>(T resource) where T : IGpuResource
+    internal FResourceRef AddResource<T>(T resource) where T : IGpuResource
     {
         if (resource.Queue != m_queue)
             throw new ArgumentException($"Resource {resource} does not belong to queue {m_queue}");
@@ -84,7 +155,7 @@ public sealed unsafe class CommandList
             slot = m_resource_metas.Count;
             m_resource_metas.Add(resource.GetMeta());
         }
-        return slot;
+        return new(slot + 1);
     }
 
     #endregion
@@ -100,23 +171,100 @@ public sealed unsafe class CommandList
 
     #region Commands
 
+    #region Debug
+
+    #region AddString
+
+    internal uint AddString(string str)
+    {
+        var index = m_string16.Count;
+        CollectionsMarshal.SetCount(m_string16, index + str.Length);
+        var dst = CollectionsMarshal.AsSpan(m_string16).Slice(index, str.Length);
+        str.CopyTo(dst);
+        return (uint)index;
+    }
+
+    internal uint AddString(ReadOnlySpan<byte> str)
+    {
+        var index = m_string8.Count;
+        CollectionsMarshal.SetCount(m_string8, index + str.Length);
+        var dst = CollectionsMarshal.AsSpan(m_string8).Slice(index, str.Length);
+        str.CopyTo(dst);
+        return (uint)index;
+    }
+
+    #endregion
+
+    #region Label
+
+    public void Label(string Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.Label },
+            StringIndex = AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    public void Label(ReadOnlySpan<byte> Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.Label },
+            StringIndex = AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    #endregion
+
+    #region Scope
+
+    public DebugScope Scope(string Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.BeginScope },
+            StringIndex = AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(this);
+    }
+
+    public DebugScope Scope(ReadOnlySpan<byte> Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.BeginScope },
+            StringIndex = AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(this);
+    }
+
+    #endregion
+
+    #endregion
+
     #region Present
 
     internal void Present(GpuOutput Output, CommandFlags Flags = CommandFlags.None)
     {
-        var index = AddResource(Output);
         var cmd = new FCommandPresent
         {
-            Image = new(index),
+            Base = { Type = FCommandType.Present },
+            Image = AddResource(Output),
         };
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.Present,
-                Flags = (FCommandFlags)Flags,
-                Present = cmd,
-            }
-        );
+        m_commands.Add(new() { Present = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
             Output.UnsafeChangeState(FResourceState.Present);
     }
@@ -143,30 +291,19 @@ public sealed unsafe class CommandList
     {
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
-        var index = AddResource(Image);
-
         var cmd = new FCommandClearColor
         {
+            Base = { Type = FCommandType.ClearColor },
             RectCount = (uint)Rects.Length,
-            Image = new(index),
+            Image = AddResource(Image),
+            Color = Unsafe.BitCast<float4, FCommandClearColor._Color_e__FixedBuffer>(Color),
         };
-        cmd.Color[0] = Color.r;
-        cmd.Color[1] = Color.g;
-        cmd.Color[2] = Color.b;
-        cmd.Color[3] = Color.a;
         if (Rects.Length > 0)
         {
-            cmd.RectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(Rects));
+            cmd.RectIndex = (uint)m_rects.Count;
+            m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.ClearColor,
-                Flags = (FCommandFlags)Flags,
-                ClearColor = cmd,
-            }
-        );
+        m_commands.Add(new() { ClearColor = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
             Image.UnsafeChangeState(FResourceState.RenderTarget);
     }
@@ -213,134 +350,23 @@ public sealed unsafe class CommandList
     {
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
-        var index = AddResource(Image);
-
         var cmd = new FCommandClearDepthStencil
         {
+            Base = { Type = FCommandType.ClearDepthStencil },
             RectCount = (uint)Rects.Length,
-            Image = new(index),
+            Image = AddResource(Image),
             Depth = Depth,
             Stencil = Stencil,
             Clear = (FDepthStencilClearFlags)Clear,
         };
         if (Rects.Length > 0)
         {
-            cmd.RectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(Rects));
+            cmd.RectIndex = (uint)m_rects.Count;
+            m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.ClearDepthStencil,
-                Flags = (FCommandFlags)Flags,
-                ClearDepthStencil = cmd,
-            }
-        );
+        m_commands.Add(new() { ClearDepthStencil = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
             Image.UnsafeChangeState(FResourceState.DepthWrite);
-    }
-
-    #endregion
-
-    #region SetRenderTargets
-
-    public void SetRenderTargets(
-        ReadOnlySpan<IRtvRes> Rtvs, IDsvRes? Dsv = null,
-        bool AutoViewportScissor = true,
-        CommandFlags Flags = CommandFlags.None
-    )
-    {
-        if (Rtvs.Length == 0 && Dsv == null) throw new ArgumentException("No Rtvs or Dsv");
-        var num_rtv = Math.Min(Rtvs.Length, 8);
-        for (var i = 0; i < num_rtv; i++)
-        {
-            var rtv = Rtvs[i];
-            if (!rtv.TryRtv()) throw new ArgumentException($"Resource {rtv} cannot be used as Rtv");
-        }
-        if (Dsv != null && !Dsv.TryDsv()) throw new ArgumentException($"Resource {Dsv} cannot be used as Dsv");
-
-        var cmd = new FCommandSetRenderTargets
-        {
-            Dsv = Dsv == null ? new(uint.MaxValue) : new(AddResource(Dsv)),
-            NumRtv = (uint)num_rtv,
-        };
-        var rt_size = Dsv?.Size ?? Rtvs[0].Size;
-        for (var i = 0; i < num_rtv; i++)
-        {
-            cmd.Rtv[i] = new(AddResource(Rtvs[i]));
-            if (!Rtvs[i].Size.Equals(rt_size))
-                throw new ArgumentException($"RenderTargets And DepthStencil must be the same size");
-        }
-        if (AutoViewportScissor)
-        {
-            cmd.ViewportCount = 1;
-            cmd.ScissorRectCount = 1;
-            var viewport = new UViewPort
-            {
-                Width = rt_size.x,
-                Height = rt_size.y,
-            };
-            var scissor = new URect
-            {
-                Right = rt_size.x,
-                Bottom = rt_size.y,
-            };
-            cmd.ViewportIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(new ReadOnlySpan<UViewPort>(in viewport)));
-            cmd.ScissorRectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(new ReadOnlySpan<URect>(in scissor)));
-        }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.SetRenderTargets,
-                Flags = (FCommandFlags)Flags,
-                SetRenderTargets = cmd,
-            }
-        );
-        if ((Flags & CommandFlags.DontTransition) == 0)
-        {
-            for (var i = 0; i < num_rtv; i++)
-            {
-                Rtvs[i].UnsafeChangeState(FResourceState.RenderTarget);
-            }
-            Dsv?.UnsafeChangeState(FResourceState.DepthWrite);
-        }
-    }
-
-    #endregion
-
-    #region SetViewportScissor
-
-    public void SetViewportScissor(
-        ReadOnlySpan<UViewPort> Viewports,
-        ReadOnlySpan<URect> Scissors,
-        CommandFlags Flags = CommandFlags.None
-    )
-    {
-        var cmd = new FCommandSetViewportScissor
-        {
-            ViewportCount = (uint)Viewports.Length,
-            ScissorRectCount = (uint)Scissors.Length,
-        };
-        if (Viewports.Length > 0)
-        {
-            cmd.ViewportIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(Viewports));
-        }
-        if (Scissors.Length > 0)
-        {
-            cmd.ScissorRectIndex = (uint)m_payload.Count;
-            m_payload.AddRange(MemoryMarshal.AsBytes(Scissors));
-        }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.SetViewportScissor,
-                Flags = (FCommandFlags)Flags,
-                SetViewportScissor = cmd,
-            }
-        );
     }
 
     #endregion
@@ -354,19 +380,17 @@ public sealed unsafe class CommandList
         AddObject(Binding);
         var cmd = new FCommandBind
         {
+            Base = { Type = FCommandType.Bind },
             Binding = Binding.m_ptr,
             ItemCount = (uint)Items.Length,
             ItemsIndex = 0
         };
         if (Items.Length > 0)
         {
-            var index = m_payload.Count;
+            var index = m_bind_items.Count;
             cmd.ItemsIndex = (uint)index;
-            var size = Items.Length * sizeof(FBindItem);
-            CollectionsMarshal.SetCount(m_payload, m_payload.Count + size);
-            var dst = MemoryMarshal.Cast<byte, FBindItem>(
-                CollectionsMarshal.AsSpan(m_payload).Slice(index, size)
-            );
+            CollectionsMarshal.SetCount(m_bind_items, m_bind_items.Count + Items.Length);
+            var dst = CollectionsMarshal.AsSpan(m_bind_items).Slice(index, Items.Length);
             var defines = Binding.Layout.NativeDefines;
             var views = Binding.MutViews;
             for (var i = 0; i < Items.Length; i++)
@@ -382,289 +406,7 @@ public sealed unsafe class CommandList
                 views[(int)src.Index] = src.View;
             }
         }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.Bind,
-                Flags = (FCommandFlags)Flags,
-                Bind = cmd,
-            }
-        );
-    }
-
-    #endregion
-
-    #region SetPipeline
-
-    public void SetPipeline(
-        ShaderPipeline Pipeline, ShaderBinding? Binding = null, CommandFlags Flags = CommandFlags.None
-    )
-    {
-        AddObject(m_current_pipeline = Pipeline);
-        if (Binding != null)
-        {
-            if (m_current_pipeline.Shader.Layout != Binding.Layout)
-                throw new ArgumentException(
-                    "The layout of the shader bindings is incompatible with the layout of the shader pipeline"
-                );
-            AddObject(m_current_binding = Binding);
-        }
-        var cmd = new FCommandSetPipeline
-        {
-            Pipeline = Pipeline.m_ptr,
-        };
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.SetPipeline,
-                Flags = (FCommandFlags)Flags,
-                SetPipeline = cmd,
-            }
-        );
-    }
-
-    #endregion
-
-    #region SetMeshBuffers
-
-    public void SetMeshBuffers(
-        MeshLayout MeshLayout,
-        uint VertexStartSlot,
-        ReadOnlySpan<VertexBufferRange> VertexBuffers,
-        CommandFlags Flags = CommandFlags.None
-    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, VertexStartSlot, VertexBuffers, Flags);
-
-    public void SetMeshBuffers(
-        MeshLayout MeshLayout,
-        ReadOnlySpan<VertexBufferRange> VertexBuffers,
-        CommandFlags Flags = CommandFlags.None
-    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, 0, VertexBuffers, Flags);
-
-    public void SetMeshBuffers(
-        MeshLayout MeshLayout,
-        FGraphicsFormat IndexFormat,
-        BufferRange<IIbvRes>? IndexBuffer,
-        uint VertexStartSlot,
-        ReadOnlySpan<VertexBufferRange> VertexBuffers,
-        CommandFlags Flags = CommandFlags.None
-    )
-    {
-        AddObject(MeshLayout);
-        var cmd = new FCommandSetMeshBuffers
-        {
-            MeshLayout = MeshLayout.m_ptr,
-            IndexFormat = IndexFormat,
-            IndexBuffer = IndexBuffer is { } index_buffer
-                ? new()
-                {
-                    Buffer = new(AddResource(index_buffer.Buffer)),
-                    Offset = index_buffer.Offset,
-                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.LongSize : index_buffer.Size,
-                }
-                : new()
-                {
-                    Buffer = new(uint.MaxValue),
-                },
-            VertexStartSlot = VertexStartSlot,
-            VertexBufferCount = (uint)VertexBuffers.Length,
-        };
-        if (VertexBuffers.Length > 0)
-        {
-            cmd.VertexBuffersIndex = (uint)m_payload.Count;
-            Span<FVertexBufferRange> vbs = stackalloc FVertexBufferRange[VertexBuffers.Length];
-            for (var i = 0; i < VertexBuffers.Length; i++)
-            {
-                var buffer = VertexBuffers[i];
-                vbs[i] = new()
-                {
-                    Base =
-                    {
-                        Buffer = new(AddResource(buffer.Buffer)),
-                        Offset = buffer.Offset,
-                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.LongSize : buffer.Size,
-                    },
-                    Index = buffer.Index,
-                };
-            }
-            m_payload.AddRange(MemoryMarshal.AsBytes(vbs));
-        }
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.SetMeshBuffers,
-                Flags = (FCommandFlags)Flags,
-                SetMeshBuffers = cmd,
-            }
-        );
-        if ((Flags & CommandFlags.DontTransition) == 0)
-        {
-            if (IndexBuffer.HasValue)
-            {
-                IndexBuffer.Value.Buffer.UnsafeChangeState(FResourceState.IndexBuffer);
-            }
-            foreach (var buffer in VertexBuffers)
-            {
-                buffer.Buffer.UnsafeChangeState(FResourceState.VertexBuffer);
-            }
-        }
-    }
-
-    #endregion
-
-    #region Draw
-
-    public void Draw(
-        uint VertexCount, uint InstanceCount = 1,
-        uint FirstVertex = 0, uint FirstInstance = 0,
-        ShaderBinding? Binding = null,
-        CommandFlags Flags = CommandFlags.None
-    ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding, Flags);
-
-    public void Draw(
-        ShaderPipeline? Pipeline,
-        uint VertexCount, uint InstanceCount = 1,
-        uint FirstVertex = 0, uint FirstInstance = 0,
-        ShaderBinding? Binding = null,
-        CommandFlags Flags = CommandFlags.None
-    ) => Draw(Pipeline, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding, Flags);
-
-    public void DrawIndexed(
-        uint IndexCount, uint InstanceCount = 1,
-        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
-        ShaderBinding? Binding = null,
-        CommandFlags Flags = CommandFlags.None
-    ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding, Flags);
-
-    public void DrawIndexed(
-        ShaderPipeline? Pipeline,
-        uint IndexCount, uint InstanceCount = 1,
-        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
-        ShaderBinding? Binding = null,
-        CommandFlags Flags = CommandFlags.None
-    ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding, Flags);
-
-    public void Draw(
-        ShaderPipeline? Pipeline, bool Indexed,
-        uint VertexOrIndexCount, uint InstanceCount = 1,
-        uint FirstVertexOrIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
-        ShaderBinding? Binding = null,
-        CommandFlags Flags = CommandFlags.None
-    )
-    {
-        if (Pipeline != null)
-        {
-            m_current_pipeline = Pipeline;
-            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
-                throw new ArgumentException("Non Vertex pipelines cannot use Draw");
-            AddObject(Pipeline);
-        }
-        else
-        {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
-                throw new ArgumentException("Non Vertex pipelines cannot use Draw");
-        }
-        if (Binding != null)
-        {
-            if (m_current_pipeline.Shader.Layout != Binding.Layout)
-                throw new ArgumentException(
-                    "The layout of the shader bindings is incompatible with the layout of the shader pipeline"
-                );
-            AddObject(m_current_binding = Binding);
-        }
-        var cmd = new FCommandDraw
-        {
-            Pipeline = Pipeline == null ? null : Pipeline.m_ptr,
-            VertexOrIndexCount = VertexOrIndexCount,
-            InstanceCount = InstanceCount,
-            FirstVertexOrIndex = FirstVertexOrIndex,
-            FirstInstance = FirstInstance,
-            VertexOffset = VertexOffset,
-            Indexed = Indexed,
-        };
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.Draw,
-                Flags = (FCommandFlags)Flags,
-                Draw = cmd,
-            }
-        );
-    }
-
-    #endregion
-
-    #region Dispatch
-
-    public void Dispatch(
-        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags Flags = CommandFlags.None
-    ) => Dispatch(null, DispatchType.Compute);
-
-    public void DispatchMesh(
-        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags Flags = CommandFlags.None
-    ) => Dispatch(null, DispatchType.Mesh);
-
-    public void Dispatch(
-        ShaderPipeline Pipeline,
-        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags Flags = CommandFlags.None
-    ) => Dispatch(Pipeline, DispatchType.Auto);
-
-    public void Dispatch(
-        ShaderPipeline? Pipeline, DispatchType Type,
-        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-        CommandFlags Flags = CommandFlags.None
-    )
-    {
-        if (Pipeline != null)
-        {
-            m_current_pipeline = Pipeline;
-            if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
-                throw new ArgumentException("Non Mesh and Compute pipelines cannot use Dispatch");
-            AddObject(Pipeline);
-            if (Type == DispatchType.Auto)
-            {
-                if (Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute)) Type = DispatchType.Compute;
-                else if (Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh)) Type = DispatchType.Mesh;
-                else throw new UnreachableException();
-            }
-        }
-        else
-        {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
-                throw new ArgumentException("Non Mesh and Compute pipelines cannot use Dispatch");
-            if (Type == DispatchType.Auto)
-            {
-                if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute)) Type = DispatchType.Compute;
-                else if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh)) Type = DispatchType.Mesh;
-                else throw new UnreachableException();
-            }
-        }
-        var cmd = new FCommandDispatch
-        {
-            Pipeline = Pipeline == null ? null : Pipeline.m_ptr,
-            GroupCountX = GroupCountX,
-            GroupCountY = GroupCountY,
-            GroupCountZ = GroupCountZ,
-            Type = Type switch
-            {
-                DispatchType.Auto    => throw new UnreachableException(),
-                DispatchType.Compute => FDispatchType.Compute,
-                DispatchType.Mesh    => FDispatchType.Mesh,
-                _                    => throw new ArgumentOutOfRangeException(nameof(Type), Type, null)
-            },
-        };
-        m_commands.Add(
-            new()
-            {
-                Type = FCommandType.Dispatch,
-                Flags = (FCommandFlags)Flags,
-                Dispatch = cmd,
-            }
-        );
+        m_commands.Add(new() { Bind = cmd });
     }
 
     #endregion
@@ -686,26 +428,24 @@ public sealed unsafe class CommandList
             if (SrcOffset + Size > Src.Size) throw new ArgumentException("The copy range exceeds the buffer range");
         }
         else if (Dst == Src || Dst.Size != Src.Size) Size = Math.Min(Dst.Size, Src.Size);
-        var dst = AddResource(Dst);
-        var src = AddResource(Src);
         var cmd = new FCommandBufferCopy
         {
-            Size = Size,
-            DstOffset = DstOffset,
-            SrcOffset = SrcOffset,
+            Base = { Type = FCommandType.BufferCopy },
+            RangeIndex = (uint)m_buffer_copy_ranges.Count,
+            Dst = { Buffer = AddResource(Dst) },
             DstType = FBufferRefType.Buffer,
+            Src = { Buffer = AddResource(Src) },
             SrcType = FBufferRefType.Buffer,
         };
-        cmd.Dst.Buffer = new(dst);
-        cmd.Src.Buffer = new(src);
-        m_commands.Add(
+        m_buffer_copy_ranges.Add(
             new()
             {
-                Type = FCommandType.BufferCopy,
-                Flags = (FCommandFlags)Flags,
-                BufferCopy = cmd,
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = SrcOffset,
             }
         );
+        m_commands.Add(new() { BufferCopy = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
         {
             Dst.UnsafeChangeState(FResourceState.CopyDst);
@@ -733,26 +473,25 @@ public sealed unsafe class CommandList
     {
         if (Data.Length == 0) return;
         var Size = Math.Min(Dst.Size, (uint)Data.Length);
-        var dst = AddResource(Dst);
         var src = m_queue.WriteToUpload(Data);
         var cmd = new FCommandBufferCopy
         {
-            Size = Size,
-            DstOffset = DstOffset,
-            SrcOffset = src.Offset,
+            Base = { Type = FCommandType.BufferCopy },
+            RangeIndex = (uint)m_buffer_copy_ranges.Count,
+            Dst = { Buffer = AddResource(Dst) },
             DstType = FBufferRefType.Buffer,
+            Src = { Upload = src },
             SrcType = FBufferRefType.Upload,
         };
-        cmd.Dst.Buffer = new(dst);
-        cmd.Src.Upload = new(src);
-        m_commands.Add(
+        m_buffer_copy_ranges.Add(
             new()
             {
-                Type = FCommandType.BufferCopy,
-                Flags = (FCommandFlags)Flags,
-                BufferCopy = cmd,
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = src.Offset,
             }
         );
+        m_commands.Add(new() { BufferCopy = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
             Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
@@ -767,30 +506,922 @@ public sealed unsafe class CommandList
         if (Loc.SubmitId != m_queue.SubmitId)
             throw new ArgumentException("An attempt was made to use an expired upload location");
         var Size = Math.Min(Dst.Size, Loc.Size);
-        var dst = AddResource(Dst);
         var cmd = new FCommandBufferCopy
         {
-            Size = Size,
-            DstOffset = DstOffset,
-            SrcOffset = Loc.Offset,
+            Base = { Type = FCommandType.BufferCopy },
+            RangeIndex = (uint)m_buffer_copy_ranges.Count,
+            Dst = { Buffer = AddResource(Dst) },
             DstType = FBufferRefType.Buffer,
+            Src = { Upload = Loc },
             SrcType = FBufferRefType.Upload,
         };
-        cmd.Dst.Buffer = new(dst);
-        cmd.Src.Upload = new(Loc);
-        m_commands.Add(
+        m_buffer_copy_ranges.Add(
             new()
             {
-                Type = FCommandType.BufferCopy,
-                Flags = (FCommandFlags)Flags,
-                BufferCopy = cmd,
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = Loc.Offset,
             }
         );
+        m_commands.Add(new() { BufferCopy = cmd });
         if ((Flags & CommandFlags.DontTransition) == 0)
             Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     #endregion
 
+    #region Render
+
+    public RenderScope Render(
+        ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.DsvInfo? Dsv = null,
+        bool AutoViewportScissor = true,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => Render(new(Rtvs, Dsv), AutoViewportScissor, Name, Name8);
+    public RenderScope Render(
+        RenderInfo.DsvInfo Dsv, ReadOnlySpan<RenderInfo.RtvInfo> Rtvs = default,
+        bool AutoViewportScissor = true,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => Render(new(Rtvs, Dsv), AutoViewportScissor, Name, Name8);
+    public RenderScope Render(
+        in RenderInfo Info,
+        bool AutoViewportScissor = true,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        #region Check Args
+
+        if (Info.Dsv == null && Info.Rtvs.Length == 0) throw new ArgumentException("No any rtv or dsv provided");
+        if (Info.Rtvs.Length > 8) throw new ArgumentException("Too many rtvs provided, it can't be more than 8");
+
+        #endregion
+
+        #region Cmd
+
+        var cmd = new FCommandRender
+        {
+            Base = { Type = FCommandType.Render },
+            InfoIndex = (uint)m_render_infos.Count,
+            CommandStartIndex = (uint)m_render_commands.Count,
+        };
+
+        #endregion
+
+        #region Init
+
+        var has_dsv = Info.Dsv.HasValue;
+        var dsv = Info.Dsv ?? default;
+
+        #endregion
+
+        #region Info
+
+        FRenderInfo info = new()
+        {
+            Dsv = has_dsv ? AddResource(dsv.View!) : default,
+            NumRtv = (uint)Info.Rtvs.Length,
+            Depth = has_dsv && dsv.DepthLoad is { IsClear: true, Clear: var cd } ? cd : 1,
+            Stencil = has_dsv && dsv.StencilLoad is { IsClear: true, Clear: var cs } ? (byte)cs : (byte)0,
+        };
+
+        #endregion
+
+        #region DsvLoadOp
+
+        info.DsvLoadOp[0] = has_dsv
+            ? dsv.DepthLoad.Tag switch
+            {
+                LoadOp<float>.Tags.Load     => FLoadOp.Load,
+                LoadOp<float>.Tags.Clear    => FLoadOp.Clear,
+                LoadOp<float>.Tags.Discard  => FLoadOp.Discard,
+                LoadOp<float>.Tags.NoAccess => FLoadOp.NoAccess,
+                _                           => throw new ArgumentOutOfRangeException()
+            }
+            : FLoadOp.NoAccess;
+        info.DsvLoadOp[1] = has_dsv
+            ? dsv.StencilLoad.Tag switch
+            {
+                LoadOp<uint>.Tags.Load     => FLoadOp.Load,
+                LoadOp<uint>.Tags.Clear    => FLoadOp.Clear,
+                LoadOp<uint>.Tags.Discard  => FLoadOp.Discard,
+                LoadOp<uint>.Tags.NoAccess => FLoadOp.NoAccess,
+                _                          => throw new ArgumentOutOfRangeException()
+            }
+            : FLoadOp.NoAccess;
+
+        #endregion
+
+        #region DsvStoreOp
+
+        info.DsvStoreOp[0] = has_dsv
+            ? dsv.DepthStore.Tag switch
+            {
+                StoreOp.Tags.Store    => FStoreOp.Store,
+                StoreOp.Tags.Discard  => FStoreOp.Discard,
+                StoreOp.Tags.NoAccess => FStoreOp.NoAccess,
+                _                     => throw new ArgumentOutOfRangeException()
+            }
+            : FStoreOp.NoAccess;
+
+        info.DsvStoreOp[1] = has_dsv
+            ? dsv.StencilStore.Tag switch
+            {
+                StoreOp.Tags.Store    => FStoreOp.Store,
+                StoreOp.Tags.Discard  => FStoreOp.Discard,
+                StoreOp.Tags.NoAccess => FStoreOp.NoAccess,
+                _                     => throw new ArgumentOutOfRangeException()
+            }
+            : FStoreOp.NoAccess;
+
+        #endregion
+
+        #region Rtv
+
+        var rt_size = Info.Dsv?.View.Size ?? Info.Rtvs[0].View.Size;
+        for (var i = 0; i < Info.Rtvs.Length; i++)
+        {
+            ref readonly var rtv = ref Info.Rtvs[i];
+            if (!rtv.View.Size.Equals(rt_size))
+                throw new ArgumentException("RenderTargets And DepthStencil must be the same size");
+            info.Rtv[i] = AddResource(rtv.View);
+            info.ResolveInfoIndex[i] = uint.MaxValue; // todo
+            if (rtv.Load is { IsClear: true, Clear: var cc })
+                Unsafe.As<float, float4>(ref info.Color[i * 4]) = cc;
+            info.RtvLoadOp[i] = rtv.Load.Tag switch
+            {
+                LoadOp<float4>.Tags.Load     => FLoadOp.Load,
+                LoadOp<float4>.Tags.Clear    => FLoadOp.Clear,
+                LoadOp<float4>.Tags.Discard  => FLoadOp.Discard,
+                LoadOp<float4>.Tags.NoAccess => FLoadOp.NoAccess,
+                _                            => throw new ArgumentOutOfRangeException()
+            };
+            info.RtvStoreOp[i] = rtv.Store.Tag switch
+            {
+                StoreOp.Tags.Store    => FStoreOp.Store,
+                StoreOp.Tags.Discard  => FStoreOp.Discard,
+                StoreOp.Tags.NoAccess => FStoreOp.NoAccess,
+                _                     => throw new ArgumentOutOfRangeException()
+            };
+        }
+
+        #endregion
+
+        #region EndInfo
+
+        m_render_infos.Add(info);
+
+        #endregion
+
+        #region DebugScope
+
+        var debug_scope = false;
+        if (Name != null)
+        {
+            debug_scope = true;
+            Scope(Name);
+        }
+        else if (Name8.Length > 0)
+        {
+            debug_scope = true;
+            Scope(Name8);
+        }
+
+        #endregion
+
+        #region Add
+
+        m_commands.Add(new() { Render = cmd });
+
+        #endregion
+
+        #region Scope
+
+        RenderScope scope = new(this, m_render_commands, debug_scope);
+
+        #endregion
+
+        #region AutoViewportScissor
+
+        if (AutoViewportScissor)
+        {
+            scope.SetViewportScissor(
+                [new UViewPort { Width = rt_size.x, Height = rt_size.y }],
+                [new URect { Right = rt_size.x, Bottom = rt_size.y }]
+            );
+        }
+
+        #endregion
+
+        return scope;
+    }
+
+    #endregion
+
+    #region Compute
+
+    public ComputeScope Compute(string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    {
+        var debug_scope = false;
+        if (Name != null)
+        {
+            debug_scope = true;
+            Scope(Name);
+        }
+        else if (Name8.Length > 0)
+        {
+            debug_scope = true;
+            Scope(Name8);
+        }
+        var cmd = new FCommandCompute
+        {
+            Base = { Type = FCommandType.Compute },
+            CommandStartIndex = (uint)m_compute_commands.Count,
+        };
+        m_commands.Add(new() { Compute = cmd });
+        return new(this, m_compute_commands, debug_scope);
+    }
+
+    #endregion
+
     #endregion
 }
+
+#region DebugScope
+
+public readonly struct DebugScope(CommandList self) : IDisposable
+{
+    public void Dispose()
+    {
+        var cmd = new FCommandEndScope
+        {
+            Base = { Type = FCommandType.EndScope },
+        };
+        self.m_commands.Add(new() { EndScope = cmd });
+    }
+}
+
+public readonly struct RenderDebugScope(CommandList self) : IDisposable
+{
+    public void Dispose()
+    {
+        var cmd = new FCommandEndScope
+        {
+            Base = { Type = FCommandType.EndScope },
+        };
+        self.m_render_commands.Add(new() { EndScope = cmd });
+    }
+}
+
+public readonly struct ComputeDebugScope(CommandList self) : IDisposable
+{
+    public void Dispose()
+    {
+        var cmd = new FCommandEndScope
+        {
+            Base = { Type = FCommandType.EndScope },
+        };
+        self.m_compute_commands.Add(new() { EndScope = cmd });
+    }
+}
+
+#endregion
+
+#region RenderInfo
+
+[Union]
+public partial struct LoadOp
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Load();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly LoadOp Load = MakeLoad();
+    public static LoadOp<T> Clear<T>(T Clear) => LoadOp<T>.MakeClear(Clear);
+    public static readonly LoadOp Discard = MakeDiscard();
+    public static readonly LoadOp NoAccess = MakeNoAccess();
+}
+
+[Union]
+public partial struct LoadOp<T>
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Load();
+        T Clear();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly LoadOp<T> Load = MakeLoad();
+    public static implicit operator LoadOp<T>(T Clear) => MakeClear(Clear);
+    public static readonly LoadOp<T> Discard = MakeDiscard();
+    public static readonly LoadOp<T> NoAccess = MakeNoAccess();
+
+    public static implicit operator LoadOp<T>(LoadOp op) => op.Tag switch
+    {
+        LoadOp.Tags.Load     => Load,
+        LoadOp.Tags.Discard  => Discard,
+        LoadOp.Tags.NoAccess => NoAccess,
+        _                    => throw new ArgumentOutOfRangeException()
+    };
+}
+
+[Union]
+public partial struct StoreOp
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Store();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly StoreOp Store = MakeStore();
+    public static readonly StoreOp Discard = MakeDiscard();
+    public static readonly StoreOp NoAccess = MakeNoAccess();
+}
+
+public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.DsvInfo? Dsv = null)
+{
+    public DsvInfo? Dsv = Dsv;
+    public ReadOnlySpan<RtvInfo> Rtvs = Rtvs;
+
+    public RenderInfo() : this([]) { }
+    public RenderInfo(DsvInfo Dsv, ReadOnlySpan<RtvInfo> Rtvs = default) : this(Rtvs, Dsv) { }
+
+    public struct DsvInfo(
+        IDsvRes View,
+        LoadOp<float> DepthLoad,
+        LoadOp<uint> StencilLoad,
+        StoreOp DepthStore,
+        StoreOp StencilStore
+    )
+    {
+        public IDsvRes View = View;
+        public LoadOp<float> DepthLoad = DepthLoad;
+        public LoadOp<uint> StencilLoad = StencilLoad;
+        public StoreOp DepthStore = DepthStore;
+        public StoreOp StencilStore = StencilStore;
+
+        public DsvInfo(IDsvRes View) : this(View, LoadOp.Load, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
+        public DsvInfo(IDsvRes View, LoadOp<float> DepthLoad, LoadOp<uint> StencilLoad)
+            : this(View, DepthLoad, StencilLoad, StoreOp.Store, StoreOp.Store) { }
+        public DsvInfo(IDsvRes View, LoadOp<float> DepthLoad)
+            : this(View, DepthLoad, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
+    }
+
+    public struct RtvInfo(IRtvRes View, LoadOp<float4> Load, StoreOp Store)
+    {
+        public IRtvRes View = View;
+        public LoadOp<float4> Load = Load;
+        public StoreOp Store = Store;
+
+        public RtvInfo(IRtvRes View) : this(View, LoadOp.Load, StoreOp.Store) { }
+
+        public RtvInfo(IRtvRes View, LoadOp<float4> Load) : this(View, Load, StoreOp.Store) { }
+    }
+}
+
+#endregion
+
+#region RenderScope
+
+public unsafe struct RenderScope(
+    CommandList self,
+    List<FRenderCommandItem> m_commands,
+    bool debug_scope
+) : IDisposable
+{
+    #region Fields
+
+    private ShaderPipeline? m_current_pipeline;
+    private ShaderBinding? m_current_binding;
+
+    #endregion
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        self.m_render_commands.Add(new() { Type = FCommandType.End });
+        if (debug_scope) new DebugScope(self).Dispose();
+    }
+
+    #endregion
+
+    #region Debug
+
+    #region Label
+
+    public void Label(string Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.Label },
+            StringIndex = self.AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    public void Label(ReadOnlySpan<byte> Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    #endregion
+
+    #region Scope
+
+    public RenderDebugScope Scope(string Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(self);
+    }
+
+    public RenderDebugScope Scope(ReadOnlySpan<byte> Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(self);
+    }
+
+    #endregion
+
+    #endregion
+
+    #region SetPipeline
+
+    public void SetPipeline(ShaderPipeline Pipeline)
+    {
+        if (m_current_pipeline == Pipeline) return;
+        self.AddObject(m_current_pipeline = Pipeline);
+        if (m_current_binding != null)
+        {
+            if (Pipeline.Shader.Layout != m_current_binding.Layout)
+                m_current_binding = null;
+        }
+        var cmd = new FCommandSetPipeline
+        {
+            Base = { Type = FCommandType.SetPipeline },
+            Pipeline = Pipeline.m_ptr,
+        };
+        m_commands.Add(new() { SetPipeline = cmd });
+    }
+
+    #endregion
+
+    #region SetBinding
+
+    public void SetBinding(ShaderBinding Binding)
+    {
+        if (m_current_binding == Binding) return;
+        if (m_current_pipeline != null)
+        {
+            if (m_current_pipeline.Shader.Layout != Binding.Layout)
+                throw new ArgumentException("This binding is incompatible with the current pipeline");
+        }
+        self.AddObject(m_current_binding = Binding);
+        var cmd = new FCommandSetBinding
+        {
+            Base = { Type = FCommandType.SetBinding },
+            Binding = Binding.m_ptr,
+        };
+        m_commands.Add(new() { SetBinding = cmd });
+    }
+
+    #endregion
+
+    #region SetViewportScissor
+
+    public void SetViewportScissor(
+        ReadOnlySpan<UViewPort> Viewports,
+        ReadOnlySpan<URect> Scissors
+    )
+    {
+        var cmd = new FCommandSetViewportScissor
+        {
+            Base = { Type = FCommandType.SetViewportScissor },
+            ViewportCount = (uint)Viewports.Length,
+            ScissorRectCount = (uint)Scissors.Length,
+        };
+        if (Viewports.Length > 0)
+        {
+            cmd.ViewportIndex = (uint)self.m_viewports.Count;
+            self.m_viewports.AddRange(MemoryMarshal.Cast<UViewPort, FViewport>(Viewports));
+        }
+        if (Scissors.Length > 0)
+        {
+            cmd.ScissorRectIndex = (uint)self.m_rects.Count;
+            self.m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Scissors));
+        }
+        m_commands.Add(new() { SetViewportScissor = cmd });
+    }
+
+    #endregion
+
+    #region SetMeshBuffers
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, VertexStartSlot, VertexBuffers);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, 0, VertexBuffers);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        FGraphicsFormat IndexFormat,
+        BufferRange<IIbvRes>? IndexBuffer,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    )
+    {
+        self.AddObject(MeshLayout);
+        var cmd = new FCommandSetMeshBuffers
+        {
+            Base = { Type = FCommandType.SetMeshBuffers },
+            IndexFormat = IndexFormat,
+            VertexStartSlot = VertexStartSlot,
+            PayloadIndex = (uint)self.m_mesh_buffers.Count,
+        };
+        var buf = new FMeshBuffers
+        {
+            MeshLayout = MeshLayout.m_ptr,
+            IndexBuffer = IndexBuffer is { } index_buffer
+                ? new()
+                {
+                    Buffer = self.AddResource(index_buffer.Buffer),
+                    Offset = index_buffer.Offset,
+                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.LongSize : index_buffer.Size,
+                }
+                : new()
+                {
+                    Buffer = new(uint.MaxValue),
+                },
+            VertexBufferCount = (uint)VertexBuffers.Length,
+        };
+        if (VertexBuffers.Length > 0)
+        {
+            var index = self.m_vertex_buffer_ranges.Count;
+            buf.VertexBuffersIndex = (uint)index;
+            CollectionsMarshal.SetCount(
+                self.m_vertex_buffer_ranges, self.m_vertex_buffer_ranges.Count + VertexBuffers.Length
+            );
+            var vbs = CollectionsMarshal.AsSpan(self.m_vertex_buffer_ranges).Slice(index, VertexBuffers.Length);
+            for (var i = 0; i < VertexBuffers.Length; i++)
+            {
+                var buffer = VertexBuffers[i];
+                vbs[i] = new()
+                {
+                    Base =
+                    {
+                        Buffer = self.AddResource(buffer.Buffer),
+                        Offset = buffer.Offset,
+                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.LongSize : buffer.Size,
+                    },
+                    Index = buffer.Index,
+                };
+            }
+        }
+        self.m_mesh_buffers.Add(buf);
+        m_commands.Add(new() { SetMeshBuffers = cmd });
+    }
+
+    #endregion
+
+    #region Draw
+
+    public void Draw(
+        uint VertexCount, uint InstanceCount = 1,
+        uint FirstVertex = 0, uint FirstInstance = 0,
+        ShaderBinding? Binding = null
+    ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding);
+
+    public void Draw(
+        ShaderPipeline? Pipeline,
+        uint VertexCount, uint InstanceCount = 1,
+        uint FirstVertex = 0, uint FirstInstance = 0,
+        ShaderBinding? Binding = null
+    ) => Draw(Pipeline, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding);
+
+    public void DrawIndexed(
+        uint IndexCount, uint InstanceCount = 1,
+        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null
+    ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding);
+
+    public void DrawIndexed(
+        ShaderPipeline? Pipeline,
+        uint IndexCount, uint InstanceCount = 1,
+        uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null
+    ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding);
+
+    public void Draw(
+        ShaderPipeline? Pipeline, bool Indexed,
+        uint VertexOrIndexCount, uint InstanceCount = 1,
+        uint FirstVertexOrIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
+        ShaderBinding? Binding = null
+    )
+    {
+        if (Pipeline != null)
+        {
+            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+                throw new ArgumentException("Only Vertex shaders can use Draw");
+            SetPipeline(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+                throw new ArgumentException("Only Vertex shaders can use Draw");
+        }
+        if (Binding != null) SetBinding(Binding);
+        var cmd = new FCommandDraw
+        {
+            Base = { Type = FCommandType.Draw },
+            VertexOrIndexCount = VertexOrIndexCount,
+            InstanceCount = InstanceCount,
+            FirstVertexOrIndex = FirstVertexOrIndex,
+            FirstInstance = FirstInstance,
+            VertexOffset = VertexOffset,
+            Indexed = Indexed,
+        };
+        m_commands.Add(new() { Draw = cmd });
+    }
+
+    #endregion
+
+    #region DispatchMesh
+
+    public void DispatchMesh(
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    ) => DispatchMesh(null, GroupCountX, GroupCountY, GroupCountZ);
+
+    public void DispatchMesh(
+        ShaderPipeline? Pipeline,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    )
+    {
+        if (Pipeline != null)
+        {
+            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
+            SetPipeline(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
+        }
+        var cmd = new FCommandDispatch
+        {
+            Base = { Type = FCommandType.Draw },
+            GroupCountX = GroupCountX,
+            GroupCountY = GroupCountY,
+            GroupCountZ = GroupCountZ,
+            Type = FDispatchType.Mesh,
+        };
+        m_commands.Add(new() { Dispatch = cmd });
+    }
+
+    #endregion
+}
+
+#endregion
+
+#region ComputeScope
+
+public unsafe struct ComputeScope(
+    CommandList self,
+    List<FComputeCommandItem> m_commands,
+    bool debug_scope
+) : IDisposable
+{
+    #region Fields
+
+    private ShaderPipeline? m_current_pipeline;
+    private ShaderBinding? m_current_binding;
+
+    #endregion
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        self.m_compute_commands.Add(new() { Type = FCommandType.End });
+        if (debug_scope) new DebugScope(self).Dispose();
+    }
+
+    #endregion
+
+    #region Debug
+
+    #region Label
+
+    public void Label(string Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.Label },
+            StringIndex = self.AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    public void Label(ReadOnlySpan<byte> Label)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+    }
+
+    #endregion
+
+    #region Scope
+
+    public ComputeDebugScope Scope(string Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str16,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(self);
+    }
+
+    public ComputeDebugScope Scope(ReadOnlySpan<byte> Name)
+    {
+        var cmd = new FCommandLabel
+        {
+            Base = { Type = FCommandType.EndScope },
+            StringIndex = self.AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str8,
+        };
+        m_commands.Add(new() { Label = cmd });
+        return new(self);
+    }
+
+    #endregion
+
+    #endregion
+
+    #region SetPipeline
+
+    public void SetPipeline(ShaderPipeline Pipeline)
+    {
+        if (m_current_pipeline == Pipeline) return;
+        self.AddObject(m_current_pipeline = Pipeline);
+        if (m_current_binding != null)
+        {
+            if (Pipeline.Shader.Layout != m_current_binding.Layout)
+                m_current_binding = null;
+        }
+        var cmd = new FCommandSetPipeline
+        {
+            Base = { Type = FCommandType.SetPipeline },
+            Pipeline = Pipeline.m_ptr,
+        };
+        m_commands.Add(new() { SetPipeline = cmd });
+    }
+
+    #endregion
+
+    #region SetBinding
+
+    public void SetBinding(ShaderBinding Binding)
+    {
+        if (m_current_binding == Binding) return;
+        if (m_current_pipeline != null)
+        {
+            if (m_current_pipeline.Shader.Layout != Binding.Layout)
+                throw new ArgumentException("This binding is incompatible with the current pipeline");
+        }
+        self.AddObject(m_current_binding = Binding);
+        var cmd = new FCommandSetBinding
+        {
+            Base = { Type = FCommandType.SetBinding },
+            Binding = Binding.m_ptr,
+        };
+        m_commands.Add(new() { SetBinding = cmd });
+    }
+
+    #endregion
+
+    #region Dispatch
+
+    public void Dispatch(
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    ) => Dispatch(null, DispatchType.Compute, GroupCountX, GroupCountY, GroupCountZ);
+
+    public void DispatchMesh(
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    ) => Dispatch(null, DispatchType.Mesh, GroupCountX, GroupCountY, GroupCountZ);
+
+    public void Dispatch(
+        ShaderPipeline Pipeline,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    ) => Dispatch(Pipeline, DispatchType.Auto, GroupCountX, GroupCountY, GroupCountZ);
+
+    public void DispatchMesh(
+        ShaderPipeline Pipeline,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    ) => Dispatch(Pipeline, DispatchType.Mesh, GroupCountX, GroupCountY, GroupCountZ);
+
+    public void Dispatch(
+        ShaderPipeline? Pipeline, DispatchType Type,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1
+    )
+    {
+        if (Pipeline != null)
+        {
+            if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh and Compute shaders can use Dispatch/DispatchMesh");
+            SetPipeline(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh and Compute shaders can use Dispatch/DispatchMesh");
+        }
+        if (Type == DispatchType.Auto)
+        {
+            if (m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute)) Type = DispatchType.Compute;
+            else if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh)) Type = DispatchType.Mesh;
+            else throw new UnreachableException();
+        }
+        else if (Type == DispatchType.Mesh)
+        {
+            if (!m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
+        }
+        else if (Type == DispatchType.Compute)
+        {
+            if (!m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+                throw new ArgumentException("Only Compute shaders can use Dispatch");
+        }
+        var cmd = new FCommandDispatch
+        {
+            Base = { Type = FCommandType.SetBinding },
+            GroupCountX = GroupCountX,
+            GroupCountY = GroupCountY,
+            GroupCountZ = GroupCountZ,
+            Type = Type switch
+            {
+                DispatchType.Auto    => throw new UnreachableException(),
+                DispatchType.Compute => FDispatchType.Compute,
+                DispatchType.Mesh    => FDispatchType.Mesh,
+                _                    => throw new ArgumentOutOfRangeException(nameof(Type), Type, null)
+            },
+        };
+        m_commands.Add(new() { Dispatch = cmd });
+    }
+
+    #endregion
+}
+
+#endregion

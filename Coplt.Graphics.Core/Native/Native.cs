@@ -1533,6 +1533,22 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuOutputCreateOptions*, void*, FGpuOutput**, FResult*>)(lpVtbl[7]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Submit([NativeTypeName("Coplt::FGpuExecutor *")] FGpuExecutor* Executor, [NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuExecutor*, FCommandSubmit*, FResult*>)(lpVtbl[8]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, Executor, submit);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SubmitNoWait([NativeTypeName("Coplt::FGpuExecutor *")] FGpuExecutor* Executor, [NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuQueue*, FResult*, FGpuExecutor*, FCommandSubmit*, FResult*>)(lpVtbl[9]))((FGpuQueue*)Unsafe.AsPointer(ref this), &result, Executor, submit);
+        }
+
         public interface Interface : FGpuObject.Interface
         {
             void* GetRawQueue();
@@ -1542,6 +1558,69 @@ namespace Coplt.Graphics.Native
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateOutputForHwnd([NativeTypeName("const FGpuOutputCreateOptions &")] FGpuOutputCreateOptions* options, void* hwnd, FGpuOutput** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult Submit([NativeTypeName("Coplt::FGpuExecutor *")] FGpuExecutor* Executor, [NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult SubmitNoWait([NativeTypeName("Coplt::FGpuExecutor *")] FGpuExecutor* Executor, [NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit);
+        }
+    }
+
+    [Guid("EDAB0989-E0C2-4B1E-826F-C73380088FC6")]
+    [NativeTypeName("struct FGpuExecutor : Coplt::FGpuObject")]
+    public unsafe partial struct FGpuExecutor : FGpuExecutor.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuExecutor));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FGpuExecutor*, void>)(lpVtbl[0]))((FGpuExecutor*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuExecutor*, nuint>)(lpVtbl[1]))((FGpuExecutor*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuExecutor*, nuint>)(lpVtbl[2]))((FGpuExecutor*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuExecutor*, Guid*, void*>)(lpVtbl[3]))((FGpuExecutor*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuExecutor*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FGpuExecutor*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Wait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuExecutor*, FResult*, FResult*>)(lpVtbl[5]))((FGpuExecutor*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult Wait();
         }
     }
 
@@ -2005,24 +2084,57 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCommandSubmit
     {
+        [NativeTypeName("Coplt::FCommandItem *")]
+        public FCommandItem* Commands;
+
+        [NativeTypeName("Coplt::FRenderCommandItem *")]
+        public FRenderCommandItem* RenderCommands;
+
+        [NativeTypeName("Coplt::FComputeCommandItem *")]
+        public FComputeCommandItem* ComputeCommands;
+
+        [NativeTypeName("Coplt::FResourceMeta *")]
+        public FResourceMeta* Resources;
+
+        [NativeTypeName("Coplt::FRenderInfo *")]
+        public FRenderInfo* RenderInfos;
+
+        [NativeTypeName("Coplt::FResolveInfo *")]
+        public FResolveInfo* ResolveInfos;
+
+        [NativeTypeName("Coplt::FRect *")]
+        public FRect* Rects;
+
+        [NativeTypeName("Coplt::FViewport *")]
+        public FViewport* Viewports;
+
+        [NativeTypeName("Coplt::FMeshBuffers *")]
+        public FMeshBuffers* MeshBuffers;
+
+        [NativeTypeName("Coplt::FVertexBufferRange *")]
+        public FVertexBufferRange* VertexBufferRanges;
+
+        [NativeTypeName("Coplt::FBufferCopyRange *")]
+        public FBufferCopyRange* BufferCopyRanges;
+
+        [NativeTypeName("Coplt::FBindItem *")]
+        public FBindItem* BindItems;
+
+        [NativeTypeName("Coplt::Char8 *")]
+        public byte* Str8;
+
+        [NativeTypeName("Coplt::Char16 *")]
+        public char* Str16;
+
         [NativeTypeName("Coplt::u32")]
         public uint CommandCount;
 
         [NativeTypeName("Coplt::u32")]
         public uint ResourceCount;
-
-        [NativeTypeName("Coplt::FCommandItem *")]
-        public FCommandItem* Commands;
-
-        [NativeTypeName("Coplt::FResourceMeta *")]
-        public FResourceMeta* Resources;
-
-        [NativeTypeName("Coplt::u8 *")]
-        public byte* Payload;
     }
 
     [Guid("F1C59CB4-7EE6-4EE2-80F4-07CC568920D2")]
-    [NativeTypeName("struct FGpuOutput : Coplt::FGpuObject")]
+    [NativeTypeName("struct FGpuOutput : Coplt::FGpuExecutor")]
     public unsafe partial struct FGpuOutput : FGpuOutput.Interface, INativeGuid
     {
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuOutput));
@@ -2077,10 +2189,18 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult Wait()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FResult*>)(lpVtbl[5]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, B8, FResult*>)(lpVtbl[5]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, B8, FResult*>)(lpVtbl[6]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Enable);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2088,49 +2208,16 @@ namespace Coplt.Graphics.Native
         public FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[6]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
+            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, uint, uint, FResult*>)(lpVtbl[7]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, Width, Height);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult Present([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FCommandSubmit*, FResult*>)(lpVtbl[7]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, submit);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult PresentNoWait([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FCommandSubmit*, FResult*>)(lpVtbl[8]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result, submit);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult WaitNextFrame()
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuOutput*, FResult*, FResult*>)(lpVtbl[9]))((FGpuOutput*)Unsafe.AsPointer(ref this), &result);
-        }
-
-        public interface Interface : FGpuObject.Interface
+        public interface Interface : FGpuExecutor.Interface
         {
             [return: NativeTypeName("Coplt::FResult")]
             FResult SetVSync([NativeTypeName("Coplt::b8")] B8 Enable);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult Resize([NativeTypeName("Coplt::u32")] uint Width, [NativeTypeName("Coplt::u32")] uint Height);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult Present([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult PresentNoWait([NativeTypeName("const FCommandSubmit *")] FCommandSubmit* submit);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult WaitNextFrame();
         }
     }
 
@@ -2267,25 +2354,24 @@ namespace Coplt.Graphics.Native
     public enum FCommandType : uint
     {
         None,
-        Transition,
+        End,
+        Label,
+        BeginScope,
+        EndScope,
         Present,
+        Barrier,
         ClearColor,
         ClearDepthStencil,
-        SetRenderTargets,
-        SetViewportScissor,
         Bind,
+        BufferCopy,
+        Render,
+        Compute,
         SetPipeline,
+        SetBinding,
+        SetViewportScissor,
         SetMeshBuffers,
         Draw,
         Dispatch,
-        BufferCopy,
-    }
-
-    [NativeTypeName("Coplt::u32")]
-    public enum FCommandFlags : uint
-    {
-        None = 0,
-        DontTransition = 1 << 0,
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -2298,7 +2384,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L47_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L62_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceState")]
@@ -2382,45 +2468,6 @@ namespace Coplt.Graphics.Native
         public float MaxDepth;
     }
 
-    public partial struct FCommandTransition
-    {
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Resource;
-
-        [NativeTypeName("Coplt::FResourceState")]
-        public FResourceState SrcState;
-
-        [NativeTypeName("Coplt::FResourceState")]
-        public FResourceState DstState;
-    }
-
-    public partial struct FCommandPresent
-    {
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Image;
-    }
-
-    public partial struct FCommandClearColor
-    {
-        [NativeTypeName("Coplt::u32")]
-        public uint RectCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint RectIndex;
-
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Image;
-
-        [NativeTypeName("f32[4]")]
-        public _Color_e__FixedBuffer Color;
-
-        [InlineArray(4)]
-        public partial struct _Color_e__FixedBuffer
-        {
-            public float e0;
-        }
-    }
-
     [NativeTypeName("Coplt::u8")]
     public enum FDepthStencilClearFlags : byte
     {
@@ -2429,197 +2476,16 @@ namespace Coplt.Graphics.Native
         Stencil = 2,
     }
 
-    public partial struct FCommandClearDepthStencil
-    {
-        [NativeTypeName("Coplt::u32")]
-        public uint RectCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint RectIndex;
-
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Image;
-
-        [NativeTypeName("Coplt::f32")]
-        public float Depth;
-
-        [NativeTypeName("Coplt::u8")]
-        public byte Stencil;
-
-        [NativeTypeName("Coplt::FDepthStencilClearFlags")]
-        public FDepthStencilClearFlags Clear;
-    }
-
-    public partial struct FCommandSetRenderTargets
-    {
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Dsv;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumRtv;
-
-        [NativeTypeName("FResourceRef[8]")]
-        public _Rtv_e__FixedBuffer Rtv;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ViewportCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ViewportIndex;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ScissorRectCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ScissorRectIndex;
-
-        [InlineArray(8)]
-        public partial struct _Rtv_e__FixedBuffer
-        {
-            public FResourceRef e0;
-        }
-    }
-
-    public partial struct FCommandSetViewportScissor
-    {
-        [NativeTypeName("Coplt::u32")]
-        public uint ViewportCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ViewportIndex;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ScissorRectCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ScissorRectIndex;
-    }
-
     public partial struct FBindItem
     {
+        [NativeTypeName("Coplt::FCommandType")]
+        public FCommandType Type;
+
         [NativeTypeName("Coplt::FView")]
         public FView View;
 
         [NativeTypeName("Coplt::u32")]
         public uint Index;
-    }
-
-    public unsafe partial struct FCommandBind
-    {
-        [NativeTypeName("Coplt::FShaderBinding *")]
-        public FShaderBinding* Binding;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ItemCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint ItemsIndex;
-    }
-
-    public unsafe partial struct FCommandSetPipeline
-    {
-        [NativeTypeName("Coplt::FShaderPipeline *")]
-        public FShaderPipeline* Pipeline;
-
-        [NativeTypeName("Coplt::FShaderBinding *")]
-        public FShaderBinding* Binding;
-    }
-
-    public partial struct FBufferRange
-    {
-        [NativeTypeName("Coplt::FResourceRef")]
-        public FResourceRef Buffer;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Offset;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Size;
-    }
-
-    [NativeTypeName("struct FVertexBufferRange : Coplt::FBufferRange")]
-    public partial struct FVertexBufferRange
-    {
-        public FBufferRange Base;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Index;
-    }
-
-    public unsafe partial struct FCommandSetMeshBuffers
-    {
-        [NativeTypeName("Coplt::FMeshLayout *")]
-        public FMeshLayout* MeshLayout;
-
-        [NativeTypeName("Coplt::FGraphicsFormat")]
-        public FGraphicsFormat IndexFormat;
-
-        [NativeTypeName("Coplt::FBufferRange")]
-        public FBufferRange IndexBuffer;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint VertexStartSlot;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint VertexBufferCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint VertexBuffersIndex;
-    }
-
-    public unsafe partial struct FCommandDraw
-    {
-        [NativeTypeName("Coplt::FShaderPipeline *")]
-        public FShaderPipeline* Pipeline;
-
-        [NativeTypeName("Coplt::FShaderBinding *")]
-        public FShaderBinding* Binding;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint VertexOrIndexCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint InstanceCount;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint FirstVertexOrIndex;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint FirstInstance;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint VertexOffset;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 Indexed;
-    }
-
-    [NativeTypeName("Coplt::u8")]
-    public enum FDispatchType : byte
-    {
-        Compute,
-        Mesh,
-    }
-
-    public unsafe partial struct FCommandDispatch
-    {
-        [NativeTypeName("Coplt::FShaderPipeline *")]
-        public FShaderPipeline* Pipeline;
-
-        [NativeTypeName("Coplt::FShaderBinding *")]
-        public FShaderBinding* Binding;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint GroupCountX;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint GroupCountY;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint GroupCountZ;
-
-        [NativeTypeName("Coplt::FDispatchType")]
-        public FDispatchType Type;
     }
 
     public partial struct FUploadLoc
@@ -2647,7 +2513,7 @@ namespace Coplt.Graphics.Native
         Upload,
     }
 
-    public partial struct FCommandBufferCopy
+    public partial struct FBufferCopyRange
     {
         [NativeTypeName("Coplt::u64")]
         public ulong Size;
@@ -2657,6 +2523,298 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u64")]
         public ulong SrcOffset;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FResolveMode : byte
+    {
+        Decompress,
+        Min,
+        Max,
+        Average,
+    }
+
+    public partial struct FResolveInfo
+    {
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Src;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Dst;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
+
+        [NativeTypeName("Coplt::FResolveMode")]
+        public FResolveMode Mode;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FLoadOp : byte
+    {
+        Load,
+        Clear,
+        Discard,
+        NoAccess,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FStoreOp : byte
+    {
+        Store,
+        Discard,
+        Resolve,
+        NoAccess,
+    }
+
+    public partial struct FRenderInfo
+    {
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Dsv;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumRtv;
+
+        [NativeTypeName("FResourceRef[8]")]
+        public _Rtv_e__FixedBuffer Rtv;
+
+        [NativeTypeName("u32[8]")]
+        public _ResolveInfoIndex_e__FixedBuffer ResolveInfoIndex;
+
+        [NativeTypeName("f32[32]")]
+        public _Color_e__FixedBuffer Color;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Depth;
+
+        [NativeTypeName("Coplt::u8")]
+        public byte Stencil;
+
+        [NativeTypeName("FLoadOp[2]")]
+        public _DsvLoadOp_e__FixedBuffer DsvLoadOp;
+
+        [NativeTypeName("FStoreOp[2]")]
+        public _DsvStoreOp_e__FixedBuffer DsvStoreOp;
+
+        [NativeTypeName("FLoadOp[8]")]
+        public _RtvLoadOp_e__FixedBuffer RtvLoadOp;
+
+        [NativeTypeName("FStoreOp[8]")]
+        public _RtvStoreOp_e__FixedBuffer RtvStoreOp;
+
+        [InlineArray(8)]
+        public partial struct _Rtv_e__FixedBuffer
+        {
+            public FResourceRef e0;
+        }
+
+        [InlineArray(8)]
+        public partial struct _ResolveInfoIndex_e__FixedBuffer
+        {
+            public uint e0;
+        }
+
+        [InlineArray(32)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public float e0;
+        }
+
+        [InlineArray(2)]
+        public partial struct _DsvLoadOp_e__FixedBuffer
+        {
+            public FLoadOp e0;
+        }
+
+        [InlineArray(2)]
+        public partial struct _DsvStoreOp_e__FixedBuffer
+        {
+            public FStoreOp e0;
+        }
+
+        [InlineArray(8)]
+        public partial struct _RtvLoadOp_e__FixedBuffer
+        {
+            public FLoadOp e0;
+        }
+
+        [InlineArray(8)]
+        public partial struct _RtvStoreOp_e__FixedBuffer
+        {
+            public FStoreOp e0;
+        }
+    }
+
+    public partial struct FBufferRange
+    {
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Buffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Offset;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+    }
+
+    [NativeTypeName("struct FVertexBufferRange : Coplt::FBufferRange")]
+    public partial struct FVertexBufferRange
+    {
+        public FBufferRange Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
+    public unsafe partial struct FMeshBuffers
+    {
+        [NativeTypeName("Coplt::FMeshLayout *")]
+        public FMeshLayout* MeshLayout;
+
+        [NativeTypeName("Coplt::FBufferRange")]
+        public FBufferRange IndexBuffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBufferCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBuffersIndex;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FDispatchType : byte
+    {
+        Compute,
+        Mesh,
+    }
+
+    public partial struct FCommandBase
+    {
+        [NativeTypeName("Coplt::FCommandType")]
+        public FCommandType Type;
+    }
+
+    [NativeTypeName("struct FCommandLabel : Coplt::FCommandBase")]
+    public partial struct FCommandLabel
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringLength;
+
+        [NativeTypeName("Coplt::FStrType")]
+        public FStrType StrType;
+    }
+
+    [NativeTypeName("struct FCommandBeginScope : Coplt::FCommandBase")]
+    public partial struct FCommandBeginScope
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringLength;
+
+        [NativeTypeName("Coplt::FStrType")]
+        public FStrType StrType;
+    }
+
+    [NativeTypeName("struct FCommandEndScope : Coplt::FCommandBase")]
+    public partial struct FCommandEndScope
+    {
+        public FCommandBase Base;
+    }
+
+    [NativeTypeName("struct FCommandPresent : Coplt::FCommandBase")]
+    public partial struct FCommandPresent
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
+    }
+
+    [NativeTypeName("struct FCommandBarrier : Coplt::FCommandBase")]
+    public partial struct FCommandBarrier
+    {
+        public FCommandBase Base;
+    }
+
+    [NativeTypeName("struct FCommandClearColor : Coplt::FCommandBase")]
+    public partial struct FCommandClearColor
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectIndex;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
+
+        [NativeTypeName("f32[4]")]
+        public _Color_e__FixedBuffer Color;
+
+        [InlineArray(4)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public float e0;
+        }
+    }
+
+    [NativeTypeName("struct FCommandClearDepthStencil : Coplt::FCommandBase")]
+    public partial struct FCommandClearDepthStencil
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectIndex;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Depth;
+
+        [NativeTypeName("Coplt::u8")]
+        public byte Stencil;
+
+        [NativeTypeName("Coplt::FDepthStencilClearFlags")]
+        public FDepthStencilClearFlags Clear;
+    }
+
+    [NativeTypeName("struct FCommandBind : Coplt::FCommandBase")]
+    public unsafe partial struct FCommandBind
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ItemCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ItemsIndex;
+
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
+    }
+
+    [NativeTypeName("struct FCommandBufferCopy : Coplt::FCommandBase")]
+    public partial struct FCommandBufferCopy
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RangeIndex;
 
         [NativeTypeName("Coplt::FBufferRef")]
         public FBufferRef Dst;
@@ -2671,24 +2829,162 @@ namespace Coplt.Graphics.Native
         public FBufferRefType SrcType;
     }
 
+    [NativeTypeName("struct FCommandRender : Coplt::FCommandBase")]
+    public partial struct FCommandRender
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint InfoIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandStartIndex;
+    }
+
+    [NativeTypeName("struct FCommandCompute : Coplt::FCommandBase")]
+    public partial struct FCommandCompute
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandStartIndex;
+    }
+
+    [NativeTypeName("struct FCommandSetPipeline : Coplt::FCommandBase")]
+    public unsafe partial struct FCommandSetPipeline
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::FShaderPipeline *")]
+        public FShaderPipeline* Pipeline;
+    }
+
+    [NativeTypeName("struct FCommandSetBinding : Coplt::FCommandBase")]
+    public unsafe partial struct FCommandSetBinding
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
+    }
+
+    [NativeTypeName("struct FCommandSetViewportScissor : Coplt::FCommandBase")]
+    public partial struct FCommandSetViewportScissor
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ViewportIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ScissorRectIndex;
+    }
+
+    [NativeTypeName("struct FCommandSetMeshBuffers : Coplt::FCommandBase")]
+    public partial struct FCommandSetMeshBuffers
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat IndexFormat;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexStartSlot;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint PayloadIndex;
+    }
+
+    [NativeTypeName("struct FCommandDraw : Coplt::FCommandBase")]
+    public partial struct FCommandDraw
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexOrIndexCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint InstanceCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstVertexOrIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstInstance;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexOffset;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Indexed;
+    }
+
+    [NativeTypeName("struct FCommandDispatch : Coplt::FCommandBase")]
+    public partial struct FCommandDispatch
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountX;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountY;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountZ;
+
+        [NativeTypeName("Coplt::FDispatchType")]
+        public FDispatchType Type;
+    }
+
     public partial struct FCommandItem
     {
-        [NativeTypeName("Coplt::FCommandType")]
-        public FCommandType Type;
-
-        [NativeTypeName("Coplt::FCommandFlags")]
-        public FCommandFlags Flags;
-
-        [NativeTypeName("__AnonymousRecord_Command_L295_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L404_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
-        public ref FCommandTransition Transition
+        public ref FCommandType Type
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.Transition;
+                return ref Anonymous.Type;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandLabel Label
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Label;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandBeginScope BeginScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BeginScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandEndScope EndScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.EndScope;
             }
         }
 
@@ -2699,6 +2995,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.Present;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandBarrier Barrier
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Barrier;
             }
         }
 
@@ -2723,26 +3029,6 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
-        public ref FCommandSetRenderTargets SetRenderTargets
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return ref Anonymous.SetRenderTargets;
-            }
-        }
-
-        [UnscopedRef]
-        public ref FCommandSetViewportScissor SetViewportScissor
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return ref Anonymous.SetViewportScissor;
-            }
-        }
-
-        [UnscopedRef]
         public ref FCommandBind Bind
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2753,12 +3039,180 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCommandBufferCopy BufferCopy
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BufferCopy;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandRender Render
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Render;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandCompute Compute
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Compute;
+            }
+        }
+
+        [UnscopedRef]
+        public Span<byte> _pad
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Anonymous._pad;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandType")]
+            public FCommandType Type;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandLabel")]
+            public FCommandLabel Label;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBeginScope")]
+            public FCommandBeginScope BeginScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandEndScope")]
+            public FCommandEndScope EndScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandPresent")]
+            public FCommandPresent Present;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBarrier")]
+            public FCommandBarrier Barrier;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandClearColor")]
+            public FCommandClearColor ClearColor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandClearDepthStencil")]
+            public FCommandClearDepthStencil ClearDepthStencil;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBind")]
+            public FCommandBind Bind;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBufferCopy")]
+            public FCommandBufferCopy BufferCopy;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandRender")]
+            public FCommandRender Render;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandCompute")]
+            public FCommandCompute Compute;
+
+            [FieldOffset(0)]
+            [NativeTypeName("u8[32]")]
+            public __pad_e__FixedBuffer _pad;
+
+            [InlineArray(32)]
+            public partial struct __pad_e__FixedBuffer
+            {
+                public byte e0;
+            }
+        }
+    }
+
+    public partial struct FRenderCommandItem
+    {
+        [NativeTypeName("__AnonymousRecord_Command_L432_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [UnscopedRef]
+        public ref FCommandType Type
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Type;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandLabel Label
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Label;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandBeginScope BeginScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BeginScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandEndScope EndScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.EndScope;
+            }
+        }
+
+        [UnscopedRef]
         public ref FCommandSetPipeline SetPipeline
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return ref Anonymous.SetPipeline;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetBinding SetBinding
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetBinding;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetViewportScissor SetViewportScissor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetViewportScissor;
             }
         }
 
@@ -2793,12 +3247,142 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
-        public ref FCommandBufferCopy BufferCopy
+        public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.BufferCopy;
+                return Anonymous._pad;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandType")]
+            public FCommandType Type;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandLabel")]
+            public FCommandLabel Label;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandBeginScope")]
+            public FCommandBeginScope BeginScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandEndScope")]
+            public FCommandEndScope EndScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetPipeline")]
+            public FCommandSetPipeline SetPipeline;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetBinding")]
+            public FCommandSetBinding SetBinding;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetViewportScissor")]
+            public FCommandSetViewportScissor SetViewportScissor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSetMeshBuffers")]
+            public FCommandSetMeshBuffers SetMeshBuffers;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandDraw")]
+            public FCommandDraw Draw;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandDispatch")]
+            public FCommandDispatch Dispatch;
+
+            [FieldOffset(0)]
+            [NativeTypeName("u8[32]")]
+            public __pad_e__FixedBuffer _pad;
+
+            [InlineArray(32)]
+            public partial struct __pad_e__FixedBuffer
+            {
+                public byte e0;
+            }
+        }
+    }
+
+    public partial struct FComputeCommandItem
+    {
+        [NativeTypeName("__AnonymousRecord_Command_L455_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [UnscopedRef]
+        public ref FCommandType Type
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Type;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandLabel Label
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Label;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandBeginScope BeginScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BeginScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandEndScope EndScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.EndScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetPipeline SetPipeline
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetPipeline;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandSetBinding SetBinding
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetBinding;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCommandDispatch Dispatch
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Dispatch;
             }
         }
 
@@ -2816,58 +3400,38 @@ namespace Coplt.Graphics.Native
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandTransition")]
-            public FCommandTransition Transition;
+            [NativeTypeName("Coplt::FCommandType")]
+            public FCommandType Type;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandPresent")]
-            public FCommandPresent Present;
+            [NativeTypeName("Coplt::FCommandLabel")]
+            public FCommandLabel Label;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandClearColor")]
-            public FCommandClearColor ClearColor;
+            [NativeTypeName("Coplt::FCommandBeginScope")]
+            public FCommandBeginScope BeginScope;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandClearDepthStencil")]
-            public FCommandClearDepthStencil ClearDepthStencil;
-
-            [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandSetRenderTargets")]
-            public FCommandSetRenderTargets SetRenderTargets;
-
-            [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandSetViewportScissor")]
-            public FCommandSetViewportScissor SetViewportScissor;
-
-            [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandBind")]
-            public FCommandBind Bind;
+            [NativeTypeName("Coplt::FCommandEndScope")]
+            public FCommandEndScope EndScope;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandSetPipeline")]
             public FCommandSetPipeline SetPipeline;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandSetMeshBuffers")]
-            public FCommandSetMeshBuffers SetMeshBuffers;
-
-            [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandDraw")]
-            public FCommandDraw Draw;
+            [NativeTypeName("Coplt::FCommandSetBinding")]
+            public FCommandSetBinding SetBinding;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandDispatch")]
             public FCommandDispatch Dispatch;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCommandBufferCopy")]
-            public FCommandBufferCopy BufferCopy;
-
-            [FieldOffset(0)]
-            [NativeTypeName("u8[56]")]
+            [NativeTypeName("u8[32]")]
             public __pad_e__FixedBuffer _pad;
 
-            [InlineArray(56)]
+            [InlineArray(32)]
             public partial struct __pad_e__FixedBuffer
             {
                 public byte e0;
@@ -3701,6 +4265,8 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FFrameContext = new Guid(0x3A22DE68, 0x8377, 0x4E57, 0xA1, 0x67, 0x3E, 0xFD, 0xB9, 0x7C, 0x10, 0x2A);
 
         public static readonly Guid IID_FGpuQueue = new Guid(0x95E60E28, 0xE387, 0x4055, 0x9B, 0x33, 0x2D, 0x23, 0xAF, 0x90, 0x1F, 0x8A);
+
+        public static readonly Guid IID_FGpuExecutor = new Guid(0xEDAB0989, 0xE0C2, 0x4B1E, 0x82, 0x6F, 0xC7, 0x33, 0x80, 0x08, 0x8F, 0xC6);
 
         public static readonly Guid IID_FGpuView = new Guid(0xB3AEB8A5, 0x1FA6, 0x4866, 0x97, 0xEF, 0x1A, 0x5F, 0xA4, 0x01, 0xE1, 0x8F);
 

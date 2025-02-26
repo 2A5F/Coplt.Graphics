@@ -114,3 +114,25 @@ void D3d12GpuQueue::SubmitNoLock(
     m_context = m_frame_context.get();
     m_submit_id++;
 }
+
+FResult D3d12GpuQueue::Submit(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept
+{
+    return feb([&]
+    {
+        const auto executor = Executor->QueryInterface<ID3d12GpuExecutor>();
+        if (executor == nullptr)
+            COPLT_THROW("Executors from different backends");
+        executor->Submit(this, submit);
+    });
+}
+
+FResult D3d12GpuQueue::SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept
+{
+    return feb([&]
+    {
+        const auto executor = Executor->QueryInterface<ID3d12GpuExecutor>();
+        if (executor == nullptr)
+            COPLT_THROW("Executors from different backends");
+        executor->SubmitNoWait(this, submit);
+    });
+}

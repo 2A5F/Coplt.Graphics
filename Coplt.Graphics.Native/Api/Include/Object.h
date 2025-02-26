@@ -229,6 +229,16 @@ namespace Coplt
         {
             return get() == nullptr;
         }
+
+        bool operator==(T* ptr) const
+        {
+            return get() == ptr;
+        }
+
+        bool operator==(const T& ref) const
+        {
+            return *get() == ref;
+        }
     };
 
     template <class T>

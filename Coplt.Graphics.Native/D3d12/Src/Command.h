@@ -63,8 +63,8 @@ namespace Coplt
 
             FResourceRef Rtv[8];
             u32 NumRtv{};
-            FResourceRef Dsv{COPLT_U32_MAX};
-            FResourceRef Ibv{COPLT_U32_MAX};
+            FResourceRef Dsv{};
+            FResourceRef Ibv{};
             FResourceRef Vbv[31];
             u32 NumVbv{};
 
