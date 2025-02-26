@@ -2326,6 +2326,15 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u32")]
+    public enum FResLayout : uint
+    {
+    }
+
+    public partial struct FResState
+    {
+    }
+
+    [NativeTypeName("Coplt::u32")]
     public enum FResourceState : uint
     {
         Manual = 0,

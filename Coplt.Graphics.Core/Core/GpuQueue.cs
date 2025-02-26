@@ -1,4 +1,5 @@
-﻿using Coplt.Dropping;
+﻿using System.Collections.Concurrent;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
@@ -26,7 +27,8 @@ public sealed unsafe partial class GpuQueue
     internal string? m_name;
     internal readonly GpuDevice m_device;
     internal readonly Lock m_lock = new();
-    internal readonly CommandList m_cmd;
+    internal CommandList m_current_cmd_list;
+    internal readonly ConcurrentQueue<CommandList> m_cmd_pool = new();
 
     #endregion
 
@@ -36,7 +38,7 @@ public sealed unsafe partial class GpuQueue
     public GpuDevice Device => m_device;
     public GpuQueueType QueueType => m_ptr->m_queue_type.FromFFI();
     public SubmitId SubmitId => new(m_ptr->m_submit_id);
-    public CommandList CommandList => m_cmd;
+    public CommandList CommandList => m_current_cmd_list;
 
     #endregion
 
@@ -47,7 +49,7 @@ public sealed unsafe partial class GpuQueue
         m_name = name;
         m_ptr = ptr;
         m_device = device;
-        m_cmd = new(this);
+        m_current_cmd_list = new(this);
     }
 
     #endregion
@@ -104,13 +106,29 @@ public sealed unsafe partial class GpuQueue
         using var _ = m_lock.EnterScope();
         if (Executor is GpuOutput output)
         {
-            if (m_cmd.m_current_output != null && m_cmd.m_current_output != output)
+            if (m_current_cmd_list.m_current_output != null && m_current_cmd_list.m_current_output != output)
                 throw new ArgumentException(
                     $"The command is already used by another output and cannot be presented in this output"
                 );
-            m_cmd.Present(output);
+            m_current_cmd_list.Present(output);
         }
-        m_cmd.Submit(this, Executor, NoWait);
+        m_current_cmd_list.BuildSubmitStruct(Executor, NoWait);
+    }
+
+    internal void ActualSubmit(GpuExecutor Executor, FCommandSubmit* submit, bool NoWait)
+    {
+        if (NoWait)
+        {
+            m_ptr->SubmitNoWait(Executor.m_ptr, submit).TryThrow();
+            if (!m_cmd_pool.TryDequeue(out var new_cmd_list)) new_cmd_list = new(this);
+            Executor.SetNeedWait(m_current_cmd_list);
+            m_current_cmd_list = new_cmd_list;
+        }
+        else
+        {
+            m_ptr->Submit(Executor.m_ptr, submit).TryThrow();
+            m_current_cmd_list.Reset();
+        }
     }
 
     #endregion

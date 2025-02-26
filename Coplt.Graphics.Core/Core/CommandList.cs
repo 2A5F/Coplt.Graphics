@@ -7,13 +7,6 @@ using Coplt.Union;
 
 namespace Coplt.Graphics.Core;
 
-[Flags]
-public enum CommandFlags : uint
-{
-    None = 0,
-    DontTransition = 1 << 0,
-}
-
 public enum DispatchType : byte
 {
     Auto,
@@ -87,7 +80,7 @@ public sealed unsafe class CommandList
 
     #region Submit
 
-    internal void Submit(GpuQueue Queue, GpuExecutor Executor, bool NoWait)
+    internal void BuildSubmitStruct(GpuExecutor Executor, bool NoWait)
     {
         fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(m_commands))
         fixed (FRenderCommandItem* p_render_commands = CollectionsMarshal.AsSpan(m_render_commands))
@@ -123,15 +116,7 @@ public sealed unsafe class CommandList
                 CommandCount = (uint)m_commands.Count,
                 ResourceCount = (uint)m_resource_metas.Count,
             };
-            try
-            {
-                if (NoWait) Queue.m_ptr->SubmitNoWait(Executor.m_ptr, &submit).TryThrow();
-                else Queue.m_ptr->Submit(Executor.m_ptr, &submit).TryThrow();
-            }
-            finally
-            {
-                Reset();
-            }
+            Queue.ActualSubmit(Executor, &submit, NoWait);
         }
     }
 
@@ -257,7 +242,7 @@ public sealed unsafe class CommandList
 
     #region Present
 
-    internal void Present(GpuOutput Output, CommandFlags Flags = CommandFlags.None)
+    internal void Present(GpuOutput Output)
     {
         var cmd = new FCommandPresent
         {
@@ -265,8 +250,6 @@ public sealed unsafe class CommandList
             Image = AddResource(Output),
         };
         m_commands.Add(new() { Present = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-            Output.UnsafeChangeState(FResourceState.Present);
     }
 
     #endregion
@@ -277,16 +260,14 @@ public sealed unsafe class CommandList
     /// 使用 (0, 0, 0, 1) 清空 Rtv
     /// </summary>
     public void ClearColor<Rtv>(
-        Rtv Image, ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
-    ) where Rtv : IRtvRes => ClearColor(Image, new(0, 0, 0, 1), Rects, Flags);
+        Rtv Image, ReadOnlySpan<URect> Rects = default
+    ) where Rtv : IRtvRes => ClearColor(Image, new(0, 0, 0, 1), Rects);
 
     /// <summary>
     /// 使用指定的颜色清空 Rtv
     /// </summary>
     public void ClearColor<Rtv>(
-        Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
+        Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default
     ) where Rtv : IRtvRes
     {
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
@@ -304,8 +285,6 @@ public sealed unsafe class CommandList
             m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         }
         m_commands.Add(new() { ClearColor = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-            Image.UnsafeChangeState(FResourceState.RenderTarget);
     }
 
     #endregion
@@ -317,35 +296,31 @@ public sealed unsafe class CommandList
     /// </summary>
     public void ClearDepthStencil<Dsv>(
         Dsv Image,
-        ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects, Flags);
+        ReadOnlySpan<URect> Rects = default
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects);
 
     /// <summary>
     /// 使用指定的深度清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
         Dsv Image, float Depth,
-        ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects, Flags);
+        ReadOnlySpan<URect> Rects = default
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects);
 
     /// <summary>
     /// 使用指定的模板清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
         Dsv Image, byte Stencil,
-        ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects, Flags);
+        ReadOnlySpan<URect> Rects = default
+    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects);
 
     /// <summary>
     /// 使用指定的深度和模板清空 Dsv
     /// </summary>
     public void ClearDepthStencil<Dsv>(
         Dsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
-        ReadOnlySpan<URect> Rects = default,
-        CommandFlags Flags = CommandFlags.None
+        ReadOnlySpan<URect> Rects = default
     ) where Dsv : IDsvRes
     {
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
@@ -365,8 +340,6 @@ public sealed unsafe class CommandList
             m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         }
         m_commands.Add(new() { ClearDepthStencil = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-            Image.UnsafeChangeState(FResourceState.DepthWrite);
     }
 
     #endregion
@@ -374,7 +347,7 @@ public sealed unsafe class CommandList
     #region Bind
 
     public void Bind(
-        ShaderBinding Binding, ReadOnlySpan<ShaderBindingSetItem> Items, CommandFlags Flags = CommandFlags.None
+        ShaderBinding Binding, ReadOnlySpan<ShaderBindingSetItem> Items
     )
     {
         AddObject(Binding);
@@ -418,8 +391,7 @@ public sealed unsafe class CommandList
         GpuBuffer Src,
         ulong DstOffset = 0,
         ulong SrcOffset = 0,
-        ulong Size = ulong.MaxValue,
-        CommandFlags Flags = CommandFlags.None
+        ulong Size = ulong.MaxValue
     )
     {
         if (Size != ulong.MaxValue)
@@ -446,11 +418,6 @@ public sealed unsafe class CommandList
             }
         );
         m_commands.Add(new() { BufferCopy = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-        {
-            Dst.UnsafeChangeState(FResourceState.CopyDst);
-            Src.UnsafeChangeState(FResourceState.CopySrc);
-        }
     }
 
     #endregion
@@ -460,15 +427,13 @@ public sealed unsafe class CommandList
     public void Upload<T>(
         GpuBuffer Dst,
         ReadOnlySpan<T> Data,
-        ulong DstOffset = 0,
-        CommandFlags Flags = CommandFlags.None
-    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset, Flags);
+        ulong DstOffset = 0
+    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset);
 
     public void Upload(
         GpuBuffer Dst,
         ReadOnlySpan<byte> Data,
-        ulong DstOffset = 0,
-        CommandFlags Flags = CommandFlags.None
+        ulong DstOffset = 0
     )
     {
         if (Data.Length == 0) return;
@@ -492,15 +457,12 @@ public sealed unsafe class CommandList
             }
         );
         m_commands.Add(new() { BufferCopy = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-            Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     public void Upload(
         GpuBuffer Dst,
         UploadLoc Loc,
-        ulong DstOffset = 0,
-        CommandFlags Flags = CommandFlags.None
+        ulong DstOffset = 0
     )
     {
         if (Loc.SubmitId != m_queue.SubmitId)
@@ -524,8 +486,6 @@ public sealed unsafe class CommandList
             }
         );
         m_commands.Add(new() { BufferCopy = cmd });
-        if ((Flags & CommandFlags.DontTransition) == 0)
-            Dst.UnsafeChangeState(FResourceState.CopyDst);
     }
 
     #endregion

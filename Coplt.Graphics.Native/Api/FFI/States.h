@@ -5,6 +5,16 @@
 
 namespace Coplt
 {
+    COPLT_ENUM_FLAGS(FResLayout, u32)
+    {
+        
+    };
+
+    struct FResState
+    {
+
+    };
+
     COPLT_ENUM_FLAGS(FResourceState, u32)
     {
         // 手动管理资源状态，自动过渡时将忽略

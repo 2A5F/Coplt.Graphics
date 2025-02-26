@@ -11,6 +11,8 @@ public abstract unsafe partial class GpuExecutor
     internal FGpuExecutor* m_ptr;
     internal string? m_name;
     internal readonly GpuQueue m_queue;
+    internal CommandList? m_recycle_cmd_list;
+    internal readonly Lock m_wait_lock = new();
 
     #endregion
 
@@ -19,6 +21,8 @@ public abstract unsafe partial class GpuExecutor
     public FGpuExecutor* Ptr => m_ptr;
     public GpuDevice Device => m_queue.m_device;
     public GpuQueue Queue => m_queue;
+
+    public bool NeedWait => m_recycle_cmd_list != null;
 
     #endregion
 
@@ -38,6 +42,7 @@ public abstract unsafe partial class GpuExecutor
     [Drop]
     private void Drop()
     {
+        Wait(true);
         if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
         ptr->Release();
     }
@@ -77,15 +82,48 @@ public abstract unsafe partial class GpuExecutor
 
     #endregion
 
+    #region SetNeedWait
+
+    internal void SetNeedWait(CommandList cmd)
+    {
+        if (Interlocked.CompareExchange(ref m_recycle_cmd_list, cmd, null) != null)
+            throw new InvalidOperationException("The current executor has not been waited and cannot be reused");
+    }
+
+    #endregion
+
     #region Wait
 
     /// <summary>
     /// 等待可重用
     /// </summary>
-    public void Wait()
+    public void Wait() => Wait(false);
+
+    /// <summary>
+    /// 等待可重用
+    /// </summary>
+    private void Wait(bool discard)
     {
-        using var _ = Queue.m_lock.EnterScope();
-        m_ptr->Wait().TryThrow();
+    re:
+        var recycle_cmd_list = m_recycle_cmd_list;
+        if (recycle_cmd_list == null) return;
+        using (m_wait_lock.EnterScope())
+        {
+            if (recycle_cmd_list == m_recycle_cmd_list) goto re;
+            try
+            {
+                m_ptr->Wait().TryThrow();
+            }
+            finally
+            {
+                if (!discard)
+                {
+                    recycle_cmd_list.Reset();
+                    Queue.m_cmd_pool.Enqueue(recycle_cmd_list);
+                }
+                m_recycle_cmd_list = null;
+            }
+        }
     }
 
     #endregion
