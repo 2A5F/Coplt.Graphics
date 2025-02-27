@@ -26,7 +26,7 @@ namespace Coplt
 
         void CreateAdapter(ComPtr<IDXGIAdapter1>&& adapter);
 
-        FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept override;
+        FResult CreateDevice(const FGpuAutoSelectDeviceCreateOptions& options, FGpuDevice** out) noexcept override;
 
         FGpuAdapter* const* GetAdapters(u32* out_count) noexcept override;
 

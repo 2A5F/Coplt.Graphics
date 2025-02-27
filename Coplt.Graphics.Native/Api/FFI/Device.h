@@ -59,6 +59,10 @@ namespace Coplt
     {
         // 可选
         FStr8or16 Name{};
+    };
+
+    struct FGpuAutoSelectDeviceCreateOptions : FGpuDeviceCreateOptions
+    {
         FDeviceRequires Requires{};
     };
 

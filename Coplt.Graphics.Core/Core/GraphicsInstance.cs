@@ -320,15 +320,15 @@ public unsafe partial class GraphicsInstance
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
         {
-            FGpuDeviceCreateOptions f_options = new()
+            FGpuAutoSelectDeviceCreateOptions f_options = new()
             {
-                Name = new(Name, Name8, p_name, p_name8),
-                Requires = new()
+                Base = { Name = new(Name, Name8, p_name, p_name8) },
+                Requires =
                 {
                     D3dFeatureLevel = (FD3dFeatureLevel)requires.D3dFeatureLevel,
                     VulkanVersion = (FVulkanVersion)requires.VulkanVersion,
                     DeviceType = (FDeviceTypeRequire)requires.DeviceType,
-                    FeatureRequires = new()
+                    FeatureRequires =
                     {
                         ShaderModelLevel = (FShaderModelLevel)requires.FeatureRequires.ShaderModelLevel,
                         RayTracing = requires.FeatureRequires.RayTracing,
@@ -337,12 +337,12 @@ public unsafe partial class GraphicsInstance
                         EnhancedBarriers = requires.FeatureRequires.EnhancedBarriers,
                         ArrBindless = requires.FeatureRequires.ArrBindless,
                         DynBindless = requires.FeatureRequires.DynBindless,
-                    }
-                }
+                    },
+                },
             };
             FGpuDevice* ptr;
             m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-            return new(ptr, this, Name, QueueName: QueueName, QueueName8: QueueName8);
+            return new(ptr, this, null, Name, QueueName: QueueName, QueueName8: QueueName8);
         }
     }
 

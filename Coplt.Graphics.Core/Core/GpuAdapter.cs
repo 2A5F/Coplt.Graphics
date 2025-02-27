@@ -1,5 +1,6 @@
 ﻿using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -59,6 +60,32 @@ public sealed unsafe partial class GpuAdapter
     public override string ToString() => string.IsNullOrEmpty(Name)
         ? $"{nameof(GpuAdapter)}(0x{(nuint)m_ptr:X})"
         : $"{nameof(GpuAdapter)}({Name})";
+
+    #endregion
+
+    #region CreateDevice
+
+    public GpuDevice CreateDevice(
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        var QueueName = !Instance.DebugEnabled || Name is null ? null : $"{Name} Main Queue";
+        var QueueName8 = !Instance.DebugEnabled || Name8.Length == 0
+            ? Name8
+            : Utils.JoinUtf8String(Name8, " Main Queue"u8);
+
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuDeviceCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+            };
+            FGpuDevice* ptr;
+            m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
+            return new(ptr, Instance, this, Name, QueueName: QueueName, QueueName8: QueueName8);
+        }
+    }
 
     #endregion
 }

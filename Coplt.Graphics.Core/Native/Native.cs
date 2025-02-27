@@ -724,14 +724,14 @@ namespace Coplt.Graphics.Native
     {
     }
 
-    public partial struct FGpuDeviceCreateOptions
+    public partial struct FGpuAutoSelectDeviceCreateOptions
     {
     }
 
-    public partial struct FGpuDeviceCreateOptions
+    [NativeTypeName("struct FGpuAutoSelectDeviceCreateOptions : Coplt::FGpuDeviceCreateOptions")]
+    public partial struct FGpuAutoSelectDeviceCreateOptions
     {
-        [NativeTypeName("Coplt::FStr8or16")]
-        public FStr8or16 Name;
+        public FGpuDeviceCreateOptions Base;
 
         [NativeTypeName("Coplt::FDeviceRequires")]
         public FDeviceRequires Requires;
@@ -1008,10 +1008,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
+        public FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, FGpuDevice** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[9]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuAutoSelectDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[9]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FUnknown.Interface
@@ -1032,7 +1032,7 @@ namespace Coplt.Graphics.Native
             FGpuAdapter** GetAdapters([NativeTypeName("Coplt::u32 *")] uint* out_count);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out);
+            FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, FGpuDevice** @out);
         }
     }
 
@@ -1152,6 +1152,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FDeviceFeatureRequires")]
         public FDeviceFeatureRequires FeatureRequires;
+    }
+
+    public partial struct FGpuDeviceCreateOptions
+    {
+        [NativeTypeName("Coplt::FStr8or16")]
+        public FStr8or16 Name;
     }
 
     [NativeTypeName("Coplt::u8")]

@@ -36,7 +36,7 @@ public sealed unsafe partial class GpuDevice
     #region Ctor
 
     internal GpuDevice(
-        FGpuDevice* ptr, GraphicsInstance instance,
+        FGpuDevice* ptr, GraphicsInstance instance, GpuAdapter? adapter,
         string? name, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default
     )
     {
@@ -44,7 +44,7 @@ public sealed unsafe partial class GpuDevice
         m_name = name;
         m_ptr = ptr;
         m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
-        m_adapter = m_instance.m_ptr_to_adapters[(nuint)m_ptr->GetAdapter()];
+        m_adapter = adapter ?? m_instance.m_ptr_to_adapters[(nuint)m_ptr->GetAdapter()];
     }
 
     #endregion
