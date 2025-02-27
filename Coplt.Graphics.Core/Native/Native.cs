@@ -1170,8 +1170,8 @@ namespace Coplt.Graphics.Native
         Task = 4,
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FShaderStageFlags : byte
+    [NativeTypeName("Coplt::u32")]
+    public enum FShaderStageFlags : uint
     {
         None = 0,
         Compute = 1 << 0,
@@ -2326,6 +2326,9 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FRenderInfo *")]
         public FRenderInfo* RenderInfos;
 
+        [NativeTypeName("Coplt::FComputeInfo *")]
+        public FComputeInfo* ComputeInfos;
+
         [NativeTypeName("Coplt::FResolveInfo *")]
         public FResolveInfo* ResolveInfos;
 
@@ -2346,6 +2349,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FBindItem *")]
         public FBindItem* BindItems;
+
+        [NativeTypeName("Coplt::FBarrier *")]
+        public FBarrier* Barriers;
 
         [NativeTypeName("Coplt::Char8 *")]
         public byte* Str8;
@@ -2632,33 +2638,6 @@ namespace Coplt.Graphics.Native
         VideoEncodeWrite = 1 << 22,
     }
 
-    [NativeTypeName("Coplt::u32")]
-    public enum FResUsage : uint
-    {
-        None = 0,
-        All = 1 << 0,
-        Draw = 1 << 1,
-        IndexInput = 1 << 2,
-        VertexShading = 1 << 3,
-        PixelShading = 1 << 4,
-        DepthStencil = 1 << 5,
-        RenderTarget = 1 << 6,
-        ComputeShading = 1 << 7,
-        RayTracing = 1 << 8,
-        Copy = 1 << 9,
-        Resolve = 1 << 10,
-        ExecuteIndirectOrPredication = 1 << 11,
-        AllShading = 1 << 12,
-        NonPixelShading = 1 << 13,
-        EmitRayTracingAccelerationStructurePostBuildInfo = 1 << 14,
-        ClearUAV = 1 << 15,
-        BuildRayTracingAccelerationStructure = 1 << 16,
-        CopyRayTracingAccelerationStructure = 1 << 17,
-        VideoDecode = 1 << 18,
-        VideoProcess = 1 << 19,
-        VideoEncode = 1 << 20,
-    }
-
     public partial struct FResState
     {
         [NativeTypeName("Coplt::FResLayout")]
@@ -2667,8 +2646,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FResAccess")]
         public FResAccess Access;
 
-        [NativeTypeName("Coplt::FResUsage")]
-        public FResUsage Usage;
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags Stages;
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -2753,19 +2732,180 @@ namespace Coplt.Graphics.Native
         public uint ResourceIndex;
     }
 
+    public partial struct FSubResourceRange
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint IndexOrFirstMipLevel;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumMipLevels;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstArraySlices;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumArraySlices;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint FirstPlane;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumPlanes;
+    }
+
+    [NativeTypeName("Coplt::u32")]
+    public enum FImageBarrierFlags : uint
+    {
+        None,
+        Discard,
+    }
+
+    public partial struct FImageBarrier
+    {
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessBefore;
+
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessAfter;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesBefore;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesAfter;
+
+        [NativeTypeName("Coplt::FResLayout")]
+        public FResLayout LayoutBefore;
+
+        [NativeTypeName("Coplt::FResLayout")]
+        public FResLayout LayoutAfter;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Image;
+
+        [NativeTypeName("Coplt::FSubResourceRange")]
+        public FSubResourceRange SubResourceRange;
+
+        [NativeTypeName("Coplt::FImageBarrierFlags")]
+        public FImageBarrierFlags Flags;
+    }
+
+    public partial struct FBufferBarrier
+    {
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessBefore;
+
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessAfter;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesBefore;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesAfter;
+
+        [NativeTypeName("Coplt::FResourceRef")]
+        public FResourceRef Buffer;
+
+        [NativeTypeName("Coplt::u64")]
+        public ulong Offset;
+
+        [NativeTypeName("Coplt::u64")]
+        public ulong Size;
+    }
+
+    public partial struct FGlobalBarrier
+    {
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessBefore;
+
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess AccessAfter;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesBefore;
+
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags StagesAfter;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FBarrierType : byte
+    {
+        None,
+        Global,
+        Buffer,
+        Image,
+    }
+
+    public partial struct FBarrier
+    {
+        [NativeTypeName("Coplt::FBarrierType")]
+        public FBarrierType Type;
+
+        [NativeTypeName("__AnonymousRecord_Command_L164_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [UnscopedRef]
+        public ref FGlobalBarrier Global
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Global;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FBufferBarrier Buffer
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Buffer;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FImageBarrier Image
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Image;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGlobalBarrier")]
+            public FGlobalBarrier Global;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FBufferBarrier")]
+            public FBufferBarrier Buffer;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FImageBarrier")]
+            public FImageBarrier Image;
+        }
+    }
+
     public partial struct FRect
     {
         [NativeTypeName("Coplt::u32")]
-        public uint left;
+        public uint Left;
 
         [NativeTypeName("Coplt::u32")]
-        public uint top;
+        public uint Top;
 
         [NativeTypeName("Coplt::u32")]
-        public uint right;
+        public uint Right;
 
         [NativeTypeName("Coplt::u32")]
-        public uint bottom;
+        public uint Bottom;
     }
 
     public partial struct FViewport
@@ -2890,6 +3030,9 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderInfo
     {
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandCount;
+
         [NativeTypeName("Coplt::FResourceRef")]
         public FResourceRef Dsv;
 
@@ -2964,6 +3107,12 @@ namespace Coplt.Graphics.Native
         {
             public FStoreOp e0;
         }
+    }
+
+    public partial struct FComputeInfo
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandCount;
     }
 
     public partial struct FBufferRange
@@ -3064,6 +3213,12 @@ namespace Coplt.Graphics.Native
     public partial struct FCommandBarrier
     {
         public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint BarrierIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint BarrierCount;
     }
 
     [NativeTypeName("struct FCommandClearColor : Coplt::FCommandBase")]
@@ -3168,6 +3323,9 @@ namespace Coplt.Graphics.Native
         public FCommandBase Base;
 
         [NativeTypeName("Coplt::u32")]
+        public uint InfoIndex;
+
+        [NativeTypeName("Coplt::u32")]
         public uint CommandStartIndex;
     }
 
@@ -3266,7 +3424,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L404_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L482_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3464,7 +3622,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L432_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L510_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3634,7 +3792,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L455_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L533_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

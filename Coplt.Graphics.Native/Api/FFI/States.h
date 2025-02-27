@@ -53,7 +53,7 @@ namespace Coplt
             FLegacyState::IndexBuffer | FLegacyState::VertexBuffer |
             FLegacyState::ConstantBuffer | FLegacyState::IndirectBuffer | FLegacyState::CopySrc |
             FLegacyState::ResolveSrc | FLegacyState::ShaderResource | FLegacyState::DepthRead
-            );
+        );
     }
 
     inline bool IsCompatible(const FLegacyState value, const FLegacyState other)
@@ -130,36 +130,10 @@ namespace Coplt
         VideoEncodeWrite = 1 << 22,
     };
 
-    COPLT_ENUM_FLAGS(FResUsage, u32)
-    {
-        None = 0,
-        All = 1 << 0,
-        Draw = 1 << 1,
-        IndexInput = 1 << 2,
-        VertexShading = 1 << 3,
-        PixelShading = 1 << 4,
-        DepthStencil = 1 << 5,
-        RenderTarget = 1 << 6,
-        ComputeShading = 1 << 7,
-        RayTracing = 1 << 8,
-        Copy = 1 << 9,
-        Resolve = 1 << 10,
-        ExecuteIndirectOrPredication = 1 << 11,
-        AllShading = 1 << 12,
-        NonPixelShading = 1 << 13,
-        EmitRayTracingAccelerationStructurePostBuildInfo = 1 << 14,
-        ClearUAV = 1 << 15,
-        BuildRayTracingAccelerationStructure = 1 << 16,
-        CopyRayTracingAccelerationStructure = 1 << 17,
-        VideoDecode = 1 << 18,
-        VideoProcess = 1 << 19,
-        VideoEncode = 1 << 20,
-    };
-
     struct FResState
     {
         FResLayout Layout{};
         FResAccess Access{};
-        FResUsage Usage{};
+        FShaderStageFlags Stages{};
     };
-};
+}

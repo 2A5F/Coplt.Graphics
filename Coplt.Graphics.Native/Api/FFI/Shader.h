@@ -14,7 +14,7 @@ namespace Coplt
         Task = 4,
     };
 
-    COPLT_ENUM_FLAGS(FShaderStageFlags, u8)
+    COPLT_ENUM_FLAGS(FShaderStageFlags, u32)
     {
         None = 0,
         Compute = 1 << 0,

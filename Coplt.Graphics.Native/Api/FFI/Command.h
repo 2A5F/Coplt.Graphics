@@ -61,7 +61,7 @@ namespace Coplt
     {
         union
         {
-            FGpuOutput* Output;
+            FGpuOutput* Output{};
             FGpuBuffer* Buffer;
             // todo other
         };
@@ -69,7 +69,7 @@ namespace Coplt
         FLegacyState CurrentState{};
         FResourceRefType Type{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         FUnknown* GetObjectPtr() const
         {
             switch (Type)
@@ -83,7 +83,7 @@ namespace Coplt
             }
             return nullptr;
         }
-#endif
+        #endif
     };
 
     struct FResourceRef
@@ -91,22 +91,90 @@ namespace Coplt
         // u32::max 表示 empty
         u32 ResourceIndex{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         FResourceMeta& Get(const FCommandSubmit& submit) const;
 
         bool IsEmpty() const
         {
             return ResourceIndex == 0;
         }
-#endif
+        #endif
+    };
+
+    struct FSubResourceRange
+    {
+        u32 IndexOrFirstMipLevel{};
+        u32 NumMipLevels{};
+        u32 FirstArraySlices{};
+        u32 NumArraySlices{};
+        u32 FirstPlane{};
+        u32 NumPlanes{};
+    };
+
+    COPLT_ENUM_FLAGS(FImageBarrierFlags, u32)
+    {
+        None,
+        Discard,
+    };
+
+    struct FImageBarrier
+    {
+        FResAccess AccessBefore{};
+        FResAccess AccessAfter{};
+        FShaderStageFlags StagesBefore{};
+        FShaderStageFlags StagesAfter{};
+        FResLayout LayoutBefore{};
+        FResLayout LayoutAfter{};
+        FResourceRef Image{};
+        FSubResourceRange SubResourceRange{};
+        FImageBarrierFlags Flags{};
+    };
+
+    struct FBufferBarrier
+    {
+        FResAccess AccessBefore{};
+        FResAccess AccessAfter{};
+        FShaderStageFlags StagesBefore{};
+        FShaderStageFlags StagesAfter{};
+        FResourceRef Buffer{};
+        u64 Offset{};
+        u64 Size{};
+    };
+
+    struct FGlobalBarrier
+    {
+        FResAccess AccessBefore{};
+        FResAccess AccessAfter{};
+        FShaderStageFlags StagesBefore{};
+        FShaderStageFlags StagesAfter{};
+    };
+
+    enum class FBarrierType : u8
+    {
+        None,
+        Global,
+        Buffer,
+        Image,
+    };
+
+    struct FBarrier
+    {
+        FBarrierType Type{};
+
+        union
+        {
+            FGlobalBarrier Global;
+            FBufferBarrier Buffer;
+            FImageBarrier Image;
+        };
     };
 
     struct FRect
     {
-        u32 left;
-        u32 top;
-        u32 right;
-        u32 bottom;
+        u32 Left;
+        u32 Top;
+        u32 Right;
+        u32 Bottom;
     };
 
     struct FViewport
@@ -194,6 +262,7 @@ namespace Coplt
 
     struct FRenderInfo
     {
+        u32 CommandCount{};
         // 可选
         FResourceRef Dsv{};
         u32 NumRtv{};
@@ -207,6 +276,11 @@ namespace Coplt
         FStoreOp DsvStoreOp[2]{};
         FLoadOp RtvLoadOp[8]{};
         FStoreOp RtvStoreOp[8]{};
+    };
+
+    struct FComputeInfo
+    {
+        u32 CommandCount{};
     };
 
     struct FBufferRange
@@ -276,7 +350,9 @@ namespace Coplt
 
     struct FCommandBarrier : FCommandBase
     {
-        // todo
+        // Payload 内的索引，类型为 FBarrier
+        u32 BarrierIndex{};
+        u32 BarrierCount{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -338,6 +414,8 @@ namespace Coplt
 
     struct FCommandCompute : FCommandBase
     {
+        // 类型为 FComputeInfo
+        u32 InfoIndex{};
         u32 CommandStartIndex{};
     };
 
@@ -478,6 +556,7 @@ namespace Coplt
         FComputeCommandItem* ComputeCommands{};
         FResourceMeta* Resources{};
         FRenderInfo* RenderInfos{};
+        FComputeInfo* ComputeInfos{};
         FResolveInfo* ResolveInfos{};
         FRect* Rects{};
         FViewport* Viewports{};
@@ -485,6 +564,7 @@ namespace Coplt
         FVertexBufferRange* VertexBufferRanges{};
         FBufferCopyRange* BufferCopyRanges{};
         FBindItem* BindItems{};
+        FBarrier* Barriers{};
         Char8* Str8{};
         Char16* Str16{};
         u32 CommandCount{};
@@ -493,12 +573,12 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef FFI_SRC
+    #ifdef FFI_SRC
 
     inline FResourceMeta& FResourceRef::Get(const FCommandSubmit& submit) const
     {
         return submit.Resources[ResourceIndex - 1];
     }
 
-#endif
+    #endif
 }

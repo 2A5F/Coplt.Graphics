@@ -14,6 +14,9 @@ public enum DispatchType : byte
     Mesh,
 }
 
+/// <summary>
+/// 命令列表，不支持多线程访问
+/// </summary>
 public sealed unsafe class CommandList
 {
     #region Fields
@@ -24,6 +27,7 @@ public sealed unsafe class CommandList
     internal readonly List<FComputeCommandItem> m_compute_commands = new();
     internal readonly List<FResourceMeta> m_resource_metas = new();
     internal readonly List<FRenderInfo> m_render_infos = new();
+    internal readonly List<FComputeInfo> m_compute_infos = new();
     internal readonly List<FResolveInfo> m_resolve_infos = new();
     internal readonly List<FRect> m_rects = new();
     internal readonly List<FViewport> m_viewports = new();
@@ -31,11 +35,16 @@ public sealed unsafe class CommandList
     internal readonly List<FVertexBufferRange> m_vertex_buffer_ranges = new();
     internal readonly List<FBufferCopyRange> m_buffer_copy_ranges = new();
     internal readonly List<FBindItem> m_bind_items = new();
+    internal readonly List<FBarrier> m_barriers = new();
     internal readonly List<byte> m_string8 = new();
     internal readonly List<char> m_string16 = new();
     internal readonly Dictionary<object, int> m_resources = new();
     internal readonly HashSet<object> m_objects = new();
     internal GpuOutput? m_current_output;
+    internal bool m_in_render_or_compute_scope;
+    internal int m_debug_scope_count;
+    internal int m_render_debug_scope_count;
+    internal int m_compute_debug_scope_count;
 
     #endregion
 
@@ -61,16 +70,19 @@ public sealed unsafe class CommandList
         m_commands.Clear();
         m_render_commands.Clear();
         m_compute_commands.Clear();
+        m_resource_metas.Clear();
         m_render_infos.Clear();
+        m_compute_infos.Clear();
         m_resolve_infos.Clear();
         m_rects.Clear();
         m_viewports.Clear();
         m_mesh_buffers.Clear();
         m_vertex_buffer_ranges.Clear();
         m_buffer_copy_ranges.Clear();
+        m_bind_items.Clear();
+        m_barriers.Clear();
         m_string8.Clear();
         m_string16.Clear();
-        m_resource_metas.Clear();
         m_resources.Clear();
         m_objects.Clear();
         m_current_output = null;
@@ -82,11 +94,21 @@ public sealed unsafe class CommandList
 
     internal void BuildSubmitStruct(GpuExecutor Executor, bool NoWait)
     {
+        if (m_debug_scope_count != 0)
+            throw new InvalidOperationException(
+                "There is still Debug scope not ended, please check whether Dispose is missed."
+            );
+        if (m_in_render_or_compute_scope)
+            throw new InvalidOperationException(
+                "There is still Render or Compute scope not ended, please check whether Dispose is missed."
+            );
+
         fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(m_commands))
         fixed (FRenderCommandItem* p_render_commands = CollectionsMarshal.AsSpan(m_render_commands))
         fixed (FComputeCommandItem* p_compute_commands = CollectionsMarshal.AsSpan(m_compute_commands))
         fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(m_resource_metas))
         fixed (FRenderInfo* p_render_infos = CollectionsMarshal.AsSpan(m_render_infos))
+        fixed (FComputeInfo* p_compute_infos = CollectionsMarshal.AsSpan(m_compute_infos))
         fixed (FResolveInfo* p_resolve_infos = CollectionsMarshal.AsSpan(m_resolve_infos))
         fixed (FRect* p_rects = CollectionsMarshal.AsSpan(m_rects))
         fixed (FViewport* p_viewports = CollectionsMarshal.AsSpan(m_viewports))
@@ -94,6 +116,7 @@ public sealed unsafe class CommandList
         fixed (FVertexBufferRange* p_vertex_buffer_ranges = CollectionsMarshal.AsSpan(m_vertex_buffer_ranges))
         fixed (FBufferCopyRange* p_buffer_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_copy_ranges))
         fixed (FBindItem* p_bind_items = CollectionsMarshal.AsSpan(m_bind_items))
+        fixed (FBarrier* p_barriers = CollectionsMarshal.AsSpan(m_barriers))
         fixed (byte* p_string8 = CollectionsMarshal.AsSpan(m_string8))
         fixed (char* p_string16 = CollectionsMarshal.AsSpan(m_string16))
         {
@@ -104,6 +127,7 @@ public sealed unsafe class CommandList
                 ComputeCommands = p_compute_commands,
                 Resources = p_resources,
                 RenderInfos = p_render_infos,
+                ComputeInfos = p_compute_infos,
                 ResolveInfos = p_resolve_infos,
                 Rects = p_rects,
                 Viewports = p_viewports,
@@ -111,6 +135,7 @@ public sealed unsafe class CommandList
                 VertexBufferRanges = p_vertex_buffer_ranges,
                 BufferCopyRanges = p_buffer_copy_ranges,
                 BindItems = p_bind_items,
+                Barriers = p_barriers,
                 Str8 = p_string8,
                 Str16 = p_string16,
                 CommandCount = (uint)m_commands.Count,
@@ -220,6 +245,7 @@ public sealed unsafe class CommandList
             StrType = FStrType.Str16,
         };
         m_commands.Add(new() { Label = cmd });
+        m_debug_scope_count++;
         return new(this);
     }
 
@@ -233,6 +259,7 @@ public sealed unsafe class CommandList
             StrType = FStrType.Str8,
         };
         m_commands.Add(new() { Label = cmd });
+        m_debug_scope_count++;
         return new(this);
     }
 
@@ -508,6 +535,13 @@ public sealed unsafe class CommandList
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
+        #region Check Nested
+
+        if (m_in_render_or_compute_scope) throw new InvalidOperationException("Cannot nest Render or Compute scopes");
+        m_in_render_or_compute_scope = true;
+
+        #endregion
+
         #region Check Args
 
         if (Info.Dsv == null && Info.Rtvs.Length == 0) throw new ArgumentException("No any rtv or dsv provided");
@@ -517,10 +551,11 @@ public sealed unsafe class CommandList
 
         #region Cmd
 
+        var info_index = m_render_infos.Count;
         var cmd = new FCommandRender
         {
             Base = { Type = FCommandType.Render },
-            InfoIndex = (uint)m_render_infos.Count,
+            InfoIndex = (uint)info_index,
             CommandStartIndex = (uint)m_render_commands.Count,
         };
 
@@ -655,7 +690,7 @@ public sealed unsafe class CommandList
 
         #region Scope
 
-        RenderScope scope = new(this, m_render_commands, debug_scope);
+        RenderScope scope = new(this, info_index, m_render_commands.Count, m_render_commands, debug_scope);
 
         #endregion
 
@@ -680,6 +715,15 @@ public sealed unsafe class CommandList
 
     public ComputeScope Compute(string? Name = null, ReadOnlySpan<byte> Name8 = default)
     {
+        #region Check Nested
+
+        if (m_in_render_or_compute_scope) throw new InvalidOperationException("Cannot nest Render or Compute scopes");
+        m_in_render_or_compute_scope = true;
+
+        #endregion
+
+        #region Debug
+
         var debug_scope = false;
         if (Name != null)
         {
@@ -691,13 +735,24 @@ public sealed unsafe class CommandList
             debug_scope = true;
             Scope(Name8);
         }
+
+        #endregion
+
+        #region Cmd and Scope
+
+        var info_index = m_compute_infos.Count;
+        m_compute_infos.Add(new());
+
         var cmd = new FCommandCompute
         {
             Base = { Type = FCommandType.Compute },
+            InfoIndex = (uint)info_index,
             CommandStartIndex = (uint)m_compute_commands.Count,
         };
         m_commands.Add(new() { Compute = cmd });
-        return new(this, m_compute_commands, debug_scope);
+        return new(this, info_index, m_compute_commands.Count, m_compute_commands, debug_scope);
+
+        #endregion
     }
 
     #endregion
@@ -707,39 +762,51 @@ public sealed unsafe class CommandList
 
 #region DebugScope
 
-public readonly struct DebugScope(CommandList self) : IDisposable
+public struct DebugScope(CommandList self) : IDisposable
 {
+    private bool m_disposed;
     public void Dispose()
     {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
         };
         self.m_commands.Add(new() { EndScope = cmd });
+        self.m_debug_scope_count--;
     }
 }
 
-public readonly struct RenderDebugScope(CommandList self) : IDisposable
+public struct RenderDebugScope(CommandList self) : IDisposable
 {
+    private bool m_disposed;
     public void Dispose()
     {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
         };
         self.m_render_commands.Add(new() { EndScope = cmd });
+        self.m_render_debug_scope_count--;
     }
 }
 
-public readonly struct ComputeDebugScope(CommandList self) : IDisposable
+public struct ComputeDebugScope(CommandList self) : IDisposable
 {
+    private bool m_disposed;
     public void Dispose()
     {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
         };
         self.m_compute_commands.Add(new() { EndScope = cmd });
+        self.m_compute_debug_scope_count--;
     }
 }
 
@@ -853,6 +920,8 @@ public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.D
 
 public unsafe struct RenderScope(
     CommandList self,
+    int info_index,
+    int cmd_index,
     List<FRenderCommandItem> m_commands,
     bool debug_scope
 ) : IDisposable
@@ -861,6 +930,13 @@ public unsafe struct RenderScope(
 
     private ShaderPipeline? m_current_pipeline;
     private ShaderBinding? m_current_binding;
+    private bool m_disposed;
+
+    #endregion
+
+    #region Props
+
+    internal ref FRenderInfo Info => ref CollectionsMarshal.AsSpan(self.m_render_infos)[info_index];
 
     #endregion
 
@@ -868,7 +944,15 @@ public unsafe struct RenderScope(
 
     public void Dispose()
     {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
+        if (self.m_render_debug_scope_count != 0)
+            throw new InvalidOperationException(
+                "There is still Debug scope not ended, please check whether Dispose is missed."
+            );
+        Info.CommandCount = (uint)m_commands.Count - (uint)cmd_index;
         self.m_render_commands.Add(new() { Type = FCommandType.End });
+        self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
     }
 
@@ -916,6 +1000,7 @@ public unsafe struct RenderScope(
             StrType = FStrType.Str16,
         };
         m_commands.Add(new() { Label = cmd });
+        self.m_render_debug_scope_count++;
         return new(self);
     }
 
@@ -929,6 +1014,7 @@ public unsafe struct RenderScope(
             StrType = FStrType.Str8,
         };
         m_commands.Add(new() { Label = cmd });
+        self.m_render_debug_scope_count++;
         return new(self);
     }
 
@@ -1186,6 +1272,8 @@ public unsafe struct RenderScope(
 
 public unsafe struct ComputeScope(
     CommandList self,
+    int info_index,
+    int cmd_index,
     List<FComputeCommandItem> m_commands,
     bool debug_scope
 ) : IDisposable
@@ -1194,6 +1282,13 @@ public unsafe struct ComputeScope(
 
     private ShaderPipeline? m_current_pipeline;
     private ShaderBinding? m_current_binding;
+    private bool m_disposed;
+
+    #endregion
+
+    #region Props
+
+    internal ref FComputeInfo Info => ref CollectionsMarshal.AsSpan(self.m_compute_infos)[info_index];
 
     #endregion
 
@@ -1201,7 +1296,15 @@ public unsafe struct ComputeScope(
 
     public void Dispose()
     {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
+        if (self.m_compute_debug_scope_count != 0)
+            throw new InvalidOperationException(
+                "There is still Debug scope not ended, please check whether Dispose is missed."
+            );
+        Info.CommandCount = (uint)m_commands.Count - (uint)cmd_index;
         self.m_compute_commands.Add(new() { Type = FCommandType.End });
+        self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
     }
 
@@ -1249,6 +1352,7 @@ public unsafe struct ComputeScope(
             StrType = FStrType.Str16,
         };
         m_commands.Add(new() { Label = cmd });
+        self.m_compute_debug_scope_count++;
         return new(self);
     }
 
@@ -1262,6 +1366,7 @@ public unsafe struct ComputeScope(
             StrType = FStrType.Str8,
         };
         m_commands.Add(new() { Label = cmd });
+        self.m_compute_debug_scope_count++;
         return new(self);
     }
 
