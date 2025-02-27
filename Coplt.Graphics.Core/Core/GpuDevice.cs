@@ -9,42 +9,6 @@ using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
-#region Enums
-
-public enum D3dFeatureLevel
-{
-    Unset = 0,
-    _12_1 = 0xc100,
-    _12_2 = 0xc200,
-}
-
-public enum VulkanVersion
-{
-    Unset = 0,
-    _1_2 = 1002,
-    _1_3 = 1003,
-    _1_4 = 1004,
-}
-
-public enum GpuPreference : byte
-{
-    HighPerformance = 0,
-    MinimumPower = 1,
-    Any = 255,
-}
-
-#endregion
-
-#region GpuDeviceOptions
-
-public record struct GpuDeviceOptions
-{
-    public VulkanVersion VulkanVersion;
-    public D3dFeatureLevel D3dFeatureLevel;
-}
-
-#endregion
-
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuDevice
 {
@@ -52,6 +16,7 @@ public sealed unsafe partial class GpuDevice
 
     internal FGpuDevice* m_ptr;
     internal readonly GraphicsInstance m_instance;
+    internal readonly GpuAdapter m_adapter;
     internal string? m_name;
     [Drop]
     internal readonly GpuQueue m_main_queue;
@@ -62,6 +27,7 @@ public sealed unsafe partial class GpuDevice
 
     public FGpuDevice* Ptr => m_ptr;
     public GraphicsInstance Instance => m_instance;
+    public GpuAdapter Adapter => m_adapter;
     public GpuQueue MainQueue => m_main_queue;
     public CommandList MainCommandList => MainQueue.CommandList;
 
@@ -78,6 +44,7 @@ public sealed unsafe partial class GpuDevice
         m_name = name;
         m_ptr = ptr;
         m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
+        m_adapter = m_instance.m_ptr_to_adapters[(nuint)m_ptr->GetAdapter()];
     }
 
     #endregion

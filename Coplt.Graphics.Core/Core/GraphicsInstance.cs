@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -23,6 +24,8 @@ public unsafe partial class GraphicsInstance
     #region Fields
 
     internal FInstance* m_ptr;
+    internal readonly List<GpuAdapter> m_adapters = new();
+    internal readonly FrozenDictionary<nuint, GpuAdapter> m_ptr_to_adapters;
     internal readonly ConcurrentDictionary<string, String8> m_string_cache = new();
     internal readonly ConcurrentDictionary<string, SlotId> m_slot_id_cache = new(StringComparer.OrdinalIgnoreCase);
     internal readonly ConcurrentDictionary<SlotId, string> m_slot_id_name = new();
@@ -34,12 +37,30 @@ public unsafe partial class GraphicsInstance
     #region Props
 
     public FInstance* Ptr => m_ptr;
+    public bool DebugEnabled => m_ptr->m_debug_enabled;
+    public bool GpuBasedValidationEnabled => m_ptr->m_gpu_based_validation_enabled;
+    public ReadOnlySpan<GpuAdapter> Adapters => CollectionsMarshal.AsSpan(m_adapters);
 
     #endregion
 
     #region Ctor
 
-    public GraphicsInstance(FInstance* ptr) => m_ptr = ptr;
+    public GraphicsInstance(FInstance* ptr)
+    {
+        m_ptr = ptr;
+        uint count = 0;
+        var adapters = m_ptr->GetAdapters(&count);
+        var ptr_to_adapters = new Dictionary<nuint, GpuAdapter>();
+        for (var i = 0; i < count; i++)
+        {
+            var adapter = adapters[i];
+            adapter->AddRef();
+            var obj = new GpuAdapter(adapter, this);
+            m_adapters.Add(obj);
+            ptr_to_adapters.Add((nuint)adapter, obj);
+        }
+        m_ptr_to_adapters = ptr_to_adapters.ToFrozenDictionary();
+    }
 
     #endregion
 
@@ -56,7 +77,19 @@ public unsafe partial class GraphicsInstance
 
     #region Load
 
-    public static GraphicsInstance LoadD3d12() => new(D3d12Native.Coplt_Graphics_D3d12_Create_Instance());
+    public static GraphicsInstance LoadD3d12(bool Debug = false, bool GpuBasedValidation = false)
+    {
+        FInstance* ptr = default;
+        FResult r = default;
+        FInstanceCreateOptions f_options = new()
+        {
+            Debug = Debug,
+            GpuBasedValidation = GpuBasedValidation
+        };
+        D3d12Native.Coplt_Graphics_D3d12_Create_Instance(&r, &f_options, &ptr);
+        r.TryThrow();
+        return new(ptr);
+    }
 
     #endregion
 
@@ -277,15 +310,12 @@ public unsafe partial class GraphicsInstance
     #region CreateDevice
 
     public GpuDevice CreateDevice(
-        GpuDeviceOptions options = default,
-        GpuPreference Preference = GpuPreference.HighPerformance,
-        string? Name = null,
-        ReadOnlySpan<byte> Name8 = default,
-        bool Debug = false
+        DeviceRequires requires = default,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
-        var QueueName = !Debug || Name is null ? null : $"{Name} Main Queue";
-        var QueueName8 = !Debug || Name8.Length == 0 ? Name8 : Utils.JoinUtf8String(Name8, " Main Queue"u8);
+        var QueueName = !DebugEnabled || Name is null ? null : $"{Name} Main Queue";
+        var QueueName8 = !DebugEnabled || Name8.Length == 0 ? Name8 : Utils.JoinUtf8String(Name8, " Main Queue"u8);
 
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
@@ -293,10 +323,22 @@ public unsafe partial class GraphicsInstance
             FGpuDeviceCreateOptions f_options = new()
             {
                 Name = new(Name, Name8, p_name, p_name8),
-                D3dFeatureLevel = (FD3dFeatureLevel)options.D3dFeatureLevel,
-                VulkanVersion = (FVulkanVersion)options.VulkanVersion,
-                Preference = (FGpuPreference)Preference,
-                Debug = Debug
+                Requires = new()
+                {
+                    D3dFeatureLevel = (FD3dFeatureLevel)requires.D3dFeatureLevel,
+                    VulkanVersion = (FVulkanVersion)requires.VulkanVersion,
+                    DeviceType = (FDeviceTypeRequire)requires.DeviceType,
+                    FeatureRequires = new()
+                    {
+                        ShaderModelLevel = (FShaderModelLevel)requires.FeatureRequires.ShaderModelLevel,
+                        RayTracing = requires.FeatureRequires.RayTracing,
+                        MeshShader = requires.FeatureRequires.MeshShader,
+                        DescriptorHeap = requires.FeatureRequires.DescriptorHeap,
+                        EnhancedBarriers = requires.FeatureRequires.EnhancedBarriers,
+                        ArrBindless = requires.FeatureRequires.ArrBindless,
+                        DynBindless = requires.FeatureRequires.DynBindless,
+                    }
+                }
             };
             FGpuDevice* ptr;
             m_ptr->CreateDevice(&f_options, &ptr).TryThrow();

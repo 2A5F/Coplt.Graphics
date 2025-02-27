@@ -1,4 +1,6 @@
-﻿namespace Coplt.Graphics.Native;
+﻿using System.Text;
+
+namespace Coplt.Graphics.Native;
 
 public unsafe partial struct FStr8or16
 {
@@ -32,5 +34,16 @@ public unsafe partial struct FStr8or16
         default:
             throw new ArgumentOutOfRangeException();
         }
+    }
+
+    public override string ToString()
+    {
+        if (len == 0) return "";
+        return type switch
+        {
+            FStrType.Str16 => new ReadOnlySpan<char>(str16, len).ToString(),
+            FStrType.Str8  => Encoding.UTF8.GetString(new ReadOnlySpan<byte>(str8, len)),
+            _              => ""
+        };
     }
 }

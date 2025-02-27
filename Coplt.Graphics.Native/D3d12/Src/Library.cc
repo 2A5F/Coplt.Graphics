@@ -9,7 +9,10 @@
 
 using namespace Coplt;
 
-FInstance* Coplt_Graphics_D3d12_Create_Instance()
+void Coplt_Graphics_D3d12_Create_Instance(FResult* r, const FInstanceCreateOptions& options, FInstance** out)
 {
-    return new D3d12Instance();
+    *r = feb([&]
+    {
+        *out = new D3d12Instance(options);
+    });
 }

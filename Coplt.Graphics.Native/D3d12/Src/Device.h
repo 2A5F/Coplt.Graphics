@@ -1,6 +1,7 @@
 #pragma once
 
 #include <directx/d3d12.h>
+
 #include "D3D12MemAlloc.h"
 #include "Instance.h"
 #include "../../Api/Include/HashMap.h"
@@ -9,6 +10,7 @@
 
 namespace Coplt
 {
+    struct D3d12GpuAdapter;
     struct DescriptorManager;
     struct D3d12ShaderLayout;
     struct D3d12MeshLayout;
@@ -18,9 +20,7 @@ namespace Coplt
         using EmptyLayouts = HashMap<FShaderLayoutFlags, Rc<D3d12ShaderLayout>>;
 
         Rc<D3d12Instance> m_instance{};
-        ComPtr<ID3D12Debug> m_debug_controller{};
-        ComPtr<IDXGIFactory4> m_factory{};
-        ComPtr<IDXGIAdapter1> m_adapter{};
+        Rc<D3d12GpuAdapter> m_adapter{};
         ComPtr<ID3D12Device2> m_device{};
         ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
@@ -30,24 +30,17 @@ namespace Coplt
         Rc<D3d12MeshLayout> m_empty_mesh_layout{};
         DWORD m_callback_cookie{};
 
-        explicit D3d12GpuDevice(
-            Rc<D3d12Instance> instance,
-            const FGpuDeviceCreateOptions& options
-        );
+        explicit D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options);
 
         ~D3d12GpuDevice() override;
 
-        const Logger& Logger() const noexcept
-        {
-            return m_instance->Logger();
-        }
+        const Logger& Logger() const noexcept;
 
-        bool Debug() const noexcept
-        {
-            return m_debug_controller != nullptr;
-        }
+        bool Debug() const noexcept;
 
         FResult SetName(const FStr8or16& name) noexcept override;
+
+        FGpuAdapter* GetAdapter() noexcept override;
 
         void* GetRawDevice() noexcept override;
 

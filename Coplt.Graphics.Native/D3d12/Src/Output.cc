@@ -130,7 +130,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     }
 
     ComPtr<IDXGISwapChain1> swap_chain;
-    chr | m_device->m_factory->CreateSwapChainForHwnd(
+    chr | m_device->m_instance->m_factory->CreateSwapChainForHwnd(
         m_dx_queue.Get(),
         hwnd,
         &desc,
