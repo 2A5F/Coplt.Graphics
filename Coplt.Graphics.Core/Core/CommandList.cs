@@ -21,6 +21,7 @@ public sealed unsafe class CommandList
 {
     #region Fields
 
+    internal readonly GraphicsInstance m_instance;
     internal readonly GpuQueue m_queue;
     internal readonly List<FCommandItem> m_commands = new();
     internal readonly List<FRenderCommandItem> m_render_commands = new();
@@ -51,14 +52,16 @@ public sealed unsafe class CommandList
     #region Props
 
     public GpuQueue Queue => m_queue;
+    public bool DebugEnabled => m_instance.DebugEnabled;
 
     #endregion
 
     #region Ctor
 
-    internal CommandList(GpuQueue mQueue)
+    internal CommandList(GpuQueue queue)
     {
-        m_queue = mQueue;
+        m_queue = queue;
+        m_instance = queue.Device.Instance;
     }
 
     #endregion
@@ -209,6 +212,7 @@ public sealed unsafe class CommandList
 
     public void Label(string Label)
     {
+        if (!DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.Label },
@@ -221,6 +225,7 @@ public sealed unsafe class CommandList
 
     public void Label(ReadOnlySpan<byte> Label)
     {
+        if (!DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.Label },
@@ -237,6 +242,7 @@ public sealed unsafe class CommandList
 
     public DebugScope Scope(string Name)
     {
+        if (!DebugEnabled) return new(this);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.BeginScope },
@@ -251,6 +257,7 @@ public sealed unsafe class CommandList
 
     public DebugScope Scope(ReadOnlySpan<byte> Name)
     {
+        if (!DebugEnabled) return new(this);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.BeginScope },
@@ -769,6 +776,7 @@ public struct DebugScope(CommandList self) : IDisposable
     {
         if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
         m_disposed = true;
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
@@ -785,6 +793,7 @@ public struct RenderDebugScope(CommandList self) : IDisposable
     {
         if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
         m_disposed = true;
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
@@ -801,6 +810,7 @@ public struct ComputeDebugScope(CommandList self) : IDisposable
     {
         if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
         m_disposed = true;
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandEndScope
         {
             Base = { Type = FCommandType.EndScope },
@@ -964,6 +974,7 @@ public unsafe struct RenderScope(
 
     public void Label(string Label)
     {
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.Label },
@@ -976,6 +987,7 @@ public unsafe struct RenderScope(
 
     public void Label(ReadOnlySpan<byte> Label)
     {
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
@@ -992,6 +1004,7 @@ public unsafe struct RenderScope(
 
     public RenderDebugScope Scope(string Name)
     {
+        if (!self.DebugEnabled) return new(self);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
@@ -1006,6 +1019,7 @@ public unsafe struct RenderScope(
 
     public RenderDebugScope Scope(ReadOnlySpan<byte> Name)
     {
+        if (!self.DebugEnabled) return new(self);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
@@ -1316,6 +1330,7 @@ public unsafe struct ComputeScope(
 
     public void Label(string Label)
     {
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.Label },
@@ -1328,6 +1343,7 @@ public unsafe struct ComputeScope(
 
     public void Label(ReadOnlySpan<byte> Label)
     {
+        if (!self.DebugEnabled) return;
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
@@ -1344,6 +1360,7 @@ public unsafe struct ComputeScope(
 
     public ComputeDebugScope Scope(string Name)
     {
+        if (!self.DebugEnabled) return new(self);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
@@ -1358,6 +1375,7 @@ public unsafe struct ComputeScope(
 
     public ComputeDebugScope Scope(ReadOnlySpan<byte> Name)
     {
+        if (!self.DebugEnabled) return new(self);
         var cmd = new FCommandLabel
         {
             Base = { Type = FCommandType.EndScope },
