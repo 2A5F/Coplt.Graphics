@@ -1,21 +1,14 @@
 #pragma once
 
 #include "Common.h"
+#include "Layout.h"
 #include "Types.h"
 
 namespace Coplt
 {
-    COPLT_ENUM_FLAGS(FResLayout, u32)
-    {
-        
-    };
+    #pragma region LegacyState
 
-    struct FResState
-    {
-
-    };
-
-    COPLT_ENUM_FLAGS(FResourceState, u32)
+    COPLT_ENUM_FLAGS(FLegacyState, u32)
     {
         // 手动管理资源状态，自动过渡时将忽略
         Manual = 0,
@@ -41,39 +34,132 @@ namespace Coplt
         GenericRead = VertexBuffer | ConstantBuffer | ShaderResource | IndirectBuffer | CopySrc,
     };
 
-#ifdef FFI_SRC
-    inline bool ContainsOnly(const FResourceState value, const FResourceState other)
+    #ifdef FFI_SRC
+
+    inline bool ContainsOnly(const FLegacyState value, const FLegacyState other)
     {
         return (value & ~other) == 0;
     }
 
-    inline bool Contains(const FResourceState value, const FResourceState other)
+    inline bool Contains(const FLegacyState value, const FLegacyState other)
     {
         return (value & other) != 0;
     }
 
-    inline bool IsReadOnly(const FResourceState value)
+    inline bool IsReadOnly(const FLegacyState value)
     {
         return ContainsOnly(
             value,
-            FResourceState::IndexBuffer | FResourceState::VertexBuffer |
-            FResourceState::ConstantBuffer | FResourceState::IndirectBuffer | FResourceState::CopySrc |
-            FResourceState::ResolveSrc | FResourceState::ShaderResource | FResourceState::DepthRead
-        );
+            FLegacyState::IndexBuffer | FLegacyState::VertexBuffer |
+            FLegacyState::ConstantBuffer | FLegacyState::IndirectBuffer | FLegacyState::CopySrc |
+            FLegacyState::ResolveSrc | FLegacyState::ShaderResource | FLegacyState::DepthRead
+            );
     }
 
-    inline bool IsCompatible(const FResourceState value, const FResourceState other)
+    inline bool IsCompatible(const FLegacyState value, const FLegacyState other)
     {
-        if (value == FResourceState::Manual || other == FResourceState::Manual) return false;
-        if (value == other) return true;
-        if (IsReadOnly(value) && IsReadOnly(other)) return true;
+        if (value == FLegacyState::Manual || other == FLegacyState::Manual)
+            return false;
+        if (value == other)
+            return true;
+        if (IsReadOnly(value) && IsReadOnly(other))
+            return true;
         return false;
     }
 
-    inline FResourceState ChangeState(const FResourceState value, const FResourceState state)
+    inline FLegacyState ChangeState(const FLegacyState value, const FLegacyState state)
     {
-        if (IsCompatible(value, state)) return value | state;
+        if (IsCompatible(value, state))
+            return value | state;
         return state;
     }
-#endif
+    #endif
+
+    #pragma endregion
+
+    enum FResLayout: u32
+    {
+        None = 0,
+        Common,
+        Present = Common,
+        GenericRead,
+        RenderTarget,
+        UnorderedAccess,
+        DepthStencilRead,
+        DepthStencilWrite,
+        ShaderResource,
+        CopySrc,
+        CopyDst,
+        ResolveSrc,
+        ResolveDst,
+        ShadingRate,
+        VideoDecodeRead,
+        VideoDecodeWrite,
+        VideoProcessRead,
+        VideoProcessWrite,
+        VideoEncodeRead,
+        VideoEncodeWrite,
+    };
+
+    COPLT_ENUM_FLAGS(FResAccess, u32)
+    {
+        NoAccess = 1u << 31,
+        Common = 0,
+        ConstantBuffer = 1 << 0,
+        VertexBuffer = 1 << 1,
+        IndexBuffer = 1 << 2,
+        RenderTarget = 1 << 3,
+        UnorderedAccess = 1 << 4,
+        DepthStencilRead = 1 << 5,
+        DepthStencilWrite = 1 << 6,
+        ShaderResource = 1 << 7,
+        StreamOutput = 1 << 8,
+        IndirectOrPredicationBuffer = 1 << 9,
+        CopySrc = 1 << 10,
+        CopyDst = 1 << 11,
+        ResolveSrc = 1 << 12,
+        ResolveDst = 1 << 13,
+        RayTracingAccelerationStructureRead = 1 << 14,
+        RayTracingAccelerationStructureWrite = 1 << 15,
+        ShadingRate = 1 << 16,
+        VideoDecodeRead = 1 << 17,
+        VideoDecodeWrite = 1 << 18,
+        VideoProcessRead = 1 << 19,
+        VideoProcessWrite = 1 << 20,
+        VideoEncodeRead = 1 << 21,
+        VideoEncodeWrite = 1 << 22,
+    };
+
+    COPLT_ENUM_FLAGS(FResUsage, u32)
+    {
+        None = 0,
+        All = 1 << 0,
+        Draw = 1 << 1,
+        IndexInput = 1 << 2,
+        VertexShading = 1 << 3,
+        PixelShading = 1 << 4,
+        DepthStencil = 1 << 5,
+        RenderTarget = 1 << 6,
+        ComputeShading = 1 << 7,
+        RayTracing = 1 << 8,
+        Copy = 1 << 9,
+        Resolve = 1 << 10,
+        ExecuteIndirectOrPredication = 1 << 11,
+        AllShading = 1 << 12,
+        NonPixelShading = 1 << 13,
+        EmitRayTracingAccelerationStructurePostBuildInfo = 1 << 14,
+        ClearUAV = 1 << 15,
+        BuildRayTracingAccelerationStructure = 1 << 16,
+        CopyRayTracingAccelerationStructure = 1 << 17,
+        VideoDecode = 1 << 18,
+        VideoProcess = 1 << 19,
+        VideoEncode = 1 << 20,
+    };
+
+    struct FResState
+    {
+        FResLayout Layout{};
+        FResAccess Access{};
+        FResUsage Usage{};
+    };
 };

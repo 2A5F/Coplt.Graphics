@@ -45,6 +45,7 @@ add_library(${target_name} STATIC
     FFI/Context.h
     FFI/Binding.h
     FFI/Executor.h
+    FFI/Features.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

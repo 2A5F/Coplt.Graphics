@@ -85,7 +85,7 @@ namespace Coplt
         void Interpret(const FCommandSubmit& submit);
 
         void CmdNext();
-        void ReqState(FResourceRef ResSrc, FResourceState ReqState);
+        void ReqState(FResourceRef ResSrc, FLegacyState ReqState);
         void MarkResUse(FResourceRef ResSrc);
         void AddBarrier(ResState& state, FResourceRef ResSrc);
         void BarNext();
@@ -96,8 +96,8 @@ namespace Coplt
 
         void InitStates(const FCommandSubmit& submit);
 
-        void CollectBarrier(const FCommandSubmit& submit);
-
+        // todo 移除此阶段，在 c# 部分完成
+        void Analyze(const FCommandSubmit& submit);
         void Translate(const FCommandSubmit& submit);
 
         void SetPipelineContext(
@@ -108,9 +108,7 @@ namespace Coplt
         );
 
         static ID3D12Resource* GetResource(const FResourceMeta& meta);
-
         static ID3D12Resource* GetResource(FUnknown* object, FResourceRefType type);
-
         static D3D12_CPU_DESCRIPTOR_HANDLE GetRtv(const FResourceMeta& meta);
     };
 }

@@ -14,7 +14,7 @@ namespace Coplt
         ResourcePack() = default;
 
         explicit ResourcePack(
-            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, FResourceState& state,
+            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, FLegacyState& state,
             const D3D12_RESOURCE_DESC* desc, const D3D12_CLEAR_VALUE* clear_value
         );
     };
@@ -23,7 +23,7 @@ namespace Coplt
     {
         ResourcePack m_resource{};
         u64 m_size{};
-        FResourceState m_state{};
+        FLegacyState m_state{};
 
         BufferPack() = default;
 

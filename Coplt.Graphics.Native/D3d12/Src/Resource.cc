@@ -3,7 +3,7 @@
 using namespace Coplt;
 
 ResourcePack::ResourcePack(
-    D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, FResourceState& state,
+    D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, FLegacyState& state,
     const D3D12_RESOURCE_DESC* desc, const D3D12_CLEAR_VALUE* clear_value
 )
 {
@@ -15,17 +15,17 @@ ResourcePack::ResourcePack(
     case FCpuAccess::Write:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
         init_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-        state = FResourceState::GenericRead;
+        state = FLegacyState::GenericRead;
         break;
     case FCpuAccess::Read:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
         init_state = D3D12_RESOURCE_STATE_COPY_DEST;
-        state = FResourceState::CopyDst;
+        state = FLegacyState::CopyDst;
         break;
     default:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
         init_state = D3D12_RESOURCE_STATE_COMMON;
-        state = FResourceState::Common;
+        state = FLegacyState::Common;
         break;
     }
     chr | allocator->CreateResource(

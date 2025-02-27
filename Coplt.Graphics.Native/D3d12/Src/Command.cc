@@ -40,7 +40,7 @@ void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 {
     Init();
     InitStates(submit);
-    CollectBarrier(submit);
+    Analyze(submit);
     Translate(submit);
     Reset();
 }
@@ -50,7 +50,7 @@ void D3d12CommandInterpreter::CmdNext()
     m_items.back().CommandCount++;
 }
 
-void D3d12CommandInterpreter::ReqState(const FResourceRef ResSrc, const FResourceState ReqState)
+void D3d12CommandInterpreter::ReqState(const FResourceRef ResSrc, const FLegacyState ReqState)
 {
     auto& state = m_states[ResSrc.ResourceIndex - 1];
     const auto old_state = state.CurrentState;
@@ -137,7 +137,7 @@ void D3d12CommandInterpreter::InitStates(const FCommandSubmit& submit)
     }
 }
 
-void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
+void D3d12CommandInterpreter::Analyze(const FCommandSubmit& submit)
 {
     for (u32 i = 0; i < submit.CommandCount; ++i, CmdNext())
     {
@@ -187,19 +187,19 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
     Present:
         {
             const auto& cmd = item.Present;
-            ReqState(cmd.Image, FResourceState::Present);
+            ReqState(cmd.Image, FLegacyState::Present);
             continue;
         }
     ClearColor:
         {
             const auto& cmd = item.ClearColor;
-            ReqState(cmd.Image, FResourceState::RenderTarget);
+            ReqState(cmd.Image, FLegacyState::RenderTarget);
             continue;
         }
     ClearDepthStencil:
         {
             const auto& cmd = item.ClearDepthStencil;
-            ReqState(cmd.Image, FResourceState::DepthWrite);
+            ReqState(cmd.Image, FLegacyState::DepthWrite);
             continue;
         }
     Bind:
@@ -214,7 +214,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             switch (cmd.SrcType)
             {
             case FBufferRefType::Buffer:
-                ReqState(cmd.Src.Buffer, FResourceState::CopySrc);
+                ReqState(cmd.Src.Buffer, FLegacyState::CopySrc);
                 break;
             case FBufferRefType::Upload:
                 // 上传缓冲区状态永远在 GenericRead 不需要屏障
@@ -223,7 +223,7 @@ void D3d12CommandInterpreter::CollectBarrier(const FCommandSubmit& submit)
             switch (cmd.DstType)
             {
             case FBufferRefType::Buffer:
-                ReqState(cmd.Dst.Buffer, FResourceState::CopyDst);
+                ReqState(cmd.Dst.Buffer, FLegacyState::CopyDst);
                 break;
             case FBufferRefType::Upload:
                 COPLT_THROW_FMT(

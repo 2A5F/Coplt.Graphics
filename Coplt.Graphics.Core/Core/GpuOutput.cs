@@ -122,8 +122,8 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IRtvRes, ISrvRes
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
-    void IGpuResource.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
-    internal void UnsafeChangeState(FResourceState state) => m_ptr->m_state.ChangeState(state);
+    void IGpuResource.UnsafeChangeState(FLegacyState state) => UnsafeChangeState(state);
+    internal void UnsafeChangeState(FLegacyState state) => m_ptr->m_state.ChangeState(state);
 
     public bool TrySrv() => true;
     public bool TryRtv() => true;

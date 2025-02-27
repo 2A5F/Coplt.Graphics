@@ -7,7 +7,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
 {
     m_allocator = m_device->m_gpu_allocator;
 
-    m_state = FResourceState::Common;
+    m_state = FLegacyState::Common;
     m_purpose = options.Purpose;
     m_cpu_access = options.CpuAccess;
     m_size = options.Size;

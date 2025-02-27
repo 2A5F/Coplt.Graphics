@@ -66,7 +66,7 @@ namespace Coplt
             // todo other
         };
 
-        FResourceState CurrentState{};
+        FLegacyState CurrentState{};
         FResourceRefType Type{};
 
 #ifdef FFI_SRC

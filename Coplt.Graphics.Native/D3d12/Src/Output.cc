@@ -16,7 +16,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_
     m_dx_device = m_queue->m_dx_device;
     m_dx_queue = m_queue->m_queue;
 
-    m_state = FResourceState::Present;
+    m_state = FLegacyState::Present;
 }
 
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue, const FGpuOutputCreateOptions& options)

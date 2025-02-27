@@ -64,7 +64,7 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FGpuOutput, "f1c59cb4-7ee6-4ee2-80f4-07cc568920d2", FGpuExecutor)
     {
-        FResourceState m_state;
+        FLegacyState m_state;
         // 外部不允许修改
         FGraphicsFormat m_format;
         // 外部不允许修改

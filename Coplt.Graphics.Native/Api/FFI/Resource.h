@@ -81,7 +81,7 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuView)
     {
         FCpuAccess m_cpu_access{};
-        FResourceState m_state{};
+        FLegacyState m_state{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuTransientView, "f7dfc622-972b-49b2-8999-8fb129c61ac6", FGpuView)

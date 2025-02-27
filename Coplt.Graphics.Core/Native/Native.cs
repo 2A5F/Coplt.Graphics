@@ -908,6 +908,48 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    public partial struct FDeviceFeatureRequires
+    {
+        [NativeTypeName("Coplt::b8")]
+        public B8 RayTracing;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 MeshShader;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DescriptorHeap;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 EnhancedBarriers;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 ArrBindless;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DynBindless;
+    }
+
+    public partial struct FDeviceFeatures
+    {
+        [NativeTypeName("Coplt::b8")]
+        public B8 RayTracing;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 MeshShader;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DescriptorHeap;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 EnhancedBarriers;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 ArrBindless;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DynBindless;
+    }
+
     [NativeTypeName("Coplt::i32")]
     public enum FVulkanVersion
     {
@@ -1750,8 +1792,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FCpuAccess")]
         public FCpuAccess m_cpu_access;
 
-        [NativeTypeName("Coplt::FResourceState")]
-        public FResourceState m_state;
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState m_state;
     }
 
     [Guid("F7DFC622-972B-49B2-8999-8FB129C61AC6")]
@@ -2141,8 +2183,8 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
-        [NativeTypeName("Coplt::FResourceState")]
-        public FResourceState m_state;
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState m_state;
 
         [NativeTypeName("Coplt::FGraphicsFormat")]
         public FGraphicsFormat m_format;
@@ -2326,16 +2368,7 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u32")]
-    public enum FResLayout : uint
-    {
-    }
-
-    public partial struct FResState
-    {
-    }
-
-    [NativeTypeName("Coplt::u32")]
-    public enum FResourceState : uint
+    public enum FLegacyState : uint
     {
         Manual = 0,
         Common = 1 << 0,
@@ -2357,6 +2390,100 @@ namespace Coplt.Graphics.Native
         ShadingRate = 1 << 16,
         StreamOutput = 1 << 17,
         GenericRead = VertexBuffer | ConstantBuffer | ShaderResource | IndirectBuffer | CopySrc,
+    }
+
+    [NativeTypeName("Coplt::u32")]
+    public enum FResLayout : uint
+    {
+        None = 0,
+        Common,
+        Present = Common,
+        GenericRead,
+        RenderTarget,
+        UnorderedAccess,
+        DepthStencilRead,
+        DepthStencilWrite,
+        ShaderResource,
+        CopySrc,
+        CopyDst,
+        ResolveSrc,
+        ResolveDst,
+        ShadingRate,
+        VideoDecodeRead,
+        VideoDecodeWrite,
+        VideoProcessRead,
+        VideoProcessWrite,
+        VideoEncodeRead,
+        VideoEncodeWrite,
+    }
+
+    [NativeTypeName("Coplt::u32")]
+    public enum FResAccess : uint
+    {
+        NoAccess = 1U << 31,
+        Common = 0,
+        ConstantBuffer = 1 << 0,
+        VertexBuffer = 1 << 1,
+        IndexBuffer = 1 << 2,
+        RenderTarget = 1 << 3,
+        UnorderedAccess = 1 << 4,
+        DepthStencilRead = 1 << 5,
+        DepthStencilWrite = 1 << 6,
+        ShaderResource = 1 << 7,
+        StreamOutput = 1 << 8,
+        IndirectOrPredicationBuffer = 1 << 9,
+        CopySrc = 1 << 10,
+        CopyDst = 1 << 11,
+        ResolveSrc = 1 << 12,
+        ResolveDst = 1 << 13,
+        RayTracingAccelerationStructureRead = 1 << 14,
+        RayTracingAccelerationStructureWrite = 1 << 15,
+        ShadingRate = 1 << 16,
+        VideoDecodeRead = 1 << 17,
+        VideoDecodeWrite = 1 << 18,
+        VideoProcessRead = 1 << 19,
+        VideoProcessWrite = 1 << 20,
+        VideoEncodeRead = 1 << 21,
+        VideoEncodeWrite = 1 << 22,
+    }
+
+    [NativeTypeName("Coplt::u32")]
+    public enum FResUsage : uint
+    {
+        None = 0,
+        All = 1 << 0,
+        Draw = 1 << 1,
+        IndexInput = 1 << 2,
+        VertexShading = 1 << 3,
+        PixelShading = 1 << 4,
+        DepthStencil = 1 << 5,
+        RenderTarget = 1 << 6,
+        ComputeShading = 1 << 7,
+        RayTracing = 1 << 8,
+        Copy = 1 << 9,
+        Resolve = 1 << 10,
+        ExecuteIndirectOrPredication = 1 << 11,
+        AllShading = 1 << 12,
+        NonPixelShading = 1 << 13,
+        EmitRayTracingAccelerationStructurePostBuildInfo = 1 << 14,
+        ClearUAV = 1 << 15,
+        BuildRayTracingAccelerationStructure = 1 << 16,
+        CopyRayTracingAccelerationStructure = 1 << 17,
+        VideoDecode = 1 << 18,
+        VideoProcess = 1 << 19,
+        VideoEncode = 1 << 20,
+    }
+
+    public partial struct FResState
+    {
+        [NativeTypeName("Coplt::FResLayout")]
+        public FResLayout Layout;
+
+        [NativeTypeName("Coplt::FResAccess")]
+        public FResAccess Access;
+
+        [NativeTypeName("Coplt::FResUsage")]
+        public FResUsage Usage;
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -2396,8 +2523,8 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("__AnonymousRecord_Command_L62_C9")]
         public _Anonymous_e__Union Anonymous;
 
-        [NativeTypeName("Coplt::FResourceState")]
-        public FResourceState CurrentState;
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState CurrentState;
 
         [NativeTypeName("Coplt::FResourceRefType")]
         public FResourceRefType Type;

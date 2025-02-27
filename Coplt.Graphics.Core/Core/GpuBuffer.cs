@@ -71,8 +71,8 @@ public sealed unsafe partial class GpuBuffer
         Type = FResourceRefType.Buffer,
         Buffer = m_ptr,
     };
-    void IGpuResource.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
-    internal void UnsafeChangeState(FResourceState state) => m_ptr->Base.m_state.ChangeState(state);
+    void IGpuResource.UnsafeChangeState(FLegacyState state) => UnsafeChangeState(state);
+    internal void UnsafeChangeState(FLegacyState state) => m_ptr->Base.m_state.ChangeState(state);
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);
     public bool TryIbv() => Purpose.HasFlags(ResourcePurpose.IndexBuffer);
