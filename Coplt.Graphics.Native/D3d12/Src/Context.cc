@@ -34,7 +34,7 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
         m_cur_upload_buffer_index = m_upload_buffers.size();
         m_cur_upload_buffer_size = size;
         m_upload_buffers.push_back(
-            BufferPack(m_device->m_gpu_allocator.Get(), FCpuAccess::Write, m_cur_upload_buffer_size)
+            BufferPack(m_device.get(), m_device->m_gpu_allocator.Get(), FCpuAccess::Write, m_cur_upload_buffer_size)
         );
         const auto& upload_buffer = m_upload_buffers.back();
         void* mapped_ptr{};

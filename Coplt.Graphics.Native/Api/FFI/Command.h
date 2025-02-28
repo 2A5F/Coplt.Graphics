@@ -66,7 +66,6 @@ namespace Coplt
             // todo other
         };
 
-        FLegacyState CurrentState{};
         FResourceRefType Type{};
 
         #ifdef FFI_SRC
@@ -105,7 +104,7 @@ namespace Coplt
     {
         u32 IndexOrFirstMipLevel{};
         u32 NumMipLevels{};
-        u32 FirstArraySlices{};
+        u32 FirstArraySlice{};
         u32 NumArraySlices{};
         u32 FirstPlane{};
         u32 NumPlanes{};
@@ -119,6 +118,8 @@ namespace Coplt
 
     struct FImageBarrier
     {
+        FLegacyState LegacyBefore{};
+        FLegacyState LegacyAfter{};
         FResAccess AccessBefore{};
         FResAccess AccessAfter{};
         FShaderStageFlags StagesBefore{};
@@ -132,6 +133,8 @@ namespace Coplt
 
     struct FBufferBarrier
     {
+        FLegacyState LegacyBefore{};
+        FLegacyState LegacyAfter{};
         FResAccess AccessBefore{};
         FResAccess AccessAfter{};
         FShaderStageFlags StagesBefore{};

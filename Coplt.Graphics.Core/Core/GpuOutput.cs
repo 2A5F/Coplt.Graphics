@@ -64,7 +64,7 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : GpuExecutor, IRtvRes, ISrvRes
+public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, ISrv
 {
     #region Fields
 
@@ -75,8 +75,17 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IRtvRes, ISrvRes
     #region Props
 
     public new FGpuOutput* Ptr => m_ptr;
-
-    public uint3 Size => new(m_ptr->m_width, m_ptr->m_height, 1);
+    public GraphicsFormat Format => m_ptr->m_format.FromFFI();
+    public uint2 Size2d => new(m_ptr->m_width, m_ptr->m_height);
+    public uint3 Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
+    ulong IGpuView.Size => m_ptr->m_width;
+    public uint Width => m_ptr->m_width;
+    public uint Height => m_ptr->m_height;
+    public uint DepthOrLength => 1;
+    public uint MipLevels => 1;
+    public uint Planes => 1;
+    uint IGpuView.Count => 0;
+    uint IGpuView.Stride => 0;
 
     #endregion
 
@@ -116,14 +125,13 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IRtvRes, ISrvRes
 
     #region Views
 
+    public IGpuResource Resource => this;
+
     FResourceMeta IGpuResource.GetMeta() => new()
     {
-        CurrentState = m_ptr->m_state,
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
-    void IGpuResource.UnsafeChangeState(FLegacyState state) => UnsafeChangeState(state);
-    internal void UnsafeChangeState(FLegacyState state) => m_ptr->m_state.ChangeState(state);
 
     public bool TrySrv() => true;
     public bool TryRtv() => true;

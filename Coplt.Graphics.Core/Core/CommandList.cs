@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Coplt.Dropping;
 using Coplt.Graphics.Native;
 using Coplt.Union;
 
@@ -288,6 +287,100 @@ public sealed unsafe class CommandList
 
     #endregion
 
+    #region Barrier
+
+    public void Barrier(params ReadOnlySpan<Barrier> Barriers)
+    {
+        var index = m_barriers.Count;
+        CollectionsMarshal.SetCount(m_barriers, index + Barriers.Length);
+        var barriers = CollectionsMarshal.AsSpan(m_barriers).Slice(index, Barriers.Length);
+        for (var i = 0; i < Barriers.Length; i++)
+        {
+            ref readonly var src = ref Barriers[i];
+            ref var dst = ref barriers[i];
+            FBarrier item = default;
+            switch (src.Tag)
+            {
+            case Core.Barrier.Tags.None:
+            {
+                item.Type = FBarrierType.None;
+                break;
+            }
+            case Core.Barrier.Tags.Global:
+            {
+                item.Type = FBarrierType.Global;
+                var global = src.Global;
+                item.Global = new()
+                {
+                    AccessBefore = global.AccessBefore.ToFFI(),
+                    AccessAfter = global.AccessAfter.ToFFI(),
+                    StagesBefore = global.StagesBefore.ToFFI(),
+                    StagesAfter = global.StagesAfter.ToFFI(),
+                };
+                break;
+            }
+            case Core.Barrier.Tags.Buffer:
+            {
+                item.Type = FBarrierType.Buffer;
+                var buffer = src.Buffer;
+                item.Buffer = new()
+                {
+                    LegacyBefore = buffer.LegacyBefore.ToFFI(),
+                    LegacyAfter = buffer.LegacyAfter.ToFFI(),
+                    AccessBefore = buffer.AccessBefore.ToFFI(),
+                    AccessAfter = buffer.AccessAfter.ToFFI(),
+                    StagesBefore = buffer.StagesBefore.ToFFI(),
+                    StagesAfter = buffer.StagesAfter.ToFFI(),
+                    Buffer = AddResource(buffer.Buffer),
+                    Offset = buffer.Offset,
+                    Size = buffer.Size,
+                };
+                break;
+            }
+            case Core.Barrier.Tags.Image:
+            {
+                item.Type = FBarrierType.Image;
+                var image = src.Image;
+                item.Image = new()
+                {
+                    LegacyBefore = image.LegacyBefore.ToFFI(),
+                    LegacyAfter = image.LegacyAfter.ToFFI(),
+                    AccessBefore = image.AccessBefore.ToFFI(),
+                    AccessAfter = image.AccessAfter.ToFFI(),
+                    StagesBefore = image.StagesBefore.ToFFI(),
+                    StagesAfter = image.StagesAfter.ToFFI(),
+                    LayoutBefore = image.LayoutBefore.ToFFI(),
+                    LayoutAfter = image.LayoutAfter.ToFFI(),
+                    Image = AddResource(image.Image),
+                    SubResourceRange = new()
+                    {
+                        IndexOrFirstMipLevel = image.SubResourceRange.IndexOrFirstMipLevel,
+                        NumMipLevels = image.SubResourceRange.NumMipLevels,
+                        FirstArraySlice = image.SubResourceRange.FirstArraySlice,
+                        NumArraySlices = image.SubResourceRange.NumArraySlices,
+                        FirstPlane = image.SubResourceRange.FirstPlane,
+                        NumPlanes = image.SubResourceRange.NumPlanes,
+                    },
+                    Flags = (FImageBarrierFlags)image.Flags,
+                };
+                break;
+            }
+            default:
+                throw new ArgumentOutOfRangeException();
+            }
+            dst = item;
+        }
+        var cmd = new FCommandBarrier
+        {
+            Base = { Type = FCommandType.Barrier },
+            BarrierCount = (uint)Barriers.Length,
+            BarrierIndex = (uint)index,
+        };
+        m_commands.Add(new() { Barrier = cmd });
+    }
+
+    #endregion
+
     #region ClearColor
 
     /// <summary>
@@ -295,14 +388,14 @@ public sealed unsafe class CommandList
     /// </summary>
     public void ClearColor<Rtv>(
         Rtv Image, ReadOnlySpan<URect> Rects = default
-    ) where Rtv : IRtvRes => ClearColor(Image, new(0, 0, 0, 1), Rects);
+    ) where Rtv : IRtv => ClearColor(Image, new(0, 0, 0, 1), Rects);
 
     /// <summary>
     /// 使用指定的颜色清空 Rtv
     /// </summary>
     public void ClearColor<Rtv>(
         Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default
-    ) where Rtv : IRtvRes
+    ) where Rtv : IRtv
     {
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
@@ -310,7 +403,7 @@ public sealed unsafe class CommandList
         {
             Base = { Type = FCommandType.ClearColor },
             RectCount = (uint)Rects.Length,
-            Image = AddResource(Image),
+            Image = AddResource(Image.Resource),
             Color = Unsafe.BitCast<float4, FCommandClearColor._Color_e__FixedBuffer>(Color),
         };
         if (Rects.Length > 0)
@@ -331,7 +424,7 @@ public sealed unsafe class CommandList
     public void ClearDepthStencil<Dsv>(
         Dsv Image,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects);
+    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects);
 
     /// <summary>
     /// 使用指定的深度清空 Dsv
@@ -339,7 +432,7 @@ public sealed unsafe class CommandList
     public void ClearDepthStencil<Dsv>(
         Dsv Image, float Depth,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects);
+    ) where Dsv : IDsv => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects);
 
     /// <summary>
     /// 使用指定的模板清空 Dsv
@@ -347,7 +440,7 @@ public sealed unsafe class CommandList
     public void ClearDepthStencil<Dsv>(
         Dsv Image, byte Stencil,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsvRes => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects);
+    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects);
 
     /// <summary>
     /// 使用指定的深度和模板清空 Dsv
@@ -355,7 +448,7 @@ public sealed unsafe class CommandList
     public void ClearDepthStencil<Dsv>(
         Dsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsvRes
+    ) where Dsv : IDsv
     {
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
@@ -363,7 +456,7 @@ public sealed unsafe class CommandList
         {
             Base = { Type = FCommandType.ClearDepthStencil },
             RectCount = (uint)Rects.Length,
-            Image = AddResource(Image),
+            Image = AddResource(Image.Resource),
             Depth = Depth,
             Stencil = Stencil,
             Clear = (FDepthStencilClearFlags)Clear,
@@ -579,7 +672,7 @@ public sealed unsafe class CommandList
 
         FRenderInfo info = new()
         {
-            Dsv = has_dsv ? AddResource(dsv.View!) : default,
+            Dsv = has_dsv ? AddResource(dsv.View!.Resource) : default,
             NumRtv = (uint)Info.Rtvs.Length,
             Depth = has_dsv && dsv.DepthLoad is { IsClear: true, Clear: var cd } ? cd : 1,
             Stencil = has_dsv && dsv.StencilLoad is { IsClear: true, Clear: var cs } ? (byte)cs : (byte)0,
@@ -638,13 +731,13 @@ public sealed unsafe class CommandList
 
         #region Rtv
 
-        var rt_size = Info.Dsv?.View.Size ?? Info.Rtvs[0].View.Size;
+        var rt_size = Info.Dsv?.View.Size2d ?? Info.Rtvs[0].View.Size2d;
         for (var i = 0; i < Info.Rtvs.Length; i++)
         {
             ref readonly var rtv = ref Info.Rtvs[i];
             if (!rtv.View.Size.Equals(rt_size))
                 throw new ArgumentException("RenderTargets And DepthStencil must be the same size");
-            info.Rtv[i] = AddResource(rtv.View);
+            info.Rtv[i] = AddResource(rtv.View.Resource);
             info.ResolveInfoIndex[i] = uint.MaxValue; // todo
             if (rtv.Load is { IsClear: true, Clear: var cc })
                 Unsafe.As<float, float4>(ref info.Color[i * 4]) = cc;
@@ -892,35 +985,35 @@ public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.D
     public RenderInfo(DsvInfo Dsv, ReadOnlySpan<RtvInfo> Rtvs = default) : this(Rtvs, Dsv) { }
 
     public struct DsvInfo(
-        IDsvRes View,
+        IDsv View,
         LoadOp<float> DepthLoad,
         LoadOp<uint> StencilLoad,
         StoreOp DepthStore,
         StoreOp StencilStore
     )
     {
-        public IDsvRes View = View;
+        public IDsv View = View;
         public LoadOp<float> DepthLoad = DepthLoad;
         public LoadOp<uint> StencilLoad = StencilLoad;
         public StoreOp DepthStore = DepthStore;
         public StoreOp StencilStore = StencilStore;
 
-        public DsvInfo(IDsvRes View) : this(View, LoadOp.Load, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
-        public DsvInfo(IDsvRes View, LoadOp<float> DepthLoad, LoadOp<uint> StencilLoad)
+        public DsvInfo(IDsv View) : this(View, LoadOp.Load, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
+        public DsvInfo(IDsv View, LoadOp<float> DepthLoad, LoadOp<uint> StencilLoad)
             : this(View, DepthLoad, StencilLoad, StoreOp.Store, StoreOp.Store) { }
-        public DsvInfo(IDsvRes View, LoadOp<float> DepthLoad)
+        public DsvInfo(IDsv View, LoadOp<float> DepthLoad)
             : this(View, DepthLoad, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
     }
 
-    public struct RtvInfo(IRtvRes View, LoadOp<float4> Load, StoreOp Store)
+    public struct RtvInfo(IRtv View, LoadOp<float4> Load, StoreOp Store)
     {
-        public IRtvRes View = View;
+        public IRtv View = View;
         public LoadOp<float4> Load = Load;
         public StoreOp Store = Store;
 
-        public RtvInfo(IRtvRes View) : this(View, LoadOp.Load, StoreOp.Store) { }
+        public RtvInfo(IRtv View) : this(View, LoadOp.Load, StoreOp.Store) { }
 
-        public RtvInfo(IRtvRes View, LoadOp<float4> Load) : this(View, Load, StoreOp.Store) { }
+        public RtvInfo(IRtv View, LoadOp<float4> Load) : this(View, Load, StoreOp.Store) { }
     }
 }
 
@@ -1122,7 +1215,7 @@ public unsafe struct RenderScope(
     public void SetMeshBuffers(
         MeshLayout MeshLayout,
         FGraphicsFormat IndexFormat,
-        BufferRange<IIbvRes>? IndexBuffer,
+        BufferRange<IIbv>? IndexBuffer,
         uint VertexStartSlot,
         ReadOnlySpan<VertexBufferRange> VertexBuffers
     )
@@ -1141,9 +1234,9 @@ public unsafe struct RenderScope(
             IndexBuffer = IndexBuffer is { } index_buffer
                 ? new()
                 {
-                    Buffer = self.AddResource(index_buffer.Buffer),
+                    Buffer = self.AddResource(index_buffer.Buffer.Resource),
                     Offset = index_buffer.Offset,
-                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.LongSize : index_buffer.Size,
+                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.Size : index_buffer.Size,
                 }
                 : new()
                 {
@@ -1166,9 +1259,9 @@ public unsafe struct RenderScope(
                 {
                     Base =
                     {
-                        Buffer = self.AddResource(buffer.Buffer),
+                        Buffer = self.AddResource(buffer.Buffer.Resource),
                         Offset = buffer.Offset,
-                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.LongSize : buffer.Size,
+                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.Size : buffer.Size,
                     },
                     Index = buffer.Index,
                 };

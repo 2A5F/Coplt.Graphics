@@ -77,7 +77,7 @@ namespace Coplt
 
     #pragma endregion
 
-    enum FResLayout: u32
+    enum class FResLayout: u32
     {
         None = 0,
         Common,
@@ -135,5 +135,40 @@ namespace Coplt
         FResLayout Layout{};
         FResAccess Access{};
         FShaderStageFlags Stages{};
+        FLegacyState Legacy{};
+
+        #ifdef FFI_SRC
+
+        static FResState BufferCommon()
+        {
+            return FResState{
+                .Layout = FResLayout::None,
+                .Access = FResAccess::Common,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::Common,
+            };
+        }
+
+        static FResState BufferGenericRead()
+        {
+            return FResState{
+                .Layout = FResLayout::None,
+                .Access = FResAccess::Common,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::GenericRead,
+            };
+        }
+
+        static FResState BufferCopyDst()
+        {
+            return FResState{
+                .Layout = FResLayout::None,
+                .Access = FResAccess::CopyDst,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::CopyDst,
+            };
+        }
+
+        #endif
     };
 }

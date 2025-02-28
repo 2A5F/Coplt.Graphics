@@ -1974,11 +1974,11 @@ namespace Coplt.Graphics.Native
 
         public FGpuView Base;
 
+        [NativeTypeName("Coplt::FResState")]
+        public FResState m_state;
+
         [NativeTypeName("Coplt::FCpuAccess")]
         public FCpuAccess m_cpu_access;
-
-        [NativeTypeName("Coplt::FLegacyState")]
-        public FLegacyState m_state;
     }
 
     [Guid("F7DFC622-972B-49B2-8999-8FB129C61AC6")]
@@ -2648,6 +2648,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderStageFlags")]
         public FShaderStageFlags Stages;
+
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState Legacy;
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -2686,9 +2689,6 @@ namespace Coplt.Graphics.Native
     {
         [NativeTypeName("__AnonymousRecord_Command_L62_C9")]
         public _Anonymous_e__Union Anonymous;
-
-        [NativeTypeName("Coplt::FLegacyState")]
-        public FLegacyState CurrentState;
 
         [NativeTypeName("Coplt::FResourceRefType")]
         public FResourceRefType Type;
@@ -2741,7 +2741,7 @@ namespace Coplt.Graphics.Native
         public uint NumMipLevels;
 
         [NativeTypeName("Coplt::u32")]
-        public uint FirstArraySlices;
+        public uint FirstArraySlice;
 
         [NativeTypeName("Coplt::u32")]
         public uint NumArraySlices;
@@ -2762,6 +2762,12 @@ namespace Coplt.Graphics.Native
 
     public partial struct FImageBarrier
     {
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState LegacyBefore;
+
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState LegacyAfter;
+
         [NativeTypeName("Coplt::FResAccess")]
         public FResAccess AccessBefore;
 
@@ -2792,6 +2798,12 @@ namespace Coplt.Graphics.Native
 
     public partial struct FBufferBarrier
     {
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState LegacyBefore;
+
+        [NativeTypeName("Coplt::FLegacyState")]
+        public FLegacyState LegacyAfter;
+
         [NativeTypeName("Coplt::FResAccess")]
         public FResAccess AccessBefore;
 
@@ -2843,7 +2855,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FBarrierType")]
         public FBarrierType Type;
 
-        [NativeTypeName("__AnonymousRecord_Command_L164_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L167_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3424,7 +3436,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L482_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L485_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3622,7 +3634,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L510_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L513_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3792,7 +3804,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L533_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L536_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

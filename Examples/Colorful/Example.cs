@@ -60,7 +60,21 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     }
     protected override void Render(CommandList cmd, Time time)
     {
+        cmd.Barrier(
+            new ImageBarrier(
+                Output,
+                ResLayout.Present, ResLayout.RenderTarget,
+                ResAccess.NoAccess, ResAccess.RenderTarget
+            )
+        );
         cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));
+        cmd.Barrier(
+            new ImageBarrier(
+                Output,
+                ResLayout.RenderTarget, ResLayout.Present,
+                ResAccess.RenderTarget, ResAccess.NoAccess
+            )
+        );
         // cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
         // using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
         // render.Draw(Pipeline, 4);
