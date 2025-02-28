@@ -125,7 +125,8 @@ public record struct ImageBarrier(
     ResAccess AccessBefore,
     ResAccess AccessAfter,
     ShaderStageFlags StagesBefore = ShaderStageFlags.None,
-    ShaderStageFlags StagesAfter = ShaderStageFlags.None
+    ShaderStageFlags StagesAfter = ShaderStageFlags.None,
+    ImageBarrierFlags Flags = ImageBarrierFlags.None
 )
 {
     public IGpuResource Image = Image;
@@ -138,7 +139,7 @@ public record struct ImageBarrier(
     public ResAccess AccessAfter = AccessAfter;
     public ShaderStageFlags StagesBefore = StagesBefore;
     public ShaderStageFlags StagesAfter = StagesAfter;
-    public ImageBarrierFlags Flags = ImageBarrierFlags.None;
+    public ImageBarrierFlags Flags = Flags;
 
     public ImageBarrier(
         IGpuResource Image,
@@ -149,29 +150,33 @@ public record struct ImageBarrier(
         ResAccess AccessBefore,
         ResAccess AccessAfter,
         ShaderStageFlags StagesBefore = ShaderStageFlags.None,
-        ShaderStageFlags StagesAfter = ShaderStageFlags.None
+        ShaderStageFlags StagesAfter = ShaderStageFlags.None,
+        ImageBarrierFlags Flags = ImageBarrierFlags.None
     ) : this(
         Image, new(Image),
-        LegacyBefore, LegacyAfter, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter
+        LegacyBefore, LegacyAfter, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter,
+        Flags
     ) { }
 
     public ImageBarrier(
         IGpuResource Image,
         SubResourceRange SubResourceRange,
         LegacyState LegacyBefore,
-        LegacyState LegacyAfter
+        LegacyState LegacyAfter,
+        ImageBarrierFlags Flags = ImageBarrierFlags.None
     ) : this(
         Image, SubResourceRange,
-        LegacyBefore, LegacyAfter, default, default, default, default, default, default
+        LegacyBefore, LegacyAfter, default, default, default, default, default, default, Flags
     ) { }
 
     public ImageBarrier(
         IGpuResource Image,
         LegacyState LegacyBefore,
-        LegacyState LegacyAfter
+        LegacyState LegacyAfter,
+        ImageBarrierFlags Flags = ImageBarrierFlags.None
     ) : this(
         Image, new(Image),
-        LegacyBefore, LegacyAfter, default, default, default, default, default, default
+        LegacyBefore, LegacyAfter, default, default, default, default, default, default, Flags
     ) { }
 
     public ImageBarrier(
@@ -181,10 +186,11 @@ public record struct ImageBarrier(
         ResAccess AccessBefore,
         ResAccess AccessAfter,
         ShaderStageFlags StagesBefore = ShaderStageFlags.None,
-        ShaderStageFlags StagesAfter = ShaderStageFlags.None
+        ShaderStageFlags StagesAfter = ShaderStageFlags.None,
+        ImageBarrierFlags Flags = ImageBarrierFlags.None
     ) : this(
         Image, new(Image),
-        default, default, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter
+        default, default, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter, Flags
     ) { }
 
     public ImageBarrier(
@@ -195,10 +201,11 @@ public record struct ImageBarrier(
         ResAccess AccessBefore,
         ResAccess AccessAfter,
         ShaderStageFlags StagesBefore = ShaderStageFlags.None,
-        ShaderStageFlags StagesAfter = ShaderStageFlags.None
+        ShaderStageFlags StagesAfter = ShaderStageFlags.None,
+        ImageBarrierFlags Flags = ImageBarrierFlags.None
     ) : this(
         Image, SubResourceRange,
-        default, default, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter
+        default, default, LayoutBefore, LayoutAfter, AccessBefore, AccessAfter, StagesBefore, StagesAfter, Flags
     ) { }
 }
 
@@ -206,7 +213,8 @@ public record struct ImageBarrier(
 public enum ImageBarrierFlags : uint
 {
     None,
-    Discard,
+    Discard = 1 << 0,
+    CrossQueue = 1 << 1,
 }
 
 public record struct SubResourceRange(

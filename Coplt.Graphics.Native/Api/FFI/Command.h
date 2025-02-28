@@ -113,7 +113,8 @@ namespace Coplt
     COPLT_ENUM_FLAGS(FImageBarrierFlags, u32)
     {
         None,
-        Discard,
+        Discard = 1 << 0,
+        CrossQueue = 1 << 1,
     };
 
     struct FImageBarrier

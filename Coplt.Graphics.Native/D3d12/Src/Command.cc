@@ -212,6 +212,7 @@ void D3d12CommandInterpreter::Barrier(const FCommandSubmit& submit, const FBuffe
 
 void D3d12CommandInterpreter::Barrier(const FCommandSubmit& submit, const FImageBarrier& item)
 {
+    const auto cross_queue = HasFlags(item.Flags, FImageBarrierFlags::CrossQueue);
     D3D12_TEXTURE_BARRIER barrier{};
     barrier.pResource = GetResource(item.Image.Get(submit));
     barrier.Subresources.IndexOrFirstMipLevel = item.SubResourceRange.IndexOrFirstMipLevel;
@@ -220,8 +221,8 @@ void D3d12CommandInterpreter::Barrier(const FCommandSubmit& submit, const FImage
     barrier.Subresources.NumArraySlices = item.SubResourceRange.NumArraySlices;
     barrier.Subresources.FirstPlane = item.SubResourceRange.FirstPlane;
     barrier.Subresources.NumPlanes = item.SubResourceRange.NumPlanes;
-    barrier.LayoutBefore = ToDx(item.LayoutBefore);
-    barrier.LayoutAfter = ToDx(item.LayoutAfter);
+    barrier.LayoutBefore = ToDx(item.LayoutBefore, cross_queue ? std::nullopt : std::optional(m_queue->m_queue_type));
+    barrier.LayoutAfter = ToDx(item.LayoutAfter, cross_queue ? std::nullopt : std::optional(m_queue->m_queue_type));
     barrier.AccessBefore = ToDx(item.AccessBefore);
     barrier.AccessAfter = ToDx(item.AccessAfter);
     barrier.SyncBefore = CalcSync(item.StagesBefore, item.AccessBefore, item.AccessAfter);

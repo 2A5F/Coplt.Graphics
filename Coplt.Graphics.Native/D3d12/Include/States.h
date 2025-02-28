@@ -2,6 +2,8 @@
 
 #include <directx/d3d12.h>
 
+#include "../../Api/FFI/Queue.h"
+
 namespace Coplt
 {
     constexpr D3D12_RESOURCE_STATES AllReadStates =
@@ -74,8 +76,63 @@ namespace Coplt
         return r;
     }
 
-    inline D3D12_BARRIER_LAYOUT ToDx(const FResLayout value)
+    inline D3D12_BARRIER_LAYOUT ToDx(const FResLayout value, const std::optional<FGpuQueueType> queue)
     {
+        if (queue.has_value())
+        {
+            switch (queue.value())
+            {
+            case FGpuQueueType::Direct:
+                switch (value)
+                {
+                case FResLayout::Common:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
+                case FResLayout::GenericRead:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
+                case FResLayout::UnorderedAccess:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_UNORDERED_ACCESS;
+                case FResLayout::ShaderResource:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_SHADER_RESOURCE;
+                case FResLayout::CopySrc:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_SOURCE;
+                case FResLayout::CopyDst:
+                    return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_DEST;
+                default:
+                    break;
+                }
+                break;
+            case FGpuQueueType::Compute:
+                switch (value)
+                {
+                case FResLayout::Common:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON;
+                case FResLayout::GenericRead:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_GENERIC_READ;
+                case FResLayout::UnorderedAccess:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_UNORDERED_ACCESS;
+                case FResLayout::ShaderResource:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_SHADER_RESOURCE;
+                case FResLayout::CopySrc:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
+                case FResLayout::CopyDst:
+                    return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
+                default:
+                    break;
+                }
+                break;
+            case FGpuQueueType::Copy:
+                break;
+            case FGpuQueueType::Video:
+                switch (value)
+                {
+                case FResLayout::Common:
+                    return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
+                default:
+                    break;
+                }
+                break;
+            }
+        }
         switch (value)
         {
         case FResLayout::None:

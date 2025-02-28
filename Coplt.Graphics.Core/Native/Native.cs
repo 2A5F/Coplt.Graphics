@@ -1685,6 +1685,7 @@ namespace Coplt.Graphics.Native
         Direct,
         Compute,
         Copy,
+        Video,
     }
 
     [Guid("95E60E28-E387-4055-9B33-2D23AF901F8A")]
@@ -2757,7 +2758,8 @@ namespace Coplt.Graphics.Native
     public enum FImageBarrierFlags : uint
     {
         None,
-        Discard,
+        Discard = 1 << 0,
+        CrossQueue = 1 << 1,
     }
 
     public partial struct FImageBarrier
@@ -2855,7 +2857,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FBarrierType")]
         public FBarrierType Type;
 
-        [NativeTypeName("__AnonymousRecord_Command_L167_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L168_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3436,7 +3438,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L485_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L486_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3634,7 +3636,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L513_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L514_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3804,7 +3806,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L536_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L537_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
