@@ -2661,7 +2661,6 @@ namespace Coplt.Graphics.Native
     public enum FCommandType : uint
     {
         None,
-        End,
         Label,
         BeginScope,
         EndScope,
@@ -2691,7 +2690,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L62_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L60_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceRefType")]
@@ -2860,7 +2859,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FBarrierType")]
         public FBarrierType Type;
 
-        [NativeTypeName("__AnonymousRecord_Command_L168_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L166_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3047,9 +3046,6 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderInfo
     {
-        [NativeTypeName("Coplt::u32")]
-        public uint CommandCount;
-
         [NativeTypeName("Coplt::FResourceRef")]
         public FResourceRef Dsv;
 
@@ -3082,6 +3078,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("FStoreOp[8]")]
         public _RtvStoreOp_e__FixedBuffer RtvStoreOp;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 HasUavWrites;
 
         [InlineArray(8)]
         public partial struct _Rtv_e__FixedBuffer
@@ -3128,8 +3127,6 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeInfo
     {
-        [NativeTypeName("Coplt::u32")]
-        public uint CommandCount;
     }
 
     public partial struct FBufferRange
@@ -3356,6 +3353,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint CommandStartIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandCount;
     }
 
     [NativeTypeName("struct FCommandCompute : Coplt::FCommandBase")]
@@ -3368,6 +3368,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint CommandStartIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint CommandCount;
     }
 
     [NativeTypeName("struct FCommandSetPipeline : Coplt::FCommandBase")]
@@ -3465,7 +3468,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L490_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L489_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3663,7 +3666,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L518_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L517_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3833,7 +3836,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L541_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L540_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

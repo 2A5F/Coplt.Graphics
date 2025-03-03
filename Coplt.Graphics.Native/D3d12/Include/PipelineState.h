@@ -236,4 +236,24 @@ namespace Coplt
             return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         }
     }
+
+    inline D3D12_RESOLVE_MODE ToDx(const FResolveMode value)
+    {
+        switch (value)
+        {
+        case FResolveMode::Decompress:
+            return D3D12_RESOLVE_MODE_DECOMPRESS;
+            break;
+        case FResolveMode::Min:
+            return D3D12_RESOLVE_MODE_MIN;
+            break;
+        case FResolveMode::Max:
+            return D3D12_RESOLVE_MODE_MAX;
+            break;
+        case FResolveMode::Average:
+            return D3D12_RESOLVE_MODE_AVERAGE;
+            break;
+        }
+        return D3D12_RESOLVE_MODE_DECOMPRESS;
+    }
 }

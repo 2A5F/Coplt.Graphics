@@ -69,9 +69,9 @@ namespace Coplt
 
         void Translate(const FCommandSubmit& submit);
 
-        void Label(const FCommandSubmit& submit, u32 i, const FCommandLabel& cmd) const;
-        void BeginScope(const FCommandSubmit& submit, u32 i, const FCommandBeginScope& cmd) const;
-        void EndScope(const FCommandSubmit& submit, u32 i, const FCommandEndScope& cmd) const;
+        void Label(const FCommandSubmit& submit, const FCommandLabel& cmd) const;
+        void BeginScope(const FCommandSubmit& submit, const FCommandBeginScope& cmd) const;
+        void EndScope(const FCommandSubmit& submit, const FCommandEndScope& cmd) const;
         void Barrier(const FCommandSubmit& submit, u32 i, const FCommandBarrier& cmd);
         void Barrier(const FCommandSubmit& submit, const FGlobalBarrier& item);
         void Barrier(const FCommandSubmit& submit, const FBufferBarrier& item);
@@ -79,6 +79,9 @@ namespace Coplt
         void ClearColor(const FCommandSubmit& submit, u32 i, const FCommandClearColor& cmd) const;
         void ClearDepthStencil(const FCommandSubmit& submit, u32 i, const FCommandClearDepthStencil& cmd) const;
         void BufferCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferCopy& cmd) const;
+        void Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
+        void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const;
+        void RenderSetViewportScissor(const FCommandSubmit& submit, u32 i, const FCommandSetViewportScissor& cmd) const;
 
         void SetPipelineContext(
             FShaderPipeline* pipeline, u32 i

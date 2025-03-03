@@ -1010,7 +1010,7 @@ public sealed unsafe class CommandList
         for (var i = 0; i < Info.Rtvs.Length; i++)
         {
             ref readonly var rtv = ref Info.Rtvs[i];
-            if (!rtv.View.Size.Equals(rt_size))
+            if (!rtv.View.Size2d.Equals(rt_size))
                 throw new ArgumentException("RenderTargets And DepthStencil must be the same size");
             info.Rtv[i] = AddResource(rtv.View.Resource);
             info.ResolveInfoIndex[i] = uint.MaxValue; // todo
@@ -1118,8 +1118,7 @@ public sealed unsafe class CommandList
             InfoIndex = (uint)info_index,
             CommandStartIndex = (uint)m_compute_commands.Count,
         };
-        m_commands.Add(new() { Compute = cmd });
-        return new(this, info_index, m_compute_commands.Count, m_compute_commands, debug_scope);
+        return new(this, info_index, cmd, m_compute_commands, debug_scope);
 
         #endregion
     }
@@ -1300,6 +1299,7 @@ public unsafe struct RenderScope(
 {
     #region Fields
 
+    private FCommandRender render_cmd = render_cmd;
     private ShaderPipeline? m_current_pipeline;
     private ShaderBinding? m_current_binding;
     private bool m_disposed;
@@ -1307,6 +1307,7 @@ public unsafe struct RenderScope(
     private bool m_has_vertex_shader;
     private bool m_has_mesh_shader;
     private bool m_has_task_shader;
+    private bool m_has_uav_writes;
 
     #endregion
 
@@ -1327,6 +1328,7 @@ public unsafe struct RenderScope(
                 "There is still Debug scope not ended, please check whether Dispose is missed."
             );
         ref var info = ref Info;
+        info.HasUavWrites = m_has_uav_writes;
         if (self.AutoBarrierEnabled)
         {
             var stages = m_has_pixel_shader ? FShaderStageFlags.Pixel : FShaderStageFlags.None;
@@ -1353,9 +1355,8 @@ public unsafe struct RenderScope(
                 );
             }
         }
+        render_cmd.CommandCount = (uint)m_commands.Count - render_cmd.CommandStartIndex;
         self.m_commands.Add(new() { Render = render_cmd });
-        Info.CommandCount = (uint)m_commands.Count - render_cmd.CommandStartIndex;
-        self.m_render_commands.Add(new() { Type = FCommandType.End });
         self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
     }
@@ -1686,13 +1687,14 @@ public unsafe struct RenderScope(
 public unsafe struct ComputeScope(
     CommandList self,
     int info_index,
-    int cmd_index,
+    FCommandCompute compute_cmd,
     List<FComputeCommandItem> m_commands,
     bool debug_scope
 ) : IDisposable
 {
     #region Fields
 
+    private FCommandCompute compute_cmd = compute_cmd;
     private ShaderPipeline? m_current_pipeline;
     private ShaderBinding? m_current_binding;
     private bool m_disposed;
@@ -1715,8 +1717,8 @@ public unsafe struct ComputeScope(
             throw new InvalidOperationException(
                 "There is still Debug scope not ended, please check whether Dispose is missed."
             );
-        Info.CommandCount = (uint)m_commands.Count - (uint)cmd_index;
-        self.m_compute_commands.Add(new() { Type = FCommandType.End });
+        compute_cmd.CommandCount = (uint)m_commands.Count - compute_cmd.CommandStartIndex;
+        self.m_commands.Add(new() { Compute = compute_cmd });
         self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
     }

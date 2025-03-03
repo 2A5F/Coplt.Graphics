@@ -11,8 +11,6 @@ namespace Coplt
     enum class FCommandType : u32
     {
         None,
-        // Render / Compute
-        End,
 
         Label,
         BeginScope,
@@ -266,7 +264,6 @@ namespace Coplt
 
     struct FRenderInfo
     {
-        u32 CommandCount{};
         // 可选
         FResourceRef Dsv{};
         u32 NumRtv{};
@@ -280,11 +277,11 @@ namespace Coplt
         FStoreOp DsvStoreOp[2]{};
         FLoadOp RtvLoadOp[8]{};
         FStoreOp RtvStoreOp[8]{};
+        b8 HasUavWrites{};
     };
 
     struct FComputeInfo
     {
-        u32 CommandCount{};
     };
 
     struct FBufferRange
@@ -418,6 +415,7 @@ namespace Coplt
         // 类型为 FRenderInfo
         u32 InfoIndex{};
         u32 CommandStartIndex{};
+        u32 CommandCount{};
     };
 
     struct FCommandCompute : FCommandBase
@@ -425,6 +423,7 @@ namespace Coplt
         // 类型为 FComputeInfo
         u32 InfoIndex{};
         u32 CommandStartIndex{};
+        u32 CommandCount{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -51,7 +51,7 @@ add_library(${target_name} SHARED
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")
 add_library(Coplt::Graphics::D3d12 ALIAS ${target_name})
-target_compile_definitions(${target_name} PRIVATE -DFFI_SRC -DNOMINMAX)
+target_compile_definitions(${target_name} PRIVATE -DFFI_SRC -DNOMINMAX -DUSE_PIX)
 target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/WinPixEventRuntime/Include/WinPixEventRuntime)
 
 set(BUILD_XAUDIO_WIN10 OFF)

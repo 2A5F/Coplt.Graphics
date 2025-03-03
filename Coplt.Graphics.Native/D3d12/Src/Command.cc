@@ -102,11 +102,6 @@ void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 void D3d12CommandInterpreter::Reset()
 {
     m_barrier_context.Reset();
-    // m_states.clear();
-    // m_barriers.clear();
-    // m_barrier_resources.clear();
-    // m_items.clear();
-    // m_last_barrier_index = 0;
     m_context.Reset();
 }
 
@@ -114,7 +109,7 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
 {
     const auto& cmd_pack = m_queue->m_cmd;
     const std::span command_items(submit.Commands, submit.CommandCount);
-    for (u32 i = 0; i < submit.CommandCount; i++)
+    for (u32 i = 0; i < command_items.size(); i++)
     {
         const auto& item = command_items[i];
         switch (item.Type)
@@ -123,13 +118,13 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         case FCommandType::Present:
             continue;
         case FCommandType::Label:
-            Label(submit, i, item.Label);
+            Label(submit, item.Label);
             continue;
         case FCommandType::BeginScope:
-            BeginScope(submit, i, item.BeginScope);
+            BeginScope(submit, item.BeginScope);
             continue;
         case FCommandType::EndScope:
-            EndScope(submit, i, item.EndScope);
+            EndScope(submit, item.EndScope);
             continue;
         case FCommandType::Barrier:
             Barrier(submit, i, item.Barrier);
@@ -146,25 +141,25 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             BufferCopy(submit, i, item.BufferCopy);
             continue;
         case FCommandType::Render:
-            COPLT_THROW("TODO");
+            Render(submit, i, item.Render);
+            continue;
         case FCommandType::Compute:
             COPLT_THROW("TODO");
 
         // subcommands
-        case FCommandType::End:
         case FCommandType::SetPipeline:
         case FCommandType::SetBinding:
         case FCommandType::SetViewportScissor:
         case FCommandType::SetMeshBuffers:
         case FCommandType::Draw:
         case FCommandType::Dispatch:
-            COPLT_THROW("Subcommands cannot be placed in the main command list");
+            COPLT_THROW("Sub commands cannot be placed in the main command list");
         }
         COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
     }
 }
 
-void D3d12CommandInterpreter::Label(const FCommandSubmit& submit, u32 i, const FCommandLabel& cmd) const
+void D3d12CommandInterpreter::Label(const FCommandSubmit& submit, const FCommandLabel& cmd) const
 {
     if (!m_queue->m_device->Debug()) return;
     auto color = PIX_COLOR_DEFAULT;
@@ -179,7 +174,7 @@ void D3d12CommandInterpreter::Label(const FCommandSubmit& submit, u32 i, const F
     }
 }
 
-void D3d12CommandInterpreter::BeginScope(const FCommandSubmit& submit, u32 i, const FCommandBeginScope& cmd) const
+void D3d12CommandInterpreter::BeginScope(const FCommandSubmit& submit, const FCommandBeginScope& cmd) const
 {
     if (!m_queue->m_device->Debug()) return;
     auto color = PIX_COLOR_DEFAULT;
@@ -194,7 +189,7 @@ void D3d12CommandInterpreter::BeginScope(const FCommandSubmit& submit, u32 i, co
     }
 }
 
-void D3d12CommandInterpreter::EndScope(const FCommandSubmit& submit, u32 i, const FCommandEndScope& cmd) const
+void D3d12CommandInterpreter::EndScope(const FCommandSubmit& submit, const FCommandEndScope& cmd) const
 {
     if (!m_queue->m_device->Debug()) return;
     PIXEndEvent(m_queue->m_cmd.m_list0.Get());
@@ -328,6 +323,140 @@ void D3d12CommandInterpreter::BufferCopy(const FCommandSubmit& submit, u32 i, co
             static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
         );
     }
+}
+
+void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
+{
+    m_context.Reset();
+    const auto& info = submit.RenderInfos[cmd.InfoIndex];
+    {
+        auto num_rtv = std::min(info.NumRtv, 8u);
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC rts[num_rtv];
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds[info.Dsv.IsEmpty() ? 0 : 1];
+        if (!info.Dsv.IsEmpty())
+        {
+            // todo dsv
+        }
+        for (u32 n = 0; n < num_rtv; ++n)
+        {
+            const auto& rtv = info.Rtv[n];
+            const auto& load = info.RtvLoadOp[n];
+            const auto& store = info.RtvStoreOp[n];
+            D3D12_RENDER_PASS_RENDER_TARGET_DESC desc{};
+            desc.cpuDescriptor = GetRtv(rtv.Get(submit));
+            switch (load)
+            {
+            case FLoadOp::Load:
+                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                break;
+            case FLoadOp::Clear:
+                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                desc.BeginningAccess.Clear.ClearValue.Color[0] = info.Color[0];
+                desc.BeginningAccess.Clear.ClearValue.Color[1] = info.Color[1];
+                desc.BeginningAccess.Clear.ClearValue.Color[2] = info.Color[2];
+                desc.BeginningAccess.Clear.ClearValue.Color[3] = info.Color[3];
+                break;
+            case FLoadOp::Discard:
+                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                break;
+            case FLoadOp::NoAccess:
+                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+                break;
+            }
+            switch (store)
+            {
+            case FStoreOp::Store:
+                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                break;
+            case FStoreOp::Discard:
+                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                break;
+            case FStoreOp::Resolve:
+                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
+                {
+                    const auto& res_info = submit.ResolveInfos[info.ResolveInfoIndex[n]];
+                    desc.EndingAccess.Resolve.Format = ToDx(res_info.Format);
+                    desc.EndingAccess.Resolve.pSrcResource = GetResource(res_info.Src.Get(submit));
+                    desc.EndingAccess.Resolve.pDstResource = GetResource(res_info.Dst.Get(submit));
+                    desc.EndingAccess.Resolve.SubresourceCount = 0;
+                    desc.EndingAccess.Resolve.ResolveMode = ToDx(res_info.Mode);
+                }
+                break;
+            case FStoreOp::NoAccess:
+                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+                break;
+            }
+            rts[n] = desc;
+        }
+        D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
+        if (info.HasUavWrites) flags |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
+        m_queue->m_cmd.m_list4->BeginRenderPass(info.NumRtv, rts, info.Dsv.IsEmpty() ? nullptr : ds, flags);
+    }
+    const auto commands = std::span(submit.RenderCommands + cmd.CommandStartIndex, cmd.CommandCount);
+    for (u32 j = 0; j < commands.size(); j++)
+    {
+        const auto& item = commands[j];
+        switch (item.Type)
+        {
+        case FCommandType::None:
+            continue;
+        case FCommandType::Label:
+            Label(submit, item.Label);
+            continue;
+        case FCommandType::BeginScope:
+            BeginScope(submit, item.BeginScope);
+            continue;
+        case FCommandType::EndScope:
+            EndScope(submit, item.EndScope);
+            continue;
+        case FCommandType::SetPipeline:
+            SetPipeline(m_queue->m_cmd, item.SetPipeline.Pipeline, j);
+            continue;
+        case FCommandType::SetBinding:
+            continue; // todo
+        case FCommandType::SetViewportScissor:
+            RenderSetViewportScissor(submit, j, item.SetViewportScissor);
+            continue;
+        case FCommandType::SetMeshBuffers:
+            continue; // todo
+        case FCommandType::Draw:
+            RenderDraw(submit, j, item.Draw);
+            continue;
+        case FCommandType::Dispatch:
+            continue; // todo
+        case FCommandType::Present:
+        case FCommandType::Barrier:
+        case FCommandType::ClearColor:
+        case FCommandType::ClearDepthStencil:
+        case FCommandType::Bind:
+        case FCommandType::BufferCopy:
+        case FCommandType::Render:
+        case FCommandType::Compute:
+            COPLT_THROW("Main commands cannot be placed in the sub command list");
+        }
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
+    }
+    {
+        m_queue->m_cmd.m_list4->EndRenderPass();
+    }
+}
+
+void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const
+{
+    if (cmd.Indexed)
+    {
+        m_queue->m_cmd->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
+    }
+    else
+    {
+        m_queue->m_cmd->DrawInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.FirstInstance);
+    }
+}
+
+void D3d12CommandInterpreter::RenderSetViewportScissor(const FCommandSubmit& submit, u32 i, const FCommandSetViewportScissor& cmd) const
+{
+    m_queue->m_cmd->RSSetViewports(cmd.ViewportCount, reinterpret_cast<const D3D12_VIEWPORT*>(submit.Viewports + cmd.ViewportIndex));
+    m_queue->m_cmd->RSSetScissorRects(cmd.ScissorRectCount, reinterpret_cast<const D3D12_RECT*>(submit.Rects + cmd.ScissorRectIndex));
 }
 
 void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, const u32 i)
