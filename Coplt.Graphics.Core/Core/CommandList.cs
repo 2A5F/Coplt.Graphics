@@ -81,6 +81,7 @@ public sealed unsafe class CommandList
                 }
                 else
                 {
+                    if (CurrentBarrierCmdIndex < 0) CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index;
                     ref var cmd = ref self.m_commands.At(CurrentBarrierCmdIndex);
                     cmd.Barrier.BarrierCount++;
                 }
@@ -764,6 +765,29 @@ public sealed unsafe class CommandList
                 SrcOffset = SrcOffset,
             }
         );
+        if (AutoBarrierEnabled)
+        {
+            {
+                ref var state = ref StateAt(cmd.Src.Buffer);
+                state.ReqState(
+                    this,
+                    FResLayout.None,
+                    FResAccess.CopySrc,
+                    FShaderStageFlags.None,
+                    FLegacyState.CopySrc
+                );
+            }
+            {
+                ref var state = ref StateAt(cmd.Dst.Buffer);
+                state.ReqState(
+                    this,
+                    FResLayout.None,
+                    FResAccess.CopyDst,
+                    FShaderStageFlags.None,
+                    FLegacyState.CopyDst
+                );
+            }
+        }
         m_commands.Add(new() { BufferCopy = cmd });
     }
 
@@ -803,6 +827,17 @@ public sealed unsafe class CommandList
                 SrcOffset = src.Offset,
             }
         );
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Dst.Buffer);
+            state.ReqState(
+                this,
+                FResLayout.None,
+                FResAccess.CopyDst,
+                FShaderStageFlags.None,
+                FLegacyState.CopyDst
+            );
+        }
         m_commands.Add(new() { BufferCopy = cmd });
     }
 
@@ -832,6 +867,17 @@ public sealed unsafe class CommandList
                 SrcOffset = Loc.Offset,
             }
         );
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Dst.Buffer);
+            state.ReqState(
+                this,
+                FResLayout.None,
+                FResAccess.CopyDst,
+                FShaderStageFlags.None,
+                FLegacyState.CopyDst
+            );
+        }
         m_commands.Add(new() { BufferCopy = cmd });
     }
 
