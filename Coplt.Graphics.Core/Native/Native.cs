@@ -3194,6 +3194,18 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FStrType")]
         public FStrType StrType;
+
+        [NativeTypeName("u8[3]")]
+        public _Color_e__FixedBuffer Color;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 HasColor;
+
+        [InlineArray(3)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public byte e0;
+        }
     }
 
     [NativeTypeName("struct FCommandBeginScope : Coplt::FCommandBase")]
@@ -3209,6 +3221,18 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FStrType")]
         public FStrType StrType;
+
+        [NativeTypeName("u8[3]")]
+        public _Color_e__FixedBuffer Color;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 HasColor;
+
+        [InlineArray(3)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public byte e0;
+        }
     }
 
     [NativeTypeName("struct FCommandEndScope : Coplt::FCommandBase")]
@@ -3441,7 +3465,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L486_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L490_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3639,7 +3663,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L514_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L518_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3809,7 +3833,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L537_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L541_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

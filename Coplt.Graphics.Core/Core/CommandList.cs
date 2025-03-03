@@ -35,7 +35,8 @@ public sealed unsafe class CommandList
             FResAccess Access,
             FShaderStageFlags Stages,
             FLegacyState Legacy,
-            bool? CrossQueue = null
+            bool? CrossQueue = null,
+            FImageBarrierFlags ImageFlags = FImageBarrierFlags.None
         ) => ReqState(
             self, new FResState
             {
@@ -44,9 +45,12 @@ public sealed unsafe class CommandList
                 Stages = Stages,
                 Legacy = Legacy,
                 CrossQueue = CrossQueue ?? Resource.NativeState.CrossQueue,
-            }
+            }, ImageFlags
         );
-        private void ReqState(CommandList self, FResState NewState)
+        private void ReqState(
+            CommandList self, FResState NewState,
+            FImageBarrierFlags ImageFlags = FImageBarrierFlags.None
+        )
         {
             ref var OldState = ref Resource.NativeState;
             if (First)
@@ -99,7 +103,10 @@ public sealed unsafe class CommandList
             return;
         }
 
-        private FBarrier BuildBarrier(in FResState OldState, in FResState NewState)
+        private FBarrier BuildBarrier(
+            in FResState OldState, in FResState NewState,
+            FImageBarrierFlags ImageFlags = FImageBarrierFlags.None
+        )
         {
             var barrier = new FBarrier();
             switch (Resource.Type)
@@ -151,7 +158,7 @@ public sealed unsafe class CommandList
                         FirstPlane = 0,
                         NumPlanes = Resource.Planes,
                     },
-                    Flags = FImageBarrierFlags.None,
+                    Flags = ImageFlags,
                 };
                 if (OldState.CrossQueue || NewState.CrossQueue)
                 {
@@ -377,18 +384,20 @@ public sealed unsafe class CommandList
     internal uint AddString(string str)
     {
         var index = m_string16.Count;
-        CollectionsMarshal.SetCount(m_string16, index + str.Length);
-        var dst = CollectionsMarshal.AsSpan(m_string16).Slice(index, str.Length);
+        CollectionsMarshal.SetCount(m_string16, index + str.Length + 1);
+        var dst = CollectionsMarshal.AsSpan(m_string16).Slice(index, str.Length + 1);
         str.CopyTo(dst);
+        dst[str.Length] = '\0';
         return (uint)index;
     }
 
     internal uint AddString(ReadOnlySpan<byte> str)
     {
         var index = m_string8.Count;
-        CollectionsMarshal.SetCount(m_string8, index + str.Length);
-        var dst = CollectionsMarshal.AsSpan(m_string8).Slice(index, str.Length);
+        CollectionsMarshal.SetCount(m_string8, index + str.Length + 1);
+        var dst = CollectionsMarshal.AsSpan(m_string8).Slice(index, str.Length + 1);
         str.CopyTo(dst);
+        dst[str.Length] = 0;
         return (uint)index;
     }
 
@@ -1048,15 +1057,9 @@ public sealed unsafe class CommandList
 
         #endregion
 
-        #region Add
-
-        m_commands.Add(new() { Render = cmd });
-
-        #endregion
-
         #region Scope
 
-        RenderScope scope = new(this, info_index, m_render_commands.Count, m_render_commands, debug_scope);
+        RenderScope scope = new(this, info_index, cmd, m_render_commands, debug_scope);
 
         #endregion
 
@@ -1290,7 +1293,7 @@ public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.D
 public unsafe struct RenderScope(
     CommandList self,
     int info_index,
-    int cmd_index,
+    FCommandRender render_cmd,
     List<FRenderCommandItem> m_commands,
     bool debug_scope
 ) : IDisposable
@@ -1300,6 +1303,10 @@ public unsafe struct RenderScope(
     private ShaderPipeline? m_current_pipeline;
     private ShaderBinding? m_current_binding;
     private bool m_disposed;
+    private bool m_has_pixel_shader;
+    private bool m_has_vertex_shader;
+    private bool m_has_mesh_shader;
+    private bool m_has_task_shader;
 
     #endregion
 
@@ -1319,7 +1326,35 @@ public unsafe struct RenderScope(
             throw new InvalidOperationException(
                 "There is still Debug scope not ended, please check whether Dispose is missed."
             );
-        Info.CommandCount = (uint)m_commands.Count - (uint)cmd_index;
+        ref var info = ref Info;
+        if (self.AutoBarrierEnabled)
+        {
+            var stages = m_has_pixel_shader ? FShaderStageFlags.Pixel : FShaderStageFlags.None;
+            if (info.Dsv.ResourceIndex != 0)
+            {
+                ref var state = ref self.StateAt(info.Dsv);
+                state.ReqState(
+                    self,
+                    FResLayout.DepthStencilWrite,
+                    FResAccess.DepthStencilWrite,
+                    stages,
+                    FLegacyState.DepthWrite
+                );
+            }
+            for (var i = 0; i < info.NumRtv; i++)
+            {
+                ref var state = ref self.StateAt(info.Rtv[i]);
+                state.ReqState(
+                    self,
+                    FResLayout.RenderTarget,
+                    FResAccess.RenderTarget,
+                    stages,
+                    FLegacyState.RenderTarget
+                );
+            }
+        }
+        self.m_commands.Add(new() { Render = render_cmd });
+        Info.CommandCount = (uint)m_commands.Count - render_cmd.CommandStartIndex;
         self.m_render_commands.Add(new() { Type = FCommandType.End });
         self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
@@ -1598,6 +1633,8 @@ public unsafe struct RenderScope(
             Indexed = Indexed,
         };
         m_commands.Add(new() { Draw = cmd });
+        m_has_pixel_shader = true;
+        m_has_vertex_shader = true;
     }
 
     #endregion
@@ -1634,6 +1671,9 @@ public unsafe struct RenderScope(
             Type = FDispatchType.Mesh,
         };
         m_commands.Add(new() { Dispatch = cmd });
+        m_has_pixel_shader = true;
+        m_has_mesh_shader = true;
+        m_has_task_shader = m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
     }
 
     #endregion

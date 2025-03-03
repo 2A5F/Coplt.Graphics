@@ -330,6 +330,8 @@ namespace Coplt
         u32 StringIndex{};
         u32 StringLength{};
         FStrType StrType{};
+        u8 Color[3]{};
+        b8 HasColor{};
     };
 
     struct FCommandBeginScope : FCommandBase
@@ -337,6 +339,8 @@ namespace Coplt
         u32 StringIndex{};
         u32 StringLength{};
         FStrType StrType{};
+        u8 Color[3]{};
+        b8 HasColor{};
     };
 
     struct FCommandEndScope : FCommandBase

@@ -70,5 +70,6 @@
         <None Include="../../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../Coplt.Graphics.Native/D3d12/ThirdParty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 </Project>

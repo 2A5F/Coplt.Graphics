@@ -15,6 +15,8 @@
 #include "../Include/PipelineState.h"
 #include "../ThirdParty/DirectXTK12/Src/d3dx12.h"
 
+#include "pix3.h"
+
 using namespace Coplt;
 
 void D3d12CommandInterpreter::BarrierContext::Reset()
@@ -121,11 +123,14 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         case FCommandType::Present:
             continue;
         case FCommandType::Label:
-            continue; // todo
+            Label(submit, i, item.Label);
+            continue;
         case FCommandType::BeginScope:
-            continue; // todo
+            BeginScope(submit, i, item.BeginScope);
+            continue;
         case FCommandType::EndScope:
-            continue; // todo
+            EndScope(submit, i, item.EndScope);
+            continue;
         case FCommandType::Barrier:
             Barrier(submit, i, item.Barrier);
             continue;
@@ -157,6 +162,42 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         }
         COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
     }
+}
+
+void D3d12CommandInterpreter::Label(const FCommandSubmit& submit, u32 i, const FCommandLabel& cmd) const
+{
+    if (!m_queue->m_device->Debug()) return;
+    auto color = PIX_COLOR_DEFAULT;
+    if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
+    if (cmd.StrType == FStrType::Str8)
+    {
+        PIXSetMarker(m_queue->m_cmd.m_list0.Get(), color, "%s", reinterpret_cast<const char*>(submit.Str8 + cmd.StringIndex));
+    }
+    else
+    {
+        PIXSetMarker(m_queue->m_cmd.m_list0.Get(), color, L"%s", reinterpret_cast<const wchar_t*>(submit.Str16 + cmd.StringIndex));
+    }
+}
+
+void D3d12CommandInterpreter::BeginScope(const FCommandSubmit& submit, u32 i, const FCommandBeginScope& cmd) const
+{
+    if (!m_queue->m_device->Debug()) return;
+    auto color = PIX_COLOR_DEFAULT;
+    if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
+    if (cmd.StrType == FStrType::Str8)
+    {
+        PIXBeginEvent(m_queue->m_cmd.m_list0.Get(), color, "%s", reinterpret_cast<const char*>(submit.Str8 + cmd.StringIndex));
+    }
+    else
+    {
+        PIXBeginEvent(m_queue->m_cmd.m_list0.Get(), color, L"%s", reinterpret_cast<const wchar_t*>(submit.Str16 + cmd.StringIndex));
+    }
+}
+
+void D3d12CommandInterpreter::EndScope(const FCommandSubmit& submit, u32 i, const FCommandEndScope& cmd) const
+{
+    if (!m_queue->m_device->Debug()) return;
+    PIXEndEvent(m_queue->m_cmd.m_list0.Get());
 }
 
 void D3d12CommandInterpreter::Barrier(const FCommandSubmit& submit, u32 i, const FCommandBarrier& cmd)

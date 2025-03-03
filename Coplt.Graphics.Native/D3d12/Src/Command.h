@@ -69,6 +69,9 @@ namespace Coplt
 
         void Translate(const FCommandSubmit& submit);
 
+        void Label(const FCommandSubmit& submit, u32 i, const FCommandLabel& cmd) const;
+        void BeginScope(const FCommandSubmit& submit, u32 i, const FCommandBeginScope& cmd) const;
+        void EndScope(const FCommandSubmit& submit, u32 i, const FCommandEndScope& cmd) const;
         void Barrier(const FCommandSubmit& submit, u32 i, const FCommandBarrier& cmd);
         void Barrier(const FCommandSubmit& submit, const FGlobalBarrier& item);
         void Barrier(const FCommandSubmit& submit, const FBufferBarrier& item);
