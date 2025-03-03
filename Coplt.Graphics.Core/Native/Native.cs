@@ -2375,8 +2375,8 @@ namespace Coplt.Graphics.Native
 
         public void** lpVtbl;
 
-        [NativeTypeName("Coplt::FLegacyState")]
-        public FLegacyState m_state;
+        [NativeTypeName("Coplt::FResState")]
+        public FResState m_state;
 
         [NativeTypeName("Coplt::FGraphicsFormat")]
         public FGraphicsFormat m_format;
@@ -2652,6 +2652,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FLegacyState")]
         public FLegacyState Legacy;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 CrossQueue;
     }
 
     [NativeTypeName("Coplt::u32")]

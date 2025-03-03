@@ -43,8 +43,8 @@ public sealed unsafe partial class GpuDevice
         m_instance = instance;
         m_name = name;
         m_ptr = ptr;
-        m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
         m_adapter = adapter ?? m_instance.m_ptr_to_adapters[(nuint)m_ptr->GetAdapter()];
+        m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
     }
 
     #endregion

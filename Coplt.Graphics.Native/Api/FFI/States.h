@@ -136,6 +136,7 @@ namespace Coplt
         FResAccess Access{};
         FShaderStageFlags Stages{};
         FLegacyState Legacy{};
+        b8 CrossQueue{};
 
         #ifdef FFI_SRC
 

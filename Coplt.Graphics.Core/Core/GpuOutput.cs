@@ -76,6 +76,12 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, 
 
     public new FGpuOutput* Ptr => m_ptr;
     public GraphicsFormat Format => m_ptr->m_format.FromFFI();
+    public ResState State
+    {
+        get => NativeState.FromFFI();
+        set => NativeState = value.ToFFI();
+    }
+    public ref FResState NativeState => ref m_ptr->m_state;
     public uint2 Size2d => new(m_ptr->m_width, m_ptr->m_height);
     public uint3 Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
     ulong IGpuView.Size => m_ptr->m_width;
@@ -86,6 +92,13 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, 
     public uint Planes => 1;
     uint IGpuView.Count => 0;
     uint IGpuView.Stride => 0;
+    GpuResourceType IGpuResource.Type => GpuResourceType.Image;
+    IGpuResource IGpuView.Resource => this;
+    FResourceMeta IGpuResource.GetMeta() => new()
+    {
+        Type = FResourceRefType.Output,
+        Output = m_ptr,
+    };
 
     #endregion
 
@@ -124,14 +137,6 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, 
     #endregion
 
     #region Views
-
-    public IGpuResource Resource => this;
-
-    FResourceMeta IGpuResource.GetMeta() => new()
-    {
-        Type = FResourceRefType.Output,
-        Output = m_ptr,
-    };
 
     public bool TrySrv() => true;
     public bool TryRtv() => true;

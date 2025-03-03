@@ -16,7 +16,12 @@ public abstract unsafe partial class GpuResource : GpuView
     #region Props
 
     public new FGpuResource* Ptr => m_ptr;
-    public ResState State => m_ptr->m_state.FromFFI();
+    public ResState State
+    {
+        get => NativeState.FromFFI();
+        set => NativeState = value.ToFFI();
+    }
+    public ref FResState NativeState => ref m_ptr->m_state;
     public CpuAccess CpuAccess => (CpuAccess)m_ptr->m_cpu_access;
 
     #endregion

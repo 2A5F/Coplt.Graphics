@@ -35,6 +35,13 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
     public uint Count => m_ptr->m_count;
     public uint Stride => m_ptr->m_stride;
     public BufferUsage Usage => (BufferUsage)m_ptr->m_usage;
+    GpuResourceType IGpuResource.Type => GpuResourceType.Buffer;
+    IGpuResource IGpuView.Resource => this;
+    FResourceMeta IGpuResource.GetMeta() => new()
+    {
+        Type = FResourceRefType.Buffer,
+        Buffer = m_ptr,
+    };
 
     #endregion
 
@@ -67,14 +74,6 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
     #endregion
 
     #region View
-
-    public IGpuResource Resource => this;
-
-    FResourceMeta IGpuResource.GetMeta() => new()
-    {
-        Type = FResourceRefType.Buffer,
-        Buffer = m_ptr,
-    };
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);
     public bool TryIbv() => Purpose.HasFlags(ResourcePurpose.IndexBuffer);

@@ -62,6 +62,7 @@ public record struct ResState
     public ResAccess Access;
     public ShaderStageFlags Stages;
     public LegacyState Legacy;
+    public bool CrossQueue;
 }
 
 public static partial class GraphicsExtensions
@@ -124,6 +125,7 @@ public static partial class GraphicsExtensions
         Access = value.Access.ToFFI(),
         Stages = value.Stages.ToFFI(),
         Legacy = value.Legacy.ToFFI(),
+        CrossQueue = value.CrossQueue,
     };
 
     public static ResState FromFFI(this in FResState value) => new()
@@ -132,5 +134,6 @@ public static partial class GraphicsExtensions
         Access = value.Access.FromFFI(),
         Stages = value.Stages.FromFFI(),
         Legacy = value.Legacy.FromFFI(),
+        CrossQueue = value.CrossQueue,
     };
 }

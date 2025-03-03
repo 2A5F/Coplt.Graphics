@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 using Coplt.Union;
 
 namespace Coplt.Graphics.Core;
@@ -18,6 +19,178 @@ public enum DispatchType : byte
 /// </summary>
 public sealed unsafe class CommandList
 {
+    #region Struct
+
+    internal struct ResourceState(int SlotIndex, IGpuResource Resource)
+    {
+        public readonly int SlotIndex = SlotIndex;
+        public readonly IGpuResource Resource = Resource;
+        public int CurrentBarrierIndex = -1;
+        public int CurrentBarrierCmdIndex = -1;
+        public bool First = true;
+
+        public void ReqState(
+            CommandList self,
+            FResLayout Layout,
+            FResAccess Access,
+            FShaderStageFlags Stages,
+            FLegacyState Legacy,
+            bool? CrossQueue = null
+        ) => ReqState(
+            self, new FResState
+            {
+                Layout = Layout,
+                Access = Access,
+                Stages = Stages,
+                Legacy = Legacy,
+                CrossQueue = CrossQueue ?? Resource.NativeState.CrossQueue,
+            }
+        );
+        private void ReqState(CommandList self, FResState NewState)
+        {
+            ref var OldState = ref Resource.NativeState;
+            if (First)
+            {
+                First = false;
+                OldState.Access = FResAccess.NoAccess;
+            }
+            if (OldState.IsCompatible(NewState, self.UseLegacyState, true, out var same))
+            {
+                if (same)
+                {
+                    CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index;
+                    return;
+                }
+                NewState = OldState.Merge(NewState, self.UseLegacyState, true);
+                if (CurrentBarrierIndex < 0) goto Add;
+                goto Merge;
+            }
+        Add:
+            {
+                CurrentBarrierIndex = self.m_barriers.Count;
+                if (self.m_current_barrier_cmd_index < 0 || CurrentBarrierCmdIndex >= self.m_current_barrier_cmd_index)
+                {
+                    CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index = self.m_commands.Count;
+                    var cmd = new FCommandBarrier
+                    {
+                        Base = { Type = FCommandType.Barrier },
+                        BarrierCount = 1,
+                        BarrierIndex = (uint)CurrentBarrierIndex,
+                    };
+                    self.m_commands.Add(new() { Barrier = cmd });
+                }
+                else
+                {
+                    ref var cmd = ref self.m_commands.At(CurrentBarrierCmdIndex);
+                    cmd.Barrier.BarrierCount++;
+                }
+                self.m_barriers.Add(BuildBarrier(OldState, NewState));
+                goto End;
+            }
+        Merge:
+            {
+                ref var barrier = ref self.m_barriers.At(CurrentBarrierIndex);
+                UpdateBarrier(ref barrier, NewState);
+                goto End;
+            }
+        End:
+            OldState = NewState;
+            return;
+        }
+
+        private FBarrier BuildBarrier(in FResState OldState, in FResState NewState)
+        {
+            var barrier = new FBarrier();
+            switch (Resource.Type)
+            {
+            case GpuResourceType.Unknown:
+                barrier.Type = FBarrierType.Global;
+                barrier.Global = new()
+                {
+                    AccessBefore = OldState.Access,
+                    AccessAfter = NewState.Access,
+                    StagesBefore = OldState.Stages,
+                    StagesAfter = NewState.Stages,
+                };
+                break;
+            case GpuResourceType.Buffer:
+                barrier.Type = FBarrierType.Buffer;
+                barrier.Buffer = new()
+                {
+                    LegacyBefore = OldState.Legacy,
+                    LegacyAfter = NewState.Legacy,
+                    AccessBefore = OldState.Access,
+                    AccessAfter = NewState.Access,
+                    StagesBefore = OldState.Stages,
+                    StagesAfter = NewState.Stages,
+                    Buffer = new(SlotIndex + 1),
+                    Offset = 0,
+                    Size = Resource.Size,
+                };
+                break;
+            case GpuResourceType.Image:
+                barrier.Type = FBarrierType.Image;
+                barrier.Image = new()
+                {
+                    LegacyBefore = OldState.Legacy,
+                    LegacyAfter = NewState.Legacy,
+                    AccessBefore = OldState.Access,
+                    AccessAfter = NewState.Access,
+                    StagesBefore = OldState.Stages,
+                    StagesAfter = NewState.Stages,
+                    LayoutBefore = OldState.Layout,
+                    LayoutAfter = NewState.Layout,
+                    Image = new(SlotIndex + 1),
+                    SubResourceRange = new()
+                    {
+                        IndexOrFirstMipLevel = 0,
+                        NumMipLevels = Resource.MipLevels,
+                        FirstArraySlice = 0,
+                        NumArraySlices = Resource.DepthOrLength,
+                        FirstPlane = 0,
+                        NumPlanes = Resource.Planes,
+                    },
+                    Flags = FImageBarrierFlags.None,
+                };
+                if (OldState.CrossQueue || NewState.CrossQueue)
+                {
+                    // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
+                    barrier.Image.Flags |= FImageBarrierFlags.CrossQueue;
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+            }
+            return barrier;
+        }
+
+        private void UpdateBarrier(ref FBarrier barrier, in FResState NewState)
+        {
+            switch (Resource.Type)
+            {
+            case GpuResourceType.Unknown:
+                barrier.Global.AccessAfter = NewState.Access;
+                barrier.Global.StagesAfter = NewState.Stages;
+                break;
+            case GpuResourceType.Buffer:
+                barrier.Buffer.LegacyAfter = NewState.Legacy;
+                barrier.Buffer.AccessAfter = NewState.Access;
+                barrier.Buffer.StagesAfter = NewState.Stages;
+                break;
+            case GpuResourceType.Image:
+                barrier.Image.LegacyAfter = NewState.Legacy;
+                barrier.Image.AccessAfter = NewState.Access;
+                barrier.Image.StagesAfter = NewState.Stages;
+                // 状态兼容布局必须相同，这里不需要设置布局
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
+    #endregion
+
     #region Fields
 
     internal readonly GraphicsInstance m_instance;
@@ -26,6 +199,7 @@ public sealed unsafe class CommandList
     internal readonly List<FRenderCommandItem> m_render_commands = new();
     internal readonly List<FComputeCommandItem> m_compute_commands = new();
     internal readonly List<FResourceMeta> m_resource_metas = new();
+    internal readonly List<ResourceState> m_resource_states = new();
     internal readonly List<FRenderInfo> m_render_infos = new();
     internal readonly List<FComputeInfo> m_compute_infos = new();
     internal readonly List<FResolveInfo> m_resolve_infos = new();
@@ -41,10 +215,13 @@ public sealed unsafe class CommandList
     internal readonly Dictionary<object, int> m_resources = new();
     internal readonly HashSet<object> m_objects = new();
     internal GpuOutput? m_current_output;
-    internal bool m_in_render_or_compute_scope;
     internal int m_debug_scope_count;
     internal int m_render_debug_scope_count;
     internal int m_compute_debug_scope_count;
+    internal int m_current_barrier_cmd_index = -1;
+    internal bool m_in_render_or_compute_scope;
+    internal bool m_auto_barrier = true;
+    internal readonly bool m_use_legacy_state;
 
     #endregion
 
@@ -52,6 +229,10 @@ public sealed unsafe class CommandList
 
     public GpuQueue Queue => m_queue;
     public bool DebugEnabled => m_instance.DebugEnabled;
+    public bool AutoBarrierEnabled => m_auto_barrier;
+    public bool UseLegacyState => m_use_legacy_state;
+
+    internal ref ResourceState StateAt(FResourceRef r) => ref m_resource_states.At((int)(r.ResourceIndex - 1));
 
     #endregion
 
@@ -61,6 +242,7 @@ public sealed unsafe class CommandList
     {
         m_queue = queue;
         m_instance = queue.Device.Instance;
+        m_use_legacy_state = !m_queue.m_device.m_adapter.UseLegacyState;
     }
 
     #endregion
@@ -73,6 +255,7 @@ public sealed unsafe class CommandList
         m_render_commands.Clear();
         m_compute_commands.Clear();
         m_resource_metas.Clear();
+        m_resource_states.Clear();
         m_render_infos.Clear();
         m_compute_infos.Clear();
         m_resolve_infos.Clear();
@@ -87,6 +270,8 @@ public sealed unsafe class CommandList
         m_string16.Clear();
         m_resources.Clear();
         m_objects.Clear();
+        m_current_barrier_cmd_index = -1;
+        m_auto_barrier = true;
         m_current_output = null;
     }
 
@@ -151,7 +336,7 @@ public sealed unsafe class CommandList
 
     #region AddResource
 
-    internal FResourceRef AddResource<T>(T resource) where T : IGpuResource
+    internal FResourceRef AddResource(IGpuResource resource)
     {
         if (resource.Queue != m_queue)
             throw new ArgumentException($"Resource {resource} does not belong to queue {m_queue}");
@@ -166,6 +351,7 @@ public sealed unsafe class CommandList
         {
             slot = m_resource_metas.Count;
             m_resource_metas.Add(resource.GetMeta());
+            m_resource_states.Add(new(slot, resource));
         }
         return new(slot + 1);
     }
@@ -282,12 +468,26 @@ public sealed unsafe class CommandList
             Base = { Type = FCommandType.Present },
             Image = AddResource(Output),
         };
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Image);
+            state.ReqState(
+                this,
+                FResLayout.Present,
+                FResAccess.NoAccess,
+                FShaderStageFlags.None,
+                FLegacyState.Present,
+                true
+            );
+        }
         m_commands.Add(new() { Present = cmd });
     }
 
     #endregion
 
     #region Barrier
+
+    public void SetAutoBarrier(bool Enable) => m_auto_barrier = Enable;
 
     public void Barrier(params ReadOnlySpan<Barrier> Barriers)
     {
@@ -376,6 +576,7 @@ public sealed unsafe class CommandList
             BarrierCount = (uint)Barriers.Length,
             BarrierIndex = (uint)index,
         };
+        m_current_barrier_cmd_index = m_commands.Count;
         m_commands.Add(new() { Barrier = cmd });
     }
 
@@ -386,16 +587,13 @@ public sealed unsafe class CommandList
     /// <summary>
     /// 使用 (0, 0, 0, 1) 清空 Rtv
     /// </summary>
-    public void ClearColor<Rtv>(
-        Rtv Image, ReadOnlySpan<URect> Rects = default
-    ) where Rtv : IRtv => ClearColor(Image, new(0, 0, 0, 1), Rects);
+    public void ClearColor(IRtv Image, ReadOnlySpan<URect> Rects = default) =>
+        ClearColor(Image, new(0, 0, 0, 1), Rects);
 
     /// <summary>
     /// 使用指定的颜色清空 Rtv
     /// </summary>
-    public void ClearColor<Rtv>(
-        Rtv Image, float4 Color, ReadOnlySpan<URect> Rects = default
-    ) where Rtv : IRtv
+    public void ClearColor(IRtv Image, float4 Color, ReadOnlySpan<URect> Rects = default)
     {
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
@@ -411,6 +609,17 @@ public sealed unsafe class CommandList
             cmd.RectIndex = (uint)m_rects.Count;
             m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         }
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Image);
+            state.ReqState(
+                this,
+                FResLayout.RenderTarget,
+                FResAccess.RenderTarget,
+                FShaderStageFlags.None,
+                FLegacyState.RenderTarget
+            );
+        }
         m_commands.Add(new() { ClearColor = cmd });
     }
 
@@ -421,34 +630,34 @@ public sealed unsafe class CommandList
     /// <summary>
     /// 使用指定的 1 深度 和 0 模板 清空 Dsv
     /// </summary>
-    public void ClearDepthStencil<Dsv>(
-        Dsv Image,
+    public void ClearDepthStencil(
+        IDsv Image,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects);
+    ) => ClearDepthStencil(Image, 1, 0, DsvClear.All, Rects);
 
     /// <summary>
     /// 使用指定的深度清空 Dsv
     /// </summary>
-    public void ClearDepthStencil<Dsv>(
-        Dsv Image, float Depth,
+    public void ClearDepthStencil(
+        IDsv Image, float Depth,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsv => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects);
+    ) => ClearDepthStencil(Image, Depth, 0, DsvClear.Depth, Rects);
 
     /// <summary>
     /// 使用指定的模板清空 Dsv
     /// </summary>
-    public void ClearDepthStencil<Dsv>(
-        Dsv Image, byte Stencil,
+    public void ClearDepthStencil(
+        IDsv Image, byte Stencil,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsv => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects);
+    ) => ClearDepthStencil(Image, 1, Stencil, DsvClear.Stencil, Rects);
 
     /// <summary>
     /// 使用指定的深度和模板清空 Dsv
     /// </summary>
-    public void ClearDepthStencil<Dsv>(
-        Dsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
+    public void ClearDepthStencil(
+        IDsv Image, float Depth, byte Stencil, DsvClear Clear = DsvClear.All,
         ReadOnlySpan<URect> Rects = default
-    ) where Dsv : IDsv
+    )
     {
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
@@ -465,6 +674,17 @@ public sealed unsafe class CommandList
         {
             cmd.RectIndex = (uint)m_rects.Count;
             m_rects.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
+        }
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Image);
+            state.ReqState(
+                this,
+                FResLayout.DepthStencilWrite,
+                FResAccess.DepthStencilWrite,
+                FShaderStageFlags.None,
+                FLegacyState.DepthWrite
+            );
         }
         m_commands.Add(new() { ClearDepthStencil = cmd });
     }

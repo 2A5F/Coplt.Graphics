@@ -16,7 +16,13 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_
     m_dx_device = m_queue->m_dx_device;
     m_dx_queue = m_queue->m_queue;
 
-    m_state = FLegacyState::Present;
+    m_state = {
+        .Access = FResAccess::NoAccess,
+        .Layout = FResLayout::Present,
+        .Stages = FShaderStageFlags::None,
+        .Legacy = FLegacyState::Present,
+        .CrossQueue = true,
+    };
 }
 
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue, const FGpuOutputCreateOptions& options)
@@ -356,7 +362,7 @@ FResult D3d12GpuSwapChainOutput::GetCurrentRtv(void* out) noexcept
     return feb([&]
     {
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
-        rtv_handle.Offset(m_frame_index, m_rtv_descriptor_size);
+        rtv_handle.Offset(static_cast<i32>(m_frame_index), m_rtv_descriptor_size);
         *static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(out) = rtv_handle;
     });
 }

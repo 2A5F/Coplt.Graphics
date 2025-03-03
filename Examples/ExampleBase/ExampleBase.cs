@@ -47,43 +47,43 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 }, Handle
             );
             InitGraphics();
+            new Thread(
+                () =>
+                {
+                    Thread.CurrentThread.Name = "Render Thread";
+                    var cmd = Device.MainCommandList;
+                    LoadResources(cmd).Wait();
+                    var start_time = Stopwatch.GetTimestamp();
+                    var last_time = start_time;
+                    while (!IsClosed)
+                    {
+                        try
+                        {
+                            var now_time = Stopwatch.GetTimestamp();
+                            var total_time = Stopwatch.GetElapsedTime(start_time, now_time);
+                            var delta_time = Stopwatch.GetElapsedTime(last_time, now_time);
+                            last_time = now_time;
+                            var time = new Time
+                            {
+                                Total = total_time,
+                                Delta = delta_time
+                            };
+
+                            Render(cmd, time);
+                            Output.Present();
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e, "");
+                        }
+                    }
+                }
+            ).Start();
         }
         catch (Exception e)
         {
             Log.Error(e, "");
         }
-        new Thread(
-            () =>
-            {
-                Thread.CurrentThread.Name = "Render Thread";
-                var cmd = Device.MainCommandList;
-                LoadResources(cmd).Wait();
-                var start_time = Stopwatch.GetTimestamp();
-                var last_time = start_time;
-                while (!IsClosed)
-                {
-                    try
-                    {
-                        var now_time = Stopwatch.GetTimestamp();
-                        var total_time = Stopwatch.GetElapsedTime(start_time, now_time);
-                        var delta_time = Stopwatch.GetElapsedTime(last_time, now_time);
-                        last_time = now_time;
-                        var time = new Time
-                        {
-                            Total = total_time,
-                            Delta = delta_time
-                        };
-
-                        Render(cmd, time);
-                        Output.Present();
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error(e, "");
-                    }
-                }
-            }
-        ).Start();
     }
 
     #endregion

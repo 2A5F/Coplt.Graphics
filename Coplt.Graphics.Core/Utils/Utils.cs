@@ -55,4 +55,11 @@ public static unsafe class Utils
     public static int AlignOf<T>() where T : unmanaged => sizeof(AlignOfHelper<T>) - sizeof(T);
 
     #endregion
+
+    #region List Span
+
+    internal static Span<T> AsSpan<T>(this List<T> self) => CollectionsMarshal.AsSpan(self);
+    internal static ref T At<T>(this List<T> self, int index) => ref CollectionsMarshal.AsSpan(self)[index];
+
+    #endregion
 }

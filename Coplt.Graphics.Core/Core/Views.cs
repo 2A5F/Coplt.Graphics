@@ -54,12 +54,24 @@ public interface IGpuView
     public uint Stride { get; }
 }
 
+public enum GpuResourceType
+{
+    Unknown,
+    Buffer,
+    Image,
+}
+
 public interface IGpuResource : IGpuView
 {
     /// <summary>
     /// 资源所属队列
     /// </summary>
     public GpuQueue Queue { get; }
+    
+    public GpuResourceType Type { get; }
+
+    public ResState State { get; set; }
+    public ref FResState NativeState { get; }
 
     public FResourceMeta GetMeta();
 }

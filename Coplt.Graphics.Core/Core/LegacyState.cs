@@ -39,9 +39,9 @@ public static partial class GraphicsExtensions
     public static bool Contains(this LegacyState value, LegacyState other) => (value & other) != 0;
 
     public static bool IsReadOnly(this LegacyState value) => value.ContainsOnly(
-        LegacyState.IndexBuffer | LegacyState.VertexBuffer |
-        LegacyState.ConstantBuffer | LegacyState.IndirectBuffer | LegacyState.CopySrc |
-        LegacyState.ResolveSrc | LegacyState.ShaderResource | LegacyState.DepthRead
+        LegacyState.IndexBuffer | LegacyState.VertexBuffer | LegacyState.ConstantBuffer |
+        LegacyState.IndirectBuffer | LegacyState.CopySrc | LegacyState.ResolveSrc |
+        LegacyState.ShaderResource | LegacyState.DepthRead | LegacyState.ShadingRate
     );
 
     public static bool IsCompatible(this LegacyState value, LegacyState other)
