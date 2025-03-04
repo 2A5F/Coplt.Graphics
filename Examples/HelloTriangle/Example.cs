@@ -9,7 +9,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
 {
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
-    
+
     public override string Name => "Hello Triangle";
     protected override async Task LoadResources(CommandList cmd)
     {
@@ -31,10 +31,9 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             }, Name: Name
         );
     }
-    protected override void Render(CommandList cmd)
+    protected override void Render(CommandList cmd, Time time)
     {
-        cmd.SetRenderTargets([Output]);
-        cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));
-        cmd.Draw(Pipeline, 3);
+        using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
+        render.Draw(Pipeline, 3);
     }
 }

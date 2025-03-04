@@ -45,16 +45,6 @@ namespace Coplt
         IndirectDrawArgs = 1 << 10,
     };
 
-    enum class FLifeTime : u8
-    {
-        // 一般资源
-        Common,
-        // 静态资源，一般比如静态加载的图片、材质的参数
-        Static,
-        // 瞬态资源，只在帧内使用，帧结束后将丢弃，同时每帧都会具有独立副本，类似交换链
-        Transient,
-    };
-
     enum class FCpuAccess : u8
     {
         None = 0,
@@ -72,20 +62,30 @@ namespace Coplt
         Raw,
     };
 
-    struct FGpuResourceCreateOptions
+    struct FGpuViewCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         FResourcePurpose Purpose{};
-        FCpuAccess CpuAccess{};
-        FLifeTime LifeTime{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuObject)
+    COPLT_INTERFACE_DEFINE(FGpuView, "b3aeb8a5-1fa6-4866-97ef-1a5fa401e18f", FGpuObject)
     {
-        FResourceState m_state{};
         FResourcePurpose m_purpose{};
+    };
+
+    struct FGpuResourceCreateOptions : FGpuViewCreateOptions
+    {
+        FCpuAccess CpuAccess{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuView)
+    {
+        FResState m_state{};
         FCpuAccess m_cpu_access{};
-        FLifeTime m_life_time{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FGpuTransientView, "f7dfc622-972b-49b2-8999-8fb129c61ac6", FGpuView)
+    {
     };
 
     struct FGpuBufferCreateOptions : FGpuResourceCreateOptions
@@ -101,6 +101,30 @@ namespace Coplt
     };
 
     COPLT_INTERFACE_DEFINE(FGpuBuffer, "283740e3-fe96-41d0-830a-0a4c6a725336", FGpuResource)
+    {
+        // 字节大小
+        u64 m_size{};
+        // 默认的 Structured Buffer 元素数量
+        u32 m_count{};
+        // 默认的 Structured Buffer 元素步幅
+        u32 m_stride{};
+        // 指示默认用法
+        FBufferUsage m_usage{};
+    };
+
+    struct FGpuUploadBufferCreateOptions : FGpuViewCreateOptions
+    {
+        // 字节大小
+        u64 Size{};
+        // 默认的 Structured Buffer 元素数量
+        u32 Count{};
+        // 默认的 Structured Buffer 元素步幅
+        u32 Stride{};
+        // 指示默认用法
+        FBufferUsage Usage{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FGpuUploadBuffer, "3e85392d-8fd3-49eb-9872-cf7a0d7c8e4c", FGpuTransientView)
     {
         // 字节大小
         u64 m_size{};
@@ -185,5 +209,20 @@ namespace Coplt
         FImageDimension m_dimension{};
         // 纹理布局
         FImageLayout m_layout{};
+    };
+
+    enum class FViewType : u8
+    {
+        None,
+        Buffer,
+    };
+
+    struct FView
+    {
+        union
+        {
+            FGpuBuffer* Buffer;
+        };
+        FViewType Type;
     };
 }

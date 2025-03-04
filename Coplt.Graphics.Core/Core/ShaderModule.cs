@@ -52,19 +52,19 @@ public sealed unsafe partial class ShaderModule
         m_name = name;
         fixed (char* ptr = name)
         {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
 
     public void SetName(ReadOnlySpan<byte> name)
     {
+        m_name = null;
         fixed (byte* ptr = name)
         {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
-        m_name = null;
     }
 
     #endregion

@@ -8,11 +8,10 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <NoWarn>NU5128</NoWarn>
-        <AssemblyName>_d3d12_native_stub_</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj" />
+        <ProjectReference Include="..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj"/>
     </ItemGroup>
 
     <Target Name="NativeBuildDebug" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'" Outputs="../build/debug/bin/**/*">
@@ -32,5 +31,12 @@
         </ItemGroup>
         <Copy SourceFiles="@(NativeOutputs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" UseHardlinksIfPossible="true"/>
     </Target>
+    
+    <ItemGroup>
+        <None Include="../Coplt.Graphics.Native/D3d12/ThirdParty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false">
+            <Pack>true</Pack>
+            <PackagePath>runtimes\win-x64\native\</PackagePath>
+        </None>
+    </ItemGroup>
 
 </Project>

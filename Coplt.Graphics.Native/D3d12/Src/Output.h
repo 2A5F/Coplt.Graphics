@@ -4,6 +4,7 @@
 #include <dxgi1_4.h>
 
 #include "Context.h"
+#include "Executor.h"
 #include "Queue.h"
 #include "../FFI/Output.h"
 #include "../../Api/Include/Object.h"
@@ -12,7 +13,7 @@ namespace Coplt
 {
     struct D3d12GpuDevice;
 
-    struct D3d12GpuSwapChainOutput final : Object<D3d12GpuSwapChainOutput, FD3d12GpuSwapChainOutput>
+    struct D3d12GpuSwapChainOutput final : Object<D3d12GpuSwapChainOutput, FD3d12GpuSwapChainOutput, ID3d12GpuExecutor>
     {
         constexpr static UINT MaxBufferCount = 3;
 
@@ -55,15 +56,16 @@ namespace Coplt
 
         static FGraphicsFormat SelectFormat(const FGpuOutputCreateOptions& options, bool& is_hdr);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         FResult SetVSync(b8 Enable) noexcept override;
 
         FResult Resize(u32 Width, u32 Height) noexcept override;
 
-        FResult Present(/* 可选 */ const FCommandSubmit* submit) noexcept override;
-        FResult PresentNoWait(/* 可选 */ const FCommandSubmit* submit) noexcept override;
-        FResult WaitNextFrame() noexcept override;
+        FResult Wait() noexcept override;
+
+        void Submit(D3d12GpuQueue* Queue, const FCommandSubmit* submit) override;
+        void SubmitNoWait(D3d12GpuQueue* Queue, const FCommandSubmit* submit) override;
 
         void Submit_NoLock(/* 可选 */ const FCommandSubmit* submit);
         void Present_NoLock();

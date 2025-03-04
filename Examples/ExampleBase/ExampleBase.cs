@@ -1,4 +1,5 @@
-﻿using Coplt.Graphics;
+﻿using System.Diagnostics;
+using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Serilog;
 
@@ -11,7 +12,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
     public GpuDevice Device = null!;
     public GpuOutput Output = null!;
     public IntPtr Handle = Handle;
-    
+
     public abstract string Name { get; }
 
     #region InitGraphics
@@ -22,12 +23,21 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
     {
         try
         {
-            Graphics = GraphicsInstance.LoadD3d12();
+            Graphics = GraphicsInstance.LoadD3d12(Debug: true);
             Graphics.SetLogger(
                 (level, _) => Log.IsEnabled(level.ToLogEventLevel()),
                 (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg)
             );
-            Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
+            Device = Graphics.CreateDevice(Name: "Main Device");
+            var Adapter = Device.Adapter;
+            Log.Information(
+                "Selected device: {@Info}",
+                new
+                {
+                    Adapter.Name, Adapter.VendorId, Adapter.DeviceId, Adapter.Driver, Adapter.Backend,
+                    Adapter.Features.ShaderModelLevel
+                }
+            );
             Output = Device.MainQueue.CreateOutputForHwnd(
                 new()
                 {
@@ -37,31 +47,43 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 }, Handle
             );
             InitGraphics();
+            new Thread(
+                () =>
+                {
+                    Thread.CurrentThread.Name = "Render Thread";
+                    var cmd = Device.MainCommandList;
+                    LoadResources(cmd).Wait();
+                    var start_time = Stopwatch.GetTimestamp();
+                    var last_time = start_time;
+                    while (!IsClosed)
+                    {
+                        try
+                        {
+                            var now_time = Stopwatch.GetTimestamp();
+                            var total_time = Stopwatch.GetElapsedTime(start_time, now_time);
+                            var delta_time = Stopwatch.GetElapsedTime(last_time, now_time);
+                            last_time = now_time;
+                            var time = new Time
+                            {
+                                Total = total_time,
+                                Delta = delta_time
+                            };
+
+                            Render(cmd, time);
+                            Output.Present();
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e, "");
+                        }
+                    }
+                }
+            ).Start();
         }
         catch (Exception e)
         {
             Log.Error(e, "");
         }
-        new Thread(
-            () =>
-            {
-                Thread.CurrentThread.Name = "Render Thread";
-                var cmd = Device.MainCommandList;
-                LoadResources(cmd).Wait();
-                while (!IsClosed)
-                {
-                    try
-                    {
-                        Render(cmd);
-                        Output.Present();
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error(e, "");
-                    }
-                }
-            }
-        ).Start();
     }
 
     #endregion
@@ -94,7 +116,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
 
     #region Render
 
-    protected abstract void Render(CommandList cmd);
+    protected abstract void Render(CommandList cmd, Time time);
 
     #endregion
 }

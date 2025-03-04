@@ -14,8 +14,8 @@ namespace Coplt
         ResourcePack() = default;
 
         explicit ResourcePack(
-            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, FResourceState& state,
-            const D3D12_RESOURCE_DESC* desc, const D3D12_CLEAR_VALUE* clear_value
+            D3d12GpuDevice* device, D3D12MA::Allocator* allocator, FCpuAccess cpu_access,
+            FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value
         );
     };
 
@@ -23,13 +23,13 @@ namespace Coplt
     {
         ResourcePack m_resource{};
         u64 m_size{};
-        FResourceState m_state{};
+        FResState m_state{};
 
         BufferPack() = default;
 
         explicit BufferPack(
-            D3D12MA::Allocator* allocator, FCpuAccess cpu_access, u64 size,
-            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE
+            D3d12GpuDevice* device, D3D12MA::Allocator* allocator, FCpuAccess cpu_access,
+            u64 size, D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE
         );
     };
 }

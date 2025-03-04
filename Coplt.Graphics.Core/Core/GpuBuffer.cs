@@ -5,10 +5,8 @@ namespace Coplt.Graphics.Core;
 
 public record struct GpuBufferCreateOptions()
 {
-    public Str8or16 Name;
     public required ResourcePurpose Purpose;
     public CpuAccess CpuAccess = CpuAccess.None;
-    public LifeTime LifeTime = LifeTime.Common;
     public required ulong Size;
     public uint Count;
     public uint Stride;
@@ -16,7 +14,7 @@ public record struct GpuBufferCreateOptions()
 }
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IRtv, IIbv, IVbv
+public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, ISrv, IUav, IRtv, IIbv, IVbv
 {
     #region Fields
 
@@ -28,11 +26,22 @@ public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IR
 
     public new FGpuBuffer* Ptr => m_ptr;
     public ulong Size => m_ptr->m_size;
-    ulong IView.LongSize => Size;
-    uint3 IView.Size => new((uint)Size, 1, 1);
+    GraphicsFormat IGpuView.Format => GraphicsFormat.Unknown;
+    uint IGpuView.Width => (uint)Size;
+    uint IGpuView.Height => 1;
+    uint IGpuView.DepthOrLength => 1;
+    uint IGpuView.MipLevels => 1;
+    uint IGpuView.Planes => 1;
     public uint Count => m_ptr->m_count;
     public uint Stride => m_ptr->m_stride;
     public BufferUsage Usage => (BufferUsage)m_ptr->m_usage;
+    GpuResourceType IGpuResource.Type => GpuResourceType.Buffer;
+    IGpuResource IGpuView.Resource => this;
+    FResourceMeta IGpuResource.GetMeta() => new()
+    {
+        Type = FResourceRefType.Buffer,
+        Buffer = m_ptr,
+    };
 
     #endregion
 
@@ -65,15 +74,6 @@ public sealed unsafe partial class GpuBuffer : GpuResource, ICbv, ISrv, IUav, IR
     #endregion
 
     #region View
-
-    FResourceMeta IView.GetMeta() => new()
-    {
-        CurrentState = m_ptr->Base.m_state,
-        Type = FResourceRefType.Buffer,
-        Buffer = m_ptr,
-    };
-    void IView.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
-    internal void UnsafeChangeState(FResourceState state) => m_ptr->Base.m_state.ChangeState(state);
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);
     public bool TryIbv() => Purpose.HasFlags(ResourcePurpose.IndexBuffer);

@@ -6,13 +6,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{DB
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloTriangle", "Examples\HelloTriangle\HelloTriangle.csproj", "{2ABF3CFF-8E44-4992-A633-491B2AAA5BFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coplt.Graphics.Native.D3d12", "Coplt.Graphics.Native.D3d12\Coplt.Graphics.Native.D3d12.csproj", "{9B2BF8A4-3978-4639-B8D8-20C75138CDC9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coplt.Graphics.Native.D3d12.Win64", "Coplt.Graphics.Native.D3d12.Win64\Coplt.Graphics.Native.D3d12.Win64.csproj", "{9B2BF8A4-3978-4639-B8D8-20C75138CDC9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleBase", "Examples\ExampleBase\ExampleBase.csproj", "{B4F50522-B216-413B-AEC5-ED6D9114D1EE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloTriangleVertex", "Examples\HelloTriangleVertex\HelloTriangleVertex.csproj", "{1173C015-4D34-4DD1-85F6-98C68FDC50BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RotatingCube", "Examples\RotatingCube\RotatingCube.csproj", "{C4C82737-D197-447B-B663-2DEFE3CE6679}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Colorful", "Examples\Colorful\Colorful.csproj", "{C4C82737-D197-447B-B663-2DEFE3CE6679}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

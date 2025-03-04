@@ -14,7 +14,7 @@ namespace Coplt
         Task = 4,
     };
 
-    COPLT_ENUM_FLAGS(FShaderStageFlags, u8)
+    COPLT_ENUM_FLAGS(FShaderStageFlags, u32)
     {
         None = 0,
         Compute = 1 << 0,
@@ -26,7 +26,7 @@ namespace Coplt
 
     struct FShaderModuleCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         // 可选
         FString8* EntryPoint{};
         // 需要自己保证数据内容符合当前使用的后端，比如 dx 使用的 dxil，vk 使用的 spv
@@ -53,7 +53,7 @@ namespace Coplt
 
     struct FShaderCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         // 此处是借用，不传递所有权
         FShaderLayout* Layout{};
         // 此处是借用，不传递所有权

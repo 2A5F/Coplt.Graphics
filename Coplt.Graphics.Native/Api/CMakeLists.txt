@@ -43,6 +43,11 @@ add_library(${target_name} STATIC
     FFI/Blob.h
     Src/Blob.cc
     FFI/Context.h
+    FFI/Binding.h
+    FFI/Executor.h
+    FFI/Features.h
+    FFI/Adapter.h
+    Include/ChunkedVector.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})
@@ -53,4 +58,5 @@ target_link_libraries(${target_name}
     glm::glm
     mimalloc-static
     fmt::fmt
+    concurrentqueue
 )

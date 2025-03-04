@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using Coplt.Dropping;
@@ -8,42 +9,6 @@ using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
-#region Enums
-
-public enum D3dFeatureLevel
-{
-    Unset = 0,
-    _12_1 = 0xc100,
-    _12_2 = 0xc200,
-}
-
-public enum VulkanVersion
-{
-    Unset = 0,
-    _1_2 = 1002,
-    _1_3 = 1003,
-    _1_4 = 1004,
-}
-
-public enum GpuPreference : byte
-{
-    HighPerformance = 0,
-    MinimumPower = 1,
-    Any = 255,
-}
-
-#endregion
-
-#region GpuDeviceOptions
-
-public record struct GpuDeviceOptions
-{
-    public VulkanVersion VulkanVersion;
-    public D3dFeatureLevel D3dFeatureLevel;
-}
-
-#endregion
-
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuDevice
 {
@@ -51,6 +16,7 @@ public sealed unsafe partial class GpuDevice
 
     internal FGpuDevice* m_ptr;
     internal readonly GraphicsInstance m_instance;
+    internal readonly GpuAdapter m_adapter;
     internal string? m_name;
     [Drop]
     internal readonly GpuQueue m_main_queue;
@@ -61,6 +27,7 @@ public sealed unsafe partial class GpuDevice
 
     public FGpuDevice* Ptr => m_ptr;
     public GraphicsInstance Instance => m_instance;
+    public GpuAdapter Adapter => m_adapter;
     public GpuQueue MainQueue => m_main_queue;
     public CommandList MainCommandList => MainQueue.CommandList;
 
@@ -69,13 +36,14 @@ public sealed unsafe partial class GpuDevice
     #region Ctor
 
     internal GpuDevice(
-        FGpuDevice* ptr, GraphicsInstance instance,
+        FGpuDevice* ptr, GraphicsInstance instance, GpuAdapter? adapter,
         string? name, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default
     )
     {
         m_instance = instance;
         m_name = name;
         m_ptr = ptr;
+        m_adapter = adapter ?? m_instance.m_ptr_to_adapters[(nuint)m_ptr->GetAdapter()];
         m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
     }
 
@@ -99,7 +67,7 @@ public sealed unsafe partial class GpuDevice
         m_name = name;
         fixed (char* ptr = name)
         {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
@@ -109,7 +77,7 @@ public sealed unsafe partial class GpuDevice
         m_name = null;
         fixed (byte* ptr = name)
         {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
@@ -213,6 +181,22 @@ public sealed unsafe partial class GpuDevice
         }
     }
 
+    private readonly ConcurrentDictionary<ShaderLayoutFlags, ShaderLayout> m_empty_shader_layouts = new();
+
+    public ShaderLayout GetEmptyShaderLayout(ShaderLayoutFlags Flags = ShaderLayoutFlags.None) =>
+        m_empty_shader_layouts.GetOrAdd(
+            Flags, static (flags, self) =>
+            {
+                FGetEmptyShaderLayoutOptions f_options = new()
+                {
+                    Flags = (FShaderLayoutFlags)flags,
+                };
+                FShaderLayout* ptr;
+                self.m_ptr->GetEmptyShaderLayout(&f_options, &ptr).TryThrow();
+                return new(ptr, $"Empty Shader Layout ({flags})");
+            }, this
+        );
+
     #endregion
 
     #region CreateShaderInputLayout
@@ -267,6 +251,10 @@ public sealed unsafe partial class GpuDevice
         }
     }
 
+    private ShaderInputLayout? m_empty_shader_input_layout;
+    public ShaderInputLayout EmptyShaderInputLayout =>
+        m_empty_shader_input_layout ??= CreateShaderInputLayout([], "Empty Shader Input Layout");
+
     #endregion
 
     #region CreateShader
@@ -305,6 +293,15 @@ public sealed unsafe partial class GpuDevice
             return new(ptr, arr, Layout, InputLayout, Name);
         }
     }
+
+    #endregion
+
+    #region CreateShaderBinding
+
+    public ShaderBinding CreateShaderBinding(
+        ShaderLayout Layout,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainQueue.CreateShaderBinding(Layout, Name, Name8);
 
     #endregion
 

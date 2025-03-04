@@ -19,22 +19,6 @@ namespace Coplt.Graphics
         IndirectDrawArgs = 1 << 10,
     }
 
-    public enum LifeTime : byte
-    {
-        /// <summary>
-        /// 一般资源
-        /// </summary>
-        Common,
-        /// <summary>
-        /// 静态资源，一般比如静态加载的图片、材质的参数
-        /// </summary>
-        Static,
-        /// <summary>
-        /// 瞬态资源，只在帧内使用，帧结束后将丢弃，同时每帧都会具有独立副本，类似交换链
-        /// </summary>
-        Transient,
-    }
-
     public enum CpuAccess : byte
     {
         None = 0,
@@ -66,13 +50,6 @@ namespace Coplt.Graphics.Core
         public static FResourcePurpose ToFFI(this ResourcePurpose value) => (FResourcePurpose)value;
         public static bool HasFlags(this ResourcePurpose purpose, ResourcePurpose flag) => (purpose & flag) == flag;
         public static bool HasAnyFlags(this ResourcePurpose purpose, ResourcePurpose flag) => (purpose & flag) != 0;
-        public static FLifeTime ToFFI(this LifeTime value) => value switch
-        {
-            LifeTime.Common    => FLifeTime.Common,
-            LifeTime.Static    => FLifeTime.Static,
-            LifeTime.Transient => FLifeTime.Transient,
-            _                  => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-        };
         public static FCpuAccess ToFFI(this CpuAccess value) => value switch
         {
             CpuAccess.None  => FCpuAccess.None,

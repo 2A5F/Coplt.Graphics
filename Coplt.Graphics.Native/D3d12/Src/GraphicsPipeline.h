@@ -28,7 +28,7 @@ namespace Coplt
             Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
         );
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetPipelineStatePtr() noexcept override;
 

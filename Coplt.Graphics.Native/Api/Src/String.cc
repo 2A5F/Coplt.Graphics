@@ -2,9 +2,14 @@
 
 using namespace Coplt;
 
-FString* Str8or16::ToString() const
+FString* FStr8or16::ToString() const
 {
-    if (has16()) return String16::Create(str16, len);
-    if (has8()) return String8::Create(str8, len);
+    switch (type)
+    {
+    case FStrType::Str16:
+        return String16::Create(str16, len);
+    case FStrType::Str8:
+        return String8::Create(str8, len);
+    }
     return nullptr;
 }

@@ -64,32 +64,49 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : IRtv, ISrv
+public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, ISrv
 {
     #region Fields
 
-    internal FGpuOutput* m_ptr;
-    internal string? m_name;
-    internal readonly GpuQueue m_queue;
+    internal new FGpuOutput* m_ptr;
 
     #endregion
 
     #region Props
 
-    public FGpuOutput* Ptr => m_ptr;
-
-    public uint3 Size => new(m_ptr->m_width, m_ptr->m_height, 1);
-    public GpuQueue Queue => m_queue;
+    public new FGpuOutput* Ptr => m_ptr;
+    public GraphicsFormat Format => m_ptr->m_format.FromFFI();
+    public ResState State
+    {
+        get => NativeState.FromFFI();
+        set => NativeState = value.ToFFI();
+    }
+    public ref FResState NativeState => ref m_ptr->m_state;
+    public uint2 Size2d => new(m_ptr->m_width, m_ptr->m_height);
+    public uint3 Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
+    ulong IGpuView.Size => m_ptr->m_width;
+    public uint Width => m_ptr->m_width;
+    public uint Height => m_ptr->m_height;
+    public uint DepthOrLength => 1;
+    public uint MipLevels => 1;
+    public uint Planes => 1;
+    uint IGpuView.Count => 0;
+    uint IGpuView.Stride => 0;
+    GpuResourceType IGpuResource.Type => GpuResourceType.Image;
+    IGpuResource IGpuView.Resource => this;
+    FResourceMeta IGpuResource.GetMeta() => new()
+    {
+        Type = FResourceRefType.Output,
+        Output = m_ptr,
+    };
 
     #endregion
 
     #region Ctor
 
-    internal GpuOutput(GpuQueue queue, FGpuOutput* ptr, string? name)
+    internal GpuOutput(FGpuOutput* ptr, string? name, GpuQueue queue) : base((FGpuExecutor*)ptr, name, queue)
     {
-        m_queue = queue;
         m_ptr = ptr;
-        m_name = name;
     }
 
     #endregion
@@ -99,32 +116,7 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
     [Drop]
     private void Drop()
     {
-        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
-        ptr->Release();
-    }
-
-    #endregion
-
-    #region SetName
-
-    public void SetName(string name)
-    {
-        m_name = name;
-        fixed (char* ptr = name)
-        {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    public void SetName(ReadOnlySpan<byte> name)
-    {
-        m_name = null;
-        fixed (byte* ptr = name)
-        {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
-            m_ptr->SetName(&str).TryThrow();
-        }
+        m_ptr = null;
     }
 
     #endregion
@@ -138,102 +130,16 @@ public sealed unsafe partial class GpuOutput : IRtv, ISrv
 
     #endregion
 
-    #region Views
+    #region Present
 
-    FResourceMeta IView.GetMeta() => new()
-    {
-        CurrentState = m_ptr->m_state,
-        Type = FResourceRefType.Output,
-        Output = m_ptr,
-    };
-    void IView.UnsafeChangeState(FResourceState state) => UnsafeChangeState(state);
-    internal void UnsafeChangeState(FResourceState state) => m_ptr->m_state.ChangeState(state);
-
-    public bool TrySrv() => true;
-    public bool TryRtv() => true;
+    public void Present(bool NoWait = false) => Queue.Submit(this, NoWait);
 
     #endregion
 
-    #region Present
+    #region Views
 
-    /// <summary>
-    /// 提交命令并等待下帧可用
-    /// </summary>
-    public void Present()
-    {
-        using var _ = Queue.m_lock.EnterScope();
-        var cmd = Queue.m_cmd;
-        if (cmd.m_current_output != null && cmd.m_current_output != this)
-            throw new ArgumentException(
-                $"The command is already used by another output and cannot be presented in this output"
-            );
-        cmd.Present(this);
-        fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
-        fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
-        fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
-        {
-            FCommandSubmit submit = new()
-            {
-                CommandCount = (uint)cmd.m_commands.Count,
-                ResourceCount = (uint)cmd.m_resource_metas.Count,
-                Commands = p_commands,
-                Resources = p_resources,
-                Payload = p_payload,
-            };
-            try
-            {
-                m_ptr->Present(&submit).TryThrow();
-            }
-            finally
-            {
-                cmd.Reset();
-            }
-        }
-    }
-
-    /// <summary>
-    /// 提交命令
-    /// </summary>
-    public void PresentNoWait()
-    {
-        using var _ = Queue.m_lock.EnterScope();
-        var cmd = Queue.m_cmd;
-        if (cmd.m_current_output != null && cmd.m_current_output != this)
-            throw new ArgumentException(
-                $"The command is already used by another output and cannot be presented in this output"
-            );
-        cmd.Present(this);
-        fixed (FResourceMeta* p_resources = CollectionsMarshal.AsSpan(cmd.m_resource_metas))
-        fixed (FCommandItem* p_commands = CollectionsMarshal.AsSpan(cmd.m_commands))
-        fixed (byte* p_payload = CollectionsMarshal.AsSpan(cmd.m_payload))
-        {
-            FCommandSubmit submit = new()
-            {
-                CommandCount = (uint)cmd.m_commands.Count,
-                ResourceCount = (uint)cmd.m_resource_metas.Count,
-                Commands = p_commands,
-                Resources = p_resources,
-                Payload = p_payload,
-            };
-            try
-            {
-                m_ptr->PresentNoWait(&submit).TryThrow();
-            }
-            finally
-            {
-                cmd.Reset();
-            }
-        }
-    }
-
-    /// <summary>
-    /// 等待下帧可用
-    /// </summary>
-    public void WaitNextFrame()
-    {
-        using var _ = Queue.m_lock.EnterScope();
-        m_ptr->WaitNextFrame().TryThrow();
-    }
+    public bool TrySrv() => true;
+    public bool TryRtv() => true;
 
     #endregion
 

@@ -131,14 +131,17 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
 ) : m_device(std::move(device)), m_graphics_state(options.GraphicsState)
 {
     m_dx_device = m_device->m_device;
-    if (options.Shader == nullptr) throw WRuntimeException(L"Shader is null");
+    if (options.Shader == nullptr)
+        COPLT_THROW("Shader is null");
     m_shader = Rc<FShader>::UnsafeClone(options.Shader);
-    if (!HasFlags(m_shader->Stages, FShaderStageFlags::Pixel)) throw WRuntimeException(L"The shader is not graphics");
+    if (!HasFlags(m_shader->Stages, FShaderStageFlags::Pixel))
+        COPLT_THROW("The shader is not graphics");
 
     if (auto layout = m_shader->Layout())
     {
         auto dx_layout = layout->QueryInterface<FD3d12ShaderLayout>();
-        if (dx_layout == nullptr) throw WRuntimeException(L"Shader layout from different backends");
+        if (dx_layout == nullptr)
+            COPLT_THROW("Shader layout from different backends");
         m_layout = Rc<FD3d12ShaderLayout>::UnsafeClone(dx_layout);
     }
     else
@@ -173,12 +176,14 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         if (auto input_layout = m_shader->InputLayout())
         {
             auto dx_input_layout = input_layout->QueryInterface<FD3d12ShaderInputLayout>();
-            if (dx_input_layout == nullptr) throw WRuntimeException(L"Input layout from different backends");
+            if (dx_input_layout == nullptr)
+                COPLT_THROW("Input layout from different backends");
             FD3d12MeshLayout* dx_mesh_layout{};
             if (options.MeshLayout != nullptr)
             {
                 dx_mesh_layout = options.MeshLayout->QueryInterface<FD3d12MeshLayout>();
-                if (dx_mesh_layout == nullptr) throw WRuntimeException(L"Mesh layout from different backends");
+                if (dx_mesh_layout == nullptr)
+                    COPLT_THROW("Mesh layout from different backends");
             }
             else dx_mesh_layout = m_device->GetEmptyMeshLayout().get();
             SetInputLayout(&m_device, tmp_strings, input_element_desc, input_slots, dx_input_layout, dx_mesh_layout);
@@ -204,7 +209,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS;
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
     }
-    else throw WRuntimeException(L"Unknown shader stage combination");
+    else COPLT_THROW("Unknown shader stage combination");
 
     D3D12_PIPELINE_STATE_STREAM_DESC stream_desc{};
     stream_desc.SizeInBytes = sizeof(stream);
@@ -219,7 +224,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     m_input_slots = std::move(input_slots);
 }
 
-FResult D3d12GraphicsShaderPipeline::SetName(const Str8or16& name) noexcept
+FResult D3d12GraphicsShaderPipeline::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {

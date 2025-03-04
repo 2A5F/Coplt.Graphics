@@ -229,6 +229,16 @@ namespace Coplt
         {
             return get() == nullptr;
         }
+
+        bool operator==(T* ptr) const
+        {
+            return get() == ptr;
+        }
+
+        bool operator==(const T& ref) const
+        {
+            return *get() == ref;
+        }
     };
 
     template <class T>
@@ -438,10 +448,10 @@ namespace Coplt
         mutable std::atomic_size_t m_strong{1};
         mutable std::atomic_size_t m_weak{1};
 
-        COPLT_NO_INLINE void DropSlow(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
+        COPLT_NO_INLINE void DropSlow(void* self, void* object_start, void (*p_free)(void*, void*)) const noexcept
         {
             this->~ObjectRcPartialImpl();
-            ReleaseWeak(self, object_start, free);
+            ReleaseWeak(self, object_start, p_free);
         }
 
         size_t AddRef() const noexcept
@@ -449,11 +459,11 @@ namespace Coplt
             return m_strong.fetch_add(1, std::memory_order_relaxed);
         }
 
-        size_t Release(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
+        size_t Release(void* self, void* object_start, void (*p_free)(void*, void*)) const noexcept
         {
             const size_t r = m_strong.fetch_sub(1, std::memory_order_release);
             if (r != 1) return r;
-            DropSlow(self, object_start, free);
+            DropSlow(self, object_start, p_free);
             return r;
         }
 
@@ -462,11 +472,11 @@ namespace Coplt
             return m_weak.fetch_add(1, std::memory_order_relaxed);
         }
 
-        size_t ReleaseWeak(void* self, void* object_start, void (*free)(void*, void*)) const noexcept
+        size_t ReleaseWeak(void* self, void* object_start, void (*p_free)(void*, void*)) const noexcept
         {
             const size_t r = m_weak.fetch_sub(1, std::memory_order_release);
             if (r != 1) return r;
-            free(self, object_start);
+            p_free(self, object_start);
             return r;
         }
 

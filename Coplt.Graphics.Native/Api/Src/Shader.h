@@ -22,7 +22,7 @@ namespace Coplt
 
         void Free(void* self) override;
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         // 可空
         FString8* GetEntryPoint() noexcept override;
@@ -40,7 +40,7 @@ namespace Coplt
 
         explicit Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         FShaderLayout* Layout() noexcept override;
 

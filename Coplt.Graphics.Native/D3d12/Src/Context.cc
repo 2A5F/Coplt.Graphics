@@ -18,7 +18,7 @@ D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::m
     );
     if (m_device->Debug())
     {
-        chr | m_command_allocator >> SetNameEx(Str8or16(fmt::format(L"Frame Context ({}) Command Allocator", m_id)));
+        chr | m_command_allocator >> SetNameEx(FStr8or16(fmt::format(L"Frame Context ({}) Command Allocator", m_id)));
     }
 }
 
@@ -34,7 +34,7 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
         m_cur_upload_buffer_index = m_upload_buffers.size();
         m_cur_upload_buffer_size = size;
         m_upload_buffers.push_back(
-            BufferPack(m_device->m_gpu_allocator.Get(), FCpuAccess::Write, m_cur_upload_buffer_size)
+            BufferPack(m_device.get(), m_device->m_gpu_allocator.Get(), FCpuAccess::Write, m_cur_upload_buffer_size)
         );
         const auto& upload_buffer = m_upload_buffers.back();
         void* mapped_ptr{};
@@ -43,7 +43,7 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
             const auto name = fmt::format(
                 L"Frame Context ({}) Upload Buffer ({})", m_id, upload_buffer.m_size
             );
-            chr | upload_buffer.m_resource.m_resource >> SetNameEx(Str8or16(name));
+            chr | upload_buffer.m_resource.m_resource >> SetNameEx(FStr8or16(name));
         }
         constexpr D3D12_RANGE read_range{.Begin = 0, .End = 0};
         chr | upload_buffer.m_resource.m_resource->Map(0, &read_range, &mapped_ptr);

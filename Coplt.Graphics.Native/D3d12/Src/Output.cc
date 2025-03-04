@@ -10,13 +10,19 @@ using namespace Coplt;
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
 {
     if (m_queue->m_queue_type != FGpuQueueType::Direct)
-        throw WRuntimeException(L"Cannot create output on a non direct queue.");
+        COPLT_THROW("Cannot create output on a non direct queue.");
 
     m_device = m_queue->m_device;
     m_dx_device = m_queue->m_dx_device;
     m_dx_queue = m_queue->m_queue;
 
-    m_state = FResourceState::Present;
+    m_state = {
+        .Access = FResAccess::NoAccess,
+        .Layout = FResLayout::Present,
+        .Stages = FShaderStageFlags::None,
+        .Legacy = FLegacyState::Present,
+        .CrossQueue = true,
+    };
 }
 
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue, const FGpuOutputCreateOptions& options)
@@ -130,7 +136,7 @@ D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(
     }
 
     ComPtr<IDXGISwapChain1> swap_chain;
-    chr | m_device->m_factory->CreateSwapChainForHwnd(
+    chr | m_device->m_instance->m_factory->CreateSwapChainForHwnd(
         m_dx_queue.Get(),
         hwnd,
         &desc,
@@ -174,7 +180,7 @@ FGraphicsFormat D3d12GpuSwapChainOutput::SelectFormat(
     return FGraphicsFormat::R8G8B8A8_UNorm;
 }
 
-FResult D3d12GpuSwapChainOutput::SetName(const Str8or16& name) noexcept
+FResult D3d12GpuSwapChainOutput::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {
@@ -214,34 +220,32 @@ FResult D3d12GpuSwapChainOutput::Resize(const u32 Width, const u32 Height) noexc
     });
 }
 
-FResult D3d12GpuSwapChainOutput::Present(/* 可选 */ const FCommandSubmit* submit) noexcept
-{
-    return feb([&]
-    {
-        std::lock_guard lock(m_queue->m_mutex);
-        Submit_NoLock(submit);
-        Present_NoLock();
-        WaitNextFrame_NoLock();
-    });
-}
-
-FResult D3d12GpuSwapChainOutput::PresentNoWait(/* 可选 */ const FCommandSubmit* submit) noexcept
-{
-    return feb([&]
-    {
-        std::lock_guard lock(m_queue->m_mutex);
-        Submit_NoLock(submit);
-        Present_NoLock();
-    });
-}
-
-FResult D3d12GpuSwapChainOutput::WaitNextFrame() noexcept
+FResult D3d12GpuSwapChainOutput::Wait() noexcept
 {
     return feb([&]
     {
         std::lock_guard lock(m_queue->m_mutex);
         WaitNextFrame_NoLock();
     });
+}
+
+void D3d12GpuSwapChainOutput::Submit(D3d12GpuQueue* Queue, const FCommandSubmit* submit)
+{
+    if (Queue != m_queue)
+        COPLT_THROW("The executor does not belong to this queue");
+    std::lock_guard lock(m_queue->m_mutex);
+    Submit_NoLock(submit);
+    Present_NoLock();
+    WaitNextFrame_NoLock();
+}
+
+void D3d12GpuSwapChainOutput::SubmitNoWait(D3d12GpuQueue* Queue, const FCommandSubmit* submit)
+{
+    if (Queue != m_queue)
+        COPLT_THROW("The executor does not belong to this queue");
+    std::lock_guard lock(m_queue->m_mutex);
+    Submit_NoLock(submit);
+    Present_NoLock();
 }
 
 void D3d12GpuSwapChainOutput::Submit_NoLock(const FCommandSubmit* submit)
@@ -358,7 +362,7 @@ FResult D3d12GpuSwapChainOutput::GetCurrentRtv(void* out) noexcept
     return feb([&]
     {
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
-        rtv_handle.Offset(m_frame_index, m_rtv_descriptor_size);
+        rtv_handle.Offset(static_cast<i32>(m_frame_index), m_rtv_descriptor_size);
         *static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(out) = rtv_handle;
     });
 }

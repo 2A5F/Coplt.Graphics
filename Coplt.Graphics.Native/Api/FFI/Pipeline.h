@@ -8,7 +8,7 @@ namespace Coplt
 {
     struct FShaderPipelineCreateOptions
     {
-        Str8or16 Name{};
+        FStr8or16 Name{};
         FShader* Shader{};
     };
 

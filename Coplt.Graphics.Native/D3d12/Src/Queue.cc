@@ -41,7 +41,7 @@ D3d12GpuQueue::D3d12GpuQueue(
     }
 }
 
-FResult D3d12GpuQueue::SetName(const Str8or16& name) noexcept
+FResult D3d12GpuQueue::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {
@@ -113,4 +113,26 @@ void D3d12GpuQueue::SubmitNoLock(
     chr | m_cmd->Reset(m_frame_context->m_command_allocator.Get(), nullptr);
     m_context = m_frame_context.get();
     m_submit_id++;
+}
+
+FResult D3d12GpuQueue::Submit(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept
+{
+    return feb([&]
+    {
+        const auto executor = Executor->QueryInterface<ID3d12GpuExecutor>();
+        if (executor == nullptr)
+            COPLT_THROW("Executors from different backends");
+        executor->Submit(this, submit);
+    });
+}
+
+FResult D3d12GpuQueue::SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept
+{
+    return feb([&]
+    {
+        const auto executor = Executor->QueryInterface<ID3d12GpuExecutor>();
+        if (executor == nullptr)
+            COPLT_THROW("Executors from different backends");
+        executor->SubmitNoWait(this, submit);
+    });
 }

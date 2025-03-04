@@ -102,15 +102,14 @@ public sealed unsafe partial class ShaderLayout
 
     internal FShaderLayout* m_ptr;
     internal string? m_name;
-    internal readonly FShaderLayoutItemDefine* m_native_defines;
-    internal readonly uint m_native_defines_count;
+    internal readonly FRoSlice<FShaderLayoutItemDefine> m_native_defines;
 
     #endregion
 
     #region Props
 
     public FShaderLayout* Ptr => m_ptr;
-    public ReadOnlySpan<FShaderLayoutItemDefine> NativeElements => new(m_native_defines, (int)m_native_defines_count);
+    public ReadOnlySpan<FShaderLayoutItemDefine> NativeDefines => m_native_defines.Span;
 
     #endregion
 
@@ -122,9 +121,9 @@ public sealed unsafe partial class ShaderLayout
         m_name = name;
         if (m_ptr != null)
         {
-            uint count;
-            m_native_defines = m_ptr->GetItemDefines(&count);
-            m_native_defines_count = count;
+            uint count = 0;
+            var defines = m_ptr->GetItemDefines(&count);
+            m_native_defines = new(defines, count);
         }
     }
 
@@ -148,19 +147,19 @@ public sealed unsafe partial class ShaderLayout
         m_name = name;
         fixed (char* ptr = name)
         {
-            Str8or16 str = new() { str16 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
     }
 
     public void SetName(ReadOnlySpan<byte> name)
     {
+        m_name = null;
         fixed (byte* ptr = name)
         {
-            Str8or16 str = new() { str8 = ptr, len = name.Length };
+            FStr8or16 str = new(ptr, name.Length);
             m_ptr->SetName(&str).TryThrow();
         }
-        m_name = null;
     }
 
     #endregion

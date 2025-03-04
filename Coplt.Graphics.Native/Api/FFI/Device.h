@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Binding.h"
+#include "Features.h"
 #include "GpuObject.h"
 #include "Layout.h"
 #include "Queue.h"
@@ -24,28 +26,52 @@ namespace Coplt
         _12_2 = 0xc200,
     };
 
-    enum class FGpuPreference : u8
+    enum class FDeviceTypeRequire : u8
     {
-        HighPerformance = 0,
-        MinimumPower = 1,
-        Any = 255,
+        Any,
+        Gpu,
+        IntegratedGpu,
+        DiscreteGpu,
+        VirtualGpu,
+        Cpu,
+    };
+
+    enum class FDeviceType : u8
+    {
+        Other,
+        IntegratedGpu,
+        DiscreteGpu,
+        VirtualGpu,
+        Cpu,
+    };
+
+    struct FDeviceRequires
+    {
+        // 仅 dx 后端时可用
+        FD3dFeatureLevel D3dFeatureLevel{};
+        // 仅 vk 后端时可用
+        FVulkanVersion VulkanVersion{};
+        FDeviceTypeRequire DeviceType{};
+        FDeviceFeatureRequires FeatureRequires{};
     };
 
     struct FGpuDeviceCreateOptions
     {
         // 可选
-        Str8or16 Name{};
-        // 仅 dx 后端时可用
-        FD3dFeatureLevel D3dFeatureLevel{};
-        // 仅 vk 后端时可用
-        FVulkanVersion VulkanVersion{};
-        FGpuPreference Preference{};
-        b8 Debug{};
-        b8 GpuBasedValidation{};
+        FStr8or16 Name{};
     };
+
+    struct FGpuAutoSelectDeviceCreateOptions : FGpuDeviceCreateOptions
+    {
+        FDeviceRequires Requires{};
+    };
+
+    struct FGpuAdapter;
 
     COPLT_INTERFACE_DEFINE(FGpuDevice, "557f032d-ed50-403a-adc5-214fddbe6c6b", FGpuObject)
     {
+        virtual FGpuAdapter* GetAdapter() noexcept = 0;
+
         // d3d12 返回 ID3D12Device*
         virtual void* GetRawDevice() noexcept = 0;
 
@@ -53,16 +79,14 @@ namespace Coplt
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
         virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
-        virtual FResult CreateShaderInputLayout(
-            const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
-        ) noexcept = 0;
+        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out) noexcept = 0;
+        virtual FResult CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
+        virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;
 
         virtual FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept = 0;
 
-        virtual FResult CreateGraphicsPipeline(
-            const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
-        ) noexcept = 0;
+        virtual FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept = 0;
 
         virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;
     };

@@ -9,6 +9,7 @@
 #include "../../Api/Include/Object.h"
 #include "../FFI/Queue.h"
 #include "Command.h"
+#include "Executor.h"
 
 namespace Coplt
 {
@@ -27,7 +28,7 @@ namespace Coplt
 
         explicit D3d12GpuQueue(Rc<D3d12GpuDevice>&& device, const FMainQueueCreateOptions& options);
 
-        FResult SetName(const Str8or16& name) noexcept override;
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRawQueue() noexcept override;
 
@@ -49,6 +50,9 @@ namespace Coplt
         void Submit(Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit);
         // 提交命令，并互换帧上下文，但是无锁，需要外部手动锁，参数提供的帧上下文必须可用
         void SubmitNoLock(Rc<D3d12FrameContext>& frame_context, /* 可选 */ const FCommandSubmit* submit);
+
+        FResult Submit(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept override;
+        FResult SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept override;
     };
 
     inline D3D12_COMMAND_LIST_TYPE ToDx(const FGpuQueueType value)
