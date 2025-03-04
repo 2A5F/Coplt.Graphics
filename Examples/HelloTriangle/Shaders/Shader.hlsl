@@ -48,9 +48,13 @@ float SdTriangle(float2 p, float2 p0, float2 p1, float2 p2)
     float d2 = dot2(v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0));
 
     float o = e0.x * e2.y - e0.y * e2.x;
-    float2 d = min(min(float2(d0, o * (v0.x * e0.y - v0.y * e0.x)),
-                       float2(d1, o * (v1.x * e1.y - v1.y * e1.x))),
-                   float2(d2, o * (v2.x * e2.y - v2.y * e2.x)));
+    float2 d = min(
+        min(
+            float2(d0, o * (v0.x * e0.y - v0.y * e0.x)),
+            float2(d1, o * (v1.x * e1.y - v1.y * e1.x))
+        ),
+        float2(d2, o * (v2.x * e2.y - v2.y * e2.x))
+    );
     return -sqrt(d.x) * sign(d.y);
 }
 
