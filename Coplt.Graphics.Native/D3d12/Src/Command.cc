@@ -335,7 +335,41 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds[info.Dsv.IsEmpty() ? 0 : 1];
         if (!info.Dsv.IsEmpty())
         {
-            // todo dsv
+            const auto& d_load = info.DsvLoadOp[0];
+            const auto& d_store = info.DsvStoreOp[0];
+            const auto& s_load = info.DsvLoadOp[1];
+            const auto& s_store = info.DsvStoreOp[1];
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC desc{};
+            desc.cpuDescriptor = GetDsv(info.Dsv.Get(submit));
+            desc.DepthBeginningAccess = ToDx(d_load, [&](D3D12_CLEAR_VALUE& cv)
+            {
+                cv.Format = ToDx(info.DsvFormat);
+                cv.DepthStencil.Depth = info.Depth;
+            });
+            desc.DepthBeginningAccess = ToDx(s_load, [&](D3D12_CLEAR_VALUE& cv)
+            {
+                cv.Format = ToDx(info.DsvFormat);
+                cv.DepthStencil.Stencil = info.Stencil;
+            });
+            desc.DepthEndingAccess = ToDx(d_store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
+            {
+                const auto& res_info = submit.ResolveInfos[info.DsvResolveInfoIndex];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(res_info.Src.Get(submit));
+                res.pDstResource = GetResource(res_info.Dst.Get(submit));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
+            desc.StencilEndingAccess = ToDx(s_store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
+            {
+                const auto& res_info = submit.ResolveInfos[info.DsvResolveInfoIndex];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(res_info.Src.Get(submit));
+                res.pDstResource = GetResource(res_info.Dst.Get(submit));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
+            ds[0] = desc;
         }
         for (u32 n = 0; n < num_rtv; ++n)
         {
@@ -344,48 +378,23 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
             const auto& store = info.RtvStoreOp[n];
             D3D12_RENDER_PASS_RENDER_TARGET_DESC desc{};
             desc.cpuDescriptor = GetRtv(rtv.Get(submit));
-            switch (load)
+            desc.BeginningAccess = ToDx(load, [&](D3D12_CLEAR_VALUE& cv)
             {
-            case FLoadOp::Load:
-                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-                break;
-            case FLoadOp::Clear:
-                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                desc.BeginningAccess.Clear.ClearValue.Color[0] = info.Color[0];
-                desc.BeginningAccess.Clear.ClearValue.Color[1] = info.Color[1];
-                desc.BeginningAccess.Clear.ClearValue.Color[2] = info.Color[2];
-                desc.BeginningAccess.Clear.ClearValue.Color[3] = info.Color[3];
-                break;
-            case FLoadOp::Discard:
-                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-                break;
-            case FLoadOp::NoAccess:
-                desc.BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-                break;
-            }
-            switch (store)
+                cv.Format = ToDx(info.RtvFormat[n]);
+                cv.Color[0] = info.Color[0];
+                cv.Color[1] = info.Color[1];
+                cv.Color[2] = info.Color[2];
+                cv.Color[3] = info.Color[3];
+            });
+            desc.EndingAccess = ToDx(store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
             {
-            case FStoreOp::Store:
-                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                break;
-            case FStoreOp::Discard:
-                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                break;
-            case FStoreOp::Resolve:
-                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
-                {
-                    const auto& res_info = submit.ResolveInfos[info.ResolveInfoIndex[n]];
-                    desc.EndingAccess.Resolve.Format = ToDx(res_info.Format);
-                    desc.EndingAccess.Resolve.pSrcResource = GetResource(res_info.Src.Get(submit));
-                    desc.EndingAccess.Resolve.pDstResource = GetResource(res_info.Dst.Get(submit));
-                    desc.EndingAccess.Resolve.SubresourceCount = 0;
-                    desc.EndingAccess.Resolve.ResolveMode = ToDx(res_info.Mode);
-                }
-                break;
-            case FStoreOp::NoAccess:
-                desc.EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-                break;
-            }
+                const auto& res_info = submit.ResolveInfos[info.ResolveInfoIndex[n]];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(res_info.Src.Get(submit));
+                res.pDstResource = GetResource(res_info.Dst.Get(submit));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
             rts[n] = desc;
         }
         D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
@@ -418,12 +427,14 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
             RenderSetViewportScissor(submit, j, item.SetViewportScissor);
             continue;
         case FCommandType::SetMeshBuffers:
-            continue; // todo
+            RenderSetMeshBuffers(submit, j, item.SetMeshBuffers);
+            continue;
         case FCommandType::Draw:
             RenderDraw(submit, j, item.Draw);
             continue;
         case FCommandType::Dispatch:
-            continue; // todo
+            RenderDispatch(submit, j, item.Dispatch);
+            continue;
         case FCommandType::Present:
         case FCommandType::Barrier:
         case FCommandType::ClearColor:
@@ -453,10 +464,47 @@ void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, co
     }
 }
 
+void D3d12CommandInterpreter::RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const
+{
+    if (cmd.Type != FDispatchType::Mesh)
+        COPLT_THROW_FMT("Render only supports DispatchMesh and does not support Dispatch for Compute at command {}", i);
+    m_queue->m_cmd.m_list6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
+}
+
 void D3d12CommandInterpreter::RenderSetViewportScissor(const FCommandSubmit& submit, u32 i, const FCommandSetViewportScissor& cmd) const
 {
     m_queue->m_cmd->RSSetViewports(cmd.ViewportCount, reinterpret_cast<const D3D12_VIEWPORT*>(submit.Viewports + cmd.ViewportIndex));
     m_queue->m_cmd->RSSetScissorRects(cmd.ScissorRectCount, reinterpret_cast<const D3D12_RECT*>(submit.Rects + cmd.ScissorRectIndex));
+}
+
+void D3d12CommandInterpreter::RenderSetMeshBuffers(const FCommandSubmit& submit, u32 i, const FCommandSetMeshBuffers& cmd) const
+{
+    const auto& cmd_pack = m_queue->m_cmd;
+    const auto& buffers = submit.MeshBuffers[cmd.PayloadIndex];
+    const auto defs = buffers.MeshLayout->GetBuffers();
+    const auto vbs = std::span(submit.VertexBufferRanges + buffers.VertexBuffersIndex, buffers.VertexBufferCount);
+    if (!buffers.IndexBuffer.Buffer.IsEmpty())
+    {
+        const auto resource = GetResource(buffers.IndexBuffer.Buffer.Get(submit));
+        D3D12_INDEX_BUFFER_VIEW view{};
+        view.BufferLocation = resource->GetGPUVirtualAddress() + buffers.IndexBuffer.Offset;
+        view.SizeInBytes = buffers.IndexBuffer.Size;
+        view.Format = ToDx(cmd.IndexFormat);
+        cmd_pack->IASetIndexBuffer(&view);
+    }
+    D3D12_VERTEX_BUFFER_VIEW views[vbs.size()];
+    for (u32 j = 0; j < vbs.size(); j++)
+    {
+        const auto& range = vbs[j];
+        const auto& def = defs[range.Index];
+        const auto resource = GetResource(range.Buffer.Get(submit));
+        D3D12_VERTEX_BUFFER_VIEW view{};
+        view.BufferLocation = resource->GetGPUVirtualAddress() + range.Offset;
+        view.SizeInBytes = range.Size;
+        view.StrideInBytes = def.Stride;
+        views[j] = view;
+    }
+    cmd_pack->IASetVertexBuffers(cmd.VertexStartSlot, buffers.VertexBufferCount, views);
 }
 
 void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, const u32 i)
@@ -554,6 +602,20 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetRtv(const FResourceMeta&
             output->GetCurrentRtv(&rtv).TryThrow();
             return rtv;
         }
+    default:
+        COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(meta.Type));
+    }
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3d12CommandInterpreter::GetDsv(const FResourceMeta& meta)
+{
+    switch (meta.Type)
+    {
+    case FResourceRefType::Image:
+    case FResourceRefType::Buffer:
+        COPLT_THROW("TODO");
+    case FResourceRefType::Output:
+        COPLT_THROW("Output does not support Dsv usage");
     default:
         COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(meta.Type));
     }

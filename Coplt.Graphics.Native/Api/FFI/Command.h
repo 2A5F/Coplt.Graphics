@@ -270,6 +270,9 @@ namespace Coplt
         FResourceRef Rtv[8]{};
         // 类型为 FResolveInfo
         u32 ResolveInfoIndex[8]{};
+        u32 DsvResolveInfoIndex{};
+        FGraphicsFormat RtvFormat[8]{};
+        FGraphicsFormat DsvFormat{};
         f32 Color[4 * 8]{};
         f32 Depth{};
         u8 Stencil{};

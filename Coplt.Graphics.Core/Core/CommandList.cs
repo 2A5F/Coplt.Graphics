@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
 using Coplt.Graphics.Utilities;
 using Coplt.Union;
+using static Coplt.Graphics.Core.CommandList;
 
 namespace Coplt.Graphics.Core;
 
@@ -27,7 +28,13 @@ public sealed unsafe class CommandList
         public readonly IGpuResource Resource = Resource;
         public int CurrentBarrierIndex = -1;
         public int CurrentBarrierCmdIndex = -1;
+        public int LastUsedBarrierCmdIndex = -1;
         public bool First = true;
+
+        public void MarkUse(CommandList self)
+        {
+            LastUsedBarrierCmdIndex = self.m_current_barrier_cmd_index;
+        }
 
         public void ReqState(
             CommandList self,
@@ -60,11 +67,7 @@ public sealed unsafe class CommandList
             }
             if (OldState.IsCompatible(NewState, self.UseLegacyState, true, out var same))
             {
-                if (same)
-                {
-                    CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index;
-                    return;
-                }
+                if (same) goto Ret;
                 NewState = OldState.Merge(NewState, self.UseLegacyState, true);
                 if (CurrentBarrierIndex < 0) goto Add;
                 goto Merge;
@@ -72,7 +75,7 @@ public sealed unsafe class CommandList
         Add:
             {
                 CurrentBarrierIndex = self.m_barriers.Count;
-                if (self.m_current_barrier_cmd_index < 0 || CurrentBarrierCmdIndex >= self.m_current_barrier_cmd_index)
+                if (self.m_current_barrier_cmd_index < 0 || LastUsedBarrierCmdIndex >= self.m_current_barrier_cmd_index)
                 {
                     CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index = self.m_commands.Count;
                     var cmd = new FCommandBarrier
@@ -85,7 +88,7 @@ public sealed unsafe class CommandList
                 }
                 else
                 {
-                    if (CurrentBarrierCmdIndex < 0) CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index;
+                    CurrentBarrierCmdIndex = self.m_current_barrier_cmd_index;
                     ref var cmd = ref self.m_commands.At(CurrentBarrierCmdIndex);
                     cmd.Barrier.BarrierCount++;
                 }
@@ -100,6 +103,8 @@ public sealed unsafe class CommandList
             }
         End:
             OldState = NewState;
+        Ret:
+            MarkUse(self);
             return;
         }
 
@@ -197,6 +202,65 @@ public sealed unsafe class CommandList
         }
     }
 
+    [Flags]
+    internal enum ScopedStateUsage
+    {
+        Common = 0,
+        Pixel = 1 << 0,
+        Vertex = 1 << 1,
+        Mesh = 1 << 2,
+        Compute = 1 << 3,
+    }
+
+    internal record struct ScopedState(
+        ScopedStateUsage Usage,
+        ResLayout Layout,
+        ResAccess Access,
+        LegacyState Legacy
+    )
+    {
+        public ScopedStateUsage Usage = Usage;
+        public ResLayout Layout = Layout;
+        public ResAccess Access = Access;
+        public LegacyState Legacy = Legacy;
+
+        public readonly bool IsCompatible(in ScopedState other, bool legacy, out bool same)
+        {
+            if (legacy)
+            {
+                same = Legacy == other.Legacy;
+                return Legacy.IsCompatible(other.Legacy);
+            }
+            if (Layout != other.Layout) goto no;
+            if (Access != other.Access)
+            {
+                same = false;
+                var sna = (Access & ResAccess.NoAccess) != 0;
+                var ona = (other.Access & ResAccess.NoAccess) != 0;
+                if (sna || ona) return true;
+                if (!Access.IsReadOnly() || !other.Access.IsReadOnly()) goto no;
+            }
+            else
+            {
+                same = true;
+            }
+            return true;
+        no:
+            same = false;
+            return false;
+        }
+
+        public void Merge(in ScopedState other, bool legacy, bool same)
+        {
+            Usage |= other.Usage;
+            if (!same)
+            {
+                if (legacy) Legacy |= other.Legacy;
+                else Access |= other.Access;
+            }
+        }
+    }
+
     #endregion
 
     #region Fields
@@ -221,6 +285,7 @@ public sealed unsafe class CommandList
     internal readonly List<byte> m_string8 = new();
     internal readonly List<char> m_string16 = new();
     internal readonly Dictionary<object, int> m_resources = new();
+    internal readonly Dictionary<FResourceRef, ScopedState> m_scoped_res_state = new();
     internal readonly HashSet<object> m_objects = new();
     internal GpuOutput? m_current_output;
     internal int m_debug_scope_count;
@@ -250,7 +315,7 @@ public sealed unsafe class CommandList
     {
         m_queue = queue;
         m_instance = queue.Device.Instance;
-        m_use_legacy_state = !m_queue.m_device.m_adapter.UseLegacyState;
+        m_use_legacy_state = m_queue.m_device.m_adapter.UseLegacyState;
     }
 
     #endregion
@@ -339,6 +404,45 @@ public sealed unsafe class CommandList
             Queue.ActualSubmit(Executor, &submit, NoWait);
         }
     }
+
+    #endregion
+
+    #region RecordScopedResState
+
+    internal ref ScopedState RecordScopedResState(FResourceRef res, ScopedState state, out bool compatible)
+    {
+        ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            m_scoped_res_state, res, out var exists
+        );
+        if (!exists)
+        {
+            slot = state;
+            compatible = true;
+            return ref slot;
+        }
+        if (slot.IsCompatible(state, UseLegacyState, out var same))
+        {
+            slot.Merge(state, UseLegacyState, same);
+            compatible = true;
+            return ref slot;
+        }
+        else
+        {
+            compatible = false;
+            return ref slot;
+        }
+    }
+
+    internal ArgumentException Incompatible(
+        string Name, in ScopedState old_state, LegacyState Legacy, ResAccess Access
+    ) =>
+        UseLegacyState
+            ? new ArgumentException(
+                $"{Name} cannot be in [{Legacy}] and [{old_state.Legacy}] states at the same time"
+            )
+            : new ArgumentException(
+                $"{Name} cannot be in [{Access}] and [{old_state.Access}] states at the same time"
+            );
 
     #endregion
 
@@ -1057,6 +1161,37 @@ public sealed unsafe class CommandList
 
         #endregion
 
+        #region State
+
+        if (has_dsv)
+        {
+            ref var old_state = ref RecordScopedResState(
+                info.Dsv, new(
+                    ScopedStateUsage.Pixel,
+                    ResLayout.DepthStencilWrite,
+                    ResAccess.DepthStencilWrite,
+                    LegacyState.DepthWrite
+                ), out var compatible
+            );
+            if (!compatible)
+                throw Incompatible("Depth Stencil", old_state, LegacyState.DepthWrite, ResAccess.DepthStencilWrite);
+        }
+        for (var i = 0; i < info.NumRtv; i++)
+        {
+            ref var old_state = ref RecordScopedResState(
+                info.Rtv[i], new(
+                    ScopedStateUsage.Pixel,
+                    ResLayout.RenderTarget,
+                    ResAccess.RenderTarget,
+                    LegacyState.RenderTarget
+                ), out var compatible
+            );
+            if (!compatible)
+                throw Incompatible("Render Target", old_state, LegacyState.RenderTarget, ResAccess.RenderTarget);
+        }
+
+        #endregion
+
         #region Scope
 
         RenderScope scope = new(this, info_index, cmd, m_render_commands, debug_scope);
@@ -1299,15 +1434,15 @@ public unsafe struct RenderScope(
 {
     #region Fields
 
-    private FCommandRender render_cmd = render_cmd;
-    private ShaderPipeline? m_current_pipeline;
-    private ShaderBinding? m_current_binding;
-    private bool m_disposed;
-    private bool m_has_pixel_shader;
-    private bool m_has_vertex_shader;
-    private bool m_has_mesh_shader;
-    private bool m_has_task_shader;
-    private bool m_has_uav_writes;
+    internal FCommandRender render_cmd = render_cmd;
+    internal ShaderPipeline? m_current_pipeline;
+    internal ShaderBinding? m_current_binding;
+    internal bool m_disposed;
+    internal bool m_has_pixel_shader;
+    internal bool m_has_vertex_shader;
+    internal bool m_has_mesh_shader;
+    internal bool m_has_task_shader;
+    internal bool m_has_uav_writes;
 
     #endregion
 
@@ -1331,34 +1466,37 @@ public unsafe struct RenderScope(
         info.HasUavWrites = m_has_uav_writes;
         if (self.AutoBarrierEnabled)
         {
-            var stages = m_has_pixel_shader ? FShaderStageFlags.Pixel : FShaderStageFlags.None;
-            if (info.Dsv.ResourceIndex != 0)
+            foreach (var (res, scoped_state) in self.m_scoped_res_state)
             {
-                ref var state = ref self.StateAt(info.Dsv);
+                ref var state = ref self.StateAt(res);
+                var stages = ShaderStageFlags.None;
+                if (m_has_pixel_shader && (scoped_state.Usage & ScopedStateUsage.Pixel) != 0)
+                    stages |= ShaderStageFlags.Pixel;
+                if (m_has_vertex_shader && (scoped_state.Usage & ScopedStateUsage.Vertex) != 0)
+                    stages |= ShaderStageFlags.Vertex;
+                if (m_has_mesh_shader && (scoped_state.Usage & ScopedStateUsage.Mesh) != 0)
+                    stages |= ShaderStageFlags.Mesh;
+                if (m_has_task_shader && (scoped_state.Usage & ScopedStateUsage.Mesh) != 0)
+                    stages |= ShaderStageFlags.Task;
                 state.ReqState(
                     self,
-                    FResLayout.DepthStencilWrite,
-                    FResAccess.DepthStencilWrite,
-                    stages,
-                    FLegacyState.DepthWrite
+                    scoped_state.Layout.ToFFI(),
+                    scoped_state.Access.ToFFI(),
+                    stages.ToFFI(),
+                    scoped_state.Legacy.ToFFI()
                 );
             }
-            for (var i = 0; i < info.NumRtv; i++)
+            foreach (var res in self.m_scoped_res_state.Keys)
             {
-                ref var state = ref self.StateAt(info.Rtv[i]);
-                state.ReqState(
-                    self,
-                    FResLayout.RenderTarget,
-                    FResAccess.RenderTarget,
-                    stages,
-                    FLegacyState.RenderTarget
-                );
+                ref var state = ref self.StateAt(res);
+                state.MarkUse(self);
             }
         }
         render_cmd.CommandCount = (uint)m_commands.Count - render_cmd.CommandStartIndex;
         self.m_commands.Add(new() { Render = render_cmd });
         self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
+        self.m_scoped_res_state.Clear();
     }
 
     #endregion
@@ -1533,19 +1671,24 @@ public unsafe struct RenderScope(
         var buf = new FMeshBuffers
         {
             MeshLayout = MeshLayout.m_ptr,
-            IndexBuffer = IndexBuffer is { } index_buffer
-                ? new()
-                {
-                    Buffer = self.AddResource(index_buffer.Buffer.Resource),
-                    Offset = index_buffer.Offset,
-                    Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.Size : index_buffer.Size,
-                }
-                : new()
-                {
-                    Buffer = new(uint.MaxValue),
-                },
             VertexBufferCount = (uint)VertexBuffers.Length,
         };
+        if (IndexBuffer is { } index_buffer)
+        {
+            buf.IndexBuffer = new()
+            {
+                Buffer = self.AddResource(index_buffer.Buffer.Resource),
+                Offset = index_buffer.Offset,
+                Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.Size : index_buffer.Size,
+            };
+            ref var old_state = ref self.RecordScopedResState(
+                buf.IndexBuffer.Buffer, new(
+                    ScopedStateUsage.Vertex, ResLayout.None, ResAccess.IndexBuffer, LegacyState.IndexBuffer
+                ), out var compatible
+            );
+            if (!compatible)
+                throw self.Incompatible("Index buffer", old_state, LegacyState.IndexBuffer, ResAccess.IndexBuffer);
+        }
         if (VertexBuffers.Length > 0)
         {
             var index = self.m_vertex_buffer_ranges.Count;
@@ -1557,7 +1700,8 @@ public unsafe struct RenderScope(
             for (var i = 0; i < VertexBuffers.Length; i++)
             {
                 var buffer = VertexBuffers[i];
-                vbs[i] = new()
+                ref var dst = ref vbs[i];
+                dst = new()
                 {
                     Base =
                     {
@@ -1567,6 +1711,15 @@ public unsafe struct RenderScope(
                     },
                     Index = buffer.Index,
                 };
+                ref var old_state = ref self.RecordScopedResState(
+                    dst.Base.Buffer, new(
+                        ScopedStateUsage.Vertex, ResLayout.None, ResAccess.VertexBuffer, LegacyState.VertexBuffer
+                    ), out var compatible
+                );
+                if (!compatible)
+                    throw self.Incompatible(
+                        "Vertex buffer", old_state, LegacyState.VertexBuffer, ResAccess.IndexBuffer
+                    );
             }
         }
         self.m_mesh_buffers.Add(buf);
@@ -1694,10 +1847,13 @@ public unsafe struct ComputeScope(
 {
     #region Fields
 
-    private FCommandCompute compute_cmd = compute_cmd;
-    private ShaderPipeline? m_current_pipeline;
-    private ShaderBinding? m_current_binding;
-    private bool m_disposed;
+    internal FCommandCompute compute_cmd = compute_cmd;
+    internal ShaderPipeline? m_current_pipeline;
+    internal ShaderBinding? m_current_binding;
+    internal bool m_disposed;
+    internal bool m_has_compute_shader;
+    internal bool m_has_mesh_shader;
+    internal bool m_has_task_shader;
 
     #endregion
 
@@ -1717,10 +1873,37 @@ public unsafe struct ComputeScope(
             throw new InvalidOperationException(
                 "There is still Debug scope not ended, please check whether Dispose is missed."
             );
+        if (self.AutoBarrierEnabled)
+        {
+            foreach (var (res, scoped_state) in self.m_scoped_res_state)
+            {
+                ref var state = ref self.StateAt(res);
+                var stages = ShaderStageFlags.None;
+                if (m_has_compute_shader && (scoped_state.Usage & ScopedStateUsage.Compute) != 0)
+                    stages |= ShaderStageFlags.Compute;
+                if (m_has_mesh_shader && (scoped_state.Usage & ScopedStateUsage.Mesh) != 0)
+                    stages |= ShaderStageFlags.Mesh;
+                if (m_has_task_shader && (scoped_state.Usage & ScopedStateUsage.Mesh) != 0)
+                    stages |= ShaderStageFlags.Task;
+                state.ReqState(
+                    self,
+                    scoped_state.Layout.ToFFI(),
+                    scoped_state.Access.ToFFI(),
+                    stages.ToFFI(),
+                    scoped_state.Legacy.ToFFI()
+                );
+            }
+            foreach (var res in self.m_scoped_res_state.Keys)
+            {
+                ref var state = ref self.StateAt(res);
+                state.MarkUse(self);
+            }
+        }
         compute_cmd.CommandCount = (uint)m_commands.Count - compute_cmd.CommandStartIndex;
         self.m_commands.Add(new() { Compute = compute_cmd });
         self.m_in_render_or_compute_scope = false;
         if (debug_scope) new DebugScope(self).Dispose();
+        self.m_scoped_res_state.Clear();
     }
 
     #endregion

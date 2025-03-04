@@ -81,7 +81,9 @@ namespace Coplt
         void BufferCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferCopy& cmd) const;
         void Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
         void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const;
+        void RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const;
         void RenderSetViewportScissor(const FCommandSubmit& submit, u32 i, const FCommandSetViewportScissor& cmd) const;
+        void RenderSetMeshBuffers(const FCommandSubmit& submit, u32 i, const FCommandSetMeshBuffers& cmd) const;
 
         void SetPipelineContext(
             FShaderPipeline* pipeline, u32 i
@@ -93,5 +95,6 @@ namespace Coplt
         static ID3D12Resource* GetResource(const FResourceMeta& meta);
         static ID3D12Resource* GetResource(FUnknown* object, FResourceRefType type);
         static D3D12_CPU_DESCRIPTOR_HANDLE GetRtv(const FResourceMeta& meta);
+        static D3D12_CPU_DESCRIPTOR_HANDLE GetDsv(const FResourceMeta& meta);
     };
 }

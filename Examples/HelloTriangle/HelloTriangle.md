@@ -54,8 +54,7 @@ while (!IsClosed)
 
 void Render(CommandList cmd)
 {
-    cmd.SetRenderTargets([Output]);
-    cmd.ClearColor(Output, new float4(0.83f, 0.8f, 0.97f, 1f));
-    cmd.Draw(Pipeline, 3);
+    using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
+    render.Draw(Pipeline, 3);
 }
 ```
