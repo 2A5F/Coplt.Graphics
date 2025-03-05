@@ -26,7 +26,7 @@
         <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.715.1-preview" GeneratePathProperty="true"/>
-        <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2407.12" GeneratePathProperty="true" ExcludeAssets="all"/>
+        <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2502.8" GeneratePathProperty="true" ExcludeAssets="all" />
     </ItemGroup>
 
     <ItemGroup>

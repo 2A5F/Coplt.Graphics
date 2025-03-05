@@ -3058,6 +3058,15 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("u32[8]")]
         public _ResolveInfoIndex_e__FixedBuffer ResolveInfoIndex;
 
+        [NativeTypeName("Coplt::u32")]
+        public uint DsvResolveInfoIndex;
+
+        [NativeTypeName("FGraphicsFormat[8]")]
+        public _RtvFormat_e__FixedBuffer RtvFormat;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat DsvFormat;
+
         [NativeTypeName("f32[32]")]
         public _Color_e__FixedBuffer Color;
 
@@ -3092,6 +3101,12 @@ namespace Coplt.Graphics.Native
         public partial struct _ResolveInfoIndex_e__FixedBuffer
         {
             public uint e0;
+        }
+
+        [InlineArray(8)]
+        public partial struct _RtvFormat_e__FixedBuffer
+        {
+            public FGraphicsFormat e0;
         }
 
         [InlineArray(32)]
@@ -3468,7 +3483,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L489_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L492_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3666,7 +3681,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L517_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L520_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3836,7 +3851,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L540_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L543_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
