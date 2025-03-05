@@ -17,7 +17,6 @@ D3d12ShaderBinding::D3d12ShaderBinding(
         COPLT_THROW("Layout from different backends");
 
     const auto item_metas = m_layout->GetItemMetas();
-    m_f_views = std::vector<FView>(item_metas.size(), {});
     m_views = std::vector<View>(item_metas.size(), {});
 }
 
@@ -26,21 +25,7 @@ FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
     return FResult::None();
 }
 
-FView* D3d12ShaderBinding::GetViews(u32* out_size) noexcept
-{
-    *out_size = m_f_views.size();
-    return m_f_views.data();
-}
-
-FResult D3d12ShaderBinding::Set(const u32 count, const FShaderBindingBatchSet* bindings) noexcept
-{
-    return feb([&]
-    {
-        Set(std::span(bindings, count));
-    });
-}
-
-void D3d12ShaderBinding::Set(const std::span<const FShaderBindingBatchSet> bindings)
+void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
 {
     auto item_metas = m_layout->GetItemMetas();
     auto item_defines = m_layout->GetItemDefines();
@@ -58,7 +43,27 @@ void D3d12ShaderBinding::Set(const std::span<const FShaderBindingBatchSet> bindi
                 COPLT_THROW_FMT("Binding index {} is not allowed to bind to buffer.", Index);
             break;
         }
-        m_f_views[Index] = View;
         m_views[Index] = View;
+        m_changed.Add(Index);
     }
+}
+
+std::span<View> D3d12ShaderBinding::Views() noexcept
+{
+    return m_views;
+}
+
+bool D3d12ShaderBinding::Changed() noexcept
+{
+    return !m_changed.IsEmpty();
+}
+
+const HashSet<u32>& D3d12ShaderBinding::ChangedIndexes() noexcept
+{
+    return m_changed;
+}
+
+void D3d12ShaderBinding::ApplyChange()
+{
+    m_changed.Clear();
 }

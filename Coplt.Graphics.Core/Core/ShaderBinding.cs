@@ -16,7 +16,6 @@ public sealed unsafe partial class ShaderBinding
     internal readonly GpuDevice m_device;
     internal readonly GpuQueue m_queue;
     internal readonly ShaderLayout m_layout;
-    internal readonly FRoSlice<FView> m_native_views;
     internal readonly View[] m_views;
 
     #endregion
@@ -27,7 +26,6 @@ public sealed unsafe partial class ShaderBinding
     public GpuDevice Device => m_device;
     public GpuQueue Queue => m_queue;
     public ShaderLayout Layout => m_layout;
-    public ReadOnlySpan<FView> NativeViews => m_native_views.Span;
     public ReadOnlySpan<View> Views => m_views;
     internal Span<View> MutViews => m_views;
     public ref readonly View this[int index] => ref m_views[index];
@@ -44,13 +42,7 @@ public sealed unsafe partial class ShaderBinding
         m_queue = queue;
         m_layout = layout;
 
-        {
-            uint size = 0;
-            var views = m_ptr->GetViews(&size);
-            m_native_views = new(views, size);
-        }
-
-        m_views = new View[m_native_views.Length];
+        m_views = new View[m_layout.m_native_defines.Length];
     }
 
     #endregion

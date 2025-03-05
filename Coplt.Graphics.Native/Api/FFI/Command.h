@@ -196,13 +196,6 @@ namespace Coplt
         Stencil = 2,
     };
 
-    struct FBindItem
-    {
-        FCommandType Type{};
-        FView View{};
-        u32 Index{};
-    };
-
     struct FUploadLoc
     {
         u32 Index{};

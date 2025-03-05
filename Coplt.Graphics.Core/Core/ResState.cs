@@ -1,4 +1,5 @@
-﻿using Coplt.Graphics.Native;
+﻿using System.Diagnostics;
+using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
@@ -136,4 +137,26 @@ public static partial class GraphicsExtensions
         Legacy = value.Legacy.FromFFI(),
         CrossQueue = value.CrossQueue,
     };
+
+    public static bool IsReadOnly(this ResLayout self) =>
+        self is ResLayout.GenericRead or ResLayout.ShaderResource or ResLayout.CopySrc or
+            ResLayout.DepthStencilRead or ResLayout.ResolveSrc or ResLayout.ShadingRate or
+            ResLayout.VideoDecodeRead or ResLayout.VideoProcessRead or ResLayout.VideoEncodeRead;
+
+    public static bool IsCompatible(this ResLayout self, ResLayout other)
+    {
+        if (self == other) return true;
+        return self.IsReadOnly() && other.IsReadOnly();
+    }
+
+    public static ResLayout Merge(this ResLayout self, ResLayout other, bool strict)
+    {
+        if (self == other) return self;
+        if (self.IsReadOnly() && other.IsReadOnly())
+        {
+            if (strict) return other;
+            return ResLayout.GenericRead;
+        }
+        return self;
+    }
 }

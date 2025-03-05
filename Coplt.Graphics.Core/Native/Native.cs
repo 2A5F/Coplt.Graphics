@@ -1534,7 +1534,7 @@ namespace Coplt.Graphics.Native
         public FShaderLayout* Layout;
     }
 
-    public partial struct FShaderBindingBatchSet
+    public partial struct FBindItem
     {
         [NativeTypeName("Coplt::FView")]
         public FView View;
@@ -1585,28 +1585,8 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, FStr8or16*, FResult*>)(lpVtbl[4]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FView *")]
-        public FView* GetViews([NativeTypeName("Coplt::u32 *")] uint* out_size)
-        {
-            return ((delegate* unmanaged[Thiscall]<FShaderBinding*, uint*, FView*>)(lpVtbl[5]))((FShaderBinding*)Unsafe.AsPointer(ref this), out_size);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, uint, FShaderBindingBatchSet*, FResult*>)(lpVtbl[6]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, count, bindings);
-        }
-
         public interface Interface : FGpuObject.Interface
         {
-            [return: NativeTypeName("Coplt::FView *")]
-            FView* GetViews([NativeTypeName("Coplt::u32 *")] uint* out_size);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult Set([NativeTypeName("Coplt::u32")] uint count, [NativeTypeName("const FShaderBindingBatchSet *")] FShaderBindingBatchSet* bindings);
         }
     }
 
@@ -2953,18 +2933,6 @@ namespace Coplt.Graphics.Native
         Stencil = 2,
     }
 
-    public partial struct FBindItem
-    {
-        [NativeTypeName("Coplt::FCommandType")]
-        public FCommandType Type;
-
-        [NativeTypeName("Coplt::FView")]
-        public FView View;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Index;
-    }
-
     public partial struct FUploadLoc
     {
         [NativeTypeName("Coplt::u32")]
@@ -3483,7 +3451,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L492_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L485_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3681,7 +3649,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L520_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L513_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3851,7 +3819,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L543_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L536_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

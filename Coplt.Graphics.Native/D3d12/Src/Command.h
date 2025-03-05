@@ -79,6 +79,7 @@ namespace Coplt
         void ClearColor(const FCommandSubmit& submit, u32 i, const FCommandClearColor& cmd) const;
         void ClearDepthStencil(const FCommandSubmit& submit, u32 i, const FCommandClearDepthStencil& cmd) const;
         void BufferCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferCopy& cmd) const;
+        void Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const;
         void Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
         void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const;
         void RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const;

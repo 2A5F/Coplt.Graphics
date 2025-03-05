@@ -1,6 +1,7 @@
 #include "Command.h"
 #include "../../Api/FFI/Command.h"
 
+#include "Binding.h"
 #include "Context.h"
 #include "DescriptorManager.h"
 #include "fmt/format.h"
@@ -16,6 +17,7 @@
 #include "../ThirdParty/DirectXTK12/Src/d3dx12.h"
 
 #include "pix3.h"
+#include "../FFI/Binding.h"
 
 using namespace Coplt;
 
@@ -107,7 +109,6 @@ void D3d12CommandInterpreter::Reset()
 
 void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
 {
-    const auto& cmd_pack = m_queue->m_cmd;
     const std::span command_items(submit.Commands, submit.CommandCount);
     for (u32 i = 0; i < command_items.size(); i++)
     {
@@ -136,7 +137,8 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             ClearDepthStencil(submit, i, item.ClearDepthStencil);
             continue;
         case FCommandType::Bind:
-            continue; // todo
+            Bind(submit, i, item.Bind);
+            continue;
         case FCommandType::BufferCopy:
             BufferCopy(submit, i, item.BufferCopy);
             continue;
@@ -323,6 +325,15 @@ void D3d12CommandInterpreter::BufferCopy(const FCommandSubmit& submit, u32 i, co
             static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
         );
     }
+}
+
+void D3d12CommandInterpreter::Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const
+{
+    const auto binding = cmd.Binding->QueryInterface<ID3d12ShaderBinding>();
+    if (binding == nullptr)
+        COPLT_THROW_FMT("Binding from different backends at command {}", i);
+    const auto items = std::span(submit.BindItems + cmd.ItemsIndex, cmd.ItemCount);
+    binding->Set(items);
 }
 
 void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
