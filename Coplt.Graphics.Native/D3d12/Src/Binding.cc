@@ -16,8 +16,8 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     if (m_layout == nullptr)
         COPLT_THROW("Layout from different backends");
 
-    const auto item_metas = m_layout->GetItemMetas();
-    m_views = std::vector<View>(item_metas.size(), {});
+    const auto defs = m_layout->GetItemDefines();
+    m_views = std::vector<View>(defs.size(), {});
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
@@ -27,13 +27,14 @@ FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 
 void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
 {
-    auto item_metas = m_layout->GetItemMetas();
+    auto infos = m_layout->GetItemInfos();
     auto item_defines = m_layout->GetItemDefines();
     for (const auto& [View, Index] : bindings)
     {
         if (Index >= m_views.size())
             COPLT_THROW("Index out of bounds");
         const auto& define = item_defines[Index];
+        const auto info = infos[Index];
         switch (View.Type)
         {
         case FViewType::None:
@@ -44,8 +45,14 @@ void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
             break;
         }
         m_views[Index] = View;
-        m_changed.Add(Index);
+        m_changed_items.Add(Index);
+        m_changed_groups.Add(info.Group);
     }
+}
+
+const Rc<ID3d12ShaderLayout>& D3d12ShaderBinding::Layout() noexcept
+{
+    return m_layout;
 }
 
 std::span<View> D3d12ShaderBinding::Views() noexcept
@@ -55,15 +62,21 @@ std::span<View> D3d12ShaderBinding::Views() noexcept
 
 bool D3d12ShaderBinding::Changed() noexcept
 {
-    return !m_changed.IsEmpty();
+    return !m_changed_items.IsEmpty() || !m_changed_groups.IsEmpty();
 }
 
-const HashSet<u32>& D3d12ShaderBinding::ChangedIndexes() noexcept
+const HashSet<u32>& D3d12ShaderBinding::ChangedItems() noexcept
 {
-    return m_changed;
+    return m_changed_items;
+}
+
+const HashSet<u32>& D3d12ShaderBinding::ChangedGroups() noexcept
+{
+    return m_changed_groups;
 }
 
 void D3d12ShaderBinding::ApplyChange()
 {
-    m_changed.Clear();
+    m_changed_items.Clear();
+    m_changed_groups.Clear();
 }

@@ -9,6 +9,7 @@
 #include "../../Api/Include/Object.h"
 #include "../FFI/Queue.h"
 #include "Command.h"
+#include "DescriptorManager.h"
 #include "Executor.h"
 
 namespace Coplt
@@ -21,6 +22,7 @@ namespace Coplt
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12CommandQueue> m_queue{};
         Rc<D3d12FrameContext> m_frame_context{};
+        DescriptorManager m_descriptor_manager;
         CmdListPack m_cmd{};
         std::mutex m_mutex{};
 

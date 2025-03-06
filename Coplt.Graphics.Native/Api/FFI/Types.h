@@ -7,6 +7,7 @@
 #ifdef FFI_SRC
 #include <type_traits>
 #include <glm/glm.hpp>
+#include <shared_mutex>
 
 #ifdef COPLT_X64
 #include <emmintrin.h>
@@ -30,7 +31,7 @@ namespace Coplt
     using i32 = int32_t;
     using i64 = int64_t;
 
-#ifdef FFI_SRC
+    #ifdef FFI_SRC
     using f32 = glm::f32;
     using f64 = glm::f64;
 
@@ -58,7 +59,11 @@ namespace Coplt
 
     using Char8 = char8_t;
     using Char16 = char16_t;
-#else
+
+    using RwLock = std::shared_mutex;
+    using WriteLock = std::unique_lock<RwLock>;
+    using ReadLock = std::shared_lock<RwLock>;
+    #else
     using f32 = float;
     using f64 = double;
 
@@ -86,7 +91,7 @@ namespace Coplt
 
     using Char8 = u8;
     using Char16 = u16;
-#endif
+    #endif
 
     struct Guid
     {
@@ -102,7 +107,7 @@ namespace Coplt
         u8 _j{};
         u8 _k{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         constexpr explicit Guid() = default;
 
         constexpr explicit Guid(
@@ -237,13 +242,13 @@ namespace Coplt
             }
             else
             {
-#ifdef COPLT_X64
+                #ifdef COPLT_X64
                 const __m128i a = _mm_loadu_si128(reinterpret_cast<const __m128i*>(this));
                 const __m128i b = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&other));
                 const __m128i r = _mm_cmpeq_epi8(a, b);
                 const auto mask = _mm_movemask_epi8(r);
                 return mask == 0xFFFF;
-#else
+                #else
                 const auto src = reinterpret_cast<const u8*>(this);
                 const auto dst = reinterpret_cast<const u8*>(&other);
                 for (auto i = 0; i < sizeof(Guid); ++i)
@@ -251,7 +256,7 @@ namespace Coplt
                     if (src[i] != dst[i]) return false;
                 }
                 return true;
-#endif
+                #endif
             }
         }
 
@@ -295,6 +300,6 @@ namespace Coplt
             const auto r = static_cast<i32>(_a);
             return r ^ _a + 1 ^ _a + 2 ^ _a + 3;
         }
-#endif
+        #endif
     };
 }

@@ -20,6 +20,14 @@ namespace Coplt
         Constants,
     };
 
+    enum class FShaderLayoutGroupView : u8
+    {
+        Cbv,
+        Srv,
+        Uav,
+        Sampler,
+    };
+
     enum class FShaderLayoutItemType : u8
     {
         ConstantBuffer,
@@ -38,6 +46,23 @@ namespace Coplt
         Sampler,
         RayTracingAccelerationStructure,
     };
+
+    #ifdef FFI_SRC
+    inline bool IsBuffer(const FShaderLayoutItemType value)
+    {
+        switch (value)
+        {
+        case FShaderLayoutItemType::ConstantBuffer:
+        case FShaderLayoutItemType::RawBuffer:
+        case FShaderLayoutItemType::StructureBuffer:
+        case FShaderLayoutItemType::StructureBufferWithCounter:
+        case FShaderLayoutItemType::RayTracingAccelerationStructure:
+            return true;
+        default: ;
+        }
+        return false;
+    }
+    #endif
 
     enum class FShaderLayoutItemUsage : u8
     {
@@ -62,7 +87,7 @@ namespace Coplt
         FShaderLayoutItemType Type{};
         FShaderLayoutItemUsage Usage{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         bool IsAllowBuffer() const
         {
             switch (Type)
@@ -95,7 +120,52 @@ namespace Coplt
                 return false;
             }
         }
-#endif
+        #endif
+    };
+
+    enum class FShaderLayoutItemPlace : u8
+    {
+        None,
+        Const,
+        Direct,
+        Grouped,
+        StaticSampler,
+    };
+
+    struct FShaderLayoutItemInfo
+    {
+        // Const | Direct 时是 Root Index，Grouped 时是 Group 内的 Index
+        u32 Index{};
+        // 所属哪个绑定组类
+        u32 Class{};
+        // 所属哪个绑定组
+        u32 Group{};
+        // 绑定放在哪
+        FShaderLayoutItemPlace Place{};
+    };
+
+    struct FShaderLayoutGroupInfo
+    {
+        // Root Index
+        u32 Index{};
+        // 包含多少个绑定
+        u32 Size{};
+        FShaderStage Stage{};
+        FShaderLayoutGroupView View{};
+    };
+
+    struct FShaderLayoutGroupClass
+    {
+        FShaderLayoutGroupInfo* Infos{};
+        u32 Size{};
+        b8 Sampler{};
+
+        #if FFI_SRC
+        std::span<const FShaderLayoutGroupInfo> AsSpan() const noexcept
+        {
+            return std::span{Infos, static_cast<usize>(Size)};
+        }
+        #endif
     };
 
     COPLT_ENUM_FLAGS(FShaderLayoutFlags, u8)
@@ -129,14 +199,28 @@ namespace Coplt
         FShaderLayoutFlags Flags{};
 
         virtual const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
+        virtual const FShaderLayoutItemInfo* GetItemInfos(u32* out_count) noexcept = 0;
+        virtual const FShaderLayoutGroupClass* GetGroupClasses(u32* out_count) noexcept = 0;
 
-#if FFI_SRC
+        #if FFI_SRC
         std::span<const FShaderLayoutItemDefine> GetItemDefines() noexcept
         {
             u32 count{};
             return std::span{GetItemDefines(&count), static_cast<usize>(count)};
         }
-#endif
+
+        std::span<const FShaderLayoutItemInfo> GetItemInfos() noexcept
+        {
+            u32 count{};
+            return std::span{GetItemInfos(&count), static_cast<usize>(count)};
+        }
+
+        std::span<const FShaderLayoutGroupClass> GetGroupClasses() noexcept
+        {
+            u32 count{};
+            return std::span{GetGroupClasses(&count), static_cast<usize>(count)};
+        }
+        #endif
     };
 
     struct FShaderInputLayoutCreateOptions
@@ -150,13 +234,13 @@ namespace Coplt
     {
         virtual const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept = 0;
 
-#if FFI_SRC
+        #if FFI_SRC
         std::span<const FShaderInputLayoutElement> GetElements() noexcept
         {
             u32 count{};
             return std::span{GetElements(&count), static_cast<usize>(count)};
         }
-#endif
+        #endif
     };
 
     struct FMeshLayoutCreateOptions
@@ -176,7 +260,7 @@ namespace Coplt
 
         virtual const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const noexcept = 0;
 
-#if FFI_SRC
+        #if FFI_SRC
         std::span<const FMeshBufferDefine> GetBuffers() const noexcept
         {
             u32 count{};
@@ -188,6 +272,6 @@ namespace Coplt
             u32 count{};
             return std::span{GetElements(&count), static_cast<usize>(count)};
         }
-#endif
+        #endif
     };
 }

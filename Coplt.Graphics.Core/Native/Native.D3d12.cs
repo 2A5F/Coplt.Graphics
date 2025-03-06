@@ -327,9 +327,23 @@ namespace Coplt.Graphics.Native.D3d12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderLayoutItemInfo *")]
+        public FShaderLayoutItemInfo* GetItemInfos([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, uint*, FShaderLayoutItemInfo*>)(lpVtbl[6]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderLayoutGroupClass *")]
+        public FShaderLayoutGroupClass* GetGroupClasses([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, uint*, FShaderLayoutGroupClass*>)(lpVtbl[7]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void* GetRootSignaturePtr()
         {
-            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, void*>)(lpVtbl[6]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FD3d12ShaderLayout*, void*>)(lpVtbl[8]))((FD3d12ShaderLayout*)Unsafe.AsPointer(ref this));
         }
 
         public interface Interface : FShaderLayout.Interface

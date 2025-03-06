@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "Binding.h"
 #include "../../Api/FFI/States.h"
 #include "../../Api/FFI/Command.h"
 
@@ -42,22 +43,22 @@ namespace Coplt
 
         struct Context
         {
-            FShaderPipeline* Pipeline{};
-            FD3d12PipelineState* D3dPipeline{};
+            FD3d12PipelineState* Pipeline{};
             FD3d12ShaderLayout* Layout{};
             // 如果不是图形管线将不会设置
             FD3d12GraphicsShaderPipeline* GPipeline{};
 
+            ID3d12ShaderBinding* Binding{};
+
+            bool PipelineChanged{};
+            bool BindingChanged{};
+
             void Reset();
         };
 
-        // std::vector<ResState> m_states{};
-        // std::vector<D3D12_RESOURCE_BARRIER> m_barriers{};
-        // std::vector<u32> m_barrier_resources{};
-        // std::vector<Item> m_items{};
-        // u32 m_last_barrier_index{};
         BarrierContext m_barrier_context{};
         Context m_context{};
+        HashSet<ID3d12ShaderBinding*> m_bindings{};
 
     public:
         explicit D3d12CommandInterpreter(D3d12GpuQueue* queue);
@@ -81,17 +82,21 @@ namespace Coplt
         void BufferCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferCopy& cmd) const;
         void Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const;
         void Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
-        void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const;
-        void RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const;
+        void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd);
+        void RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd);
         void RenderSetViewportScissor(const FCommandSubmit& submit, u32 i, const FCommandSetViewportScissor& cmd) const;
         void RenderSetMeshBuffers(const FCommandSubmit& submit, u32 i, const FCommandSetMeshBuffers& cmd) const;
+        void Compute(const FCommandSubmit& submit, u32 i, const FCommandCompute& cmd);
+        void ComputeDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd);
 
-        void SetPipelineContext(
-            FShaderPipeline* pipeline, u32 i
-        );
-        void SetPipeline(
-            const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i
-        );
+        void SetPipelineContext(FShaderPipeline* pipeline, u32 i);
+        void SetPipeline(const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i);
+
+        void SetBinding(FShaderBinding* binding, u32 i);
+
+        void SyncBinding();
+        void UpdateBinding();
+        void UseBinding();
 
         static ID3D12Resource* GetResource(const FResourceMeta& meta);
         static ID3D12Resource* GetResource(FUnknown* object, FResourceRefType type);

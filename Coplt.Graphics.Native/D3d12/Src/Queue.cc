@@ -9,7 +9,7 @@ using namespace Coplt;
 D3d12GpuQueue::D3d12GpuQueue(
     Rc<D3d12GpuDevice>&& device,
     const FMainQueueCreateOptions& options
-) : m_device(std::move(device)), m_command_interpreter(this)
+) : m_device(std::move(device)), m_descriptor_manager(m_device.get()), m_command_interpreter(this)
 {
     m_queue_type = FGpuQueueType::Direct;
 

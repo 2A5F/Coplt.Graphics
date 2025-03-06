@@ -1289,12 +1289,17 @@ public sealed unsafe class CommandList
             if (def.View is FShaderLayoutItemView.Sampler) continue;
             ref readonly var view = ref Binding.Views[i];
             if (view.Tag is View.Tags.None) continue;
-            var is_buffer = view.Tag is View.Tags.Buffer;
-            var res = view.Tag switch
+            var is_buffer = false;
+            FResourceRef res;
+            switch (view.Tag)
             {
-                View.Tags.Buffer => AddResource(view.Buffer),
-                _                => throw new ArgumentOutOfRangeException()
-            };
+            case View.Tags.Buffer:
+                res = AddResource(view.Buffer);
+                is_buffer = true;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+            }
             var Usage = def.Stage switch
             {
                 FShaderStage.Compute => ScopedStateUsage.Compute,
@@ -1311,8 +1316,6 @@ public sealed unsafe class CommandList
             {
             case FShaderLayoutItemView.Cbv:
             case FShaderLayoutItemView.Constants:
-                if (!is_buffer)
-                    throw new ArgumentException($"The binding {i} requires a Cbv but actually resource is not buffer.");
                 Access = ResAccess.ConstantBuffer;
                 Legacy = LegacyState.ConstantBuffer;
                 break;
@@ -1327,7 +1330,6 @@ public sealed unsafe class CommandList
                 Legacy = LegacyState.UnorderedAccess;
                 break;
             case FShaderLayoutItemView.Sampler:
-                continue;
             default:
                 throw new ArgumentOutOfRangeException();
             }

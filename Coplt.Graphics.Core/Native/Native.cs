@@ -1319,10 +1319,30 @@ namespace Coplt.Graphics.Native
             return ((delegate* unmanaged[Thiscall]<FShaderLayout*, uint*, FShaderLayoutItemDefine*>)(lpVtbl[5]))((FShaderLayout*)Unsafe.AsPointer(ref this), out_count);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderLayoutItemInfo *")]
+        public FShaderLayoutItemInfo* GetItemInfos([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderLayout*, uint*, FShaderLayoutItemInfo*>)(lpVtbl[6]))((FShaderLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("const FShaderLayoutGroupClass *")]
+        public FShaderLayoutGroupClass* GetGroupClasses([NativeTypeName("Coplt::u32 *")] uint* out_count)
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderLayout*, uint*, FShaderLayoutGroupClass*>)(lpVtbl[7]))((FShaderLayout*)Unsafe.AsPointer(ref this), out_count);
+        }
+
         public interface Interface : FGpuObject.Interface
         {
             [return: NativeTypeName("const FShaderLayoutItemDefine *")]
             FShaderLayoutItemDefine* GetItemDefines([NativeTypeName("Coplt::u32 *")] uint* out_count);
+
+            [return: NativeTypeName("const FShaderLayoutItemInfo *")]
+            FShaderLayoutItemInfo* GetItemInfos([NativeTypeName("Coplt::u32 *")] uint* out_count);
+
+            [return: NativeTypeName("const FShaderLayoutGroupClass *")]
+            FShaderLayoutGroupClass* GetGroupClasses([NativeTypeName("Coplt::u32 *")] uint* out_count);
         }
     }
 
@@ -2345,6 +2365,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint ResourceCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GrowBindingCapacity;
     }
 
     [Guid("F1C59CB4-7EE6-4EE2-80F4-07CC568920D2")]
@@ -3956,6 +3979,15 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
+    public enum FShaderLayoutGroupView : byte
+    {
+        Cbv,
+        Srv,
+        Uav,
+        Sampler,
+    }
+
+    [NativeTypeName("Coplt::u8")]
     public enum FShaderLayoutItemType : byte
     {
         ConstantBuffer,
@@ -4008,6 +4040,58 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderLayoutItemUsage")]
         public FShaderLayoutItemUsage Usage;
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderLayoutItemPlace : byte
+    {
+        None,
+        Const,
+        Direct,
+        Grouped,
+        StaticSampler,
+    }
+
+    public partial struct FShaderLayoutItemInfo
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Class;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Group;
+
+        [NativeTypeName("Coplt::FShaderLayoutItemPlace")]
+        public FShaderLayoutItemPlace Place;
+    }
+
+    public partial struct FShaderLayoutGroupInfo
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+
+        [NativeTypeName("Coplt::FShaderStage")]
+        public FShaderStage Stage;
+
+        [NativeTypeName("Coplt::FShaderLayoutGroupView")]
+        public FShaderLayoutGroupView View;
+    }
+
+    public unsafe partial struct FShaderLayoutGroupClass
+    {
+        [NativeTypeName("Coplt::FShaderLayoutGroupInfo *")]
+        public FShaderLayoutGroupInfo* Infos;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Sampler;
     }
 
     [NativeTypeName("Coplt::u8")]

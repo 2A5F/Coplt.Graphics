@@ -866,6 +866,8 @@ namespace Coplt
             using pointer = Entry*;
             using reference = Entry&;
 
+            StdIterator() = default;
+
             explicit StdIterator(HashMap* self, const i32 index) : m_self(self), m_index(index)
             {
                 if (m_self) AdvanceToValid();
@@ -903,6 +905,7 @@ namespace Coplt
 
             bool operator==(const StdIterator& other) const
             {
+                if (m_self == nullptr || other.m_self == nullptr) return true;
                 return m_self == other.m_self && m_index == other.m_index;
             }
 
@@ -939,6 +942,8 @@ namespace Coplt
             using difference_type = std::ptrdiff_t;;
             using pointer = const Entry*;
             using reference = const Entry&;
+
+            ConstIterator() = default;
 
             explicit ConstIterator(const HashMap* self) : ConstIterator(self, 0)
             {
@@ -977,6 +982,7 @@ namespace Coplt
 
             bool operator==(const ConstIterator& other) const
             {
+                if (m_self == nullptr || other.m_self == nullptr) return true;
                 return m_self == other.m_self && m_index == other.m_index;
             }
 

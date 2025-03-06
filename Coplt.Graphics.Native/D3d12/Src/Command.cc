@@ -88,7 +88,11 @@ void D3d12CommandInterpreter::BarrierContext::BuildBarriers()
 void D3d12CommandInterpreter::Context::Reset()
 {
     Pipeline = nullptr;
-    D3dPipeline = nullptr;
+    Layout = nullptr;
+    GPipeline = nullptr;
+    Binding = nullptr;
+    PipelineChanged = false;
+    BindingChanged = false;
 }
 
 D3d12CommandInterpreter::D3d12CommandInterpreter(D3d12GpuQueue* queue) : m_queue(queue)
@@ -105,6 +109,7 @@ void D3d12CommandInterpreter::Reset()
 {
     m_barrier_context.Reset();
     m_context.Reset();
+    m_bindings.Clear();
 }
 
 void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
@@ -146,7 +151,8 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             Render(submit, i, item.Render);
             continue;
         case FCommandType::Compute:
-            COPLT_THROW("TODO");
+            Compute(submit, i, item.Compute);
+            continue;
 
         // subcommands
         case FCommandType::SetPipeline:
@@ -433,7 +439,8 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
             SetPipeline(m_queue->m_cmd, item.SetPipeline.Pipeline, j);
             continue;
         case FCommandType::SetBinding:
-            continue; // todo
+            SetBinding(item.SetBinding.Binding, j);
+            continue;
         case FCommandType::SetViewportScissor:
             RenderSetViewportScissor(submit, j, item.SetViewportScissor);
             continue;
@@ -463,8 +470,9 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
     }
 }
 
-void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const
+void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd)
 {
+    SyncBinding();
     if (cmd.Indexed)
     {
         m_queue->m_cmd->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
@@ -475,10 +483,11 @@ void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, co
     }
 }
 
-void D3d12CommandInterpreter::RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const
+void D3d12CommandInterpreter::RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd)
 {
     if (cmd.Type != FDispatchType::Mesh)
         COPLT_THROW_FMT("Render only supports DispatchMesh and does not support Dispatch for Compute at command {}", i);
+    SyncBinding();
     m_queue->m_cmd.m_list6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
 }
 
@@ -518,12 +527,68 @@ void D3d12CommandInterpreter::RenderSetMeshBuffers(const FCommandSubmit& submit,
     cmd_pack->IASetVertexBuffers(cmd.VertexStartSlot, buffers.VertexBufferCount, views);
 }
 
+void D3d12CommandInterpreter::Compute(const FCommandSubmit& submit, u32 i, const FCommandCompute& cmd)
+{
+    m_context.Reset();
+    const auto& _info = submit.ComputeInfos[cmd.InfoIndex];
+    const auto commands = std::span(submit.ComputeCommands + cmd.CommandStartIndex, cmd.CommandCount);
+    for (u32 j = 0; j < commands.size(); j++)
+    {
+        const auto& item = commands[j];
+        switch (item.Type)
+        {
+        case FCommandType::None:
+            continue;
+        case FCommandType::Label:
+            Label(submit, item.Label);
+            continue;
+        case FCommandType::BeginScope:
+            BeginScope(submit, item.BeginScope);
+            continue;
+        case FCommandType::EndScope:
+            EndScope(submit, item.EndScope);
+            continue;
+        case FCommandType::SetPipeline:
+            SetPipeline(m_queue->m_cmd, item.SetPipeline.Pipeline, j);
+            continue;
+        case FCommandType::SetBinding:
+            SetBinding(item.SetBinding.Binding, j);
+            continue;
+        case FCommandType::Dispatch:
+            ComputeDispatch(submit, j, item.Dispatch);
+            continue;
+        case FCommandType::SetViewportScissor:
+        case FCommandType::SetMeshBuffers:
+        case FCommandType::Draw:
+            COPLT_THROW("Compute commands cannot be placed in the render command list");
+        case FCommandType::Present:
+        case FCommandType::Barrier:
+        case FCommandType::ClearColor:
+        case FCommandType::ClearDepthStencil:
+        case FCommandType::Bind:
+        case FCommandType::BufferCopy:
+        case FCommandType::Render:
+        case FCommandType::Compute:
+            COPLT_THROW("Main commands cannot be placed in the sub command list");
+        }
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
+    }
+}
+
+void D3d12CommandInterpreter::ComputeDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd)
+{
+    SyncBinding();
+    if (cmd.Type == FDispatchType::Mesh)
+        m_queue->m_cmd.m_list6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
+    else
+        m_queue->m_cmd->Dispatch(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
+}
+
 void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, const u32 i)
 {
     if (pipeline == m_context.Pipeline) return;
-    m_context.Pipeline = pipeline;
-    m_context.D3dPipeline = pipeline->QueryInterface<FD3d12PipelineState>();
-    if (!m_context.D3dPipeline)
+    m_context.Pipeline = pipeline->QueryInterface<FD3d12PipelineState>();
+    if (!m_context.Pipeline)
     {
         COPLT_THROW_FMT(
             "Pipeline({:#x}) comes from different backends at cmd {}",
@@ -541,6 +606,7 @@ void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, cons
         if (!m_context.GPipeline)
             COPLT_THROW("Pipeline from different backends or pipeline not a graphics pipeline");
     }
+    m_context.PipelineChanged = true;
 }
 
 void D3d12CommandInterpreter::SetPipeline(
@@ -560,7 +626,50 @@ void D3d12CommandInterpreter::SetPipeline(
         cmd_pack->IASetPrimitiveTopology(ToDx(states->Topology));
         cmd_pack->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(m_context.Layout->GetRootSignaturePtr()));
     }
-    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(m_context.D3dPipeline->GetPipelineStatePtr()));
+    cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(m_context.Pipeline->GetPipelineStatePtr()));
+}
+
+void D3d12CommandInterpreter::SetBinding(FShaderBinding* binding, u32 i)
+{
+    if (binding == m_context.Binding) return;
+    m_context.Binding = binding->QueryInterface<ID3d12ShaderBinding>();
+    if (!m_context.Binding)
+        COPLT_THROW_FMT("Shader bindings from different backend at command {}", i);
+    m_context.BindingChanged = true;
+}
+
+void D3d12CommandInterpreter::SyncBinding()
+{
+    if (!(m_context.PipelineChanged || m_context.BindingChanged)) return;
+    if (m_context.Binding->Changed()) UpdateBinding();
+    UseBinding();
+}
+
+void D3d12CommandInterpreter::UpdateBinding()
+{
+    auto& dm = m_queue->m_descriptor_manager;
+    auto binding = m_context.Binding;
+    auto first = m_bindings.Add(binding);
+    auto layout = binding->Layout().get();
+    auto defs = layout->GetItemDefines();
+    auto infos = layout->GetItemInfos();
+    auto tables = layout->GetTableGroups();
+    const auto& changed_tables = binding->ChangedGroups();
+    const auto& changed_items = binding->ChangedItems();
+    for (auto i : changed_tables)
+    {
+        const auto& table = tables[i];
+    }
+    for (auto i : changed_items)
+    {
+        const auto& def = defs[i];
+        const auto& info = infos[i];
+    }
+}
+
+void D3d12CommandInterpreter::UseBinding()
+{
+    // todo
 }
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
