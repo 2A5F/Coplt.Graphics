@@ -3994,6 +3994,7 @@ namespace Coplt.Graphics.Native
     public enum FShaderLayoutItemType : byte
     {
         ConstantBuffer,
+        Buffer,
         RawBuffer,
         StructureBuffer,
         StructureBufferWithCounter,

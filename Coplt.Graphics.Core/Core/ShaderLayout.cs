@@ -22,6 +22,7 @@ public enum ShaderLayoutItemView : byte
 public enum ShaderLayoutItemType : byte
 {
     ConstantBuffer,
+    Buffer,
     RawBuffer,
     StructureBuffer,
     StructureBufferWithCounter,

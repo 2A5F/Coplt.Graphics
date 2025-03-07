@@ -31,6 +31,7 @@ namespace Coplt
     enum class FShaderLayoutItemType : u8
     {
         ConstantBuffer,
+        Buffer,
         RawBuffer,
         StructureBuffer,
         StructureBufferWithCounter,
@@ -53,6 +54,7 @@ namespace Coplt
         switch (value)
         {
         case FShaderLayoutItemType::ConstantBuffer:
+        case FShaderLayoutItemType::Buffer:
         case FShaderLayoutItemType::RawBuffer:
         case FShaderLayoutItemType::StructureBuffer:
         case FShaderLayoutItemType::StructureBufferWithCounter:

@@ -31,6 +31,11 @@ DescriptorAllocator::DescriptorAllocator(
     m_heap = new DescriptorHeap(m_device, type, init_cap, true);
 }
 
+u32 DescriptorAllocator::Stride() const
+{
+    return m_heap->m_stride;
+}
+
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetTransientCpuHandle(const u32 offset) const
 {
     return m_transient_cpu_heap->GetCpuHandle(offset);
@@ -92,16 +97,15 @@ void DescriptorAllocator::Start(const u32 growth_capacity)
     m_transient_start = 0;
 }
 
-void DescriptorAllocator::ApplyTransientToGpu() const
-{
-    if (m_transient_offset == m_transient_start) return;
-    m_device->CopyDescriptorsSimple(
-        m_transient_offset - m_transient_start,
-        GetTransientCpuHandle(),
-        GetCpuHandle(m_transient_start),
-        m_type
-    );
-}
+// void DescriptorAllocator::UploadTransient(const DescriptorAllocation& allocation) const
+// {
+//     m_device->CopyDescriptorsSimple(
+//         allocation.Size,
+//         GetCpuHandle(allocation.IndexOrOffset),
+//         m_transient_cpu_heap->GetCpuHandle(allocation.IndexOrOffset),
+//         m_type
+//     );
+// }
 
 DescriptorAllocation DescriptorAllocator::Allocate(u32 Size, DescriptorAllocationType Type)
 {
@@ -113,12 +117,14 @@ DescriptorAllocation DescriptorAllocator::Allocate(u32 Size, DescriptorAllocatio
     {
         if (m_transient_offset + Size > m_heap->m_size)
             COPLT_THROW("Out of descriptor heap");
-        m_transient_offset += Size;
-        return DescriptorAllocation{
+        auto r = DescriptorAllocation{
             .Version = m_ver,
             .IndexOrOffset = m_transient_offset,
+            .Size = Size,
             .Type = Type,
         };
+        m_transient_offset += Size;
+        return r;
     }
 }
 

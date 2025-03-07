@@ -57,6 +57,7 @@ namespace Coplt
         Rc<DescriptorPersistAllocation> Persist{};
         u64 Version{};
         u32 IndexOrOffset{COPLT_U32_MAX};
+        u32 Size{};
         DescriptorAllocationType Type{};
 
         operator bool() const & { return IndexOrOffset != COPLT_U32_MAX; }
@@ -79,6 +80,7 @@ namespace Coplt
 
         explicit DescriptorAllocator(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_cap, u32 max_cap);
 
+        u32 Stride() const;
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetTransientCpuHandle(u32 offset = 0) const;
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(u32 offset = 0) const;
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(u32 offset = 0) const;
@@ -86,8 +88,7 @@ namespace Coplt
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(const DescriptorAllocation& allocation) const;
 
         void Start(u32 growth_capacity);
-        // 将当前帧的瞬态 cpu 描述符都复制到 gpu
-        void ApplyTransientToGpu() const;
+        // void UploadTransient(const DescriptorAllocation& allocation) const;
 
         DescriptorAllocation Allocate(u32 Size, DescriptorAllocationType Type);
 

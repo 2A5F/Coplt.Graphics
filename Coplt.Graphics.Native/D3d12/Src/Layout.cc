@@ -205,7 +205,8 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             range.NumDescriptors = std::max(1u, item.CountOrIndex);
             range.BaseShaderRegister = item.Slot;
             range.RegisterSpace = item.Space;
-            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            range.OffsetInDescriptorsFromTableStart = meta.Size;
+            range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
             m_item_infos[i] = FShaderLayoutItemInfo{
                 .Index = static_cast<u32>(meta.Ranges.size()),
                 .Class = table.Index,
@@ -243,7 +244,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             auto& info = table_groups.Infos[item.Index];
             meta = std::move(item);
             meta.RootIndex = root_parameters.size();
-            info.Index =  meta.RootIndex;
+            info.Index = meta.RootIndex;
             info.Size = meta.Ranges.size();
             info.Stage = meta.Stage;
             info.View = meta.View;

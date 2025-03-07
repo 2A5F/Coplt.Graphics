@@ -4,6 +4,7 @@
 #include "../../Api/Include/Error.h"
 #include "../FFI/Layout.h"
 #include "Queue.h"
+#include "../Include/GraphicsFormat.h"
 
 using namespace Coplt;
 
@@ -26,13 +27,13 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     m_views = std::vector<View>(defs.size(), {});
 
     const auto classes = m_layout->GetTableGroups();
-    m_items = std::vector<std::vector<std::vector<u32>>>(classes.size(), {});
+    m_item_indexes = std::vector<std::vector<std::vector<u32>>>(classes.size(), {});
     m_allocations = std::vector<std::vector<DescriptorAllocation>>(classes.size(), {});
     for (size_t i = 0; i < classes.size(); ++i)
     {
         const auto& group = classes[i];
         m_allocations[i] = std::vector<DescriptorAllocation>(group.Metas.size(), {});
-        auto& items = m_items[i] = std::vector<std::vector<u32>>(group.Metas.size(), {});
+        auto& items = m_item_indexes[i] = std::vector<std::vector<u32>>(group.Metas.size(), {});
         for (size_t j = 0; j < group.Metas.size(); ++j)
         {
             const auto& meta = group.Metas[j];
@@ -44,7 +45,7 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     for (size_t i = 0; i < infos.size(); ++i)
     {
         const auto& info = infos[i];
-        m_items[info.Class][info.Group].push_back(i);
+        m_item_indexes[info.Class][info.Group].push_back(i);
     }
 }
 
@@ -106,26 +107,52 @@ const HashSet<u64>& D3d12ShaderBinding::ChangedGroups() noexcept
     return m_changed_groups;
 }
 
+std::span<const std::vector<DescriptorAllocation>> D3d12ShaderBinding::Allocations() noexcept
+{
+    return m_allocations;
+}
+
 void D3d12ShaderBinding::Update(D3d12GpuQueue* queue)
 {
     if (!Changed()) return;
-    auto& dm = queue->m_descriptor_manager;
+    const auto& dm = queue->m_descriptor_manager;
     const auto defs = m_layout->GetItemDefines();
     const auto infos = m_layout->GetItemInfos();
     const auto classes = m_layout->GetTableGroups();
     const auto& changed_groups = m_changed_groups;
     const auto& changed_items = m_changed_items;
-    for (auto cg : changed_groups)
+    for (const auto cg : changed_groups)
     {
-        auto c = static_cast<u32>(cg >> 32);
-        auto g = static_cast<u32>(cg & 0xFFFFFFFF);
+        const auto c = static_cast<u32>(cg >> 32);
+        const auto g = static_cast<u32>(cg & 0xFFFFFFFF);
         const auto& groups = classes[c];
         const auto& meta = groups.Metas[g];
         auto& ai = m_allocations[c][g];
         const auto type = groups.Scope == TableScope::Material ? DescriptorAllocationType::Persist : DescriptorAllocationType::Transient;
         if (meta.Size == 0) continue;
-        ai = (groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav)->Allocate(meta.Size, type);
-        // todo 写入描述符
+        const auto& da = (groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav);
+        ai = da->Allocate(meta.Size, type);
+        const auto& indexes = m_item_indexes[c][g];
+        const auto handle_start = da->GetCpuHandle(ai);
+        const auto stride = da->Stride();
+        for (const auto& i : indexes)
+        {
+            const auto& def = defs[i];
+            const auto& info = infos[i];
+            const auto& range = meta.Ranges[info.Index];
+            const CD3DX12_CPU_DESCRIPTOR_HANDLE handle(handle_start, static_cast<int>(range.OffsetInDescriptorsFromTableStart), stride);
+            const auto& view = m_views[i];
+            view.CreateDescriptor(m_dx_device.Get(), def, handle, meta.View);
+        }
+    }
+    for (const auto cg : changed_groups)
+    {
+        const auto c = static_cast<u32>(cg >> 32);
+        const auto g = static_cast<u32>(cg & 0xFFFFFFFF);
+        const auto& groups = classes[c];
+        auto& ai = m_allocations[c][g];
+        const auto& da = (groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav);
+        // da->UploadTransient(ai);
     }
     for (auto i : changed_items)
     {

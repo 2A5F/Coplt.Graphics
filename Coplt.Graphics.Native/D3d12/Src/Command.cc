@@ -112,9 +112,6 @@ void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 
     Translate(submit);
 
-    dh_cbv_srv_uav->ApplyTransientToGpu();
-    dh_sampler->ApplyTransientToGpu();
-
     Reset();
 }
 
@@ -664,7 +661,28 @@ void D3d12CommandInterpreter::SyncBinding()
 
 void D3d12CommandInterpreter::UseBinding()
 {
-    // todo
+    const auto& dm = m_queue->m_descriptor_manager;
+    const auto has_pixel = HasFlags(m_context.Pipeline->GetStages(), FShaderStageFlags::Pixel);
+    const auto& cmd_pack = m_queue->m_cmd;
+    auto binding = m_context.Binding;
+    const auto layput = binding->Layout();
+    const auto classes = layput->GetTableGroups();
+    const auto allocations = binding->Allocations();
+    for (u32 i = 0; i < classes.size(); ++i)
+    {
+        const auto& groups = classes[i];
+        const auto& da = groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav;
+        for (u32 j = 0; j < groups.Metas.size(); ++j)
+        {
+            const auto& meta = groups.Metas[j];
+            const auto& ai = allocations[i][j];
+            if (!ai) continue;
+            const auto handle = da->GetGpuHandle(ai);
+            if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
+            else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
+        }
+    }
+    // todo 其他 Root 项
 }
 
 ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)

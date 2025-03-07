@@ -19,6 +19,7 @@ namespace Coplt
         virtual bool Changed() noexcept = 0;
         virtual const HashSet<u32>& ChangedItems() noexcept = 0;
         virtual const HashSet<u64>& ChangedGroups() noexcept = 0;
+        virtual std::span<const std::vector<DescriptorAllocation>> Allocations() noexcept = 0;
 
         virtual void Set(std::span<const FBindItem> bindings) = 0;
 
@@ -31,7 +32,7 @@ namespace Coplt
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<ID3d12ShaderLayout> m_layout{};
         std::vector<View> m_views{};
-        std::vector<std::vector<std::vector<u32>>> m_items{};
+        std::vector<std::vector<std::vector<u32>>> m_item_indexes{};
         std::vector<std::vector<DescriptorAllocation>> m_allocations{};
         HashSet<u32> m_changed_items{};
         HashSet<u64> m_changed_groups{};
@@ -47,6 +48,7 @@ namespace Coplt
         bool Changed() noexcept override;
         const HashSet<u32>& ChangedItems() noexcept override;
         const HashSet<u64>& ChangedGroups() noexcept override;
+        std::span<const std::vector<DescriptorAllocation>> Allocations() noexcept override;
 
         void Update(D3d12GpuQueue* queue) override;
     };
