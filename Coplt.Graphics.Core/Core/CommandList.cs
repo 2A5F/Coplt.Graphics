@@ -18,7 +18,7 @@ public enum DispatchType : byte
 /// <summary>
 /// 命令列表，不支持多线程访问
 /// </summary>
-public sealed unsafe class CommandList
+public sealed unsafe class CommandList : IQueueOwned
 {
     #region Struct
 
@@ -265,6 +265,42 @@ public sealed unsafe class CommandList
         }
     }
 
+    internal struct PipelineContext
+    {
+        public ShaderPipeline? CurrentPipeline;
+        public ShaderBinding? CurrentBinding;
+
+        public bool PipelineChanged;
+        public bool BindingChanged;
+
+        public bool SetPipeline(CommandList self, ShaderPipeline Pipeline)
+        {
+            if (CurrentPipeline == Pipeline) return false;
+            self.AddObject(CurrentPipeline = Pipeline);
+            PipelineChanged = true;
+            if (CurrentBinding != null)
+            {
+                if (Pipeline.Shader.Layout != CurrentBinding.Layout)
+                    CurrentBinding = null;
+            }
+            return true;
+        }
+
+        public bool SetBinding(CommandList self, ShaderBinding Binding)
+        {
+            if (CurrentBinding == Binding) return false;
+            Binding.AssertSameQueue(self.Queue);
+            if (CurrentPipeline != null)
+            {
+                if (CurrentPipeline.Shader.Layout != Binding.Layout)
+                    throw new ArgumentException("This binding is incompatible with the current pipeline");
+            }
+            self.AddObject(CurrentBinding = Binding);
+            BindingChanged = true;
+            return true;
+        }
+    }
+
     #endregion
 
     #region Fields
@@ -292,6 +328,8 @@ public sealed unsafe class CommandList
     internal readonly Dictionary<FResourceRef, ScopedState> m_scoped_res_state = new();
     internal readonly HashSet<object> m_objects = new();
     internal GpuOutput? m_current_output;
+    internal uint m_grow_cbv_srv_uav_binding_capacity;
+    internal uint m_grow_sampler_binding_capacity;
     internal int m_debug_scope_count;
     internal int m_render_debug_scope_count;
     internal int m_compute_debug_scope_count;
@@ -347,6 +385,8 @@ public sealed unsafe class CommandList
         m_string16.Clear();
         m_resources.Clear();
         m_objects.Clear();
+        m_grow_cbv_srv_uav_binding_capacity = 0;
+        m_grow_sampler_binding_capacity = 0;
         m_current_barrier_cmd_index = -1;
         m_auto_barrier = true;
         m_current_output = null;
@@ -404,6 +444,8 @@ public sealed unsafe class CommandList
                 Str16 = p_string16,
                 CommandCount = (uint)m_commands.Count,
                 ResourceCount = (uint)m_resource_metas.Count,
+                GrowCbvSrvUavBindingCapacity = m_grow_cbv_srv_uav_binding_capacity,
+                GrowSamplerBindingCapacity = m_grow_sampler_binding_capacity,
             };
             Queue.ActualSubmit(Executor, &submit, NoWait);
         }
@@ -713,6 +755,7 @@ public sealed unsafe class CommandList
     /// </summary>
     public void ClearColor(IRtv Image, float4 Color, ReadOnlySpan<URect> Rects = default)
     {
+        Image.AssertSameQueue(Queue);
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
 
         var cmd = new FCommandClearColor
@@ -777,6 +820,7 @@ public sealed unsafe class CommandList
         ReadOnlySpan<URect> Rects = default
     )
     {
+        Image.AssertSameQueue(Queue);
         if (!Image.TryDsv()) throw new ArgumentException($"Resource {Image} cannot be used as Dsv");
 
         var cmd = new FCommandClearDepthStencil
@@ -815,6 +859,7 @@ public sealed unsafe class CommandList
         ShaderBinding Binding, ReadOnlySpan<ShaderBindingSetItem> Items
     )
     {
+        Binding.AssertSameQueue(Queue);
         if (Items.Length == 0) return;
         AddObject(Binding);
         var cmd = new FCommandBind
@@ -828,21 +873,7 @@ public sealed unsafe class CommandList
         cmd.ItemsIndex = (uint)index;
         CollectionsMarshal.SetCount(m_bind_items, m_bind_items.Count + Items.Length);
         var dst = CollectionsMarshal.AsSpan(m_bind_items).Slice(index, Items.Length);
-        var defines = Binding.Layout.NativeDefines;
-        var views = Binding.MutViews;
-        for (var i = 0; i < Items.Length; i++)
-        {
-            var src = Items[i];
-            ref readonly var define = ref defines[(int)src.Index];
-            define.CheckCompatible(src.View, (int)src.Index);
-            dst[i] = new()
-            {
-                Index = src.Index,
-                View = src.View.ToFFI(),
-            };
-            ref var view = ref views[(int)src.Index];
-            view = src.View;
-        }
+        Binding.Set(Items, dst);
         m_commands.Add(new() { Bind = cmd });
     }
 
@@ -858,6 +889,8 @@ public sealed unsafe class CommandList
         ulong Size = ulong.MaxValue
     )
     {
+        Dst.AssertSameQueue(Queue);
+        Src.AssertSameQueue(Queue);
         if (Size != ulong.MaxValue)
         {
             if (DstOffset + Size > Dst.Size) throw new ArgumentException("The copy range exceeds the buffer range");
@@ -963,6 +996,7 @@ public sealed unsafe class CommandList
         ulong DstOffset = 0
     )
     {
+        Dst.AssertSameQueue(Queue);
         if (Loc.SubmitId != m_queue.SubmitId)
             throw new ArgumentException("An attempt was made to use an expired upload location");
         var Size = Math.Min(Dst.Size, Loc.Size);
@@ -1047,6 +1081,7 @@ public sealed unsafe class CommandList
 
         var has_dsv = Info.Dsv.HasValue;
         var dsv = Info.Dsv ?? default;
+        if (has_dsv) dsv.View!.AssertSameQueue(Queue);
 
         #endregion
 
@@ -1117,6 +1152,7 @@ public sealed unsafe class CommandList
         for (var i = 0; i < Info.Rtvs.Length; i++)
         {
             ref readonly var rtv = ref Info.Rtvs[i];
+            rtv.View.AssertSameQueue(Queue);
             if (!rtv.View.Size2d.Equals(rt_size))
                 throw new ArgumentException("RenderTargets And DepthStencil must be the same size");
             info.Rtv[i] = AddResource(rtv.View.Resource);
@@ -1279,71 +1315,89 @@ public sealed unsafe class CommandList
     /// <summary>
     /// 必须在 Render 或者 Compute 范围内使用
     /// </summary>
-    internal void SyncBinding(ShaderBinding? Binding)
+    internal void SyncBinding(ref PipelineContext context)
     {
-        if (Binding == null) return;
-        if (!AutoBarrierEnabled) return;
-        for (var i = 0; i < Binding.Views.Length; i++)
+        var binding = context.CurrentBinding;
+        if (binding == null) return;
+        if (AutoBarrierEnabled)
         {
-            ref readonly var def = ref Binding.Layout.NativeDefines[i];
-            if (def.View is FShaderLayoutItemView.Sampler) continue;
-            ref readonly var view = ref Binding.Views[i];
-            if (view.Tag is View.Tags.None) continue;
-            var is_buffer = false;
-            FResourceRef res;
-            switch (view.Tag)
+            for (var i = 0; i < binding.Views.Length; i++)
             {
-            case View.Tags.Buffer:
-                res = AddResource(view.Buffer);
-                is_buffer = true;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-            }
-            var Usage = def.Stage switch
-            {
-                FShaderStage.Compute => ScopedStateUsage.Compute,
-                FShaderStage.Pixel   => ScopedStateUsage.Pixel,
-                FShaderStage.Vertex  => ScopedStateUsage.Vertex,
-                FShaderStage.Mesh    => ScopedStateUsage.Mesh,
-                FShaderStage.Task    => ScopedStateUsage.Mesh,
-                _                    => throw new ArgumentOutOfRangeException()
-            };
-            var Layout = ResLayout.None;
-            ResAccess Access;
-            LegacyState Legacy;
-            switch (def.View)
-            {
-            case FShaderLayoutItemView.Cbv:
-            case FShaderLayoutItemView.Constants:
-                Access = ResAccess.ConstantBuffer;
-                Legacy = LegacyState.ConstantBuffer;
-                break;
-            case FShaderLayoutItemView.Srv:
-                if (!is_buffer) Layout = ResLayout.ShaderResource;
-                Access = ResAccess.ShaderResource;
-                Legacy = LegacyState.ShaderResource;
-                break;
-            case FShaderLayoutItemView.Uav:
-                if (!is_buffer) Layout = ResLayout.UnorderedAccess;
-                Access = ResAccess.UnorderedAccess;
-                Legacy = LegacyState.UnorderedAccess;
-                break;
-            case FShaderLayoutItemView.Sampler:
-            default:
-                throw new ArgumentOutOfRangeException();
-            }
-            ref var old_state = ref RecordScopedResState(
-                res, new()
+                ref readonly var def = ref binding.Layout.NativeDefines[i];
+                if (def.View is FShaderLayoutItemView.Sampler) continue;
+                ref readonly var view = ref binding.Views[i];
+                if (view.Tag is View.Tags.None) continue;
+                var is_buffer = false;
+                FResourceRef res;
+                switch (view.Tag)
                 {
-                    Usage = Usage,
-                    Layout = Layout,
-                    Access = Access,
-                    Legacy = Legacy
-                }, out var compatible
-            );
-            if (!compatible)
-                throw Incompatible($"{Binding}::[{i}]", old_state, Legacy, Access, Layout);
+                case View.Tags.Buffer:
+                    res = AddResource(view.Buffer);
+                    is_buffer = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+                }
+                var Usage = def.Stage switch
+                {
+                    FShaderStage.Compute => ScopedStateUsage.Compute,
+                    FShaderStage.Pixel   => ScopedStateUsage.Pixel,
+                    FShaderStage.Vertex  => ScopedStateUsage.Vertex,
+                    FShaderStage.Mesh    => ScopedStateUsage.Mesh,
+                    FShaderStage.Task    => ScopedStateUsage.Mesh,
+                    _                    => throw new ArgumentOutOfRangeException()
+                };
+                var Layout = ResLayout.None;
+                ResAccess Access;
+                LegacyState Legacy;
+                switch (def.View)
+                {
+                case FShaderLayoutItemView.Cbv:
+                case FShaderLayoutItemView.Constants:
+                    Access = ResAccess.ConstantBuffer;
+                    Legacy = LegacyState.ConstantBuffer;
+                    break;
+                case FShaderLayoutItemView.Srv:
+                    if (!is_buffer) Layout = ResLayout.ShaderResource;
+                    Access = ResAccess.ShaderResource;
+                    Legacy = LegacyState.ShaderResource;
+                    break;
+                case FShaderLayoutItemView.Uav:
+                    if (!is_buffer) Layout = ResLayout.UnorderedAccess;
+                    Access = ResAccess.UnorderedAccess;
+                    Legacy = LegacyState.UnorderedAccess;
+                    break;
+                case FShaderLayoutItemView.Sampler:
+                default:
+                    throw new ArgumentOutOfRangeException();
+                }
+                ref var old_state = ref RecordScopedResState(
+                    res, new()
+                    {
+                        Usage = Usage,
+                        Layout = Layout,
+                        Access = Access,
+                        Legacy = Legacy
+                    }, out var compatible
+                );
+                if (!compatible)
+                    throw Incompatible($"{context.CurrentBinding}::[{i}]", old_state, Legacy, Access, Layout);
+            }
+        }
+        if (!(context.PipelineChanged || context.BindingChanged)) return;
+        context.PipelineChanged = false;
+        context.BindingChanged = false;
+        if (binding.Changed)
+        {
+            var layout = binding.Layout;
+            foreach (var (c, g) in binding.m_changed_groups)
+            {
+                ref readonly var @class = ref layout.NativeGroupClasses[(int)c];
+                ref readonly var group = ref @class.InfoSpan[(int)g];
+                if (group.View is FShaderLayoutGroupView.Sampler) m_grow_sampler_binding_capacity += group.Size;
+                else m_grow_cbv_srv_uav_binding_capacity += group.Size;
+            }
+            binding.ApplyChange();
         }
     }
 
@@ -1522,8 +1576,7 @@ public unsafe struct RenderScope(
     #region Fields
 
     internal FCommandRender render_cmd = render_cmd;
-    internal ShaderPipeline? m_current_pipeline;
-    internal ShaderBinding? m_current_binding;
+    internal PipelineContext m_context;
     internal bool m_disposed;
     internal bool m_has_pixel_shader;
     internal bool m_has_vertex_shader;
@@ -1660,13 +1713,9 @@ public unsafe struct RenderScope(
 
     public void SetPipeline(ShaderPipeline Pipeline)
     {
-        if (m_current_pipeline == Pipeline) return;
-        self.AddObject(m_current_pipeline = Pipeline);
-        if (m_current_binding != null)
-        {
-            if (Pipeline.Shader.Layout != m_current_binding.Layout)
-                m_current_binding = null;
-        }
+        if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Pixel))
+            throw new ArgumentException("Only shaders with a pixel stage can be used for rendering");
+        if (!m_context.SetPipeline(self, Pipeline)) return;
         var cmd = new FCommandSetPipeline
         {
             Base = { Type = FCommandType.SetPipeline },
@@ -1681,13 +1730,7 @@ public unsafe struct RenderScope(
 
     public void SetBinding(ShaderBinding Binding)
     {
-        if (m_current_binding == Binding) return;
-        if (m_current_pipeline != null)
-        {
-            if (m_current_pipeline.Shader.Layout != Binding.Layout)
-                throw new ArgumentException("This binding is incompatible with the current pipeline");
-        }
-        self.AddObject(m_current_binding = Binding);
+        if (!m_context.SetBinding(self, Binding)) return;
         var cmd = new FCommandSetBinding
         {
             Base = { Type = FCommandType.SetBinding },
@@ -1807,6 +1850,7 @@ public unsafe struct RenderScope(
             for (var i = 0; i < VertexBuffers.Length; i++)
             {
                 var buffer = VertexBuffers[i];
+                buffer.Buffer.AssertSameQueue(self.Queue);
                 ref var dst = ref vbs[i];
                 dst = new()
                 {
@@ -1882,11 +1926,12 @@ public unsafe struct RenderScope(
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
-                throw new ArgumentException("Only Vertex shaders can use Draw");
+            if (m_context.CurrentPipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+                throw new ArgumentException("Only shaders with a vertex stage can use Draw");
         }
         if (Binding != null) SetBinding(Binding);
+        self.SyncBinding(ref m_context);
         var cmd = new FCommandDraw
         {
             Base = { Type = FCommandType.Draw },
@@ -1900,7 +1945,6 @@ public unsafe struct RenderScope(
         m_commands.Add(new() { Draw = cmd });
         m_has_pixel_shader = true;
         m_has_vertex_shader = true;
-        self.SyncBinding(m_current_binding);
     }
 
     #endregion
@@ -1926,11 +1970,12 @@ public unsafe struct RenderScope(
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
-                throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
+            if (m_context.CurrentPipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only shaders with a mesh stage can use DispatchMesh");
         }
         if (Binding != null) SetBinding(Binding);
+        self.SyncBinding(ref m_context);
         var cmd = new FCommandDispatch
         {
             Base = { Type = FCommandType.Draw },
@@ -1942,8 +1987,7 @@ public unsafe struct RenderScope(
         m_commands.Add(new() { Dispatch = cmd });
         m_has_pixel_shader = true;
         m_has_mesh_shader = true;
-        m_has_task_shader = m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
-        self.SyncBinding(m_current_binding);
+        m_has_task_shader = m_context.CurrentPipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
     }
 
     #endregion
@@ -1964,8 +2008,7 @@ public unsafe struct ComputeScope(
     #region Fields
 
     internal FCommandCompute compute_cmd = compute_cmd;
-    internal ShaderPipeline? m_current_pipeline;
-    internal ShaderBinding? m_current_binding;
+    internal PipelineContext m_context;
     internal bool m_disposed;
     internal bool m_has_compute_shader;
     internal bool m_has_mesh_shader;
@@ -2096,13 +2139,11 @@ public unsafe struct ComputeScope(
 
     public void SetPipeline(ShaderPipeline Pipeline)
     {
-        if (m_current_pipeline == Pipeline) return;
-        self.AddObject(m_current_pipeline = Pipeline);
-        if (m_current_binding != null)
-        {
-            if (Pipeline.Shader.Layout != m_current_binding.Layout)
-                m_current_binding = null;
-        }
+        if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
+            throw new ArgumentException("Only shaders with a Compute or Mesh stage can be used for computation");
+        if (Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Pixel))
+            throw new ArgumentException("Shaders with a pixel stage cannot be used for computation");
+        if (!m_context.SetPipeline(self, Pipeline)) return;
         var cmd = new FCommandSetPipeline
         {
             Base = { Type = FCommandType.SetPipeline },
@@ -2117,13 +2158,7 @@ public unsafe struct ComputeScope(
 
     public void SetBinding(ShaderBinding Binding)
     {
-        if (m_current_binding == Binding) return;
-        if (m_current_pipeline != null)
-        {
-            if (m_current_pipeline.Shader.Layout != Binding.Layout)
-                throw new ArgumentException("This binding is incompatible with the current pipeline");
-        }
-        self.AddObject(m_current_binding = Binding);
+        if (!m_context.SetBinding(self, Binding)) return;
         var cmd = new FCommandSetBinding
         {
             Base = { Type = FCommandType.SetBinding },
@@ -2166,47 +2201,44 @@ public unsafe struct ComputeScope(
     {
         if (Pipeline != null)
         {
-            if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
-                throw new ArgumentException("Only Mesh and Compute shaders can use Dispatch/DispatchMesh");
             SetPipeline(Pipeline);
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute | ShaderStageFlags.Mesh))
-                throw new ArgumentException("Only Mesh and Compute shaders can use Dispatch/DispatchMesh");
+            if (m_context.CurrentPipeline == null) throw new InvalidOperationException("Pipeline is not set");
         }
         if (Binding != null) SetBinding(Binding);
         if (Type == DispatchType.Auto)
         {
-            if (m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+            if (m_context.CurrentPipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
             {
                 Type = DispatchType.Compute;
                 m_has_compute_shader = true;
             }
-            else if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+            else if (m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
             {
                 Type = DispatchType.Mesh;
                 m_has_mesh_shader = true;
-                if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Task))
+                if (m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Task))
                     m_has_task_shader = true;
             }
-            else throw new UnreachableException();
+            else throw new ArgumentException("Only Mesh and Compute shaders can use in Compute Scope");
         }
         else if (Type == DispatchType.Mesh)
         {
-            if (!m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+            if (!m_context.CurrentPipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
                 throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
             m_has_mesh_shader = true;
-            if (m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Task))
+            if (m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Task))
                 m_has_task_shader = true;
         }
         else if (Type == DispatchType.Compute)
         {
-            if (!m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+            if (!m_context.CurrentPipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
                 throw new ArgumentException("Only Compute shaders can use Dispatch");
             m_has_compute_shader = true;
         }
+        self.SyncBinding(ref m_context);
         var cmd = new FCommandDispatch
         {
             Base = { Type = FCommandType.SetBinding },
@@ -2222,7 +2254,6 @@ public unsafe struct ComputeScope(
             },
         };
         m_commands.Add(new() { Dispatch = cmd });
-        self.SyncBinding(m_current_binding);
     }
 
     #endregion

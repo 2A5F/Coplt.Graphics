@@ -2367,7 +2367,10 @@ namespace Coplt.Graphics.Native
         public uint ResourceCount;
 
         [NativeTypeName("Coplt::u32")]
-        public uint GrowBindingCapacity;
+        public uint GrowCbvSrvUavBindingCapacity;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GrowSamplerBindingCapacity;
     }
 
     [Guid("F1C59CB4-7EE6-4EE2-80F4-07CC568920D2")]

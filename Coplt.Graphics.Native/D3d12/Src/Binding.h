@@ -9,17 +9,20 @@
 
 namespace Coplt
 {
+    struct D3d12GpuQueue;
+    struct DescriptorAllocation;
+
     COPLT_INTERFACE_DEFINE(ID3d12ShaderBinding, "84f2b3e2-bb16-4276-ba3f-5da54eda462d", FD3d12ShaderBinding)
     {
         virtual const Rc<ID3d12ShaderLayout>& Layout() noexcept = 0;
         virtual std::span<View> Views() noexcept = 0;
         virtual bool Changed() noexcept = 0;
         virtual const HashSet<u32>& ChangedItems() noexcept = 0;
-        virtual const HashSet<u32>& ChangedGroups() noexcept = 0;
+        virtual const HashSet<u64>& ChangedGroups() noexcept = 0;
 
         virtual void Set(std::span<const FBindItem> bindings) = 0;
 
-        virtual void ApplyChange() = 0;
+        virtual void Update(D3d12GpuQueue* queue) = 0;
     };
 
     struct D3d12ShaderBinding final : Object<D3d12ShaderBinding, ID3d12ShaderBinding>
@@ -28,8 +31,10 @@ namespace Coplt
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<ID3d12ShaderLayout> m_layout{};
         std::vector<View> m_views{};
+        std::vector<std::vector<std::vector<u32>>> m_items{};
+        std::vector<std::vector<DescriptorAllocation>> m_allocations{};
         HashSet<u32> m_changed_items{};
-        HashSet<u32> m_changed_groups{};
+        HashSet<u64> m_changed_groups{};
 
         explicit D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options);
 
@@ -41,8 +46,8 @@ namespace Coplt
         std::span<View> Views() noexcept override;
         bool Changed() noexcept override;
         const HashSet<u32>& ChangedItems() noexcept override;
-        const HashSet<u32>& ChangedGroups() noexcept override;
+        const HashSet<u64>& ChangedGroups() noexcept override;
 
-        void ApplyChange() override;
+        void Update(D3d12GpuQueue* queue) override;
     };
 }

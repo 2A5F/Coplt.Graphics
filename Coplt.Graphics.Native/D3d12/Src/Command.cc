@@ -101,7 +101,20 @@ D3d12CommandInterpreter::D3d12CommandInterpreter(D3d12GpuQueue* queue) : m_queue
 
 void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 {
+    auto dh_cbv_srv_uav = m_queue->m_descriptor_manager.m_cbv_srv_uav.get();
+    auto dh_sampler = m_queue->m_descriptor_manager.m_sampler.get();
+
+    dh_cbv_srv_uav->Start(submit.GrowCbvSrvUavBindingCapacity);
+    dh_sampler->Start(submit.GrowSamplerBindingCapacity);
+
+    ID3D12DescriptorHeap* desc_heaps[2]{dh_cbv_srv_uav->m_heap->m_heap.Get(), dh_sampler->m_heap->m_heap.Get()};
+    m_queue->m_cmd->SetDescriptorHeaps(2, desc_heaps);
+
     Translate(submit);
+
+    dh_cbv_srv_uav->ApplyTransientToGpu();
+    dh_sampler->ApplyTransientToGpu();
+
     Reset();
 }
 
@@ -641,30 +654,12 @@ void D3d12CommandInterpreter::SetBinding(FShaderBinding* binding, u32 i)
 void D3d12CommandInterpreter::SyncBinding()
 {
     if (!(m_context.PipelineChanged || m_context.BindingChanged)) return;
-    if (m_context.Binding->Changed()) UpdateBinding();
-    UseBinding();
-}
-
-void D3d12CommandInterpreter::UpdateBinding()
-{
-    auto& dm = m_queue->m_descriptor_manager;
     auto binding = m_context.Binding;
-    auto first = m_bindings.Add(binding);
-    auto layout = binding->Layout().get();
-    auto defs = layout->GetItemDefines();
-    auto infos = layout->GetItemInfos();
-    auto tables = layout->GetTableGroups();
-    const auto& changed_tables = binding->ChangedGroups();
-    const auto& changed_items = binding->ChangedItems();
-    for (auto i : changed_tables)
-    {
-        const auto& table = tables[i];
-    }
-    for (auto i : changed_items)
-    {
-        const auto& def = defs[i];
-        const auto& info = infos[i];
-    }
+    // auto first = m_bindings.Add(binding);
+    binding->Update(m_queue);
+    UseBinding();
+    m_context.PipelineChanged = false;
+    m_context.BindingChanged = false;
 }
 
 void D3d12CommandInterpreter::UseBinding()

@@ -213,6 +213,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
                 .Place = FShaderLayoutItemPlace::Grouped,
             };
             meta.Ranges.push_back(range);
+            meta.Size += range.NumDescriptors;
             continue;
         }
     }

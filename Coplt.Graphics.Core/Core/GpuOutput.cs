@@ -64,7 +64,7 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, ISrv
+public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuResource, IRtv, ISrv
 {
     #region Fields
 

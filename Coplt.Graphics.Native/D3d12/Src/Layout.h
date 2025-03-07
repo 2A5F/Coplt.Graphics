@@ -22,6 +22,7 @@ namespace Coplt
         struct TableMeta
         {
             std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
+            u32 Size{};
             u32 Index{};
             u32 RootIndex{};
             FShaderStage Stage{};

@@ -95,7 +95,6 @@ namespace Coplt
         void SetBinding(FShaderBinding* binding, u32 i);
 
         void SyncBinding();
-        void UpdateBinding();
         void UseBinding();
 
         static ID3D12Resource* GetResource(const FResourceMeta& meta);
