@@ -29,10 +29,12 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     const auto classes = m_layout->GetTableGroups();
     m_item_indexes = std::vector<std::vector<std::vector<u32>>>(classes.size(), {});
     m_desc_heaps = std::vector<std::vector<Rc<DescriptorHeap>>>(classes.size(), {});
+    m_allocations = std::vector<std::vector<DescriptorAllocation>>(classes.size(), {});
     for (size_t i = 0; i < classes.size(); ++i)
     {
         const auto& group = classes[i];
         m_desc_heaps[i] = std::vector<Rc<DescriptorHeap>>(group.Metas.size(), {});
+        m_allocations[i] = std::vector<DescriptorAllocation>(group.Metas.size(), {});
         auto& items = m_item_indexes[i] = std::vector<std::vector<u32>>(group.Metas.size(), {});
         for (size_t j = 0; j < group.Metas.size(); ++j)
         {
@@ -106,17 +108,19 @@ std::span<const std::vector<Rc<DescriptorHeap>>> D3d12ShaderBinding::DescHeaps()
     return m_desc_heaps;
 }
 
+std::span<std::vector<DescriptorAllocation>> D3d12ShaderBinding::Allocations() noexcept
+{
+    return m_allocations;
+}
+
 void D3d12ShaderBinding::Update(NonNull<D3d12GpuQueue> queue)
 {
     if (!Changed()) return;
     const auto defs = m_layout->GetItemDefines();
     const auto infos = m_layout->GetItemInfos();
     const auto classes = m_layout->GetTableGroups();
-    const auto& changed_groups = m_changed_groups;
-    for (const auto cg : changed_groups)
+    for (const auto [c, g] : IterChangedGroups())
     {
-        const auto c = static_cast<u32>(cg >> 32);
-        const auto g = static_cast<u32>(cg & 0xFFFFFFFF);
         const auto& groups = classes[c];
         const auto& meta = groups.Metas[g];
         if (meta.Size == 0) continue;

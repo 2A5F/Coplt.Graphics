@@ -1,6 +1,8 @@
 #include "Command.h"
 #include "../../Api/FFI/Command.h"
 
+#include <ranges>
+
 #include "Binding.h"
 #include "Context.h"
 #include "DescriptorManager.h"
@@ -672,37 +674,84 @@ void D3d12CommandInterpreter::SyncBinding()
     if (const auto binding = m_context.Binding.get())
     {
         binding->Update(m_queue);
-        UseBinding();
+        AllocAndUseBinding();
         binding->ApplyChange();
     }
     m_context.PipelineChanged = false;
     m_context.BindingChanged = false;
 }
 
-void D3d12CommandInterpreter::UseBinding()
+void D3d12CommandInterpreter::AllocAndUseBinding()
 {
+    const NonNull descriptors = m_descriptors;
     const auto has_pixel = HasFlags(m_context.Pipeline->GetStages(), FShaderStageFlags::Pixel);
     const auto& cmd_pack = m_queue->m_cmd;
-    NonNull binding = m_context.Binding;
-    auto first = m_bindings.Add(binding);
+    const NonNull binding = m_context.Binding;
+    const auto first = m_bindings.Add(binding);
     const auto layout = binding->Layout();
     const auto classes = layout->GetTableGroups();
-    // const auto allocations = binding->Allocations();
-    // for (u32 i = 0; i < classes.size(); ++i)
-    // {
-    //     const auto& groups = classes[i];
-    //     const auto& da = groups.Sampler ? m_descriptors->SamplerHeap() : m_descriptors->ResourceHeap();
-    //     for (u32 j = 0; j < groups.Metas.size(); ++j)
-    //     {
-    //         const auto& meta = groups.Metas[j];
-    //         const auto& ai = allocations[i][j];
-    //         if (!ai) continue;
-    //         const auto handle = da->GetGpuHandle(ai);
-    //         if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
-    //         else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
-    //     }
-    // }
+    const auto heaps = binding->DescHeaps();
+    auto allocations = binding->Allocations();
+    if (first)
+    {
+        for (u32 c = 0; c < classes.size(); ++c)
+        {
+            const auto& groups = classes[c];
+            const auto da = groups.Sampler ? descriptors->SamplerHeap() : descriptors->ResourceHeap();
+            for (u32 g = 0; g < groups.Metas.size(); ++g)
+            {
+                const auto& heap = heaps[c][g];
+                if (!heap) continue;
+                auto& al = allocations[c][g];
+                AllocBindingGroup(groups, da, heap, al);
+            }
+        }
+    }
+    else
+    {
+        for (const auto [c, g] : binding->IterChangedGroups())
+        {
+            const auto& heap = heaps[c][g];
+            if (!heap) continue;
+            const auto& groups = classes[c];
+            const auto da = groups.Sampler ? descriptors->SamplerHeap() : descriptors->ResourceHeap();
+            auto& al = allocations[c][g];
+            AllocBindingGroup(groups, da, heap, al);
+        }
+    }
+    for (u32 i = 0; i < classes.size(); ++i)
+    {
+        const auto& groups = classes[i];
+        const auto& da = groups.Sampler ? m_descriptors->SamplerHeap() : m_descriptors->ResourceHeap();
+        for (u32 j = 0; j < groups.Metas.size(); ++j)
+        {
+            const auto& meta = groups.Metas[j];
+            const auto& al = allocations[i][j];
+            if (!al) continue;
+            const auto handle = da->GetRemoteHandle(al.Offset);
+            if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
+            else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
+        }
+    }
     // todo 其他 Root 项
+}
+
+void D3d12CommandInterpreter::AllocBindingGroup(
+    const ID3d12ShaderLayout::TableGroup& groups,
+    NonNull<DescriptorAllocator> da,
+    const Rc<DescriptorHeap>& heap,
+    DescriptorAllocation& al
+)
+{
+    if (groups.Scope == ID3d12ShaderLayout::TableScope::Material)
+    {
+        COPLT_THROW("TODO");
+    }
+    else
+    {
+        al = da->AllocateTransient(heap->Size());
+        da->Upload(al, heap);
+    }
 }
 
 NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)

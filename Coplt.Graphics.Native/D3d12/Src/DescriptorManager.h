@@ -8,6 +8,7 @@
 #include <bit>
 
 #include "Device.h"
+#include "../../Api/Include/Ptr.h"
 
 namespace Coplt
 {
@@ -36,15 +37,13 @@ namespace Coplt
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetRemoteHandle(u32 offset = 0) const;
     };
 
-    struct DescriptorPersistAllocation
+    struct DescriptorAllocation
     {
-        // todo
-    };
-
-    struct DescriptorTransientAllocation
-    {
-        u32 Offset{};
+        u32 Offset{COPLT_U32_MAX};
         u32 Size{};
+        // todo Persist;
+
+        operator bool() const { return Offset != COPLT_U32_MAX; }
     };
 
     struct DescriptorAllocator final : Object<DescriptorAllocator, FUnknown>
@@ -69,7 +68,8 @@ namespace Coplt
 
         void InitFrame(u32 TransientCapacity);
 
-        DescriptorTransientAllocation AllocateTransient(u32 Size);
+        DescriptorAllocation AllocateTransient(u32 Size);
+        void Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset = 0) const;
     };
 
     struct DescriptorContext final : Object<DescriptorContext, FUnknown>
@@ -83,8 +83,8 @@ namespace Coplt
     public:
         explicit DescriptorContext(const ComPtr<ID3D12Device2>& device);
 
-        DescriptorAllocator* ResourceHeap() const;
-        DescriptorAllocator* SamplerHeap() const;
+        NonNull<DescriptorAllocator> ResourceHeap() const;
+        NonNull<DescriptorAllocator> SamplerHeap() const;
 
         void InitFrame(u32 ResourceCap, u32 SamplerCap);
         void EndFrame();

@@ -650,7 +650,8 @@ namespace Coplt
     T& Rc<T>::operator*() const
     {
         const auto ptr = get();
-        if (ptr == nullptr) COPLT_THROW("Null Pointer");
+        if (ptr == nullptr) [[unlikely]]
+            COPLT_THROW("Null Pointer");
         return *ptr;
     }
 
@@ -658,7 +659,8 @@ namespace Coplt
     T* Rc<T>::operator->() const
     {
         const auto ptr = get();
-        if (ptr == nullptr) COPLT_THROW("Null Pointer");
+        if (ptr == nullptr) [[unlikely]]
+            COPLT_THROW("Null Pointer");
         return ptr;
     }
 }

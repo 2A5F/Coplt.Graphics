@@ -87,7 +87,7 @@ void DescriptorAllocator::InitFrame(const u32 TransientCapacity)
     m_transient_offset = 0;
 }
 
-DescriptorTransientAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
+DescriptorAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
 {
     if (!m_heap)
         COPLT_THROW("Descriptor heap is null");
@@ -99,22 +99,33 @@ DescriptorTransientAllocation DescriptorAllocator::AllocateTransient(const u32 S
     return {.Offset = offset, .Size = Size};
 }
 
+void DescriptorAllocator::Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset) const
+{
+    if (al.Size == 0) return;
+    m_device->CopyDescriptorsSimple(
+        al.Size,
+        GetLocalHandle(al.Offset),
+        heap->GetLocalHandle(offset),
+        m_type
+    );
+}
+
 DescriptorContext::DescriptorContext(const ComPtr<ID3D12Device2>& device) : m_device(device)
 {
     m_resource = new DescriptorAllocator(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_sampler = new DescriptorAllocator(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 }
 
-DescriptorAllocator* DescriptorContext::ResourceHeap() const
+NonNull<DescriptorAllocator> DescriptorContext::ResourceHeap() const
 {
-    if (!m_in_frame)
+    if (!m_in_frame) [[unlikely]]
         COPLT_THROW("Frame not started");
     return m_resource.get();
 }
 
-DescriptorAllocator* DescriptorContext::SamplerHeap() const
+NonNull<DescriptorAllocator> DescriptorContext::SamplerHeap() const
 {
-    if (!m_in_frame)
+    if (!m_in_frame) [[unlikely]]
         COPLT_THROW("Frame not started");
     return m_sampler.get();
 }

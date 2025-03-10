@@ -20,6 +20,7 @@ namespace Coplt
     struct FD3d12PipelineState;
     struct D3d12GpuQueue;
     struct DescriptorContext;
+    struct DescriptorAllocator;
 
     struct D3d12CommandInterpreter final
     {
@@ -100,7 +101,13 @@ namespace Coplt
         void SetBinding(NonNull<FShaderBinding> binding, u32 i);
 
         void SyncBinding();
-        void UseBinding();
+        void AllocAndUseBinding();
+        void AllocBindingGroup(
+            const ID3d12ShaderLayout::TableGroup& groups,
+            NonNull<DescriptorAllocator> da,
+            const Rc<DescriptorHeap>& heap,
+            DescriptorAllocation& al
+        );
 
         static NonNull<ID3D12Resource> GetResource(const FResourceMeta& meta);
         static NonNull<ID3D12Resource> GetResource(NonNull<FUnknown> object, FResourceRefType type);
