@@ -1,8 +1,81 @@
 #include "Layout.h"
 
+#include <ranges>
+
 #include "../Include/ShaderVisibility.h"
 
 using namespace Coplt;
+
+namespace
+{
+    struct TableKey
+    {
+        FShaderStage Stage{};
+        FShaderLayoutGroupView View{};
+
+        TableKey() = default;
+
+        explicit TableKey(const FShaderStage Stage, const FShaderLayoutGroupView View) : Stage(Stage), View(View)
+        {
+        }
+
+        struct Hasher
+        {
+            size_t operator()(const TableKey& value) const
+            {
+                return std::hash<u16>{}(static_cast<u16>(value.Stage) | (static_cast<u16>(value.View) << 8));
+            }
+        };
+
+        struct Eq
+        {
+            bool operator()(const TableKey& lhs, const TableKey& rhs) const
+            {
+                return lhs.Stage == rhs.Stage && lhs.View == rhs.View;
+            }
+        };
+    };
+
+    using TableMeta = ID3d12ShaderLayout::TableMeta;
+    using TableScope = ID3d12ShaderLayout::TableScope;
+
+    struct TableGroupKey
+    {
+        TableScope Scope{};
+        bool Sampler{};
+
+        TableGroupKey() = default;
+
+        explicit TableGroupKey(const TableScope Scope, const bool Sampler) : Scope(Scope), Sampler(Sampler)
+        {
+        }
+
+        struct Hasher
+        {
+            size_t operator()(const TableGroupKey& value) const
+            {
+                return std::hash<u16>{}(static_cast<u16>(value.Scope) | (static_cast<u16>(value.Sampler) << 8));
+            }
+        };
+
+        struct Eq
+        {
+            bool operator()(const TableGroupKey& lhs, const TableGroupKey& rhs) const
+            {
+                return lhs.Scope == rhs.Scope && lhs.Sampler == rhs.Sampler;
+            }
+        };
+    };
+
+    struct TableDefine
+    {
+        u8 Index{};
+        u32 IndexInc{};
+        HashMap<TableKey, TableMeta, TableKey::Hasher, TableKey::Eq> Map{};
+    };
+
+    using TmpTableGroupMap = HashMap<TableGroupKey, TableDefine, TableGroupKey::Hasher, TableGroupKey::Eq>;
+}
 
 D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
     : m_device(std::move(device))
@@ -12,12 +85,12 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     Flags = options.Flags;
 
     m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
-    m_item_metas = std::vector<ItemMeta>(options.Count, {});
+    m_item_infos = std::vector<FShaderLayoutItemInfo>(options.Count, {});
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
 
-    HashMap<TableKey, TableMeta, TableKey::Hasher, TableKey::Eq> tables[2]{};
-    u32 table_index[2]{};
+    TmpTableGroupMap tables{};
+    u8 TableGroupIndexInc{};
 
     for (u32 i = 0; i < m_layout_item_defines.size(); i++)
     {
@@ -34,7 +107,10 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.Constants.RegisterSpace = item.Space;
             param.Constants.Num32BitValues = std::max(1u, item.CountOrIndex);
             param.ShaderVisibility = ToDxVisibility(item.Stage);
-            m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Const};
+            m_item_infos[i] = FShaderLayoutItemInfo{
+                .Index = static_cast<u32>(root_parameters.size()),
+                .Place = FShaderLayoutItemPlace::Const,
+            };
             root_parameters.push_back(param);
             continue;
         }
@@ -51,7 +127,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             table_scope = TableScope::Material;
             goto DefineDescriptorTable;
         case FShaderLayoutItemUsage::Instant:
-            if (item.CountOrIndex > 1)
+            if (item.CountOrIndex > 1 || !IsBuffer(item.Type))
             {
                 table_scope = TableScope::Common;
                 goto DefineDescriptorTable;
@@ -86,70 +162,96 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.Descriptor.RegisterSpace = item.Space;
             param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
             param.ShaderVisibility = ToDxVisibility(item.Stage);
-            m_item_metas[i] = ItemMeta{.Index = static_cast<u32>(root_parameters.size()), .Type = ItemType::Direct};
+            m_item_infos[i] = FShaderLayoutItemInfo{
+                .Index = static_cast<u32>(root_parameters.size()),
+                .Place = FShaderLayoutItemPlace::Direct,
+            };
             root_parameters.push_back(param);
             continue;
         }
     DefineDescriptorTable:
         {
-            auto& table = tables[static_cast<u8>(table_scope)];
-            RangeType range_type{};
+            auto& table = tables.GetOrAdd(TableGroupKey(table_scope, item.View == FShaderLayoutItemView::Sampler), [&](auto& p)
+            {
+                p = TableDefine{.Index = TableGroupIndexInc++};
+            });
+            FShaderLayoutGroupView group_view{};
             D3D12_DESCRIPTOR_RANGE1 range{};
             switch (item.View)
             {
             case FShaderLayoutItemView::Cbv:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-                range_type = RangeType::Cbv;
+                group_view = FShaderLayoutGroupView::Cbv;
                 break;
             case FShaderLayoutItemView::Srv:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                range_type = RangeType::Srv;
+                group_view = FShaderLayoutGroupView::Srv;
                 break;
             case FShaderLayoutItemView::Uav:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                range_type = RangeType::Uav;
+                group_view = FShaderLayoutGroupView::Uav;
                 break;
             case FShaderLayoutItemView::Sampler:
                 range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-                range_type = RangeType::Sampler;
+                group_view = FShaderLayoutGroupView::Sampler;
                 break;
             default:
                 COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
             }
-            auto& meta = table.GetOrAdd(TableKey(item.Stage, range_type), [&](auto& p)
+            auto& meta = table.Map.GetOrAdd(TableKey(item.Stage, group_view), [&](auto& p)
             {
-                p = TableMeta(table_index[static_cast<u8>(table_scope)]++, item.Stage, range_type);
+                p = TableMeta(table.IndexInc++, item.Stage, group_view);
             });
             range.NumDescriptors = std::max(1u, item.CountOrIndex);
             range.BaseShaderRegister = item.Slot;
             range.RegisterSpace = item.Space;
-            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-            m_item_metas[i] = ItemMeta{
-                .Index = static_cast<u32>(meta.ranges.size()), .Table = table_scope,
-                .Type = ItemType::InTable, .RangeType = range_type
+            range.OffsetInDescriptorsFromTableStart = meta.Size;
+            // range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+            m_item_infos[i] = FShaderLayoutItemInfo{
+                .Index = static_cast<u32>(meta.Ranges.size()),
+                .Class = table.Index,
+                .Group = meta.Index,
+                .Place = FShaderLayoutItemPlace::Grouped,
             };
-            meta.ranges.push_back(range);
+            meta.Ranges.push_back(range);
+            meta.Size += range.NumDescriptors;
             continue;
         }
     }
 
-    for (u8 ts = 0; ts < 2; ++ts)
+    m_table_groups = std::vector<TableGroup>(tables.Count(), {});
+    m_group_classes = std::vector<FShaderLayoutGroupClass>(tables.Count(), {});
+    for (auto& [key, table] : tables)
     {
-        auto& table = tables[ts];
-        auto& table_metas = m_table_metas[ts];
-        table_metas = std::vector<TableMeta>(table.Count(), {});
-        for (auto& pair : table)
+        auto& table_groups = m_table_groups[table.Index];
+        auto& group_class = m_group_classes[table.Index];
+        table_groups = TableGroup{
+            .Metas = std::vector<TableMeta>(table.Map.Count(), {}),
+            .Infos = std::vector<FShaderLayoutGroupInfo>(table.Map.Count(), {}),
+            .Scope = key.Scope, .Sampler = key.Sampler
+        };
+        group_class = FShaderLayoutGroupClass{
+            .Infos = table_groups.Infos.data(),
+            .Size = static_cast<u32>(table_groups.Metas.size()),
+            .Sampler = key.Sampler
+        };
+        for (auto& item : table.Map | std::views::values)
         {
             D3D12_ROOT_PARAMETER1 param{};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-            auto& meta = table_metas[pair.second.Index];
-            meta = std::move(pair.second);
+            auto& meta = table_groups.Metas[item.Index];
+            auto& info = table_groups.Infos[item.Index];
+            meta = std::move(item);
             meta.RootIndex = root_parameters.size();
+            info.Index = meta.RootIndex;
+            info.Size = meta.Ranges.size();
+            info.Stage = meta.Stage;
+            info.View = meta.View;
 
             param.ShaderVisibility = ToDxVisibility(meta.Stage);
-            param.DescriptorTable.NumDescriptorRanges = meta.ranges.size();
-            param.DescriptorTable.pDescriptorRanges = meta.ranges.data();
+            param.DescriptorTable.NumDescriptorRanges = meta.Ranges.size();
+            param.DescriptorTable.pDescriptorRanges = meta.Ranges.data();
 
             root_parameters.push_back(param);
         }
@@ -213,14 +315,21 @@ const FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count)
     return m_layout_item_defines.data();
 }
 
-std::span<ID3d12ShaderLayout::ItemMeta> D3d12ShaderLayout::GetItemMetas() noexcept
+const FShaderLayoutItemInfo* D3d12ShaderLayout::GetItemInfos(u32* out_count) noexcept
 {
-    return m_item_metas;
+    *out_count = static_cast<u32>(m_item_infos.size());
+    return m_item_infos.data();
 }
 
-std::array<std::span<ID3d12ShaderLayout::TableMeta>, 2> D3d12ShaderLayout::GetTableMetas() noexcept
+const FShaderLayoutGroupClass* D3d12ShaderLayout::GetGroupClasses(u32* out_count) noexcept
 {
-    return std::array<std::span<TableMeta>, 2>{m_table_metas[0], m_table_metas[1]};
+    *out_count = static_cast<u32>(m_group_classes.size());
+    return m_group_classes.data();
+}
+
+std::span<ID3d12ShaderLayout::TableGroup> D3d12ShaderLayout::GetTableGroups() noexcept
+{
+    return m_table_groups;
 }
 
 D3d12ShaderInputLayout::D3d12ShaderInputLayout(

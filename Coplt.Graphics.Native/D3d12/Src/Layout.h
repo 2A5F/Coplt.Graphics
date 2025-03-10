@@ -13,85 +13,40 @@ namespace Coplt
 {
     COPLT_INTERFACE_DEFINE(ID3d12ShaderLayout, "d8cea40e-7b0c-4a5f-98a9-88fd3abf9ddc", FD3d12ShaderLayout)
     {
-        enum class ItemType : u8
-        {
-            None,
-            Const,
-            Direct,
-            InTable,
-            StaticSampler,
-        };
-
         enum class TableScope : u8
         {
             Common,
             Material,
         };
 
-        enum class RangeType : u8
-        {
-            Cbv,
-            Srv,
-            Uav,
-            Sampler,
-        };
-
-        struct TableKey
-        {
-            FShaderStage Stage{};
-            RangeType Type{};
-
-            TableKey() = default;
-
-            explicit TableKey(const FShaderStage Stage, const RangeType Type) : Stage(Stage), Type(Type)
-            {
-            }
-
-            struct Hasher
-            {
-                size_t operator()(const TableKey& value) const
-                {
-                    return std::hash<u16>{}(static_cast<u16>(value.Stage) | (static_cast<u16>(value.Type) << 8));
-                }
-            };
-
-            struct Eq
-            {
-                bool operator()(const TableKey& lhs, const TableKey& rhs) const
-                {
-                    return lhs.Stage == rhs.Stage && lhs.Type == rhs.Type;
-                }
-            };
-        };
-
         struct TableMeta
         {
-            std::vector<D3D12_DESCRIPTOR_RANGE1> ranges{};
+            std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
+            u32 Size{};
             u32 Index{};
             u32 RootIndex{};
             FShaderStage Stage{};
-            RangeType Type{};
+            FShaderLayoutGroupView View{};
 
             TableMeta() = default;
 
-            explicit TableMeta(const u32 index, const FShaderStage stage, const RangeType type)
-                : Index(index), Stage(stage), Type(type)
+            explicit TableMeta(const u32 index, const FShaderStage stage, const FShaderLayoutGroupView view)
             {
+                Index = index;
+                Stage = stage;
+                View = view;
             }
         };
 
-        struct ItemMeta
+        struct TableGroup
         {
-            // Const | Direct 时是 Root Index，InTable 时是 Table 内的 Index
-            u32 Index{};
-            // InTable 时表示在哪个 Table
-            TableScope Table{};
-            ItemType Type{};
-            RangeType RangeType{};
+            std::vector<TableMeta> Metas{};
+            std::vector<FShaderLayoutGroupInfo> Infos{};
+            TableScope Scope{};
+            bool Sampler{};
         };
 
-        virtual std::span<ItemMeta> GetItemMetas() noexcept = 0;
-        virtual std::array<std::span<TableMeta>, 2> GetTableMetas() noexcept = 0;
+        virtual std::span<TableGroup> GetTableGroups() noexcept = 0;
     };
 
     struct D3d12ShaderLayout final : Object<D3d12ShaderLayout, ID3d12ShaderLayout>
@@ -101,9 +56,9 @@ namespace Coplt
         ComPtr<ID3D12RootSignature> m_root_signature{};
         std::vector<FShaderLayoutItemDefine> m_layout_item_defines{};
         // 长度和 m_layout_item_defines 相同
-        std::vector<ItemMeta> m_item_metas{};
-        // [Common, Material]
-        std::vector<TableMeta> m_table_metas[2]{};
+        std::vector<FShaderLayoutItemInfo> m_item_infos{};
+        std::vector<FShaderLayoutGroupClass> m_group_classes{};
+        std::vector<TableGroup> m_table_groups{};
 
         explicit D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options);
 
@@ -112,9 +67,10 @@ namespace Coplt
         void* GetRootSignaturePtr() noexcept override;
 
         const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
+        const FShaderLayoutItemInfo* GetItemInfos(u32* out_count) noexcept override;
+        const FShaderLayoutGroupClass* GetGroupClasses(u32* out_count) noexcept override;
 
-        std::span<ItemMeta> GetItemMetas() noexcept override;
-        std::array<std::span<TableMeta>, 2> GetTableMetas() noexcept override;
+        std::span<TableGroup> GetTableGroups() noexcept override;
     };
 
     struct D3d12ShaderInputLayout final : Object<D3d12ShaderInputLayout, FD3d12ShaderInputLayout>

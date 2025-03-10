@@ -1,8 +1,5 @@
 #include "Adapter.h"
 
-#include "directx/d3d12.h"
-#include "directx/d3dx12_check_feature_support.h"
-
 #include "../../Api/Include/Error.h"
 
 using namespace Coplt;
@@ -16,10 +13,9 @@ D3d12GpuAdapter::D3d12GpuAdapter(
     ComPtr<ID3D12Device> device{};
     chr | D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
 
-    CD3DX12FeatureSupport feature_support{};
-    chr | feature_support.Init(device.Get());
+    chr | m_feature_support.Init(device.Get());
 
-    m_d3d_feature_level = static_cast<FD3dFeatureLevel>(feature_support.MaxSupportedFeatureLevel());
+    m_d3d_feature_level = static_cast<FD3dFeatureLevel>(m_feature_support.MaxSupportedFeatureLevel());
 
     DXGI_ADAPTER_DESC1 desc1{};
     chr | m_adapter->GetDesc1(&desc1);
@@ -32,7 +28,7 @@ D3d12GpuAdapter::D3d12GpuAdapter(
     {
         m_device_type = FDeviceType::Cpu;
     }
-    else if (feature_support.UMA())
+    else if (m_feature_support.UMA())
     {
         m_device_type = FDeviceType::IntegratedGpu;
     }
@@ -52,15 +48,15 @@ D3d12GpuAdapter::D3d12GpuAdapter(
     m_features.DescriptorHeap = true;
     m_features.ArrBindless = true;
 
-    m_features.ShaderModelLevel = static_cast<FShaderModelLevel>(feature_support.HighestShaderModel());
-    if (m_features.ShaderModelLevel >= FShaderModelLevel::SM_6_6)
+    m_features.ShaderModelLevel = static_cast<FShaderModelLevel>(m_feature_support.HighestShaderModel());
+    if (m_features.ShaderModelLevel >= FShaderModelLevel::SM_6_6 && m_feature_support.ResourceBindingTier() >= D3D12_RESOURCE_BINDING_TIER_3)
     {
         m_features.DynBindless = true;
     }
 
-    if (feature_support.RaytracingTier() >= D3D12_RAYTRACING_TIER_1_0) m_features.RayTracing = true;
-    if (feature_support.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1) m_features.MeshShader = true;
-    if (feature_support.EnhancedBarriersSupported()) m_features.EnhancedBarriers = true;
+    if (m_feature_support.RaytracingTier() >= D3D12_RAYTRACING_TIER_1_0) m_features.RayTracing = true;
+    if (m_feature_support.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1) m_features.MeshShader = true;
+    if (m_feature_support.EnhancedBarriersSupported()) m_features.EnhancedBarriers = true;
 }
 
 FResult D3d12GpuAdapter::CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept

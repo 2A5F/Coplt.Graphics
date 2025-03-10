@@ -2,34 +2,147 @@
 
 using namespace Coplt;
 
-CpuDescriptorSet::CpuDescriptorSet(
-    ComPtr<ID3D12Device2> device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const u32 init_cap
-) : m_device(std::move(device)), m_type(type), m_cap(init_cap)
+DescriptorHeap::DescriptorHeap(ComPtr<ID3D12Device2> device, const D3D12_DESCRIPTOR_HEAP_TYPE type, u32 size, bool gpu)
+    : m_device(std::move(device)), m_type(type), m_size(size), m_gpu(gpu)
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc{};
     desc.Type = type;
-    desc.NumDescriptors = init_cap;
+    desc.NumDescriptors = size;
+    if (gpu) desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     chr | m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
+    m_stride = m_device->GetDescriptorHandleIncrementSize(type);
 }
 
-GpuDescriptorSet::GpuDescriptorSet(
-    ComPtr<ID3D12Device2> device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const u32 init_cap
-) : m_device(std::move(device)), m_type(type), m_cap(init_cap)
+const ComPtr<ID3D12DescriptorHeap>& DescriptorHeap::Heap() const
 {
-    D3D12_DESCRIPTOR_HEAP_DESC desc{};
-    desc.Type = type;
-    desc.NumDescriptors = init_cap;
-    chr | m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_Cpu_heap));
-    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    chr | m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_Gpu_heap));
+    return m_heap;
 }
 
-DescriptorManager::DescriptorManager(D3d12GpuDevice* device) : m_device(device)
+D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap::Type() const
 {
-    m_dx_device = m_device->m_device;
+    return m_type;
+}
 
-    m_rtv_set = box<CpuDescriptorSet>(m_dx_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RtvDsvInitCap);
-    m_dsv_set = box<CpuDescriptorSet>(m_dx_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, RtvDsvInitCap);
-    m_cbv_srv_uav_set = box<GpuDescriptorSet>(m_dx_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CbvSrvUavInitCap);
-    m_sampler_set = box<GpuDescriptorSet>(m_dx_device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerInitCap);
+u32 DescriptorHeap::Stride() const
+{
+    return m_stride;
+}
+
+bool DescriptorHeap::IsRemote() const
+{
+    return m_gpu;
+}
+
+u32 DescriptorHeap::Size() const
+{
+    return m_size;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetLocalHandle(const u32 offset) const
+{
+    return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_heap->GetCPUDescriptorHandleForHeapStart(), static_cast<i32>(offset), m_stride);
+}
+
+CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetRemoteHandle(const u32 offset) const
+{
+    return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_heap->GetGPUDescriptorHandleForHeapStart(), static_cast<i32>(offset), m_stride);
+}
+
+DescriptorAllocator::DescriptorAllocator(const ComPtr<ID3D12Device2>& device, const D3D12_DESCRIPTOR_HEAP_TYPE type)
+    : m_device(device), m_type(type), m_stride(device->GetDescriptorHandleIncrementSize(type))
+{
+}
+
+const Rc<DescriptorHeap>& DescriptorAllocator::Heap() const
+{
+    return m_heap;
+}
+
+D3D12_DESCRIPTOR_HEAP_TYPE DescriptorAllocator::Type() const
+{
+    return m_type;
+}
+
+u32 DescriptorAllocator::Stride() const
+{
+    return m_stride;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetLocalHandle(const u32 offset) const
+{
+    return m_heap->GetLocalHandle(offset);
+}
+
+CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetRemoteHandle(const u32 offset) const
+{
+    return m_heap->GetRemoteHandle(offset);
+}
+
+void DescriptorAllocator::InitFrame(const u32 TransientCapacity)
+{
+    if (m_heap == nullptr || m_heap->Size() < TransientCapacity)
+    {
+        m_heap = new DescriptorHeap(m_device, m_type, std::bit_ceil(std::max(8u, TransientCapacity)), true);
+    }
+    m_transient_offset = 0;
+}
+
+DescriptorAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
+{
+    if (!m_heap)
+        COPLT_THROW("Descriptor heap is null");
+    const auto offset = m_transient_offset;
+    const auto new_offset = offset + Size;
+    if (new_offset > m_heap->Size())
+        COPLT_THROW("Out of descriptor heap");
+    m_transient_offset = new_offset;
+    return {.Offset = offset, .Size = Size};
+}
+
+void DescriptorAllocator::Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset) const
+{
+    if (al.Size == 0) return;
+    m_device->CopyDescriptorsSimple(
+        al.Size,
+        GetLocalHandle(al.Offset),
+        heap->GetLocalHandle(offset),
+        m_type
+    );
+}
+
+DescriptorContext::DescriptorContext(const ComPtr<ID3D12Device2>& device) : m_device(device)
+{
+    m_resource = new DescriptorAllocator(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_sampler = new DescriptorAllocator(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+}
+
+NonNull<DescriptorAllocator> DescriptorContext::ResourceHeap() const
+{
+    if (!m_in_frame) [[unlikely]]
+        COPLT_THROW("Frame not started");
+    return m_resource.get();
+}
+
+NonNull<DescriptorAllocator> DescriptorContext::SamplerHeap() const
+{
+    if (!m_in_frame) [[unlikely]]
+        COPLT_THROW("Frame not started");
+    return m_sampler.get();
+}
+
+void DescriptorContext::InitFrame(const u32 ResourceCap, const u32 SamplerCap)
+{
+    m_resource->InitFrame(ResourceCap);
+    m_sampler->InitFrame(SamplerCap);
+    m_in_frame = true;
+}
+
+void DescriptorContext::EndFrame()
+{
+    m_in_frame = false;
+}
+
+std::array<ID3D12DescriptorHeap*, 2> DescriptorContext::GetDescriptorHeaps() const
+{
+    return {m_resource->Heap()->Heap().Get(), m_sampler->Heap()->Heap().Get()};
 }

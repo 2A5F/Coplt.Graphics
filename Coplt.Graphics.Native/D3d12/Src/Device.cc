@@ -76,8 +76,6 @@ D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCr
     }
 
     chr | m_device->QueryInterface(IID_PPV_ARGS(&m_device0));
-
-    m_descriptor_manager = box<DescriptorManager>(this);
 }
 
 D3d12GpuDevice::~D3d12GpuDevice()

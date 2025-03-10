@@ -196,13 +196,6 @@ namespace Coplt
         Stencil = 2,
     };
 
-    struct FBindItem
-    {
-        FCommandType Type{};
-        FView View{};
-        u32 Index{};
-    };
-
     struct FUploadLoc
     {
         u32 Index{};
@@ -579,6 +572,9 @@ namespace Coplt
         Char16* Str16{};
         u32 CommandCount{};
         u32 ResourceCount{};
+        // 需要增长多少绑定容量，仅在后端使用描述符堆时使用
+        u32 GrowCbvSrvUavBindingCapacity{};
+        u32 GrowSamplerBindingCapacity{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

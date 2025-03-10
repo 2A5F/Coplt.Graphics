@@ -11,6 +11,7 @@ using namespace Coplt;
 
 void Coplt_Graphics_D3d12_Create_Instance(FResult* r, const FInstanceCreateOptions& options, FInstance** out)
 {
+    cpptrace::register_terminate_handler();
     *r = feb([&]
     {
         *out = new D3d12Instance(options);

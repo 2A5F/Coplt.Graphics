@@ -72,6 +72,11 @@ namespace Coplt
         Str8,
     };
 
+    #ifdef FFI_SRC
+    struct FStr8or16;
+    extern FString* ToString(const FStr8or16& str);
+    #endif
+
     struct FStr8or16
     {
         union
@@ -83,7 +88,7 @@ namespace Coplt
         i32 len;
         FStrType type;
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         FStr8or16() = default;
 
         explicit FStr8or16(const char* ptr, const usize len)
@@ -113,7 +118,7 @@ namespace Coplt
         {
         }
 
-#ifdef _WINDOWS
+        #ifdef _WINDOWS
 
         explicit FStr8or16(const wchar_t* ptr, const usize len)
             : str16(reinterpret_cast<const Char16*>(ptr)),
@@ -134,7 +139,7 @@ namespace Coplt
         {
         }
 
-#endif
+        #endif
 
         bool is8() const
         {
@@ -151,8 +156,11 @@ namespace Coplt
             return str16 == nullptr;
         }
 
-        FString* ToString() const;
-#endif
+        FString* ToString() const
+        {
+            return Coplt::ToString(*this);
+        }
+        #endif
     };
 
     struct FCStr8or16
@@ -160,7 +168,7 @@ namespace Coplt
         const char* str8;
         const Char16* str16;
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
         bool has8() const
         {
             return str8 != nullptr;
@@ -175,10 +183,10 @@ namespace Coplt
         {
             return str8 == nullptr && str16 == nullptr;
         }
-#endif
+        #endif
     };
 
-#if defined(FFI_SRC) && defined(_WINDOWS)
+    #if defined(FFI_SRC) && defined(_WINDOWS)
 
 
     inline std::wstring to_wstring(const char* str)
@@ -187,5 +195,5 @@ namespace Coplt
         return std::wstring(ca2_w);
     }
 
-#endif
+    #endif
 }

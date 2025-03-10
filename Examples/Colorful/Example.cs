@@ -56,12 +56,12 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             },
             Name: "Args"
         );
-        // cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
+        cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
     }
     protected override void Render(CommandList cmd, Time time)
     {
         cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
         using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
-        render.Draw(Pipeline, 4);
+        render.Draw(Pipeline, 4, Binding: ShaderBinding);
     }
 }

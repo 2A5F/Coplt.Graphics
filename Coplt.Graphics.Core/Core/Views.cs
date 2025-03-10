@@ -2,7 +2,7 @@
 
 namespace Coplt.Graphics.Core;
 
-public interface IGpuView
+public interface IGpuView : IQueueOwned
 {
     /// <summary>
     /// 视图所属资源
@@ -63,11 +63,6 @@ public enum GpuResourceType
 
 public interface IGpuResource : IGpuView
 {
-    /// <summary>
-    /// 资源所属队列
-    /// </summary>
-    public GpuQueue Queue { get; }
-    
     public GpuResourceType Type { get; }
 
     public ResState State { get; set; }

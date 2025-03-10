@@ -36,6 +36,8 @@ namespace Coplt
         b8 ArrBindless{};
         // 真 · 无绑定, dx 使用 dynamic resource，vk 使用 VK_EXT_mutable_descriptor_type
         b8 DynBindless{};
+        // 仅动态无绑定模式，将无法使用着色器绑定，着色器布局中只能具有根常量/常量推送，此模式具有设备全局描述符堆
+        b8 DynBindlessOnly{};
     };
 
     struct FDeviceFeatures
@@ -54,5 +56,7 @@ namespace Coplt
         b8 ArrBindless{};
         // 真 · 无绑定, dx 使用 dynamic resource，vk 使用 VK_EXT_mutable_descriptor_type
         b8 DynBindless{};
+        // 仅动态无绑定模式，将无法使用着色器绑定，着色器布局中只能具有根常量/常量推送，此模式具有设备全局描述符堆
+        b8 DynBindlessOnly{};
     };
 }

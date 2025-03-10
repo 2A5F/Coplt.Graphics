@@ -9,6 +9,7 @@
 #include "../../Api/Include/Object.h"
 #include "../FFI/Queue.h"
 #include "Command.h"
+#include "DescriptorManager.h"
 #include "Executor.h"
 
 namespace Coplt

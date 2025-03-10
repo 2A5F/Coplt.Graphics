@@ -80,15 +80,9 @@ namespace Coplt
             return m_ptr;
         }
 
-        T& operator*() const
-        {
-            return *get();
-        }
+        T& operator*() const;
 
-        T* operator->() const
-        {
-            return get();
-        }
+        T* operator->() const;
 
         T* operator&() const
         {
@@ -645,5 +639,28 @@ namespace Coplt
     {
         if (ptr == nullptr) return nullptr;
         return ptr->template QueryInterface<U>();
+    }
+}
+
+#include "Error.h"
+
+namespace Coplt
+{
+    template <class T>
+    T& Rc<T>::operator*() const
+    {
+        const auto ptr = get();
+        if (ptr == nullptr) [[unlikely]]
+            COPLT_THROW("Null Pointer");
+        return *ptr;
+    }
+
+    template <class T>
+    T* Rc<T>::operator->() const
+    {
+        const auto ptr = get();
+        if (ptr == nullptr) [[unlikely]]
+            COPLT_THROW("Null Pointer");
+        return ptr;
     }
 }

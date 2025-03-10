@@ -15,7 +15,7 @@ namespace Coplt.Graphics.Native
                 same = Legacy == other.Legacy;
                 return Legacy.FromFFI().IsCompatible(other.Legacy.FromFFI());
             }
-            if (Layout != other.Layout || CrossQueue != other.CrossQueue) goto no;
+            if (!Layout.FromFFI().IsCompatible(other.Layout.FromFFI()) || CrossQueue != other.CrossQueue) goto no;
             if (Access != other.Access)
             {
                 same = false;
@@ -68,6 +68,7 @@ namespace Coplt.Graphics.Native
             var ona = (other.Access.FromFFI() & ResAccess.NoAccess) != 0;
             if (b2a)
             {
+                var Layout = this.Layout.FromFFI().Merge(other.Layout.FromFFI(), sna).ToFFI();
                 if (sna)
                     return new()
                     {
@@ -82,6 +83,7 @@ namespace Coplt.Graphics.Native
             }
             else
             {
+                var Layout = this.Layout.FromFFI().Merge(other.Layout.FromFFI(), ona).ToFFI();
                 if (ona)
                     return new()
                     {
@@ -96,7 +98,7 @@ namespace Coplt.Graphics.Native
             }
             return new()
             {
-                Layout = Layout,
+                Layout = this.Layout.FromFFI().Merge(other.Layout.FromFFI(), false).ToFFI(),
                 // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
                 Access = Access | other.Access,
                 // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags

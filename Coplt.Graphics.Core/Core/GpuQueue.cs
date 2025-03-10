@@ -226,32 +226,41 @@ public sealed unsafe partial class GpuQueue
 
     #region WriteToUpload
 
-    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data)
+    /// <summary>
+    /// 返回的 Span 只能写入
+    /// </summary>
+    public Span<byte> AllocUploadMemory(uint Size, out UploadLoc loc)
     {
         using var _ = m_lock.EnterScope();
         ref var upload_buffers = ref m_ptr->m_context->m_upload_buffer;
         for (nuint i = 0; i < upload_buffers.LongLength; i++)
         {
             ref var block = ref upload_buffers[i];
-            if (block.cur_offset + (uint)Data.Length < block.size)
+            if (block.cur_offset + Size < block.size)
             {
-                Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
-                var loc = new UploadLoc(i, block.cur_offset, (uint)Data.Length, SubmitId);
-                block.cur_offset += (uint)Data.Length;
-                return loc;
+                var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
+                loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+                block.cur_offset += Size;
+                return r;
             }
         }
-        m_ptr->m_context->GrowUploadBuffer((uint)Data.Length).TryThrow();
+        m_ptr->m_context->GrowUploadBuffer(Size).TryThrow();
         upload_buffers = ref m_ptr->m_context->m_upload_buffer;
         {
             var i = upload_buffers.LongLength - 1;
             ref var block = ref upload_buffers[i];
-            if (block.cur_offset + (uint)Data.Length >= block.size) throw new OutOfMemoryException();
-            Data.CopyTo(new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..]);
-            var loc = new UploadLoc(i, block.cur_offset, (uint)Data.Length, SubmitId);
-            block.cur_offset += (uint)Data.Length;
-            return loc;
+            if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
+            var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
+            loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+            block.cur_offset += Size;
+            return r;
         }
+    }
+
+    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data)
+    {
+        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc));
+        return loc;
     }
 
     #endregion

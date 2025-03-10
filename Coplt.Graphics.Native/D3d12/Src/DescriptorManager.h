@@ -1,52 +1,94 @@
 #pragma once
 
+#include "directx/d3dx12.h"
+
+#include <array>
 #include <concurrent_queue.h>
+#include <mutex>
+#include <bit>
 
 #include "Device.h"
+#include "../../Api/Include/Ptr.h"
 
 namespace Coplt
 {
-    struct CpuDescriptorSet
+    struct DescriptorHeap final : Object<DescriptorHeap, FUnknown>
     {
+    private:
         ComPtr<ID3D12Device2> m_device{};
-
-        D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
         ComPtr<ID3D12DescriptorHeap> m_heap{};
-
-        u32 m_used{};
-        u32 m_cap{};
-
-        explicit CpuDescriptorSet(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_cap);
-    };
-
-    struct GpuDescriptorSet
-    {
-        ComPtr<ID3D12Device2> m_device{};
-
         D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
-        ComPtr<ID3D12DescriptorHeap> m_Cpu_heap{};
-        ComPtr<ID3D12DescriptorHeap> m_Gpu_heap{};
+        u32 m_stride{};
+        u32 m_size{};
+        bool m_gpu{};
 
-        u32 m_used{};
-        u32 m_cap{};
+    public:
+        explicit DescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 size, bool gpu);
 
-        explicit GpuDescriptorSet(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_cap);
+        const ComPtr<ID3D12DescriptorHeap>& Heap() const;
+
+        D3D12_DESCRIPTOR_HEAP_TYPE Type() const;
+        u32 Stride() const;
+        bool IsRemote() const;
+
+        u32 Size() const;
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetLocalHandle(u32 offset = 0) const;
+        CD3DX12_GPU_DESCRIPTOR_HANDLE GetRemoteHandle(u32 offset = 0) const;
     };
 
-    struct DescriptorManager final
+    struct DescriptorAllocation
     {
-        constexpr static u32 RtvDsvInitCap = 128;
-        constexpr static u32 SamplerInitCap = 128;
-        constexpr static u32 CbvSrvUavInitCap = 1024;
+        u32 Offset{COPLT_U32_MAX};
+        u32 Size{};
+        // todo Persist;
 
-        D3d12GpuDevice* m_device;
-        ComPtr<ID3D12Device2> m_dx_device{};
+        operator bool() const { return Offset != COPLT_U32_MAX; }
+    };
 
-        Box<CpuDescriptorSet> m_rtv_set{};
-        Box<CpuDescriptorSet> m_dsv_set{};
-        Box<GpuDescriptorSet> m_cbv_srv_uav_set{};
-        Box<GpuDescriptorSet> m_sampler_set{};
+    struct DescriptorAllocator final : Object<DescriptorAllocator, FUnknown>
+    {
+    private:
+        ComPtr<ID3D12Device2> m_device{};
+        Rc<DescriptorHeap> m_heap{};
+        D3D12_DESCRIPTOR_HEAP_TYPE const m_type{};
+        u32 const m_stride{};
+        u32 m_transient_offset{};
 
-        explicit DescriptorManager(D3d12GpuDevice* device);
+    public:
+        explicit DescriptorAllocator(const ComPtr<ID3D12Device2>& device, D3D12_DESCRIPTOR_HEAP_TYPE type);
+
+        const Rc<DescriptorHeap>& Heap() const;
+
+        D3D12_DESCRIPTOR_HEAP_TYPE Type() const;
+        u32 Stride() const;
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetLocalHandle(u32 offset = 0) const;
+        CD3DX12_GPU_DESCRIPTOR_HANDLE GetRemoteHandle(u32 offset = 0) const;
+
+        void InitFrame(u32 TransientCapacity);
+
+        DescriptorAllocation AllocateTransient(u32 Size);
+        void Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset = 0) const;
+    };
+
+    struct DescriptorContext final : Object<DescriptorContext, FUnknown>
+    {
+    private:
+        ComPtr<ID3D12Device2> m_device{};
+        Rc<DescriptorAllocator> m_resource{};
+        Rc<DescriptorAllocator> m_sampler{};
+        bool m_in_frame{};
+
+    public:
+        explicit DescriptorContext(const ComPtr<ID3D12Device2>& device);
+
+        NonNull<DescriptorAllocator> ResourceHeap() const;
+        NonNull<DescriptorAllocator> SamplerHeap() const;
+
+        void InitFrame(u32 ResourceCap, u32 SamplerCap);
+        void EndFrame();
+
+        std::array<ID3D12DescriptorHeap*, 2> GetDescriptorHeaps() const;
     };
 }

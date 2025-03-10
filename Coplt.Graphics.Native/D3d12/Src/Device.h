@@ -11,7 +11,6 @@
 namespace Coplt
 {
     struct D3d12GpuAdapter;
-    struct DescriptorManager;
     struct D3d12ShaderLayout;
     struct D3d12MeshLayout;
 
@@ -25,7 +24,6 @@ namespace Coplt
         ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
-        Box<DescriptorManager> m_descriptor_manager{};
         Box<EmptyLayouts> m_empty_layouts{};
         Rc<D3d12MeshLayout> m_empty_mesh_layout{};
         DWORD m_callback_cookie{};

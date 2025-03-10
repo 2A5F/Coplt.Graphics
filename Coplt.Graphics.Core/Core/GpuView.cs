@@ -5,7 +5,7 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuView
+public abstract unsafe partial class GpuView : IQueueOwned
 {
     #region Fields
 

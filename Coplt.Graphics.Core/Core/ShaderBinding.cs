@@ -7,7 +7,7 @@ namespace Coplt.Graphics.Core;
 public record struct ShaderBindingSetItem(uint Index, View View);
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class ShaderBinding
+public sealed unsafe partial class ShaderBinding : IQueueOwned
 {
     #region Fields
 
@@ -16,8 +16,9 @@ public sealed unsafe partial class ShaderBinding
     internal readonly GpuDevice m_device;
     internal readonly GpuQueue m_queue;
     internal readonly ShaderLayout m_layout;
-    internal readonly FRoSlice<FView> m_native_views;
     internal readonly View[] m_views;
+    internal readonly HashSet<uint> m_changed_items = new();
+    internal readonly HashSet<(uint c, uint g)> m_changed_groups = new();
 
     #endregion
 
@@ -27,10 +28,10 @@ public sealed unsafe partial class ShaderBinding
     public GpuDevice Device => m_device;
     public GpuQueue Queue => m_queue;
     public ShaderLayout Layout => m_layout;
-    public ReadOnlySpan<FView> NativeViews => m_native_views.Span;
     public ReadOnlySpan<View> Views => m_views;
     internal Span<View> MutViews => m_views;
     public ref readonly View this[int index] => ref m_views[index];
+    internal bool Changed => m_changed_items.Count != 0 || m_changed_groups.Count != 0;
 
     #endregion
 
@@ -44,13 +45,7 @@ public sealed unsafe partial class ShaderBinding
         m_queue = queue;
         m_layout = layout;
 
-        {
-            uint size = 0;
-            var views = m_ptr->GetViews(&size);
-            m_native_views = new(views, size);
-        }
-
-        m_views = new View[m_native_views.Length];
+        m_views = new View[m_layout.m_native_defines.Length];
     }
 
     #endregion
@@ -96,6 +91,46 @@ public sealed unsafe partial class ShaderBinding
         m_name is null
             ? $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X})"
             : $"0x{nameof(ShaderBinding)}({(nuint)m_ptr:X} \"{m_name}\")";
+
+    #endregion
+
+    #region Set
+
+    internal void Set(ReadOnlySpan<ShaderBindingSetItem> Items, Span<FBindItem> dst)
+    {
+        var defines = Layout.NativeDefines;
+        var infos = Layout.NativeItemInfos;
+        var views = MutViews;
+        for (var i = 0; i < Items.Length; i++)
+        {
+            var src = Items[i];
+            ref readonly var define = ref defines[(int)src.Index];
+            ref readonly var info = ref infos[(int)src.Index];
+            define.CheckCompatible(src.View, (int)src.Index);
+            dst[i] = new()
+            {
+                View = src.View.ToFFI(),
+                Index = src.Index,
+            };
+            ref var view = ref views[(int)src.Index];
+            view = src.View;
+            m_changed_items.Add(src.Index);
+            if (info.Place is FShaderLayoutItemPlace.Grouped)
+            {
+                m_changed_groups.Add((info.Class, info.Group));
+            }
+        }
+    }
+
+    #endregion
+
+    #region ApplyChange
+
+    internal void ApplyChange()
+    {
+        m_changed_items.Clear();
+        m_changed_groups.Clear();
+    }
 
     #endregion
 }

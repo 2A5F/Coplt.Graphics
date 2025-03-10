@@ -22,6 +22,7 @@ public enum ShaderLayoutItemView : byte
 public enum ShaderLayoutItemType : byte
 {
     ConstantBuffer,
+    Buffer,
     RawBuffer,
     StructureBuffer,
     StructureBufferWithCounter,
@@ -103,6 +104,8 @@ public sealed unsafe partial class ShaderLayout
     internal FShaderLayout* m_ptr;
     internal string? m_name;
     internal readonly FRoSlice<FShaderLayoutItemDefine> m_native_defines;
+    internal readonly FRoSlice<FShaderLayoutItemInfo> m_native_item_infos;
+    internal readonly FRoSlice<FShaderLayoutGroupClass> m_native_group_classes;
 
     #endregion
 
@@ -110,6 +113,8 @@ public sealed unsafe partial class ShaderLayout
 
     public FShaderLayout* Ptr => m_ptr;
     public ReadOnlySpan<FShaderLayoutItemDefine> NativeDefines => m_native_defines.Span;
+    public ReadOnlySpan<FShaderLayoutItemInfo> NativeItemInfos => m_native_item_infos.Span;
+    public ReadOnlySpan<FShaderLayoutGroupClass> NativeGroupClasses => m_native_group_classes.Span;
 
     #endregion
 
@@ -121,9 +126,21 @@ public sealed unsafe partial class ShaderLayout
         m_name = name;
         if (m_ptr != null)
         {
-            uint count = 0;
-            var defines = m_ptr->GetItemDefines(&count);
-            m_native_defines = new(defines, count);
+            {
+                uint count = 0;
+                var defines = m_ptr->GetItemDefines(&count);
+                m_native_defines = new(defines, count);
+            }
+            {
+                uint count = 0;
+                var defines = m_ptr->GetItemInfos(&count);
+                m_native_item_infos = new(defines, count);
+            }
+            {
+                uint count = 0;
+                var defines = m_ptr->GetGroupClasses(&count);
+                m_native_group_classes = new(defines, count);
+            }
         }
     }
 

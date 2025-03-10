@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wrl/client.h>
+#include "directx/d3dx12.h"
 
 #include "Device.h"
 #include "../../Api/Include/Object.h"
@@ -14,6 +15,7 @@ namespace Coplt
         ComPtr<IDXGIAdapter1> m_adapter{};
         std::wstring m_name_string{};
         std::wstring m_driver_string{};
+        CD3DX12FeatureSupport m_feature_support{};
 
         explicit D3d12GpuAdapter(Rc<D3d12Instance>&& instance, ComPtr<IDXGIAdapter1>&& adapter);
 

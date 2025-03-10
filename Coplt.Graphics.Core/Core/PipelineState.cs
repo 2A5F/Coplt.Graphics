@@ -277,7 +277,7 @@ namespace Coplt.Graphics.States
     }
 }
 
-namespace Coplt.Graphics
+namespace Coplt.Graphics.Core
 {
     public static partial class GraphicsExtensions
     {

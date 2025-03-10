@@ -32,5 +32,5 @@ cbuffer Args : register(b0)
 [shader("pixel")]
 float4 Pixel(Varying input) : SV_Target
 {
-    return float4(input.Uv, time, 1);
+    return float4(input.Uv, (cos(time) + 1) * 0.5, 1);
 }
