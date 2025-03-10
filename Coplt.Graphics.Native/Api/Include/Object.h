@@ -80,15 +80,9 @@ namespace Coplt
             return m_ptr;
         }
 
-        T& operator*() const
-        {
-            return *get();
-        }
+        T& operator*() const;
 
-        T* operator->() const
-        {
-            return get();
-        }
+        T* operator->() const;
 
         T* operator&() const
         {
@@ -648,8 +642,23 @@ namespace Coplt
     }
 }
 
-#ifndef _COPLT_STRING_SRC_
-
 #include "Error.h"
 
-#endif
+namespace Coplt
+{
+    template <class T>
+    T& Rc<T>::operator*() const
+    {
+        const auto ptr = get();
+        if (ptr == nullptr) COPLT_THROW("Null Pointer");
+        return *ptr;
+    }
+
+    template <class T>
+    T* Rc<T>::operator->() const
+    {
+        const auto ptr = get();
+        if (ptr == nullptr) COPLT_THROW("Null Pointer");
+        return ptr;
+    }
+}

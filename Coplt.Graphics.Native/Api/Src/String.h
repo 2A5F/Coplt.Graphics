@@ -121,25 +121,13 @@ namespace Coplt
         }
 
     public:
-        static String8* Create(const char8_t* data)
-        {
-            return StringT::Create(data);
-        }
+        static String8* Create(const char8_t* data);
 
-        static String8* Create(const char* data)
-        {
-            return Create(data, std::char_traits<char>::length(data));
-        }
+        static String8* Create(const char* data);
 
-        static String8* Create(const char8_t* data, const usize size)
-        {
-            return StringT::Create(data, size);
-        }
+        static String8* Create(const char8_t* data, const usize size);
 
-        static String8* Create(const char* data, const usize size)
-        {
-            return StringT::Create(reinterpret_cast<const char8_t*>(data), size);
-        }
+        static String8* Create(const char* data, const usize size);
 
         constexpr const char* c_str() const
         {
@@ -151,42 +139,27 @@ namespace Coplt
             return std::string(c_str(), m_size);
         }
 
-        FStr8or16 GetStr() const noexcept override
-        {
-            return FStr8or16(c_str(), size());
-        }
+        FStr8or16 GetStr() const noexcept override;
     };
+
+    extern String8* CreateString8(const char* data, usize size);
 
     struct String16 final : StringT<String16, char16_t, FString16>
     {
     private:
         friend StringT;
 
-        explicit String16(const char16_t* data, const usize size) : StringT(data, size)
-        {
-        }
+        explicit String16(const char16_t* data, const usize size);
 
     public:
-        static String16* Create(const Char16* data)
-        {
-            return StringT::Create(data);
-        }
+        static String16* Create(const Char16* data);
 
-        static String16* Create(const Char16* data, const usize size)
-        {
-            return StringT::Create(data, size);
-        }
+        static String16* Create(const Char16* data, const usize size);
 
-#if _WINDOWS
-        static String16* Create(const wchar_t* data)
-        {
-            return Create(data, std::char_traits<wchar_t>::length(data));
-        }
+        #ifdef _WINDOWS
+        static String16* Create(const wchar_t* data);
 
-        static String16* Create(const wchar_t* data, const usize size)
-        {
-            return StringT::Create(reinterpret_cast<const char16_t*>(data), size);
-        }
+        static String16* Create(const wchar_t* data, const usize size);
 
         constexpr const wchar_t* c_str() const
         {
@@ -197,13 +170,12 @@ namespace Coplt
         {
             return std::wstring(c_str(), m_size);
         }
-#endif
+        #endif
 
-        FStr8or16 GetStr() const noexcept override
-        {
-            return FStr8or16(data(), size());
-        }
+        FStr8or16 GetStr() const noexcept override;
     };
+
+    extern String16* CreateString16(const wchar_t* data, usize size);
 
     struct CString final : StringForward<CString, char, char8_t, FString8>
     {
@@ -216,13 +188,14 @@ namespace Coplt
         {
         }
 
-        FStr8or16 GetStr() const noexcept override
-        {
-            return FStr8or16(data(), size());
-        }
+        FStr8or16 GetStr() const noexcept override;
     };
 
-#if _WINDOWS
+    extern CString* CreateCString(std::string&& string);
+
+    extern CString* CreateCString(const char* data, usize size);
+
+    #ifdef _WINDOWS
     struct WString final : StringForward<WString, wchar_t, char16_t, FString16>
     {
         constexpr explicit WString(StdString&& string) : StringForward(std::move(string))
@@ -234,10 +207,7 @@ namespace Coplt
         {
         }
 
-        FStr8or16 GetStr() const noexcept override
-        {
-            return FStr8or16(data(), size());
-        }
+        FStr8or16 GetStr() const noexcept override;
     };
-#endif
+    #endif
 }

@@ -8,7 +8,6 @@
 
 #include "Logger.h"
 #include "../FFI/Result.h"
-#include "../Src/String.h"
 
 #if _WINDOWS
 #include <AtlBase.h>
@@ -26,21 +25,7 @@
 
 namespace Coplt
 {
-    inline std::string to_string(const cpptrace::stacktrace& trace)
-    {
-        const auto trace8 = trace.to_string(false);
-        std::stringstream ss(trace8);
-        std::string tmp;
-        std::ostringstream stream{};
-        while (std::getline(ss, tmp, '\n'))
-        {
-            stream << "    ";
-            stream << tmp;
-            stream << "\r\n";
-        }
-        stream << "    --- End of native exception stack trace ---";
-        return std::move(stream).str();
-    }
+    std::string to_string(const cpptrace::stacktrace& trace);
 
     struct Exception
     {
@@ -56,26 +41,10 @@ namespace Coplt
         mutable std::string what_string;
 
     public:
-        explicit LazyException(
-            cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) : trace_holder(std::move(trace))
-        {
-        }
+        explicit LazyException(cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb());
 
-        std::string what() const noexcept override
-        {
-            if (what_string.empty())
-            {
-                const auto trace = to_string(trace_holder.get_resolved_trace());
-                what_string = fmt::format("{}\r\n{}", message().c_str(), trace.c_str());
-            }
-            return what_string;
-        }
-
-        const cpptrace::stacktrace& trace() const noexcept override
-        {
-            return trace_holder.get_resolved_trace();
-        }
+        std::string what() const noexcept override;
+        const cpptrace::stacktrace& trace() const noexcept override;
     };
 
     class ExceptionWithMessage : public LazyException
@@ -86,14 +55,9 @@ namespace Coplt
         explicit ExceptionWithMessage(
             std::string&& message_arg,
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept : LazyException(std::move(trace)), user_message(std::move(message_arg))
-        {
-        }
+        ) noexcept;
 
-        const std::string& message() const noexcept override
-        {
-            return user_message;
-        }
+        const std::string& message() const noexcept override;
     };
 
     class RuntimeException : public ExceptionWithMessage
@@ -102,37 +66,19 @@ namespace Coplt
         explicit RuntimeException(
             std::string&& message_arg,
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept
-            : ExceptionWithMessage(std::move(message_arg), std::move(trace))
-        {
-        }
+        ) noexcept;
 
         template <usize N>
         explicit RuntimeException(
             const char (&message_arg)[N],
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept
-            : RuntimeException(std::string(message_arg, N), std::move(trace))
+        ) noexcept : RuntimeException(std::string(message_arg, N), std::move(trace))
         {
         }
     };
 
-    #if _WINDOWS
-    inline std::wstring to_wstring(const cpptrace::stacktrace& trace)
-    {
-        const auto trace8 = trace.to_string(false);
-        std::stringstream ss(trace8);
-        std::string tmp;
-        std::wostringstream stream{};
-        while (std::getline(ss, tmp, '\n'))
-        {
-            stream << L"    ";
-            stream << to_wstring(tmp.c_str());
-            stream << L"\r\n";
-        }
-        stream << L"    --- End of native exception stack trace ---";
-        return std::move(stream).str();
-    }
+    #ifdef _WINDOWS
+    std::wstring to_wstring(const cpptrace::stacktrace& trace);
 
     struct WException
     {
@@ -148,26 +94,11 @@ namespace Coplt
         mutable std::wstring what_string;
 
     public:
-        explicit WLazyException(
-            cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) : trace_holder(std::move(trace))
-        {
-        }
+        explicit WLazyException(cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb());
 
-        std::wstring what() const noexcept override
-        {
-            if (what_string.empty())
-            {
-                const auto trace = to_wstring(trace_holder.get_resolved_trace());
-                what_string = fmt::format(L"{}\r\n{}", message().c_str(), trace.c_str());
-            }
-            return what_string;
-        }
+        std::wstring what() const noexcept override;
 
-        const cpptrace::stacktrace& trace() const noexcept override
-        {
-            return trace_holder.get_resolved_trace();
-        }
+        const cpptrace::stacktrace& trace() const noexcept override;
     };
 
     class WExceptionWithMessage : public WLazyException
@@ -178,14 +109,9 @@ namespace Coplt
         explicit WExceptionWithMessage(
             std::wstring&& message_arg,
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept : WLazyException(std::move(trace)), user_message(std::move(message_arg))
-        {
-        }
+        ) noexcept;
 
-        const std::wstring& message() const noexcept override
-        {
-            return user_message;
-        }
+        const std::wstring& message() const noexcept override;
     };
 
     class WRuntimeException : public WExceptionWithMessage
@@ -194,10 +120,7 @@ namespace Coplt
         explicit WRuntimeException(
             std::wstring&& message_arg,
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept
-            : WExceptionWithMessage(std::move(message_arg), std::move(trace))
-        {
-        }
+        ) noexcept;
 
         template <usize N>
         explicit WRuntimeException(
@@ -215,10 +138,7 @@ namespace Coplt
         explicit ComException(
             std::wstring&& message_arg,
             cpptrace::raw_trace&& trace = cpptrace::detail::get_raw_trace_and_absorb()
-        ) noexcept
-            : WExceptionWithMessage(std::move(message_arg), std::move(trace))
-        {
-        }
+        ) noexcept;
 
         template <usize N>
         explicit ComException(
@@ -232,6 +152,20 @@ namespace Coplt
 
     #endif
 
+    template <Fn<FResult> F>
+    FResult feb(F f) noexcept;
+
+    template <Fn<void> F>
+    FResult feb(F f) noexcept;
+
+    template <class R, Fn<R> F>
+    R feb(Logger& logger, R r, F f) noexcept;
+}
+
+#include "../Src/String.h"
+
+namespace Coplt
+{
     template <Fn<FResult> F>
     FResult feb(F f) noexcept
     {
@@ -249,18 +183,18 @@ namespace Coplt
                 catch (cpptrace::exception& e)
                 {
                     auto msg = std::string(e.what());
-                    r = FResult::Error(new CString(std::move(msg)));
+                    r = FResult::Error(CreateCString(std::move(msg)));
                 }
                 catch (Exception& e)
                 {
                     const auto& msg = e.what();
-                    r = FResult::Error(String8::Create(msg.data(), msg.size()));
+                    r = FResult::Error(CreateString8(msg.data(), msg.size()));
                 }
                 #ifdef _WINDOWS
                 catch (WException& e)
                 {
                     const auto& msg = e.what();
-                    r = FResult::Error(String16::Create(msg.data(), msg.size()));
+                    r = FResult::Error(CreateString16(msg.data(), msg.size()));
                 }
                 #endif
             }
@@ -268,14 +202,14 @@ namespace Coplt
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
-            r = FResult::Error(new CString(std::move(msg)));
+            r = FResult::Error(CreateCString(std::move(msg)));
         }
         CPPTRACE_CATCH_ALT(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             auto msg = fmt::format(
                 "Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
-            r = FResult::Error(new CString(std::move(msg)));
+            r = FResult::Error(CreateCString(std::move(msg)));
         }
         return r;
     }
@@ -298,18 +232,18 @@ namespace Coplt
                 catch (cpptrace::exception& e)
                 {
                     auto msg = std::string(e.what());
-                    r = FResult::Error(new CString(std::move(msg)));
+                    r = FResult::Error(CreateCString(std::move(msg)));
                 }
                 catch (Exception& e)
                 {
                     const auto& msg = e.what();
-                    r = FResult::Error(String8::Create(msg.data(), msg.size()));
+                    r = FResult::Error(CreateString8(msg.data(), msg.size()));
                 }
                 #ifdef _WINDOWS
                 catch (WException& e)
                 {
                     const auto& msg = e.what();
-                    r = FResult::Error(String16::Create(msg.data(), msg.size()));
+                    r = FResult::Error(CreateString16(msg.data(), msg.size()));
                 }
                 #endif
             }
@@ -317,14 +251,14 @@ namespace Coplt
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
-            r = FResult::Error(new CString(msg.data(), msg.size()));
+            r = FResult::Error(CreateCString(msg.data(), msg.size()));
         }
         CPPTRACE_CATCH_ALT(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             const auto msg = fmt::format(
                 "Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
-            r = FResult::Error(new CString(msg.data(), msg.size()));
+            r = FResult::Error(CreateCString(msg.data(), msg.size()));
         }
         return r;
     }
