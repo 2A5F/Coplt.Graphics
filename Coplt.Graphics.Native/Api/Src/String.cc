@@ -1,3 +1,4 @@
+#define _COPLT_STRING_SRC_
 #include "String.h"
 
 using namespace Coplt;

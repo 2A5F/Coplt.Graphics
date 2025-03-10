@@ -18,6 +18,7 @@ namespace Coplt
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<D3d12GpuQueue> m_queue{};
         ComPtr<ID3D12CommandAllocator> m_command_allocator{};
+        Rc<DescriptorContext> m_descriptors{};
         std::vector<BufferPack> m_upload_buffers{};
         usize m_cur_upload_buffer_index{};
         usize m_cur_upload_buffer_size{};

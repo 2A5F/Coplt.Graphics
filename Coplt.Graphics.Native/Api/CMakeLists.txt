@@ -48,6 +48,7 @@ add_library(${target_name} STATIC
     FFI/Features.h
     FFI/Adapter.h
     Include/ChunkedVector.h
+    Include/Ptr.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

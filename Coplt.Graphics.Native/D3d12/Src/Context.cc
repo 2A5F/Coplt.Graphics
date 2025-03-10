@@ -11,6 +11,9 @@ D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::m
 {
     m_device = m_queue->m_device;
     m_dx_device = m_queue->m_dx_device;
+
+    m_descriptors = new DescriptorContext(m_dx_device);
+
     m_upload_buffer = FList<FUploadBufferBlock>(m_device->m_instance->m_allocator.get());
 
     chr | m_dx_device->CreateCommandAllocator(

@@ -11,6 +11,7 @@
 
 #include "CmdListPack.h"
 #include "../../Api/Include/ChunkedVector.h"
+#include "../../Api/Include/Ptr.h"
 
 namespace Coplt
 {
@@ -18,10 +19,11 @@ namespace Coplt
     struct FD3d12ShaderLayout;
     struct FD3d12PipelineState;
     struct D3d12GpuQueue;
+    struct DescriptorContext;
 
     struct D3d12CommandInterpreter final
     {
-        D3d12GpuQueue* m_queue{};
+        NonNull<D3d12GpuQueue> m_queue;
 
     private:
         struct BarrierContext
@@ -43,12 +45,12 @@ namespace Coplt
 
         struct Context
         {
-            FD3d12PipelineState* Pipeline{};
-            FD3d12ShaderLayout* Layout{};
+            Ptr<FD3d12PipelineState> Pipeline{};
+            Ptr<FD3d12ShaderLayout> Layout{};
             // 如果不是图形管线将不会设置
-            FD3d12GraphicsShaderPipeline* GPipeline{};
+            Ptr<FD3d12GraphicsShaderPipeline> GPipeline{};
 
-            ID3d12ShaderBinding* Binding{};
+            Ptr<ID3d12ShaderBinding> Binding{};
 
             bool PipelineChanged{};
             bool BindingChanged{};
@@ -58,15 +60,18 @@ namespace Coplt
 
         BarrierContext m_barrier_context{};
         Context m_context{};
+        Ptr<DescriptorContext> m_descriptors;
         HashSet<ID3d12ShaderBinding*> m_bindings{};
 
     public:
-        explicit D3d12CommandInterpreter(D3d12GpuQueue* queue);
+        explicit D3d12CommandInterpreter(const NonNull<D3d12GpuQueue>& queue);
 
         void Interpret(const FCommandSubmit& submit);
 
     private:
         void Reset();
+
+        static void CheckSubmit(const FCommandSubmit& submit);
 
         void Translate(const FCommandSubmit& submit);
 
@@ -89,16 +94,16 @@ namespace Coplt
         void Compute(const FCommandSubmit& submit, u32 i, const FCommandCompute& cmd);
         void ComputeDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd);
 
-        void SetPipelineContext(FShaderPipeline* pipeline, u32 i);
-        void SetPipeline(const CmdListPack& cmd_pack, FShaderPipeline* pipeline, u32 i);
+        void SetPipelineContext(NonNull<FShaderPipeline> pipeline, u32 i);
+        void SetPipeline(const CmdListPack& cmd_pack, NonNull<FShaderPipeline> pipeline, u32 i);
 
-        void SetBinding(FShaderBinding* binding, u32 i);
+        void SetBinding(NonNull<FShaderBinding> binding, u32 i);
 
         void SyncBinding();
         void UseBinding();
 
-        static ID3D12Resource* GetResource(const FResourceMeta& meta);
-        static ID3D12Resource* GetResource(FUnknown* object, FResourceRefType type);
+        static NonNull<ID3D12Resource> GetResource(const FResourceMeta& meta);
+        static NonNull<ID3D12Resource> GetResource(NonNull<FUnknown> object, FResourceRefType type);
         static D3D12_CPU_DESCRIPTOR_HANDLE GetRtv(const FResourceMeta& meta);
         static D3D12_CPU_DESCRIPTOR_HANDLE GetDsv(const FResourceMeta& meta);
     };

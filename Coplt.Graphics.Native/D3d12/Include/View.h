@@ -3,6 +3,7 @@
 #include <variant>
 
 #include "../../Api/FFI/Resource.h"
+#include "../../Api/Include/Ptr.h"
 #include "../Src/Buffer.h"
 
 namespace Coplt
@@ -46,13 +47,13 @@ namespace Coplt
         View& operator=(Rc<D3d12GpuBuffer>&& buffer);
 
         void CreateDescriptor(
-            ID3D12Device2* device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
         ) const;
         static void CreateNullDescriptor(
-            ID3D12Device2* device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView view
+            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView view
         );
         void CreateBufferDescriptor(
-            ID3D12Device2* device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
         ) const;
     };
 }

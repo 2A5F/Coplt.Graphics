@@ -129,7 +129,7 @@ View& View::operator=(Rc<D3d12GpuBuffer>&& buffer)
 }
 
 void View::CreateDescriptor(
-    ID3D12Device2* device, const FShaderLayoutItemDefine& def, const CD3DX12_CPU_DESCRIPTOR_HANDLE handle, const FShaderLayoutGroupView type
+    NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, const CD3DX12_CPU_DESCRIPTOR_HANDLE handle, const FShaderLayoutGroupView type
 ) const
 {
     switch (Type())
@@ -144,7 +144,7 @@ void View::CreateDescriptor(
 }
 
 void View::CreateNullDescriptor(
-    ID3D12Device2* device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, const FShaderLayoutGroupView view
+    NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, const FShaderLayoutGroupView view
 )
 {
     switch (view)
@@ -333,7 +333,7 @@ void View::CreateNullDescriptor(
 }
 
 void View::CreateBufferDescriptor(
-    ID3D12Device2* device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+    NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
 ) const
 {
     auto buffer = Buffer().get();

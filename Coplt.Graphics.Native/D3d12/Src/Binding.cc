@@ -28,11 +28,11 @@ D3d12ShaderBinding::D3d12ShaderBinding(
 
     const auto classes = m_layout->GetTableGroups();
     m_item_indexes = std::vector<std::vector<std::vector<u32>>>(classes.size(), {});
-    m_allocations = std::vector<std::vector<DescriptorAllocation>>(classes.size(), {});
+    m_desc_heaps = std::vector<std::vector<Rc<DescriptorHeap>>>(classes.size(), {});
     for (size_t i = 0; i < classes.size(); ++i)
     {
         const auto& group = classes[i];
-        m_allocations[i] = std::vector<DescriptorAllocation>(group.Metas.size(), {});
+        m_desc_heaps[i] = std::vector<Rc<DescriptorHeap>>(group.Metas.size(), {});
         auto& items = m_item_indexes[i] = std::vector<std::vector<u32>>(group.Metas.size(), {});
         for (size_t j = 0; j < group.Metas.size(); ++j)
         {
@@ -74,7 +74,6 @@ void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
             break;
         }
         m_views[Index] = View;
-        m_changed_items.Add(Index);
         if (info.Place == FShaderLayoutItemPlace::Grouped)
         {
             m_changed_groups.Add((static_cast<u64>(info.Class) << 32) | static_cast<u64>(info.Group));
@@ -94,12 +93,7 @@ std::span<View> D3d12ShaderBinding::Views() noexcept
 
 bool D3d12ShaderBinding::Changed() noexcept
 {
-    return !m_changed_items.IsEmpty() || !m_changed_groups.IsEmpty();
-}
-
-const HashSet<u32>& D3d12ShaderBinding::ChangedItems() noexcept
-{
-    return m_changed_items;
+    return !m_changed_groups.IsEmpty();
 }
 
 const HashSet<u64>& D3d12ShaderBinding::ChangedGroups() noexcept
@@ -107,34 +101,35 @@ const HashSet<u64>& D3d12ShaderBinding::ChangedGroups() noexcept
     return m_changed_groups;
 }
 
-std::span<const std::vector<DescriptorAllocation>> D3d12ShaderBinding::Allocations() noexcept
+std::span<const std::vector<Rc<DescriptorHeap>>> D3d12ShaderBinding::DescHeaps() noexcept
 {
-    return m_allocations;
+    return m_desc_heaps;
 }
 
-void D3d12ShaderBinding::Update(D3d12GpuQueue* queue)
+void D3d12ShaderBinding::Update(NonNull<D3d12GpuQueue> queue)
 {
     if (!Changed()) return;
-    const auto& dm = queue->m_descriptor_manager;
     const auto defs = m_layout->GetItemDefines();
     const auto infos = m_layout->GetItemInfos();
     const auto classes = m_layout->GetTableGroups();
     const auto& changed_groups = m_changed_groups;
-    const auto& changed_items = m_changed_items;
     for (const auto cg : changed_groups)
     {
         const auto c = static_cast<u32>(cg >> 32);
         const auto g = static_cast<u32>(cg & 0xFFFFFFFF);
         const auto& groups = classes[c];
         const auto& meta = groups.Metas[g];
-        auto& ai = m_allocations[c][g];
-        const auto type = groups.Scope == TableScope::Material ? DescriptorAllocationType::Persist : DescriptorAllocationType::Transient;
         if (meta.Size == 0) continue;
-        const auto& da = (groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav);
-        ai = da->Allocate(meta.Size, type);
+        auto& heap = m_desc_heaps[c][g];
+        if (heap == nullptr)
+            heap = new DescriptorHeap(
+                m_dx_device,
+                groups.Sampler ? D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER : D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                meta.Size, false
+            );
         const auto& indexes = m_item_indexes[c][g];
-        const auto handle_start = da->GetCpuHandle(ai);
-        const auto stride = da->Stride();
+        const auto handle_start = heap->GetLocalHandle();
+        const auto stride = heap->Stride();
         for (const auto& i : indexes)
         {
             const auto& def = defs[i];
@@ -145,21 +140,9 @@ void D3d12ShaderBinding::Update(D3d12GpuQueue* queue)
             view.CreateDescriptor(m_dx_device.Get(), def, handle, meta.View);
         }
     }
-    for (const auto cg : changed_groups)
-    {
-        const auto c = static_cast<u32>(cg >> 32);
-        const auto g = static_cast<u32>(cg & 0xFFFFFFFF);
-        const auto& groups = classes[c];
-        auto& ai = m_allocations[c][g];
-        const auto& da = (groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav);
-        // da->UploadTransient(ai);
-    }
-    for (auto i : changed_items)
-    {
-        const auto& def = defs[i];
-        const auto& info = infos[i];
-        // todo 改成只处理表外项
-    }
-    m_changed_items.Clear();
+}
+
+void D3d12ShaderBinding::ApplyChange()
+{
     m_changed_groups.Clear();
 }

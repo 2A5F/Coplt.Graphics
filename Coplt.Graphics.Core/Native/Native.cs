@@ -1075,6 +1075,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 DynBindless;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DynBindlessOnly;
     }
 
     public partial struct FDeviceFeatures
@@ -1099,6 +1102,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 DynBindless;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 DynBindlessOnly;
     }
 
     [NativeTypeName("Coplt::i32")]

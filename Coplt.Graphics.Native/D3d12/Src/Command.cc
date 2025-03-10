@@ -95,24 +95,22 @@ void D3d12CommandInterpreter::Context::Reset()
     BindingChanged = false;
 }
 
-D3d12CommandInterpreter::D3d12CommandInterpreter(D3d12GpuQueue* queue) : m_queue(queue)
+D3d12CommandInterpreter::D3d12CommandInterpreter(const NonNull<D3d12GpuQueue>& queue) : m_queue(queue)
 {
 }
 
 void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 {
-    auto dh_cbv_srv_uav = m_queue->m_descriptor_manager.m_cbv_srv_uav.get();
-    auto dh_sampler = m_queue->m_descriptor_manager.m_sampler.get();
+    m_descriptors = m_queue->m_frame_context->m_descriptors.get();
+    m_descriptors->InitFrame(submit.GrowCbvSrvUavBindingCapacity, submit.GrowSamplerBindingCapacity);
 
-    dh_cbv_srv_uav->Start(submit.GrowCbvSrvUavBindingCapacity);
-    dh_sampler->Start(submit.GrowSamplerBindingCapacity);
-
-    ID3D12DescriptorHeap* desc_heaps[2]{dh_cbv_srv_uav->m_heap->m_heap.Get(), dh_sampler->m_heap->m_heap.Get()};
-    m_queue->m_cmd->SetDescriptorHeaps(2, desc_heaps);
+    const auto desc_heaps = m_descriptors->GetDescriptorHeaps();
+    m_queue->m_cmd->SetDescriptorHeaps(2, desc_heaps.data());
 
     Translate(submit);
 
     Reset();
+    m_descriptors = nullptr;
 }
 
 void D3d12CommandInterpreter::Reset()
@@ -120,6 +118,26 @@ void D3d12CommandInterpreter::Reset()
     m_barrier_context.Reset();
     m_context.Reset();
     m_bindings.Clear();
+}
+
+void D3d12CommandInterpreter::CheckSubmit(const FCommandSubmit& submit)
+{
+    NonNull(submit.Commands);
+    NonNull(submit.RenderCommands);
+    NonNull(submit.ComputeCommands);
+    NonNull(submit.Resources);
+    NonNull(submit.RenderInfos);
+    NonNull(submit.ComputeInfos);
+    NonNull(submit.ResolveInfos);
+    NonNull(submit.Rects);
+    NonNull(submit.Viewports);
+    NonNull(submit.MeshBuffers);
+    NonNull(submit.VertexBufferRanges);
+    NonNull(submit.BufferCopyRanges);
+    NonNull(submit.BindItems);
+    NonNull(submit.Barriers);
+    NonNull(submit.Str8);
+    NonNull(submit.Str16);
 }
 
 void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
@@ -594,7 +612,7 @@ void D3d12CommandInterpreter::ComputeDispatch(const FCommandSubmit& submit, u32 
         m_queue->m_cmd->Dispatch(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
 }
 
-void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, const u32 i)
+void D3d12CommandInterpreter::SetPipelineContext(NonNull<FShaderPipeline> pipeline, const u32 i)
 {
     if (pipeline == m_context.Pipeline) return;
     m_context.Pipeline = pipeline->QueryInterface<FD3d12PipelineState>();
@@ -602,7 +620,7 @@ void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, cons
     {
         COPLT_THROW_FMT(
             "Pipeline({:#x}) comes from different backends at cmd {}",
-            reinterpret_cast<size_t>(pipeline), i
+            static_cast<size_t>(pipeline), i
         );
     }
     m_context.Layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
@@ -620,7 +638,7 @@ void D3d12CommandInterpreter::SetPipelineContext(FShaderPipeline* pipeline, cons
 }
 
 void D3d12CommandInterpreter::SetPipeline(
-    const CmdListPack& cmd_pack, FShaderPipeline* pipeline, const u32 i
+    const CmdListPack& cmd_pack, NonNull<FShaderPipeline> pipeline, const u32 i
 )
 {
     if (pipeline == m_context.Pipeline) return;
@@ -639,7 +657,7 @@ void D3d12CommandInterpreter::SetPipeline(
     cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(m_context.Pipeline->GetPipelineStatePtr()));
 }
 
-void D3d12CommandInterpreter::SetBinding(FShaderBinding* binding, u32 i)
+void D3d12CommandInterpreter::SetBinding(NonNull<FShaderBinding> binding, u32 i)
 {
     if (binding == m_context.Binding) return;
     m_context.Binding = binding->QueryInterface<ID3d12ShaderBinding>();
@@ -651,46 +669,48 @@ void D3d12CommandInterpreter::SetBinding(FShaderBinding* binding, u32 i)
 void D3d12CommandInterpreter::SyncBinding()
 {
     if (!(m_context.PipelineChanged || m_context.BindingChanged)) return;
-    auto binding = m_context.Binding;
-    // auto first = m_bindings.Add(binding);
-    binding->Update(m_queue);
-    UseBinding();
+    if (const auto binding = m_context.Binding.get())
+    {
+        binding->Update(m_queue);
+        UseBinding();
+        binding->ApplyChange();
+    }
     m_context.PipelineChanged = false;
     m_context.BindingChanged = false;
 }
 
 void D3d12CommandInterpreter::UseBinding()
 {
-    const auto& dm = m_queue->m_descriptor_manager;
     const auto has_pixel = HasFlags(m_context.Pipeline->GetStages(), FShaderStageFlags::Pixel);
     const auto& cmd_pack = m_queue->m_cmd;
-    auto binding = m_context.Binding;
-    const auto layput = binding->Layout();
-    const auto classes = layput->GetTableGroups();
-    const auto allocations = binding->Allocations();
-    for (u32 i = 0; i < classes.size(); ++i)
-    {
-        const auto& groups = classes[i];
-        const auto& da = groups.Sampler ? dm.m_sampler : dm.m_cbv_srv_uav;
-        for (u32 j = 0; j < groups.Metas.size(); ++j)
-        {
-            const auto& meta = groups.Metas[j];
-            const auto& ai = allocations[i][j];
-            if (!ai) continue;
-            const auto handle = da->GetGpuHandle(ai);
-            if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
-            else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
-        }
-    }
+    NonNull binding = m_context.Binding;
+    auto first = m_bindings.Add(binding);
+    const auto layout = binding->Layout();
+    const auto classes = layout->GetTableGroups();
+    // const auto allocations = binding->Allocations();
+    // for (u32 i = 0; i < classes.size(); ++i)
+    // {
+    //     const auto& groups = classes[i];
+    //     const auto& da = groups.Sampler ? m_descriptors->SamplerHeap() : m_descriptors->ResourceHeap();
+    //     for (u32 j = 0; j < groups.Metas.size(); ++j)
+    //     {
+    //         const auto& meta = groups.Metas[j];
+    //         const auto& ai = allocations[i][j];
+    //         if (!ai) continue;
+    //         const auto handle = da->GetGpuHandle(ai);
+    //         if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
+    //         else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
+    //     }
+    // }
     // todo 其他 Root 项
 }
 
-ID3D12Resource* D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
+NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
 {
     return GetResource(meta.Output, meta.Type);
 }
 
-ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResourceRefType type)
+NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(NonNull<FUnknown> object, FResourceRefType type)
 {
     switch (type)
     {
@@ -703,7 +723,7 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
                 COPLT_THROW("The memory may be corrupted");
             ID3D12Resource* ptr{};
             buffer->GetCurrentResourcePtr(&ptr).TryThrow();
-            return ptr;
+            return NonNull<ID3D12Resource>::Unchecked(ptr);
         }
     case FResourceRefType::Output:
         {
@@ -712,7 +732,7 @@ ID3D12Resource* D3d12CommandInterpreter::GetResource(FUnknown* object, FResource
                 COPLT_THROW("The memory may be corrupted");
             ID3D12Resource* ptr{};
             output->GetCurrentResourcePtr(&ptr).TryThrow();
-            return ptr;
+            return NonNull<ID3D12Resource>::Unchecked(ptr);
         }
     default:
         COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(type));

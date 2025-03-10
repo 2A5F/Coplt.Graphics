@@ -16,6 +16,14 @@
 
 #include "Concepts.h"
 
+#ifdef _WINDOWS
+#define COPLT_THROW(msg) throw WRuntimeException(L##msg)
+#define COPLT_THROW_FMT(msg, ...) throw WRuntimeException(fmt::format(L##msg, __VA_ARGS__))
+#else
+#define COPLT_THROW(msg) throw RuntimeException(msg)
+#define COPLT_THROW_FMT(msg, ...) throw RuntimeException(fmt::format(msg, __VA_ARGS__))
+#endif
+
 namespace Coplt
 {
     inline std::string to_string(const cpptrace::stacktrace& trace)
@@ -109,7 +117,7 @@ namespace Coplt
         }
     };
 
-#if _WINDOWS
+    #if _WINDOWS
     inline std::wstring to_wstring(const cpptrace::stacktrace& trace)
     {
         const auto trace8 = trace.to_string(false);
@@ -222,7 +230,7 @@ namespace Coplt
         }
     };
 
-#endif
+    #endif
 
     template <Fn<FResult> F>
     FResult feb(F f) noexcept
@@ -230,42 +238,39 @@ namespace Coplt
         FResult r;
         CPPTRACE_TRY
             {
-                CPPTRACE_TRY
-                    {
-                        try
-                        {
-                            r = f();
-                        }
-                        catch (FResult& e)
-                        {
-                            r = e;
-                        }
-                        catch (cpptrace::exception& e)
-                        {
-                            auto msg = std::string(e.what());
-                            r = FResult::Error(new CString(std::move(msg)));
-                        }
-                        catch (Exception& e)
-                        {
-                            const auto& msg = e.what();
-                            r = FResult::Error(String8::Create(msg.data(), msg.size()));
-                        }
-#ifdef _WINDOWS
-                        catch (WException& e)
-                        {
-                            const auto& msg = e.what();
-                            r = FResult::Error(String16::Create(msg.data(), msg.size()));
-                        }
-#endif
-                    }
-                CPPTRACE_CATCH(std::exception& ex)
+                try
                 {
-                    const auto trace = to_string(cpptrace::from_current_exception());
-                    auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+                    r = f();
+                }
+                catch (FResult& e)
+                {
+                    r = e;
+                }
+                catch (cpptrace::exception& e)
+                {
+                    auto msg = std::string(e.what());
                     r = FResult::Error(new CString(std::move(msg)));
                 }
+                catch (Exception& e)
+                {
+                    const auto& msg = e.what();
+                    r = FResult::Error(String8::Create(msg.data(), msg.size()));
+                }
+                #ifdef _WINDOWS
+                catch (WException& e)
+                {
+                    const auto& msg = e.what();
+                    r = FResult::Error(String16::Create(msg.data(), msg.size()));
+                }
+                #endif
             }
-        CPPTRACE_CATCH(...)
+        CPPTRACE_CATCH(std::exception& ex)
+        {
+            const auto trace = to_string(cpptrace::from_current_exception());
+            auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+            r = FResult::Error(new CString(std::move(msg)));
+        }
+        CPPTRACE_CATCH_ALT(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             auto msg = fmt::format(
@@ -279,44 +284,42 @@ namespace Coplt
     FResult feb(F f) noexcept
     {
         FResult r = FResult::None();
+
         CPPTRACE_TRY
             {
-                CPPTRACE_TRY
-                    {
-                        try
-                        {
-                            f();
-                        }
-                        catch (FResult& e)
-                        {
-                            r = e;
-                        }
-                        catch (cpptrace::exception& e)
-                        {
-                            auto msg = std::string(e.what());
-                            r = FResult::Error(new CString(std::move(msg)));
-                        }
-                        catch (Exception& e)
-                        {
-                            const auto& msg = e.what();
-                            r = FResult::Error(String8::Create(msg.data(), msg.size()));
-                        }
-#ifdef _WINDOWS
-                        catch (WException& e)
-                        {
-                            const auto& msg = e.what();
-                            r = FResult::Error(String16::Create(msg.data(), msg.size()));
-                        }
-#endif
-                    }
-                CPPTRACE_CATCH(std::exception& ex)
+                try
                 {
-                    const auto trace = to_string(cpptrace::from_current_exception());
-                    const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
-                    r = FResult::Error(new CString(msg.data(), msg.size()));
+                    f();
                 }
+                catch (FResult& e)
+                {
+                    r = e;
+                }
+                catch (cpptrace::exception& e)
+                {
+                    auto msg = std::string(e.what());
+                    r = FResult::Error(new CString(std::move(msg)));
+                }
+                catch (Exception& e)
+                {
+                    const auto& msg = e.what();
+                    r = FResult::Error(String8::Create(msg.data(), msg.size()));
+                }
+                #ifdef _WINDOWS
+                catch (WException& e)
+                {
+                    const auto& msg = e.what();
+                    r = FResult::Error(String16::Create(msg.data(), msg.size()));
+                }
+                #endif
             }
-        CPPTRACE_CATCH(...)
+        CPPTRACE_CATCH(std::exception& ex)
+        {
+            const auto trace = to_string(cpptrace::from_current_exception());
+            const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+            r = FResult::Error(new CString(msg.data(), msg.size()));
+        }
+        CPPTRACE_CATCH_ALT(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             const auto msg = fmt::format(
@@ -331,42 +334,39 @@ namespace Coplt
     {
         CPPTRACE_TRY
             {
-                CPPTRACE_TRY
-                    {
-                        try
-                        {
-                            r = f();
-                        }
-                        catch (FResult& e)
-                        {
-                            logger.Log(FLogLevel::Error, FLogType::Common, e.msg);
-                            e.Drop();
-                        }
-                        catch (cpptrace::exception& e)
-                        {
-                            logger.Log(FLogLevel::Error, e.what());
-                        }
-                        catch (Exception& e)
-                        {
-                            const auto& msg = e.what();
-                            logger.Log(FLogLevel::Error, msg);
-                        }
-#ifdef _WINDOWS
-                        catch (WException& e)
-                        {
-                            const auto& msg = e.what();
-                            logger.LogW(FLogLevel::Error, msg);
-                        }
-#endif
-                    }
-                CPPTRACE_CATCH(std::exception& ex)
+                try
                 {
-                    const auto trace = to_string(cpptrace::from_current_exception());
-                    const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+                    r = f();
+                }
+                catch (FResult& e)
+                {
+                    logger.Log(FLogLevel::Error, FLogType::Common, e.msg);
+                    e.Drop();
+                }
+                catch (cpptrace::exception& e)
+                {
+                    logger.Log(FLogLevel::Error, e.what());
+                }
+                catch (Exception& e)
+                {
+                    const auto& msg = e.what();
                     logger.Log(FLogLevel::Error, msg);
                 }
+                #ifdef _WINDOWS
+                catch (WException& e)
+                {
+                    const auto& msg = e.what();
+                    logger.LogW(FLogLevel::Error, msg);
+                }
+                #endif
             }
-        CPPTRACE_CATCH(...)
+        CPPTRACE_CATCH(std::exception& ex)
+        {
+            const auto trace = to_string(cpptrace::from_current_exception());
+            const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+            logger.Log(FLogLevel::Error, msg);
+        }
+        CPPTRACE_CATCH_ALT(...)
         {
             const auto trace = to_string(cpptrace::from_current_exception());
             const auto msg = fmt::format("Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
@@ -374,12 +374,4 @@ namespace Coplt
         }
         return r;
     }
-
-#ifdef _WINDOWS
-#define COPLT_THROW(msg) throw WRuntimeException(L##msg)
-#define COPLT_THROW_FMT(msg, ...) throw WRuntimeException(fmt::format(L##msg, __VA_ARGS__))
-#else
-#define COPLT_THROW(msg) throw RuntimeException(msg)
-#define COPLT_THROW_FMT(msg, ...) throw RuntimeException(fmt::format(msg, __VA_ARGS__))
-#endif
 }

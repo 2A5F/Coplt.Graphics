@@ -3,12 +3,14 @@
 #include "Device.h"
 #include "Layout.h"
 #include "../../Api/Include/Object.h"
+#include "../../Api/Include/Ptr.h"
 #include "../FFI/Binding.h"
 #include "../FFI/Layout.h"
 #include "../Include/View.h"
 
 namespace Coplt
 {
+    struct DescriptorHeap;
     struct D3d12GpuQueue;
     struct DescriptorAllocation;
 
@@ -17,13 +19,15 @@ namespace Coplt
         virtual const Rc<ID3d12ShaderLayout>& Layout() noexcept = 0;
         virtual std::span<View> Views() noexcept = 0;
         virtual bool Changed() noexcept = 0;
-        virtual const HashSet<u32>& ChangedItems() noexcept = 0;
         virtual const HashSet<u64>& ChangedGroups() noexcept = 0;
-        virtual std::span<const std::vector<DescriptorAllocation>> Allocations() noexcept = 0;
+        virtual std::span<const std::vector<Rc<DescriptorHeap>>> DescHeaps() noexcept = 0;
 
         virtual void Set(std::span<const FBindItem> bindings) = 0;
 
-        virtual void Update(D3d12GpuQueue* queue) = 0;
+        // 更新更改过的表，但是不会消除更新
+        virtual void Update(NonNull<D3d12GpuQueue> queue) = 0;
+        // 实际消除更新
+        virtual void ApplyChange() = 0;
     };
 
     struct D3d12ShaderBinding final : Object<D3d12ShaderBinding, ID3d12ShaderBinding>
@@ -33,8 +37,7 @@ namespace Coplt
         Rc<ID3d12ShaderLayout> m_layout{};
         std::vector<View> m_views{};
         std::vector<std::vector<std::vector<u32>>> m_item_indexes{};
-        std::vector<std::vector<DescriptorAllocation>> m_allocations{};
-        HashSet<u32> m_changed_items{};
+        std::vector<std::vector<Rc<DescriptorHeap>>> m_desc_heaps{};
         HashSet<u64> m_changed_groups{};
 
         explicit D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options);
@@ -46,10 +49,10 @@ namespace Coplt
         const Rc<ID3d12ShaderLayout>& Layout() noexcept override;
         std::span<View> Views() noexcept override;
         bool Changed() noexcept override;
-        const HashSet<u32>& ChangedItems() noexcept override;
         const HashSet<u64>& ChangedGroups() noexcept override;
-        std::span<const std::vector<DescriptorAllocation>> Allocations() noexcept override;
+        std::span<const std::vector<Rc<DescriptorHeap>>> DescHeaps() noexcept override;
 
-        void Update(D3d12GpuQueue* queue) override;
+        void Update(NonNull<D3d12GpuQueue> queue) override;
+        void ApplyChange() override;
     };
 }

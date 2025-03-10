@@ -647,3 +647,9 @@ namespace Coplt
         return ptr->template QueryInterface<U>();
     }
 }
+
+#ifndef _COPLT_STRING_SRC_
+
+#include "Error.h"
+
+#endif

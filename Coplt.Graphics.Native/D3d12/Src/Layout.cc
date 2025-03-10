@@ -206,7 +206,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             range.BaseShaderRegister = item.Slot;
             range.RegisterSpace = item.Space;
             range.OffsetInDescriptorsFromTableStart = meta.Size;
-            range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+            // range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
             m_item_infos[i] = FShaderLayoutItemInfo{
                 .Index = static_cast<u32>(meta.Ranges.size()),
                 .Class = table.Index,
