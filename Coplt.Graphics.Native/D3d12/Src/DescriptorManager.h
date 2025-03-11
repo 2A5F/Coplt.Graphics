@@ -39,11 +39,16 @@ namespace Coplt
 
     struct DescriptorAllocation
     {
+        u64 Version{};
         u32 Offset{COPLT_U32_MAX};
         u32 Size{};
-        // todo Persist;
 
         operator bool() const { return Offset != COPLT_U32_MAX; }
+
+        bool operator==(const DescriptorAllocation& other) const
+        {
+            return Version == other.Version && Offset == other.Offset && Size == other.Size;
+        }
     };
 
     struct DescriptorAllocator final : Object<DescriptorAllocator, FUnknown>
@@ -51,8 +56,11 @@ namespace Coplt
     private:
         ComPtr<ID3D12Device2> m_device{};
         Rc<DescriptorHeap> m_heap{};
+        u64 m_version{};
+        HashMap<DescriptorHeap*, DescriptorAllocation> m_persist_allocations{};
         D3D12_DESCRIPTOR_HEAP_TYPE const m_type{};
         u32 const m_stride{};
+        u32 m_persist_offset{};
         u32 m_transient_offset{};
 
     public:
@@ -66,9 +74,10 @@ namespace Coplt
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetLocalHandle(u32 offset = 0) const;
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetRemoteHandle(u32 offset = 0) const;
 
-        void InitFrame(u32 TransientCapacity);
+        void InitFrame(u32 GrowthCapacity);
 
         DescriptorAllocation AllocateTransient(u32 Size);
+        DescriptorAllocation AllocatePersist(NonNull<DescriptorHeap> Heap, bool& is_old);
         void Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset = 0) const;
     };
 

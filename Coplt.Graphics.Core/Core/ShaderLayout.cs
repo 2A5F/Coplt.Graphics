@@ -42,15 +42,15 @@ public enum ShaderLayoutItemType : byte
 public enum ShaderLayoutItemUsage : byte
 {
     /// <summary>
-    /// 一般改变频率的变量，可能每帧都会改变
+    /// 动态变量，每帧都可能会改变
     /// </summary>
-    Common,
+    Dynamic,
     /// <summary>
-    /// 不太改变的变量，例如材质参数，一般很少改变，可以进行一定的静态优化，建议将所有材质绑定放到单独的 space 中区分
+    /// 持久变量，例如材质参数，一般很少改变，可以进行一定的静态优化，建议将所有材质绑定放到单独的 space 中区分
     /// </summary>
-    Material,
+    Persist,
     /// <summary>
-    /// 经常改变的变量，例如每次绘制调用都会改变, dx 后端将直接在根签名内，类型是 Sampler 时表示是静态采样器
+    /// 即时变量，例如每次绘制调用都会改变, dx 后端将直接在根签名内，类型是 Sampler 时表示是静态采样器，不支持纹理
     /// </summary>
     Instant,
 }

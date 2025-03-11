@@ -340,7 +340,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FStr8or16
     {
-        [NativeTypeName("__AnonymousRecord_String_L77_C9")]
+        [NativeTypeName("__AnonymousRecord_String_L82_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::i32")]
@@ -4020,8 +4020,8 @@ namespace Coplt.Graphics.Native
     [NativeTypeName("Coplt::u8")]
     public enum FShaderLayoutItemUsage : byte
     {
-        Common,
-        Material,
+        Dynamic,
+        Persist,
         Instant,
     }
 

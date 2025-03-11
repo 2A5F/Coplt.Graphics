@@ -120,16 +120,16 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
 
         switch (item.Usage)
         {
-        case FShaderLayoutItemUsage::Common:
-            table_scope = TableScope::Common;
+        case FShaderLayoutItemUsage::Dynamic:
+            table_scope = TableScope::Dynamic;
             goto DefineDescriptorTable;
-        case FShaderLayoutItemUsage::Material:
-            table_scope = TableScope::Material;
+        case FShaderLayoutItemUsage::Persist:
+            table_scope = TableScope::Persist;
             goto DefineDescriptorTable;
         case FShaderLayoutItemUsage::Instant:
             if (item.CountOrIndex > 1 || !IsBuffer(item.Type))
             {
-                table_scope = TableScope::Common;
+                table_scope = TableScope::Dynamic;
                 goto DefineDescriptorTable;
             }
             switch (item.View)

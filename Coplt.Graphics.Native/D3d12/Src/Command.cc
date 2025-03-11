@@ -743,9 +743,11 @@ void D3d12CommandInterpreter::AllocBindingGroup(
     DescriptorAllocation& al
 )
 {
-    if (groups.Scope == ID3d12ShaderLayout::TableScope::Material)
+    if (groups.Scope == ID3d12ShaderLayout::TableScope::Persist)
     {
-        COPLT_THROW("TODO");
+        bool old = true;
+        al = da->AllocatePersist(heap.get(), old);
+        if (!old) da->Upload(al, heap);
     }
     else
     {

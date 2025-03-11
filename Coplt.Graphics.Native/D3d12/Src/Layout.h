@@ -15,8 +15,8 @@ namespace Coplt
     {
         enum class TableScope : u8
         {
-            Common,
-            Material,
+            Dynamic,
+            Persist,
         };
 
         struct TableMeta

@@ -78,28 +78,49 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetRemoteHandle(const u32 off
     return m_heap->GetRemoteHandle(offset);
 }
 
-void DescriptorAllocator::InitFrame(const u32 TransientCapacity)
+void DescriptorAllocator::InitFrame(const u32 GrowthCapacity)
 {
-    if (m_heap == nullptr || m_heap->Size() < TransientCapacity)
+    if (m_heap == nullptr || m_persist_offset < GrowthCapacity)
     {
-        m_heap = new DescriptorHeap(m_device, m_type, std::bit_ceil(std::max(8u, TransientCapacity)), true);
+        const auto cap_req = std::max(8u, (m_heap == nullptr ? 0 : m_heap->Size() - m_persist_offset) + GrowthCapacity);
+        m_heap = new DescriptorHeap(m_device, m_type, std::bit_ceil(cap_req), true);
+        m_persist_offset = m_heap->Size();
+        m_persist_allocations.Clear();
     }
     m_transient_offset = 0;
+    m_version++;
 }
 
 DescriptorAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
 {
+    if (Size == 0) return {.Version = m_version, .Offset = 0, .Size = 0};
     if (!m_heap)
         COPLT_THROW("Descriptor heap is null");
     const auto offset = m_transient_offset;
     const auto new_offset = offset + Size;
-    if (new_offset > m_heap->Size())
+    if (new_offset >= m_persist_offset)
         COPLT_THROW("Out of descriptor heap");
     m_transient_offset = new_offset;
-    return {.Offset = offset, .Size = Size};
+    return {.Version = m_version, .Offset = offset, .Size = Size};
 }
 
-void DescriptorAllocator::Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, u32 offset) const
+DescriptorAllocation DescriptorAllocator::AllocatePersist(NonNull<DescriptorHeap> Heap, bool& is_old)
+{
+    if (Heap->Size() == 0)return {.Version = m_version, .Offset = 0, .Size = 0};
+    if (!m_heap)
+        COPLT_THROW("Descriptor heap is null");
+    return m_persist_allocations.GetOrAdd(Heap.get(), is_old, [&](auto& p)
+    {
+        const auto offset = m_persist_offset;
+        const auto new_offset = offset - Heap->Size();
+        if (new_offset < m_transient_offset)
+            COPLT_THROW("Out of descriptor heap");
+        m_persist_offset = new_offset;
+        p = DescriptorAllocation{.Version = m_version, .Offset = new_offset, .Size = Heap->Size()};
+    });
+}
+
+void DescriptorAllocator::Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, const u32 offset) const
 {
     if (al.Size == 0) return;
     m_device->CopyDescriptorsSimple(
