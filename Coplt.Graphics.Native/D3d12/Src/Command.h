@@ -11,6 +11,7 @@
 
 #include "CmdListPack.h"
 #include "../../Api/Include/ChunkedVector.h"
+#include "../../Api/Include/ObjectKey.h"
 #include "../../Api/Include/Ptr.h"
 
 namespace Coplt
@@ -59,10 +60,15 @@ namespace Coplt
             void Reset();
         };
 
+        struct BindingContext
+        {
+            u32 Index{};
+        };
+
         BarrierContext m_barrier_context{};
         Context m_context{};
         Ptr<DescriptorContext> m_descriptors;
-        HashSet<ID3d12ShaderBinding*> m_bindings{};
+        HashSet<ObjectKey<ID3d12ShaderBinding>> m_bindings{};
 
     public:
         explicit D3d12CommandInterpreter(const NonNull<D3d12GpuQueue>& queue);
@@ -73,6 +79,13 @@ namespace Coplt
         void Reset();
 
         static void CheckSubmit(const FCommandSubmit& submit);
+
+        void Analyze(const FCommandSubmit& submit);
+
+        void Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const;
+        void AnalyzeRender(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
+        void AnalyzeCompute(const FCommandSubmit& submit, u32 i, const FCommandCompute& cmd);
+        void AnalyzeSyncBinding(const FCommandSubmit& submit, u32 i, const FCommandSyncBinding& cmd);
 
         void Translate(const FCommandSubmit& submit);
 
@@ -86,7 +99,6 @@ namespace Coplt
         void ClearColor(const FCommandSubmit& submit, u32 i, const FCommandClearColor& cmd) const;
         void ClearDepthStencil(const FCommandSubmit& submit, u32 i, const FCommandClearDepthStencil& cmd) const;
         void BufferCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferCopy& cmd) const;
-        void Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const;
         void Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd);
         void RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd);
         void RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd);
@@ -98,7 +110,7 @@ namespace Coplt
         void SetPipelineContext(NonNull<FShaderPipeline> pipeline, u32 i);
         void SetPipeline(const CmdListPack& cmd_pack, NonNull<FShaderPipeline> pipeline, u32 i);
 
-        void SetBinding(NonNull<FShaderBinding> binding, u32 i);
+        void SetBindingContext(NonNull<FShaderBinding> binding, u32 i);
 
         void SyncBinding();
         void AllocAndUseBinding();

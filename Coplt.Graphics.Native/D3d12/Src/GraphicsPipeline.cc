@@ -1,6 +1,7 @@
 #include "GraphicsPipeline.h"
 
 #include "Layout.h"
+#include "../../Api/Include/AllocObjectId.h"
 #include "../../Api/Include/Error.h"
 #include "../ThirdParty/DirectXTK12/Src/d3dx12.h"
 #include "../Include/PipelineState.h"
@@ -130,6 +131,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
 ) : m_device(std::move(device)), m_graphics_state(options.GraphicsState)
 {
+    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
     if (options.Shader == nullptr)
         COPLT_THROW("Shader is null");
@@ -209,7 +211,8 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS;
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
     }
-    else COPLT_THROW("Unknown shader stage combination");
+    else
+        COPLT_THROW("Unknown shader stage combination");
 
     D3D12_PIPELINE_STATE_STREAM_DESC stream_desc{};
     stream_desc.SizeInBytes = sizeof(stream);
@@ -222,6 +225,11 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     }
 
     m_input_slots = std::move(input_slots);
+}
+
+u64 D3d12GraphicsShaderPipeline::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12GraphicsShaderPipeline::SetName(const FStr8or16& name) noexcept

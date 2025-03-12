@@ -1,5 +1,6 @@
 #include "Output.h"
 
+#include "../../Api/Include/AllocObjectId.h"
 #include "directx/d3dx12.h"
 
 #include "../Include/GraphicsFormat.h"
@@ -9,6 +10,7 @@ using namespace Coplt;
 
 D3d12GpuSwapChainOutput::D3d12GpuSwapChainOutput(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
 {
+    m_object_id = AllocObjectId();
     if (m_queue->m_queue_type != FGpuQueueType::Direct)
         COPLT_THROW("Cannot create output on a non direct queue.");
 
@@ -178,6 +180,11 @@ FGraphicsFormat D3d12GpuSwapChainOutput::SelectFormat(
     }
     if (options.FormatSelector.Srgb) return FGraphicsFormat::R8G8B8A8_UNorm_sRGB;
     return FGraphicsFormat::R8G8B8A8_UNorm;
+}
+
+u64 D3d12GpuSwapChainOutput::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12GpuSwapChainOutput::SetName(const FStr8or16& name) noexcept

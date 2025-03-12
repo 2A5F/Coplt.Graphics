@@ -18,6 +18,7 @@ namespace Coplt
     {
         using EmptyLayouts = HashMap<FShaderLayoutFlags, Rc<D3d12ShaderLayout>>;
 
+        u64 m_object_id{};
         Rc<D3d12Instance> m_instance{};
         Rc<D3d12GpuAdapter> m_adapter{};
         ComPtr<ID3D12Device2> m_device{};
@@ -36,6 +37,7 @@ namespace Coplt
 
         bool Debug() const noexcept;
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FGpuAdapter* GetAdapter() noexcept override;

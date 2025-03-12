@@ -1,21 +1,28 @@
 #include "DescriptorManager.h"
 
+#include "../../Api/Include/AllocObjectId.h"
+
 using namespace Coplt;
 
-DescriptorHeap::DescriptorHeap(ComPtr<ID3D12Device2> device, const D3D12_DESCRIPTOR_HEAP_TYPE type, u32 size, bool gpu)
-    : m_device(std::move(device)), m_type(type), m_size(size), m_gpu(gpu)
+DescriptorHeap::DescriptorHeap(const ComPtr<ID3D12Device2>& device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const u32 size, const bool gpu)
+    : m_device(device), m_id(AllocObjectId()), m_type(type),
+      m_stride(m_device->GetDescriptorHandleIncrementSize(type)), m_size(size), m_gpu(gpu)
 {
     D3D12_DESCRIPTOR_HEAP_DESC desc{};
     desc.Type = type;
     desc.NumDescriptors = size;
     if (gpu) desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     chr | m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
-    m_stride = m_device->GetDescriptorHandleIncrementSize(type);
 }
 
 const ComPtr<ID3D12DescriptorHeap>& DescriptorHeap::Heap() const
 {
     return m_heap;
+}
+
+u64 DescriptorHeap::Id() const
+{
+    return m_id;
 }
 
 D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap::Type() const
@@ -93,7 +100,7 @@ void DescriptorAllocator::InitFrame(const u32 GrowthCapacity)
 
 DescriptorAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
 {
-    if (Size == 0) return {.Version = m_version, .Offset = 0, .Size = 0};
+    if (Size == 0) return DescriptorAllocation(0, 0, 0);
     if (!m_heap)
         COPLT_THROW("Descriptor heap is null");
     const auto offset = m_transient_offset;
@@ -101,32 +108,38 @@ DescriptorAllocation DescriptorAllocator::AllocateTransient(const u32 Size)
     if (new_offset >= m_persist_offset)
         COPLT_THROW("Out of descriptor heap");
     m_transient_offset = new_offset;
-    return {.Version = m_version, .Offset = offset, .Size = Size};
+    return DescriptorAllocation(0, offset, Size);
 }
 
-DescriptorAllocation DescriptorAllocator::AllocatePersist(NonNull<DescriptorHeap> Heap, bool& is_old)
+DescriptorAllocation DescriptorAllocator::AllocatePersistent(NonNull<DescriptorHeap> Heap, bool& IsOld)
 {
-    if (Heap->Size() == 0)return {.Version = m_version, .Offset = 0, .Size = 0};
+    if (Heap->Size() == 0)
+    {
+        IsOld = true;
+        return DescriptorAllocation(0, 0, 0);
+    }
     if (!m_heap)
         COPLT_THROW("Descriptor heap is null");
-    return m_persist_allocations.GetOrAdd(Heap.get(), is_old, [&](auto& p)
+    auto& ref = m_persist_allocations.GetOrAdd(Heap->Id(), IsOld, [&](auto& p)
     {
         const auto offset = m_persist_offset;
         const auto new_offset = offset - Heap->Size();
         if (new_offset < m_transient_offset)
             COPLT_THROW("Out of descriptor heap");
         m_persist_offset = new_offset;
-        p = DescriptorAllocation{.Version = m_version, .Offset = new_offset, .Size = Heap->Size()};
+        p = DescriptorPersistentAllocation(0, new_offset, Heap->Size(), m_version);
     });
+    ref.AllocatorVersion = m_version;
+    return static_cast<DescriptorAllocation>(ref);
 }
 
-void DescriptorAllocator::Upload(const DescriptorAllocation& al, const Rc<DescriptorHeap>& heap, const u32 offset) const
+void DescriptorAllocator::Upload(const DescriptorAllocation& Al, const Rc<DescriptorHeap>& Heap, const u32 Offset) const
 {
-    if (al.Size == 0) return;
+    if (Al.Size == 0) return;
     m_device->CopyDescriptorsSimple(
-        al.Size,
-        GetLocalHandle(al.Offset),
-        heap->GetLocalHandle(offset),
+        Al.Size,
+        GetLocalHandle(Al.Offset),
+        Heap->GetLocalHandle(Offset),
         m_type
     );
 }

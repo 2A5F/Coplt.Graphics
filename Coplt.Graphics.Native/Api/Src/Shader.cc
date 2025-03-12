@@ -1,6 +1,7 @@
 #include "Shader.h"
 
 #include "mimalloc.h"
+#include "../Include/AllocObjectId.h"
 #include "../Include/Error.h"
 
 using namespace Coplt;
@@ -8,6 +9,7 @@ using namespace Coplt;
 ShaderModule::ShaderModule(u8* const data, const size_t size, const FShaderStage stage, Rc<FString8>&& entry_point)
     : m_entry_point(std::move(entry_point))
 {
+    m_object_id = AllocObjectId();
     Data = data;
     Size = size;
     Stage = stage;
@@ -28,6 +30,11 @@ void ShaderModule::Free(void* self)
     mi_free_aligned(self, alignof(Self));
 }
 
+u64 ShaderModule::ObjectId() noexcept
+{
+    return m_object_id;
+}
+
 FResult ShaderModule::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
@@ -40,6 +47,7 @@ FString8* ShaderModule::GetEntryPoint() noexcept
 
 Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m_device(std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_layout = Rc<FShaderLayout>::UnsafeClone(options.Layout);
     m_input_layout = Rc<FShaderInputLayout>::UnsafeClone(options.InputLayout);
 
@@ -100,6 +108,11 @@ Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m
 
     if (HasFlags(Stages, FShaderStageFlags::Task) && !HasFlags(Stages, FShaderStageFlags::Mesh))
         COPLT_THROW("Having a task stage must also have a mesh stage");
+}
+
+u64 Shader::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult Shader::SetName(const FStr8or16& name) noexcept

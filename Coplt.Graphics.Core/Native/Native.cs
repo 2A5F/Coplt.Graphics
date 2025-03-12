@@ -2373,10 +2373,13 @@ namespace Coplt.Graphics.Native
         public uint ResourceCount;
 
         [NativeTypeName("Coplt::u32")]
-        public uint GrowCbvSrvUavBindingCapacity;
+        public uint SyncBindingCount;
 
         [NativeTypeName("Coplt::u32")]
-        public uint GrowSamplerBindingCapacity;
+        public uint GrowingResourceBindingCapacity;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GrowingSamplerBindingCapacity;
     }
 
     [Guid("F1C59CB4-7EE6-4EE2-80F4-07CC568920D2")]
@@ -2690,6 +2693,7 @@ namespace Coplt.Graphics.Native
         SetMeshBuffers,
         Draw,
         Dispatch,
+        SyncBinding,
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -2702,7 +2706,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L60_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L64_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceRefType")]
@@ -2871,7 +2875,7 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FBarrierType")]
         public FBarrierType Type;
 
-        [NativeTypeName("__AnonymousRecord_Command_L166_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L170_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3481,9 +3485,28 @@ namespace Coplt.Graphics.Native
         public FDispatchType Type;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FBindingSyncType : byte
+    {
+        Transient,
+        Persistent,
+    }
+
+    [NativeTypeName("struct FCommandSyncBinding : Coplt::FCommandBase")]
+    public partial struct FCommandSyncBinding
+    {
+        public FCommandBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+
+        [NativeTypeName("Coplt::FBindingSyncType")]
+        public FBindingSyncType Type;
+    }
+
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L485_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L503_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3607,6 +3630,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCommandSyncBinding SyncBinding
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SyncBinding;
+            }
+        }
+
+        [UnscopedRef]
         public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3668,6 +3701,10 @@ namespace Coplt.Graphics.Native
             public FCommandCompute Compute;
 
             [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSyncBinding")]
+            public FCommandSyncBinding SyncBinding;
+
+            [FieldOffset(0)]
             [NativeTypeName("u8[32]")]
             public __pad_e__FixedBuffer _pad;
 
@@ -3681,7 +3718,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L513_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L533_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3785,6 +3822,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCommandSyncBinding SyncBinding
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SyncBinding;
+            }
+        }
+
+        [UnscopedRef]
         public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3838,6 +3885,10 @@ namespace Coplt.Graphics.Native
             public FCommandDispatch Dispatch;
 
             [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSyncBinding")]
+            public FCommandSyncBinding SyncBinding;
+
+            [FieldOffset(0)]
             [NativeTypeName("u8[32]")]
             public __pad_e__FixedBuffer _pad;
 
@@ -3851,7 +3902,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L536_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L558_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -3925,6 +3976,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCommandSyncBinding SyncBinding
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SyncBinding;
+            }
+        }
+
+        [UnscopedRef]
         public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3964,6 +4025,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCommandDispatch")]
             public FCommandDispatch Dispatch;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCommandSyncBinding")]
+            public FCommandSyncBinding SyncBinding;
 
             [FieldOffset(0)]
             [NativeTypeName("u8[32]")]
@@ -4023,6 +4088,13 @@ namespace Coplt.Graphics.Native
         Dynamic,
         Persist,
         Instant,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FShaderLayoutGroupScope : byte
+    {
+        Dynamic,
+        Persist,
     }
 
     public partial struct FShaderLayoutItemDefine
@@ -4099,6 +4171,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint Size;
+
+        [NativeTypeName("Coplt::FShaderLayoutGroupScope")]
+        public FShaderLayoutGroupScope Scope;
 
         [NativeTypeName("Coplt::b8")]
         public B8 Sampler;

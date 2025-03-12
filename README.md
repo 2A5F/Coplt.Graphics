@@ -8,7 +8,7 @@ Render Hardware Interface designed for c#
 - Try to avoid string passing
 - Minimize native calls and use memory to transfer data in batches to reduce GC transitions
 - Avoid pointer nesting as much as possible, as it will lead to difficult memory fixation and temporary heap allocation.（Name and criticize vulkan）
-- Support new graphics features as much as possible, but CPU parallelism is not the focus. Heavy command filling should obviously not occur, and GPU scene should be used
+- Support new graphics features as much as possible, but CPU parallelism is not the focus. Heavy command filling should obviously not occur, and GPU-driven should be used
 
 # Examples
 

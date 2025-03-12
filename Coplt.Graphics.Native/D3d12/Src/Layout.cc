@@ -2,6 +2,7 @@
 
 #include <ranges>
 
+#include "../../Api/Include/AllocObjectId.h"
 #include "../Include/ShaderVisibility.h"
 
 using namespace Coplt;
@@ -19,34 +20,27 @@ namespace
         {
         }
 
-        struct Hasher
+        usize GetHashCode() const
         {
-            size_t operator()(const TableKey& value) const
-            {
-                return std::hash<u16>{}(static_cast<u16>(value.Stage) | (static_cast<u16>(value.View) << 8));
-            }
-        };
+            return std::hash<u16>{}(static_cast<u16>(Stage) | (static_cast<u16>(View) << 8));
+        }
 
-        struct Eq
+        bool operator==(const TableKey& other) const
         {
-            bool operator()(const TableKey& lhs, const TableKey& rhs) const
-            {
-                return lhs.Stage == rhs.Stage && lhs.View == rhs.View;
-            }
-        };
+            return Stage == other.Stage && View == other.View;
+        }
     };
 
     using TableMeta = ID3d12ShaderLayout::TableMeta;
-    using TableScope = ID3d12ShaderLayout::TableScope;
 
     struct TableGroupKey
     {
-        TableScope Scope{};
+        FShaderLayoutGroupScope Scope{};
         bool Sampler{};
 
         TableGroupKey() = default;
 
-        explicit TableGroupKey(const TableScope Scope, const bool Sampler) : Scope(Scope), Sampler(Sampler)
+        explicit TableGroupKey(const FShaderLayoutGroupScope Scope, const bool Sampler) : Scope(Scope), Sampler(Sampler)
         {
         }
 
@@ -71,15 +65,14 @@ namespace
     {
         u8 Index{};
         u32 IndexInc{};
-        HashMap<TableKey, TableMeta, TableKey::Hasher, TableKey::Eq> Map{};
+        HashMap<TableKey, TableMeta> Map{};
     };
-
-    using TmpTableGroupMap = HashMap<TableGroupKey, TableDefine, TableGroupKey::Hasher, TableGroupKey::Eq>;
 }
 
 D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
     : m_device(std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
 
     Flags = options.Flags;
@@ -89,7 +82,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
 
-    TmpTableGroupMap tables{};
+    HashMap<TableGroupKey, TableDefine> tables{};
     u8 TableGroupIndexInc{};
 
     for (u32 i = 0; i < m_layout_item_defines.size(); i++)
@@ -116,20 +109,20 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
         }
 
         D3D12_ROOT_PARAMETER_TYPE type;
-        TableScope table_scope;
+        FShaderLayoutGroupScope table_scope;
 
         switch (item.Usage)
         {
         case FShaderLayoutItemUsage::Dynamic:
-            table_scope = TableScope::Dynamic;
+            table_scope = FShaderLayoutGroupScope::Dynamic;
             goto DefineDescriptorTable;
         case FShaderLayoutItemUsage::Persist:
-            table_scope = TableScope::Persist;
+            table_scope = FShaderLayoutGroupScope::Persist;
             goto DefineDescriptorTable;
         case FShaderLayoutItemUsage::Instant:
             if (item.CountOrIndex > 1 || !IsBuffer(item.Type))
             {
-                table_scope = TableScope::Dynamic;
+                table_scope = FShaderLayoutGroupScope::Dynamic;
                 goto DefineDescriptorTable;
             }
             switch (item.View)
@@ -233,6 +226,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
         group_class = FShaderLayoutGroupClass{
             .Infos = table_groups.Infos.data(),
             .Size = static_cast<u32>(table_groups.Metas.size()),
+            .Scope = key.Scope,
             .Sampler = key.Sampler
         };
         for (auto& item : table.Map | std::views::values)
@@ -295,6 +289,11 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     }
 }
 
+u64 D3d12ShaderLayout::ObjectId() noexcept
+{
+    return m_object_id;
+}
+
 FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
@@ -336,6 +335,7 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
     Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options
 ) : m_device(std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_elements = std::vector(options.Element, options.Element + options.Count);
     m_slot_names.reserve(m_elements.size());
     for (auto& element : m_elements)
@@ -344,6 +344,11 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
         element.SlotName = name.get();
         m_slot_names.push_back(std::move(name));
     }
+}
+
+u64 D3d12ShaderInputLayout::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12ShaderInputLayout::SetName(const FStr8or16& name) noexcept
@@ -360,6 +365,7 @@ const FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_co
 D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options) : m_device(
     std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_buffers = std::vector(options.Buffers, options.Buffers + options.BufferCount);
     m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
     // 保留 1 个 slot 永远为 0
@@ -378,6 +384,11 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
         if (element.BufferIndex > m_buffers.size())
             COPLT_THROW_FMT("BufferIndex of element {} is out of range", i);
     }
+}
+
+u64 D3d12MeshLayout::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12MeshLayout::SetName(const FStr8or16& name) noexcept

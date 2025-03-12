@@ -18,6 +18,7 @@ namespace Coplt
 
     struct D3d12GpuQueue final : Object<D3d12GpuQueue, FD3d12GpuQueue>
     {
+        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12CommandQueue> m_queue{};
@@ -29,6 +30,7 @@ namespace Coplt
 
         explicit D3d12GpuQueue(Rc<D3d12GpuDevice>&& device, const FMainQueueCreateOptions& options);
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRawQueue() noexcept override;
