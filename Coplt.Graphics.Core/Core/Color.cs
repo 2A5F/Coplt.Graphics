@@ -184,6 +184,8 @@ public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
                 )
             );
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.To01;
     }
 
     /// <returns>w is invalid</returns>
@@ -253,6 +255,8 @@ public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Rgb;
     }
 
     public ColorHsl Hsl
@@ -281,6 +285,8 @@ public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Rgb;
     }
 
     #endregion
@@ -461,18 +467,24 @@ public struct Color255 : IEquatable<Color255>, IComparable<Color255>, IComparabl
                 )
             );
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.To255;
     }
 
     public ColorHsv Hsv
     {
         [MethodImpl(256 | 512)]
         get => To01.Hsv;
+        [MethodImpl(256 | 512)]
+        set => this = value.Rgb255;
     }
 
     public ColorHsl Hsl
     {
         [MethodImpl(256 | 512)]
         get => To01.Hsl;
+        [MethodImpl(256 | 512)]
+        set => this = value.Rgb255;
     }
 
     #endregion
@@ -662,12 +674,16 @@ public struct ColorHsv : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparabl
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsv;
     }
 
     public Color255 Rgb255
     {
         [MethodImpl(256 | 512)]
         get => Rgb.To255;
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsv;
     }
 
     public ColorHsl Hsl
@@ -691,6 +707,8 @@ public struct ColorHsv : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparabl
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsv;
     }
 
     #endregion
@@ -872,6 +890,8 @@ public struct ColorHsl : IEquatable<ColorHsl>, IComparable<ColorHsl>, IComparabl
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsl;
     }
 
     public Color Rgb
@@ -889,12 +909,16 @@ public struct ColorHsl : IEquatable<ColorHsl>, IComparable<ColorHsl>, IComparabl
             );
             return new(v);
         }
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsl;
     }
 
     public Color255 Rgb255
     {
         [MethodImpl(256 | 512)]
         get => Rgb.To255;
+        [MethodImpl(256 | 512)]
+        set => this = value.Hsl;
     }
 
     #endregion
