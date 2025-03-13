@@ -58,7 +58,7 @@ namespace Coplt
         Updated,
     };
 
-    template <class Key, class Value, Hash<Key> Hash = std::hash<Key>, Eq<Key> Eq = std::equal_to<Key>>
+    template <class Key, class Value, Hash<Key> Hash = SelectHasher<Key>, Eq<Key> Eq = SelectEq<Key>>
     class HashMap;
 
     template <class Key, class Value, Hash<Key> Hash , Eq<Key> Eq>
@@ -1645,6 +1645,6 @@ namespace Coplt
         }
     };
 
-    template <class Key, Hash<Key> Hash = std::hash<Key>, Eq<Key> Eq = std::equal_to<Key>>
+    template <class Key, Hash<Key> Hash = SelectHasher<Key>, Eq<Key> Eq = SelectEq<Key>>
     using HashSet = HashMap<Key, void, Hash, Eq>;
 }

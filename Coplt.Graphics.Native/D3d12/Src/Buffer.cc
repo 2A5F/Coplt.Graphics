@@ -1,10 +1,13 @@
 #include "Buffer.h"
 
+#include "../../Api/Include/AllocObjectId.h"
+
 using namespace Coplt;
 
 D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCreateOptions& options)
     : m_device(std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_allocator = m_device->m_gpu_allocator;
 
     m_state = FResState::BufferCommon();
@@ -33,6 +36,11 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
     {
         chr | m_resource->m_resource >> SetNameEx(options.Name);
     }
+}
+
+u64 D3d12GpuBuffer::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12GpuBuffer::SetName(const FStr8or16& name) noexcept

@@ -15,6 +15,11 @@ public enum DispatchType : byte
     Mesh,
 }
 
+internal interface ISubCommandList
+{
+    void OnSyncBinding(uint index);
+}
+
 /// <summary>
 /// 命令列表，不支持多线程访问
 /// </summary>
@@ -327,9 +332,11 @@ public sealed unsafe class CommandList : IQueueOwned
     internal readonly Dictionary<object, int> m_resources = new();
     internal readonly Dictionary<FResourceRef, ScopedState> m_scoped_res_state = new();
     internal readonly HashSet<object> m_objects = new();
+    internal readonly HashSet<ShaderBinding> m_bindings = new();
     internal GpuOutput? m_current_output;
-    internal uint m_grow_cbv_srv_uav_binding_capacity;
-    internal uint m_grow_sampler_binding_capacity;
+    internal uint m_sync_binding_count;
+    internal uint m_growing_resource_binding_capacity;
+    internal uint m_growing_sampler_binding_capacity;
     internal int m_debug_scope_count;
     internal int m_render_debug_scope_count;
     internal int m_compute_debug_scope_count;
@@ -385,11 +392,13 @@ public sealed unsafe class CommandList : IQueueOwned
         m_string16.Clear();
         m_resources.Clear();
         m_objects.Clear();
-        m_grow_cbv_srv_uav_binding_capacity = 0;
-        m_grow_sampler_binding_capacity = 0;
+        m_bindings.Clear();
+        m_current_output = null;
+        m_sync_binding_count = 0;
+        m_growing_resource_binding_capacity = 0;
+        m_growing_sampler_binding_capacity = 0;
         m_current_barrier_cmd_index = -1;
         m_auto_barrier = true;
-        m_current_output = null;
     }
 
     #endregion
@@ -444,8 +453,9 @@ public sealed unsafe class CommandList : IQueueOwned
                 Str16 = p_string16,
                 CommandCount = (uint)m_commands.Count,
                 ResourceCount = (uint)m_resource_metas.Count,
-                GrowCbvSrvUavBindingCapacity = m_grow_cbv_srv_uav_binding_capacity,
-                GrowSamplerBindingCapacity = m_grow_sampler_binding_capacity,
+                SyncBindingCount = m_sync_binding_count,
+                GrowingResourceBindingCapacity = m_growing_resource_binding_capacity,
+                GrowingSamplerBindingCapacity = m_growing_sampler_binding_capacity,
             };
             Queue.ActualSubmit(Executor, &submit, NoWait);
         }
@@ -1315,7 +1325,7 @@ public sealed unsafe class CommandList : IQueueOwned
     /// <summary>
     /// 必须在 Render 或者 Compute 范围内使用
     /// </summary>
-    internal void SyncBinding(ref PipelineContext context)
+    internal void SyncBinding<L>(ref PipelineContext context, in L list) where L : ISubCommandList
     {
         var binding = context.CurrentBinding;
         if (binding == null) return;
@@ -1387,18 +1397,45 @@ public sealed unsafe class CommandList : IQueueOwned
         if (!(context.PipelineChanged || context.BindingChanged)) return;
         context.PipelineChanged = false;
         context.BindingChanged = false;
-        if (binding.Changed)
+        var first = m_bindings.Add(binding);
+        list.OnSyncBinding(m_sync_binding_count++);
+        if (first)
+        {
+            var layout = binding.Layout;
+            for (var c = 0u; c < layout.NativeGroupClasses.Length; c++)
+            {
+                ref readonly var @class = ref layout.NativeGroupClasses[(int)c];
+                for (var g = 0u; g < @class.InfoSpan.Length; g++)
+                {
+                    SyncBindingItem(binding, layout, c, g, first);
+                }
+            }
+            binding.ApplyChange();
+        }
+        else if (binding.Changed)
         {
             var layout = binding.Layout;
             foreach (var (c, g) in binding.m_changed_groups)
             {
-                ref readonly var @class = ref layout.NativeGroupClasses[(int)c];
-                ref readonly var group = ref @class.InfoSpan[(int)g];
-                if (group.View is FShaderLayoutGroupView.Sampler) m_grow_sampler_binding_capacity += group.Size;
-                else m_grow_cbv_srv_uav_binding_capacity += group.Size;
+                SyncBindingItem(binding, layout, c, g, first);
             }
             binding.ApplyChange();
         }
+    }
+
+    private void SyncBindingItem(ShaderBinding binding, ShaderLayout layout, uint c, uint g, bool first)
+    {
+        ref readonly var @class = ref layout.NativeGroupClasses[(int)c];
+        ref readonly var group = ref @class.InfoSpan[(int)g];
+        if (@class.Scope != FShaderLayoutGroupScope.Persist) goto Add;
+        if (!first) goto Add;
+        var changed = binding.m_changed_groups.Contains((c, g));
+        if (changed) goto Add;
+        return;
+    Add:
+        if (@class.Sampler) m_growing_sampler_binding_capacity += group.Size;
+        else m_growing_resource_binding_capacity += group.Size;
+        return;
     }
 
     #endregion
@@ -1571,7 +1608,7 @@ public unsafe struct RenderScope(
     FCommandRender render_cmd,
     List<FRenderCommandItem> m_commands,
     bool debug_scope
-) : IDisposable
+) : IDisposable, ISubCommandList
 {
     #region Fields
 
@@ -1931,7 +1968,7 @@ public unsafe struct RenderScope(
                 throw new ArgumentException("Only shaders with a vertex stage can use Draw");
         }
         if (Binding != null) SetBinding(Binding);
-        self.SyncBinding(ref m_context);
+        self.SyncBinding(ref m_context, this);
         var cmd = new FCommandDraw
         {
             Base = { Type = FCommandType.Draw },
@@ -1975,7 +2012,7 @@ public unsafe struct RenderScope(
                 throw new ArgumentException("Only shaders with a mesh stage can use DispatchMesh");
         }
         if (Binding != null) SetBinding(Binding);
-        self.SyncBinding(ref m_context);
+        self.SyncBinding(ref m_context, this);
         var cmd = new FCommandDispatch
         {
             Base = { Type = FCommandType.Draw },
@@ -1991,6 +2028,20 @@ public unsafe struct RenderScope(
     }
 
     #endregion
+
+    #region OnSyncBinding
+
+    void ISubCommandList.OnSyncBinding(uint index)
+    {
+        var cmd = new FCommandSyncBinding
+        {
+            Base = { Type = FCommandType.SyncBinding },
+            Index = index,
+        };
+        m_commands.Add(new() { SyncBinding = cmd });
+    }
+
+    #endregion
 }
 
 #endregion
@@ -2003,7 +2054,7 @@ public unsafe struct ComputeScope(
     FCommandCompute compute_cmd,
     List<FComputeCommandItem> m_commands,
     bool debug_scope
-) : IDisposable
+) : IDisposable, ISubCommandList
 {
     #region Fields
 
@@ -2238,7 +2289,7 @@ public unsafe struct ComputeScope(
                 throw new ArgumentException("Only Compute shaders can use Dispatch");
             m_has_compute_shader = true;
         }
-        self.SyncBinding(ref m_context);
+        self.SyncBinding(ref m_context, this);
         var cmd = new FCommandDispatch
         {
             Base = { Type = FCommandType.SetBinding },
@@ -2254,6 +2305,20 @@ public unsafe struct ComputeScope(
             },
         };
         m_commands.Add(new() { Dispatch = cmd });
+    }
+
+    #endregion
+
+    #region OnSyncBinding
+
+    void ISubCommandList.OnSyncBinding(uint index)
+    {
+        var cmd = new FCommandSyncBinding
+        {
+            Base = { Type = FCommandType.SyncBinding },
+            Index = index,
+        };
+        m_commands.Add(new() { SyncBinding = cmd });
     }
 
     #endregion

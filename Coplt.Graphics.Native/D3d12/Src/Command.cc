@@ -104,11 +104,11 @@ D3d12CommandInterpreter::D3d12CommandInterpreter(const NonNull<D3d12GpuQueue>& q
 void D3d12CommandInterpreter::Interpret(const FCommandSubmit& submit)
 {
     m_descriptors = m_queue->m_frame_context->m_descriptors.get();
-    m_descriptors->InitFrame(submit.GrowCbvSrvUavBindingCapacity, submit.GrowSamplerBindingCapacity);
-
+    m_descriptors->InitFrame(submit.GrowingResourceBindingCapacity, submit.GrowingSamplerBindingCapacity);
     const auto desc_heaps = m_descriptors->GetDescriptorHeaps();
     m_queue->m_cmd->SetDescriptorHeaps(2, desc_heaps.data());
 
+    Analyze(submit);
     Translate(submit);
 
     Reset();
@@ -119,27 +119,216 @@ void D3d12CommandInterpreter::Reset()
 {
     m_barrier_context.Reset();
     m_context.Reset();
-    m_bindings.Clear();
+    m_bindings_contexts.clear();
+    m_bindings_items.clear();
 }
 
-void D3d12CommandInterpreter::CheckSubmit(const FCommandSubmit& submit)
+void D3d12CommandInterpreter::Analyze(const FCommandSubmit& submit)
 {
-    NonNull(submit.Commands);
-    NonNull(submit.RenderCommands);
-    NonNull(submit.ComputeCommands);
-    NonNull(submit.Resources);
-    NonNull(submit.RenderInfos);
-    NonNull(submit.ComputeInfos);
-    NonNull(submit.ResolveInfos);
-    NonNull(submit.Rects);
-    NonNull(submit.Viewports);
-    NonNull(submit.MeshBuffers);
-    NonNull(submit.VertexBufferRanges);
-    NonNull(submit.BufferCopyRanges);
-    NonNull(submit.BindItems);
-    NonNull(submit.Barriers);
-    NonNull(submit.Str8);
-    NonNull(submit.Str16);
+    m_bindings_contexts.reserve(submit.SyncBindingCount);
+    const std::span command_items(submit.Commands, submit.CommandCount);
+    for (u32 i = 0; i < command_items.size(); i++)
+    {
+        const auto& item = command_items[i];
+        switch (item.Type)
+        {
+        case FCommandType::None:
+        case FCommandType::Present:
+        case FCommandType::Label:
+        case FCommandType::BeginScope:
+        case FCommandType::EndScope:
+        case FCommandType::Barrier:
+        case FCommandType::ClearColor:
+        case FCommandType::ClearDepthStencil:
+        case FCommandType::BufferCopy:
+            continue;
+
+        case FCommandType::Bind:
+            Bind(submit, i, item.Bind);
+            continue;
+        case FCommandType::Render:
+            AnalyzeRender(submit, i, item.Render);
+            continue;
+        case FCommandType::Compute:
+            AnalyzeCompute(submit, i, item.Compute);
+            continue;
+
+        // subcommands
+        case FCommandType::SetPipeline:
+        case FCommandType::SetBinding:
+        case FCommandType::SetViewportScissor:
+        case FCommandType::SetMeshBuffers:
+        case FCommandType::Draw:
+        case FCommandType::Dispatch:
+        case FCommandType::SyncBinding:
+            COPLT_THROW("Sub commands cannot be placed in the main command list");
+        }
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
+    }
+    // m_descriptors->SyncTmp();
+}
+
+void D3d12CommandInterpreter::Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const
+{
+    const auto binding = cmd.Binding->QueryInterface<ID3d12ShaderBinding>();
+    if (binding == nullptr)
+        COPLT_THROW_FMT("Binding from different backends at command {}", i);
+    const auto items = std::span(submit.BindItems + cmd.ItemsIndex, cmd.ItemCount);
+    binding->Set(items);
+}
+
+void D3d12CommandInterpreter::AnalyzeRender(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
+{
+    const auto commands = std::span(submit.RenderCommands + cmd.CommandStartIndex, cmd.CommandCount);
+    for (u32 j = 0; j < commands.size(); j++)
+    {
+        const auto& item = commands[j];
+        switch (item.Type)
+        {
+        case FCommandType::None:
+        case FCommandType::Label:
+        case FCommandType::BeginScope:
+        case FCommandType::EndScope:
+        case FCommandType::SetViewportScissor:
+        case FCommandType::SetMeshBuffers:
+        case FCommandType::Draw:
+        case FCommandType::Dispatch:
+            continue;
+
+        case FCommandType::SetPipeline:
+            SetPipelineContext(item.SetPipeline.Pipeline, i);
+            continue;
+        case FCommandType::SetBinding:
+            SetBindingContext(item.SetBinding.Binding, i);
+            continue;
+        case FCommandType::SyncBinding:
+            AnalyzeSyncBinding(submit, i, item.SyncBinding);
+            continue;
+
+        case FCommandType::Present:
+        case FCommandType::Barrier:
+        case FCommandType::ClearColor:
+        case FCommandType::ClearDepthStencil:
+        case FCommandType::Bind:
+        case FCommandType::BufferCopy:
+        case FCommandType::Render:
+        case FCommandType::Compute:
+            COPLT_THROW("Main commands cannot be placed in the sub command list");
+        }
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
+    }
+}
+
+void D3d12CommandInterpreter::AnalyzeCompute(const FCommandSubmit& submit, u32 i, const FCommandCompute& cmd)
+{
+    const auto commands = std::span(submit.ComputeCommands + cmd.CommandStartIndex, cmd.CommandCount);
+    for (u32 j = 0; j < commands.size(); j++)
+    {
+        const auto& item = commands[j];
+        switch (item.Type)
+        {
+        case FCommandType::None:
+        case FCommandType::Label:
+        case FCommandType::BeginScope:
+        case FCommandType::EndScope:
+        case FCommandType::Dispatch:
+            continue;
+
+        case FCommandType::SetPipeline:
+            SetPipelineContext(item.SetPipeline.Pipeline, i);
+            continue;
+        case FCommandType::SetBinding:
+            SetBindingContext(item.SetBinding.Binding, i);
+            continue;
+        case FCommandType::SyncBinding:
+            AnalyzeSyncBinding(submit, i, item.SyncBinding);
+            continue;
+
+        case FCommandType::SetViewportScissor:
+        case FCommandType::SetMeshBuffers:
+        case FCommandType::Draw:
+            COPLT_THROW("Compute commands cannot be placed in the render command list");
+        case FCommandType::Present:
+        case FCommandType::Barrier:
+        case FCommandType::ClearColor:
+        case FCommandType::ClearDepthStencil:
+        case FCommandType::Bind:
+        case FCommandType::BufferCopy:
+        case FCommandType::Render:
+        case FCommandType::Compute:
+            COPLT_THROW("Main commands cannot be placed in the sub command list");
+        }
+        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
+    }
+}
+
+void D3d12CommandInterpreter::AnalyzeSyncBinding(const FCommandSubmit& submit, u32 i, const FCommandSyncBinding& cmd)
+{
+    const auto index = cmd.Index;
+    assert(index == m_bindings_contexts.size());
+    m_bindings_contexts.push_back(BindingContext{});
+    auto& ctx = m_bindings_contexts.back();
+    if (!(m_context.PipelineChanged || m_context.BindingChanged)) return;
+    if (const auto binding = m_context.Binding.get())
+    {
+        ctx.Index = m_bindings_items.size();
+        binding->Update(m_queue);
+        AllocBindings(binding);
+        binding->ApplyChange();
+        ctx.Count = m_bindings_items.size() - ctx.Index;
+    }
+    m_context.PipelineChanged = false;
+    m_context.BindingChanged = false;
+}
+
+void D3d12CommandInterpreter::AllocBindings(NonNull<ID3d12ShaderBinding> binding)
+{
+    const NonNull descriptors = m_descriptors;
+    const auto layout = binding->Layout();
+    const auto classes = layout->GetTableGroups();
+    const auto heaps = binding->DescHeaps();
+    for (u32 c = 0; c < classes.size(); ++c)
+    {
+        const auto& groups = classes[c];
+        const auto da = groups.Sampler ? descriptors->SamplerHeap() : descriptors->ResourceHeap();
+        for (u32 g = 0; g < groups.Metas.size(); ++g)
+        {
+            const auto& heap = heaps[c][g];
+            if (!heap) continue;
+            const auto al = AllocBindingGroup(groups, da, heap);
+            m_bindings_items.push_back(BindingItem{.c = c, .g = g, .al = al});
+        }
+    }
+}
+
+DescriptorAllocation D3d12CommandInterpreter::AllocBindingGroup(
+    const ID3d12ShaderLayout::TableGroup& groups,
+    NonNull<DescriptorAllocator> da,
+    const Rc<DescriptorHeap>& heap
+)
+{
+    if (groups.Scope == FShaderLayoutGroupScope::Persist)
+    {
+        PersistDescriptorAllocation al_place{};
+        PersistDescriptorAllocation* al = &al_place;
+        bool old = true;
+        da->AllocatePersistent(heap.get(), al, old);
+        if (!old || al->Version != heap->Version())
+        {
+            al->Version = heap->Version();
+            da->Upload(*al, heap);
+        }
+        return static_cast<DescriptorAllocation>(*al);
+    }
+    else
+    {
+        DescriptorAllocation al_place{};
+        DescriptorAllocation* al = &al_place;
+        da->AllocateTransient(heap->Size(), al);
+        da->Upload(*al, heap);
+        // da->StoreTmp(*al, heap);
+        return *al;
+    }
 }
 
 void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
@@ -152,6 +341,7 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         {
         case FCommandType::None:
         case FCommandType::Present:
+        case FCommandType::Bind:
             continue;
         case FCommandType::Label:
             Label(submit, item.Label);
@@ -171,9 +361,6 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         case FCommandType::ClearDepthStencil:
             ClearDepthStencil(submit, i, item.ClearDepthStencil);
             continue;
-        case FCommandType::Bind:
-            Bind(submit, i, item.Bind);
-            continue;
         case FCommandType::BufferCopy:
             BufferCopy(submit, i, item.BufferCopy);
             continue;
@@ -191,6 +378,7 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
         case FCommandType::SetMeshBuffers:
         case FCommandType::Draw:
         case FCommandType::Dispatch:
+        case FCommandType::SyncBinding:
             COPLT_THROW("Sub commands cannot be placed in the main command list");
         }
         COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(item.Type));
@@ -363,15 +551,6 @@ void D3d12CommandInterpreter::BufferCopy(const FCommandSubmit& submit, u32 i, co
     }
 }
 
-void D3d12CommandInterpreter::Bind(const FCommandSubmit& submit, u32 i, const FCommandBind& cmd) const
-{
-    const auto binding = cmd.Binding->QueryInterface<ID3d12ShaderBinding>();
-    if (binding == nullptr)
-        COPLT_THROW_FMT("Binding from different backends at command {}", i);
-    const auto items = std::span(submit.BindItems + cmd.ItemsIndex, cmd.ItemCount);
-    binding->Set(items);
-}
-
 void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
 {
     m_context.Reset();
@@ -469,7 +648,7 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
             SetPipeline(m_queue->m_cmd, item.SetPipeline.Pipeline, j);
             continue;
         case FCommandType::SetBinding:
-            SetBinding(item.SetBinding.Binding, j);
+            SetBindingContext(item.SetBinding.Binding, j);
             continue;
         case FCommandType::SetViewportScissor:
             RenderSetViewportScissor(submit, j, item.SetViewportScissor);
@@ -483,6 +662,10 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
         case FCommandType::Dispatch:
             RenderDispatch(submit, j, item.Dispatch);
             continue;
+        case FCommandType::SyncBinding:
+            SyncBinding(submit, j, item.SyncBinding);
+            continue;
+
         case FCommandType::Present:
         case FCommandType::Barrier:
         case FCommandType::ClearColor:
@@ -500,9 +683,8 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
     }
 }
 
-void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd)
+void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, const FCommandDraw& cmd) const
 {
-    SyncBinding();
     if (cmd.Indexed)
     {
         m_queue->m_cmd->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
@@ -513,11 +695,10 @@ void D3d12CommandInterpreter::RenderDraw(const FCommandSubmit& submit, u32 i, co
     }
 }
 
-void D3d12CommandInterpreter::RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd)
+void D3d12CommandInterpreter::RenderDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const
 {
     if (cmd.Type != FDispatchType::Mesh)
         COPLT_THROW_FMT("Render only supports DispatchMesh and does not support Dispatch for Compute at command {}", i);
-    SyncBinding();
     m_queue->m_cmd.m_list6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
 }
 
@@ -582,11 +763,15 @@ void D3d12CommandInterpreter::Compute(const FCommandSubmit& submit, u32 i, const
             SetPipeline(m_queue->m_cmd, item.SetPipeline.Pipeline, j);
             continue;
         case FCommandType::SetBinding:
-            SetBinding(item.SetBinding.Binding, j);
+            SetBindingContext(item.SetBinding.Binding, j);
             continue;
         case FCommandType::Dispatch:
             ComputeDispatch(submit, j, item.Dispatch);
             continue;
+        case FCommandType::SyncBinding:
+            SyncBinding(submit, j, item.SyncBinding);
+            continue;
+
         case FCommandType::SetViewportScissor:
         case FCommandType::SetMeshBuffers:
         case FCommandType::Draw:
@@ -605,9 +790,8 @@ void D3d12CommandInterpreter::Compute(const FCommandSubmit& submit, u32 i, const
     }
 }
 
-void D3d12CommandInterpreter::ComputeDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd)
+void D3d12CommandInterpreter::ComputeDispatch(const FCommandSubmit& submit, u32 i, const FCommandDispatch& cmd) const
 {
-    SyncBinding();
     if (cmd.Type == FDispatchType::Mesh)
         m_queue->m_cmd.m_list6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
     else
@@ -659,7 +843,7 @@ void D3d12CommandInterpreter::SetPipeline(
     cmd_pack->SetPipelineState(static_cast<ID3D12PipelineState*>(m_context.Pipeline->GetPipelineStatePtr()));
 }
 
-void D3d12CommandInterpreter::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+void D3d12CommandInterpreter::SetBindingContext(NonNull<FShaderBinding> binding, u32 i)
 {
     if (binding == m_context.Binding) return;
     m_context.Binding = binding->QueryInterface<ID3d12ShaderBinding>();
@@ -668,90 +852,38 @@ void D3d12CommandInterpreter::SetBinding(NonNull<FShaderBinding> binding, u32 i)
     m_context.BindingChanged = true;
 }
 
-void D3d12CommandInterpreter::SyncBinding()
+void D3d12CommandInterpreter::SyncBinding(const FCommandSubmit& submit, u32 i, const FCommandSyncBinding& cmd)
 {
     if (!(m_context.PipelineChanged || m_context.BindingChanged)) return;
     if (const auto binding = m_context.Binding.get())
     {
-        binding->Update(m_queue);
-        AllocAndUseBinding();
-        binding->ApplyChange();
+        const auto& ctx = m_bindings_contexts[cmd.Index];
+        std::span<BindingItem> items{};
+        if (ctx) items = std::span(m_bindings_items.data() + ctx.Index, ctx.Count);
+        UseBinding(binding, items);
     }
     m_context.PipelineChanged = false;
     m_context.BindingChanged = false;
 }
 
-void D3d12CommandInterpreter::AllocAndUseBinding()
+void D3d12CommandInterpreter::UseBinding(NonNull<ID3d12ShaderBinding> binding, const std::span<BindingItem> items)
 {
-    const NonNull descriptors = m_descriptors;
     const auto has_pixel = HasFlags(m_context.Pipeline->GetStages(), FShaderStageFlags::Pixel);
     const auto& cmd_pack = m_queue->m_cmd;
-    const NonNull binding = m_context.Binding;
-    const auto first = m_bindings.Add(binding);
     const auto layout = binding->Layout();
     const auto classes = layout->GetTableGroups();
-    const auto heaps = binding->DescHeaps();
-    auto allocations = binding->Allocations();
-    if (first)
-    {
-        for (u32 c = 0; c < classes.size(); ++c)
-        {
-            const auto& groups = classes[c];
-            const auto da = groups.Sampler ? descriptors->SamplerHeap() : descriptors->ResourceHeap();
-            for (u32 g = 0; g < groups.Metas.size(); ++g)
-            {
-                const auto& heap = heaps[c][g];
-                if (!heap) continue;
-                auto& al = allocations[c][g];
-                AllocBindingGroup(groups, da, heap, al);
-            }
-        }
-    }
-    else
-    {
-        for (const auto [c, g] : binding->IterChangedGroups())
-        {
-            const auto& heap = heaps[c][g];
-            if (!heap) continue;
-            const auto& groups = classes[c];
-            const auto da = groups.Sampler ? descriptors->SamplerHeap() : descriptors->ResourceHeap();
-            auto& al = allocations[c][g];
-            AllocBindingGroup(groups, da, heap, al);
-        }
-    }
-    for (u32 i = 0; i < classes.size(); ++i)
-    {
-        const auto& groups = classes[i];
-        const auto& da = groups.Sampler ? m_descriptors->SamplerHeap() : m_descriptors->ResourceHeap();
-        for (u32 j = 0; j < groups.Metas.size(); ++j)
-        {
-            const auto& meta = groups.Metas[j];
-            const auto& al = allocations[i][j];
-            if (!al) continue;
-            const auto handle = da->GetRemoteHandle(al.Offset);
-            if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
-            else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
-        }
-    }
-    // todo 其他 Root 项
-}
 
-void D3d12CommandInterpreter::AllocBindingGroup(
-    const ID3d12ShaderLayout::TableGroup& groups,
-    NonNull<DescriptorAllocator> da,
-    const Rc<DescriptorHeap>& heap,
-    DescriptorAllocation& al
-)
-{
-    if (groups.Scope == ID3d12ShaderLayout::TableScope::Material)
+    for (const auto& item : items)
     {
-        COPLT_THROW("TODO");
+        const auto& groups = classes[item.c];
+        const auto& meta = groups.Metas[item.g];
+        const auto& da = groups.Sampler ? m_descriptors->SamplerHeap() : m_descriptors->ResourceHeap();
+        const auto handle = da->GetRemoteHandle(item.al.Offset);
+        if (has_pixel) cmd_pack->SetGraphicsRootDescriptorTable(meta.RootIndex, handle);
+        else cmd_pack->SetComputeRootDescriptorTable(meta.RootIndex, handle);
     }
-    else
-    {
-        al = da->AllocateTransient(heap->Size());
-        da->Upload(al, heap);
-    }
+
+    // todo 其他 Root 项
 }
 
 NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)

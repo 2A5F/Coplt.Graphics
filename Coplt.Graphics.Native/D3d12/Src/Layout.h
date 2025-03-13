@@ -13,12 +13,6 @@ namespace Coplt
 {
     COPLT_INTERFACE_DEFINE(ID3d12ShaderLayout, "d8cea40e-7b0c-4a5f-98a9-88fd3abf9ddc", FD3d12ShaderLayout)
     {
-        enum class TableScope : u8
-        {
-            Common,
-            Material,
-        };
-
         struct TableMeta
         {
             std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
@@ -42,7 +36,7 @@ namespace Coplt
         {
             std::vector<TableMeta> Metas{};
             std::vector<FShaderLayoutGroupInfo> Infos{};
-            TableScope Scope{};
+            FShaderLayoutGroupScope Scope{};
             bool Sampler{};
         };
 
@@ -51,6 +45,7 @@ namespace Coplt
 
     struct D3d12ShaderLayout final : Object<D3d12ShaderLayout, ID3d12ShaderLayout>
     {
+        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12RootSignature> m_root_signature{};
@@ -62,6 +57,7 @@ namespace Coplt
 
         explicit D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options);
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetRootSignaturePtr() noexcept override;
@@ -75,12 +71,14 @@ namespace Coplt
 
     struct D3d12ShaderInputLayout final : Object<D3d12ShaderInputLayout, FD3d12ShaderInputLayout>
     {
+        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         std::vector<Rc<FString8>> m_slot_names{};
         std::vector<FShaderInputLayoutElement> m_elements{};
 
         explicit D3d12ShaderInputLayout(Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options);
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
@@ -88,6 +86,7 @@ namespace Coplt
 
     struct D3d12MeshLayout final : Object<D3d12MeshLayout, FD3d12MeshLayout>
     {
+        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         std::vector<FMeshBufferDefine> m_buffers{};
         std::vector<FMeshBufferElement> m_elements{};
@@ -95,6 +94,7 @@ namespace Coplt
 
         explicit D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options);
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         const FMeshBufferDefine* GetBuffers(u32* out_count) const noexcept override;

@@ -21,7 +21,7 @@ Output = Device.MainQueue.CreateOutputForHwnd(new() { Width = Width, Height = He
 // See the source code for details
 // This shader module is not a vk module. A module can only have one shader stage with one entrypoint.
 // The main purpose is to use native memory to store data to avoid complex memory pinning.
-var modules = await LoadShaderModules("HelloTriangle", [ShaderStage.Vertex, ShaderStage.Pixel]);
+var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
 // To create a shader, you need to provide the shader stages (shader module)
 // and the binding layout, input layout (if have vertex shader).
 Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout([]));
@@ -29,7 +29,7 @@ Shader = Device.CreateShader(modules, null, Device.CreateShaderInputLayout([]));
 Pipeline = Device.CreateGraphicsShaderPipeline(
     Shader, new()
     {
-        DsvFormat = TextureFormat.Unknown,
+        DsvFormat = GraphicsFormat.Unknown,
         BlendState =
         {
             Rt0 =
@@ -48,11 +48,11 @@ Pipeline = Device.CreateGraphicsShaderPipeline(
 var cmd = Device.MainCommandList;
 while (!IsClosed)
 {
-   Render(cmd);
+   Render(cmd, CalcTime());
    Output.Present();
 }
 
-void Render(CommandList cmd)
+void Render(CommandList cmd, Time time)
 {
     using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
     render.Draw(Pipeline, 3);

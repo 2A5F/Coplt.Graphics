@@ -12,6 +12,7 @@ namespace Coplt
 {
     struct D3d12GraphicsShaderPipeline final : Object<D3d12GraphicsShaderPipeline, FD3d12GraphicsShaderPipeline, FD3d12PipelineState>
     {
+        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<FShader> m_shader{};
         Rc<FD3d12ShaderLayout> m_layout{};
@@ -28,6 +29,7 @@ namespace Coplt
             Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
         );
 
+        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         void* GetPipelineStatePtr() noexcept override;

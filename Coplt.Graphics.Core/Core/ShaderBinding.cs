@@ -17,7 +17,6 @@ public sealed unsafe partial class ShaderBinding : IQueueOwned
     internal readonly GpuQueue m_queue;
     internal readonly ShaderLayout m_layout;
     internal readonly View[] m_views;
-    internal readonly HashSet<uint> m_changed_items = new();
     internal readonly HashSet<(uint c, uint g)> m_changed_groups = new();
 
     #endregion
@@ -31,7 +30,7 @@ public sealed unsafe partial class ShaderBinding : IQueueOwned
     public ReadOnlySpan<View> Views => m_views;
     internal Span<View> MutViews => m_views;
     public ref readonly View this[int index] => ref m_views[index];
-    internal bool Changed => m_changed_items.Count != 0 || m_changed_groups.Count != 0;
+    internal bool Changed => m_changed_groups.Count != 0;
 
     #endregion
 
@@ -114,7 +113,6 @@ public sealed unsafe partial class ShaderBinding : IQueueOwned
             };
             ref var view = ref views[(int)src.Index];
             view = src.View;
-            m_changed_items.Add(src.Index);
             if (info.Place is FShaderLayoutItemPlace.Grouped)
             {
                 m_changed_groups.Add((info.Class, info.Group));
@@ -128,7 +126,6 @@ public sealed unsafe partial class ShaderBinding : IQueueOwned
 
     internal void ApplyChange()
     {
-        m_changed_items.Clear();
         m_changed_groups.Clear();
     }
 

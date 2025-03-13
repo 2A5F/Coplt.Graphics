@@ -25,7 +25,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                     Stage = ShaderStage.Pixel,
                     View = ShaderLayoutItemView.Cbv,
                     Type = ShaderLayoutItemType.ConstantBuffer,
-                    Usage = ShaderLayoutItemUsage.Common,
+                    Usage = ShaderLayoutItemUsage.Persist,
                 }
             ],
             Name: Name

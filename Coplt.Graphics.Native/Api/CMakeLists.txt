@@ -50,6 +50,9 @@ add_library(${target_name} STATIC
     Include/ChunkedVector.h
     Include/Ptr.h
     Src/Error.cc
+    Include/AllocObjectId.h
+    Src/AllocObjectId.cc
+    Include/ObjectKey.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})
