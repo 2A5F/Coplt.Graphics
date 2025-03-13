@@ -14,7 +14,6 @@
 
     <ItemGroup>
         <PackageReference Include="Coplt.Dropping" Version="0.6.0" />
-        <PackageReference Include="Coplt.Mathematics" Version="0.10.0"/>
         <PackageReference Include="Coplt.Union" Version="0.13.2" />
         <PackageReference Include="Fody" Version="6.9.2">
             <PrivateAssets>all</PrivateAssets>

@@ -82,8 +82,8 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuRes
         set => NativeState = value.ToFFI();
     }
     public ref FResState NativeState => ref m_ptr->m_state;
-    public uint2 Size2d => new(m_ptr->m_width, m_ptr->m_height);
-    public uint3 Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
+    public USize2d Size2d => new(m_ptr->m_width, m_ptr->m_height);
+    public USize3d Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
     ulong IGpuView.Size => m_ptr->m_width;
     public uint Width => m_ptr->m_width;
     public uint Height => m_ptr->m_height;

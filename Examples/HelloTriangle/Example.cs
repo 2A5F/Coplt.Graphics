@@ -33,7 +33,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     }
     protected override void Render(CommandList cmd, Time time)
     {
-        using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
+        using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f, 1f))]);
         render.Draw(Pipeline, 3);
     }
 }

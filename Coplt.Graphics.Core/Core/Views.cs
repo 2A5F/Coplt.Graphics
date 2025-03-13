@@ -19,11 +19,11 @@ public interface IGpuView : IQueueOwned
     /// <summary>
     /// 纹理 2d 大小
     /// </summary>
-    public uint2 Size2d => new(Width, Height);
+    public USize2d USize2d => new(Width, Height);
     /// <summary>
     /// 纹理 3d 大小
     /// </summary>
-    public uint3 Size3d => new(Width, Height, DepthOrLength);
+    public USize3d Size3d => new(Width, Height, DepthOrLength);
     /// <summary>
     /// 纹理宽度
     /// </summary>

@@ -1,6 +1,11 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using Coplt.Graphics.Core;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.Wasm;
+using System.Runtime.Intrinsics.X86;
+using X86 = System.Runtime.Intrinsics.X86;
 
 namespace Coplt.Graphics.Utilities;
 
@@ -60,6 +65,47 @@ public static unsafe class Utils
 
     internal static Span<T> AsSpan<T>(this List<T> self) => CollectionsMarshal.AsSpan(self);
     internal static ref T At<T>(this List<T> self, int index) => ref CollectionsMarshal.AsSpan(self)[index];
+
+    #endregion
+
+    #region Simd Math
+
+    /// <returns><code>a * b + c</code></returns>
+    [MethodImpl(256 | 512)]
+    public static Vector128<float> Fma(Vector128<float> a, Vector128<float> b, Vector128<float> c)
+    {
+        if (X86.Fma.IsSupported)
+        {
+            return X86.Fma.MultiplyAdd(a, b, c);
+        }
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplyAdd(c, a, b);
+        }
+        return a * b + c;
+    }
+
+    /// <returns><code>c - a * b</code> or <code>-(a * b) + c</code></returns>
+    [MethodImpl(256 | 512)]
+    public static Vector128<float> Fnma(Vector128<float> a, Vector128<float> b, Vector128<float> c)
+    {
+        if (X86.Fma.IsSupported)
+        {
+            return X86.Fma.MultiplyAddNegated(a, b, c);
+        }
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplySubtract(c, a, b);
+        }
+        return c - a * b;
+    }
+
+    [MethodImpl(256 | 512)]
+    public static Vector128<float> Lerp(Vector128<float> start, Vector128<float> end, Vector128<float> t) =>
+        Fma(t, end - start, start);
+
+    [MethodImpl(256 | 512)]
+    public static Vector128<float> Frac(Vector128<float> a) => a - Vector128.Floor(a);
 
     #endregion
 }
