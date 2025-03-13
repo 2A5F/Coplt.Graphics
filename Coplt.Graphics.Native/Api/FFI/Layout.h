@@ -9,6 +9,14 @@
 
 namespace Coplt
 {
+    enum class FResourceAccess : u8
+    {
+        Unknown,
+        ReadOnly,
+        WriteOnly,
+        ReadWrite,
+    };
+
     enum class FShaderLayoutItemView : u8
     {
         Cbv,
@@ -94,6 +102,7 @@ namespace Coplt
         FShaderLayoutItemView View{};
         FShaderLayoutItemType Type{};
         FShaderLayoutItemUsage Usage{};
+        FResourceAccess UavAccess{};
 
         #ifdef FFI_SRC
         bool IsAllowBuffer() const

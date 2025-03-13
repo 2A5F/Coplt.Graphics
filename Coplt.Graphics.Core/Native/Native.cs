@@ -4123,6 +4123,15 @@ namespace Coplt.Graphics.Native
     }
 
     [NativeTypeName("Coplt::u8")]
+    public enum FResourceAccess : byte
+    {
+        Unknown,
+        ReadOnly,
+        WriteOnly,
+        ReadWrite,
+    }
+
+    [NativeTypeName("Coplt::u8")]
     public enum FShaderLayoutItemView : byte
     {
         Cbv,
@@ -4202,6 +4211,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderLayoutItemUsage")]
         public FShaderLayoutItemUsage Usage;
+
+        [NativeTypeName("Coplt::FResourceAccess")]
+        public FResourceAccess UavAccess;
     }
 
     [NativeTypeName("Coplt::u8")]

@@ -29,11 +29,17 @@ Layout = Device.CreateShaderLayout(
     [
         new()
         {
-            Slot = 0,
-            Stage = ShaderStage.Pixel,
-            View = ShaderLayoutItemView.Cbv,
-            Type = ShaderLayoutItemType.ConstantBuffer,
-            Usage = ShaderLayoutItemUsage.Persist,
+            Slot = 0,                                       // Dx: hlsl register; Vk: binding or push const offset when View is Constants
+            Stage = ShaderStage.Pixel,                      // Can only be bound to a single shader stage
+            View = ShaderLayoutItemView.Cbv,                // View type, Cbv Srv Uav Sampler Constants
+            Type = ShaderLayoutItemType.ConstantBuffer,     // Resource type, use hlsl style, ConstantBuffer StructureBuffer Texture2D etc
+            Usage = ShaderLayoutItemUsage.Persist,          // Resource binding change frequency
+            // Dynamic: may change every frame
+            // Persist：rarely changes, such as material parameters
+            // Instant：only buffer and sampler, when buffer mean may change every draw, when sampler it is static sampler
+            // View type is Constants will ignore Usage
+            UavAccess: ResourceAccess.Unknown,              // Unknown ReadOnly WriteOnly ReadWrite
+            // Not necessary, can optimize automatic barriers
         }
     ],
     Name: Name

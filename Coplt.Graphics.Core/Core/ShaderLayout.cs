@@ -4,6 +4,14 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
+public enum ResourceAccess : byte
+{
+    Unknown,
+    ReadOnly,
+    WriteOnly,
+    ReadWrite,
+}
+
 public enum ShaderLayoutItemView : byte
 {
     Cbv,
@@ -71,6 +79,7 @@ public unsafe record struct ShaderLayoutItemDefine
     public ShaderLayoutItemView View;
     public ShaderLayoutItemType Type;
     public ShaderLayoutItemUsage Usage;
+    public ResourceAccess UavAccess;
 
     static ShaderLayoutItemDefine()
     {
