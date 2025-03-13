@@ -20,7 +20,7 @@ public unsafe partial struct View
     public FView ToFFI() => Tag switch
     {
         Tags.None   => new FView { Type = FViewType.None },
-        Tags.Buffer => new FView { Type = FViewType.Buffer, Buffer = Buffer.m_ptr },
+        Tags.Buffer => new FView { Type = FViewType.Buffer, Buffer = Buffer.Ptr },
         _           => throw new ArgumentOutOfRangeException()
     };
 }

@@ -52,9 +52,47 @@ FResult D3d12GpuBuffer::SetName(const FStr8or16& name) noexcept
     });
 }
 
+ResourceType D3d12GpuBuffer::GetResourceType() noexcept
+{
+    return ResourceType::Buffer;
+}
+
+FGpuViewableData* D3d12GpuBuffer::GpuViewData() noexcept
+{
+    return this;
+}
+
+FGpuResourceData* D3d12GpuBuffer::GpuResourceData() noexcept
+{
+    return this;
+}
+
+FGpuBufferData* D3d12GpuBuffer::GpuBufferData() noexcept
+{
+    return this;
+}
+
 FResult D3d12GpuBuffer::GetCurrentResourcePtr(void* out) const noexcept
 {
     // todo 瞬态
     *static_cast<ID3D12Resource**>(out) = m_resource->m_resource.Get();
     return FResult::None();
+}
+
+FResult D3d12GpuBuffer::Map(void** ptr, const b8 Discard) noexcept
+{
+    return feb([&]
+    {
+        constexpr D3D12_RANGE range = {0, 0};
+        chr | m_resource->m_resource->Map(0, Discard ? &range : nullptr, ptr);
+    });
+}
+
+FResult D3d12GpuBuffer::Unmap(const b8 Discard) noexcept
+{
+    return feb([&]
+    {
+        constexpr D3D12_RANGE range = {0, 0};
+        m_resource->m_resource->Unmap(0, Discard ? &range : nullptr);
+    });
 }

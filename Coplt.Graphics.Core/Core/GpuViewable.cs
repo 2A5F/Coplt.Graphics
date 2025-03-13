@@ -5,11 +5,12 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuView : IQueueOwned
+public abstract unsafe partial class GpuViewable : IQueueOwned
 {
     #region Fields
 
-    internal FGpuView* m_ptr;
+    internal FGpuViewable* m_ptr;
+    internal readonly FGpuViewableData* m_data;
     internal string? m_name;
     internal readonly GpuQueue m_queue;
 
@@ -17,18 +18,20 @@ public abstract unsafe partial class GpuView : IQueueOwned
 
     #region Props
 
-    public FGpuView* Ptr => m_ptr;
+    public FGpuViewable* Ptr => m_ptr;
+    public FGpuViewableData* Data => m_data;
     public GpuDevice Device => m_queue.m_device;
     public GpuQueue Queue => m_queue;
-    public ResourcePurpose Purpose => (ResourcePurpose)m_ptr->m_purpose;
+    public ResourcePurpose Purpose => (ResourcePurpose)Data->m_purpose;
 
     #endregion
 
     #region Ctor
 
-    internal GpuView(FGpuView* ptr, string? name, GpuQueue queue)
+    internal GpuViewable(FGpuViewable* ptr, FGpuViewableData* data, string? name, GpuQueue queue)
     {
         m_ptr = ptr;
+        m_data = data;
         m_name = name;
         m_queue = queue;
     }
@@ -74,8 +77,8 @@ public abstract unsafe partial class GpuView : IQueueOwned
 
     public override string ToString() =>
         m_name is null
-            ? $"{nameof(GpuView)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(GpuView)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
+            ? $"{nameof(GpuViewable)}(0x{(nuint)m_ptr:X})"
+            : $"{nameof(GpuViewable)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

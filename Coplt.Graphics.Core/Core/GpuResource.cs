@@ -5,44 +5,26 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuResource : GpuView
+public abstract unsafe partial class GpuResource : GpuViewable
 {
-    #region Fields
-
-    internal new FGpuResource* m_ptr;
-
-    #endregion
-
     #region Props
 
-    public new FGpuResource* Ptr => m_ptr;
+    public new FGpuResource* Ptr => (FGpuResource*)m_ptr;
+    public new FGpuResourceData* Data => (FGpuResourceData*)m_data;
     public ResState State
     {
         get => NativeState.FromFFI();
         set => NativeState = value.ToFFI();
     }
-    public ref FResState NativeState => ref m_ptr->m_state;
-    public CpuAccess CpuAccess => (CpuAccess)m_ptr->m_cpu_access;
+    public ref FResState NativeState => ref Data->m_state;
+    public CpuAccess CpuAccess => (CpuAccess)Data->m_cpu_access;
 
     #endregion
 
     #region Ctor
 
-    internal GpuResource(FGpuResource* ptr, string? name, GpuQueue queue) : base(&ptr->Base, name, queue)
-    {
-        m_ptr = ptr;
-        m_name = name;
-    }
-
-    #endregion
-
-    #region Drop
-
-    [Drop]
-    private void Drop()
-    {
-        m_ptr = null;
-    }
+    internal GpuResource(FGpuResource* ptr, FGpuResourceData* data, string? name, GpuQueue queue)
+        : base((FGpuViewable*)ptr, (FGpuViewableData*)data, name, queue) { }
 
     #endregion
 
