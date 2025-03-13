@@ -2,6 +2,7 @@
 
 #include "Device.h"
 #include "Output.h"
+#include "../../Api/Include/AllocObjectId.h"
 #include "../../Api/Include/Error.h"
 
 using namespace Coplt;
@@ -11,6 +12,7 @@ D3d12GpuQueue::D3d12GpuQueue(
     const FMainQueueCreateOptions& options
 ) : m_device(std::move(device)), m_command_interpreter(this)
 {
+    m_object_id = AllocObjectId();
     m_queue_type = FGpuQueueType::Direct;
 
     m_dx_device = m_device->m_device;
@@ -39,6 +41,11 @@ D3d12GpuQueue::D3d12GpuQueue(
     {
         chr | m_queue >> SetNameEx(options.Name);
     }
+}
+
+u64 D3d12GpuQueue::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12GpuQueue::SetName(const FStr8or16& name) noexcept

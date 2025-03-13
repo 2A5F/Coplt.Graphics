@@ -43,6 +43,10 @@ namespace Coplt
 
         // Render / Compute
         Dispatch,
+
+        // Render / Compute
+        // 仅内部使用
+        SyncBinding,
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -480,6 +484,20 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    enum class FBindingSyncType : u8
+    {
+        Transient,
+        Persistent,
+    };
+
+    struct FCommandSyncBinding : FCommandBase
+    {
+        u32 Index{};
+        FBindingSyncType Type{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCommandItem
     {
         union
@@ -504,6 +522,8 @@ namespace Coplt
             FCommandRender Render;
             FCommandCompute Compute;
 
+            FCommandSyncBinding SyncBinding;
+
             u8 _pad[32];
         };
     };
@@ -527,6 +547,8 @@ namespace Coplt
 
             FCommandDispatch Dispatch;
 
+            FCommandSyncBinding SyncBinding;
+
             u8 _pad[32];
         };
     };
@@ -545,6 +567,8 @@ namespace Coplt
             FCommandSetBinding SetBinding;
 
             FCommandDispatch Dispatch;
+
+            FCommandSyncBinding SyncBinding;
 
             u8 _pad[32];
         };
@@ -572,9 +596,9 @@ namespace Coplt
         Char16* Str16{};
         u32 CommandCount{};
         u32 ResourceCount{};
-        // 需要增长多少绑定容量，仅在后端使用描述符堆时使用
-        u32 GrowCbvSrvUavBindingCapacity{};
-        u32 GrowSamplerBindingCapacity{};
+        u32 SyncBindingCount{};
+        u32 GrowingResourceBindingCapacity{};
+        u32 GrowingSamplerBindingCapacity{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

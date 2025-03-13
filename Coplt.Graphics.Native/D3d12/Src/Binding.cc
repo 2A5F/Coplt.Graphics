@@ -4,19 +4,16 @@
 #include "../../Api/Include/Error.h"
 #include "../FFI/Layout.h"
 #include "Queue.h"
+#include "../../Api/Include/AllocObjectId.h"
 #include "../Include/GraphicsFormat.h"
 
 using namespace Coplt;
-
-namespace
-{
-    using TableScope = ID3d12ShaderLayout::TableScope;
-}
 
 D3d12ShaderBinding::D3d12ShaderBinding(
     Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options
 ) : m_device(std::move(device))
 {
+    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
 
     m_layout = Rc<ID3d12ShaderLayout>::UnsafeClone(options.Layout->QueryInterface<ID3d12ShaderLayout>());
@@ -29,12 +26,12 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     const auto classes = m_layout->GetTableGroups();
     m_item_indexes = std::vector<std::vector<std::vector<u32>>>(classes.size(), {});
     m_desc_heaps = std::vector<std::vector<Rc<DescriptorHeap>>>(classes.size(), {});
-    m_allocations = std::vector<std::vector<DescriptorAllocation>>(classes.size(), {});
+    // m_allocations = std::vector<std::vector<DescriptorAllocation>>(classes.size(), {});
     for (size_t i = 0; i < classes.size(); ++i)
     {
         const auto& group = classes[i];
         m_desc_heaps[i] = std::vector<Rc<DescriptorHeap>>(group.Metas.size(), {});
-        m_allocations[i] = std::vector<DescriptorAllocation>(group.Metas.size(), {});
+        // m_allocations[i] = std::vector<DescriptorAllocation>(group.Metas.size(), {});
         auto& items = m_item_indexes[i] = std::vector<std::vector<u32>>(group.Metas.size(), {});
         for (size_t j = 0; j < group.Metas.size(); ++j)
         {
@@ -49,6 +46,11 @@ D3d12ShaderBinding::D3d12ShaderBinding(
         const auto& info = infos[i];
         m_item_indexes[info.Class][info.Group].push_back(i);
     }
+}
+
+u64 D3d12ShaderBinding::ObjectId() noexcept
+{
+    return m_object_id;
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
@@ -108,17 +110,13 @@ std::span<const std::vector<Rc<DescriptorHeap>>> D3d12ShaderBinding::DescHeaps()
     return m_desc_heaps;
 }
 
-std::span<std::vector<DescriptorAllocation>> D3d12ShaderBinding::Allocations() noexcept
-{
-    return m_allocations;
-}
-
 void D3d12ShaderBinding::Update(NonNull<D3d12GpuQueue> queue)
 {
     if (!Changed()) return;
     const auto defs = m_layout->GetItemDefines();
     const auto infos = m_layout->GetItemInfos();
     const auto classes = m_layout->GetTableGroups();
+    // todo 改成 changed items
     for (const auto [c, g] : IterChangedGroups())
     {
         const auto& groups = classes[c];
@@ -131,6 +129,7 @@ void D3d12ShaderBinding::Update(NonNull<D3d12GpuQueue> queue)
                 groups.Sampler ? D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER : D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
                 meta.Size, false
             );
+        heap->IncVersion();
         const auto& indexes = m_item_indexes[c][g];
         const auto handle_start = heap->GetLocalHandle();
         const auto stride = heap->Stride();

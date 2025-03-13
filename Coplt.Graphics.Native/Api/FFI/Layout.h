@@ -76,6 +76,12 @@ namespace Coplt
         Instant,
     };
 
+    enum class FShaderLayoutGroupScope : u8
+    {
+        Dynamic,
+        Persist,
+    };
+
     struct FShaderLayoutItemDefine
     {
         // dx 后端无论什么时候都是 register, vk 后端一般情况是 binding，类型为 Constants 时是 push const 的 offset，为字节偏移
@@ -160,6 +166,7 @@ namespace Coplt
     {
         FShaderLayoutGroupInfo* Infos{};
         u32 Size{};
+        FShaderLayoutGroupScope Scope{};
         b8 Sampler{};
 
         #if FFI_SRC
