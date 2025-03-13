@@ -1405,7 +1405,7 @@ public sealed unsafe class CommandList : IQueueOwned
             for (var c = 0u; c < layout.NativeGroupClasses.Length; c++)
             {
                 ref readonly var @class = ref layout.NativeGroupClasses[(int)c];
-                for (var g = 0u; g < @class.InfoSpan.Length; c++)
+                for (var g = 0u; g < @class.InfoSpan.Length; g++)
                 {
                     SyncBindingItem(binding, layout, c, g, first);
                 }
