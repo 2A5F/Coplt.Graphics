@@ -11,6 +11,7 @@
 
 #include "CmdListPack.h"
 #include "DescriptorManager.h"
+#include "Image.h"
 #include "../../Api/Include/ChunkedVector.h"
 #include "../../Api/Include/ObjectKey.h"
 #include "../../Api/Include/Ptr.h"
@@ -132,6 +133,10 @@ namespace Coplt
         void SyncBinding(const FCommandSubmit& submit, u32 i, const FCommandSyncBinding& cmd);
         void UseBinding(NonNull<ID3d12ShaderBinding> binding, std::span<BindingItem> items);
 
+        static Ptr<ID3d12GpuImage> TryGetImage(const FResourceMeta& meta);
+        static Ptr<ID3d12GpuImage> TryGetImage(NonNull<FUnknown> object, FResourceRefType type);
+        static Ptr<ID3d12GpuBuffer> TryGetBuffer(const FResourceMeta& meta);
+        static Ptr<ID3d12GpuBuffer> TryGetBuffer(NonNull<FUnknown> object, FResourceRefType type);
         static NonNull<ID3D12Resource> GetResource(const FResourceMeta& meta);
         static NonNull<ID3D12Resource> GetResource(NonNull<FUnknown> object, FResourceRefType type);
         static D3D12_CPU_DESCRIPTOR_HANDLE GetRtv(const FResourceMeta& meta);

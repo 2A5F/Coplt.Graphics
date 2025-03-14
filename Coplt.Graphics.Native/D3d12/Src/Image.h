@@ -9,10 +9,17 @@
 #include "Device.h"
 #include "Resource.h"
 #include "../../Api/Include/GpuObject.h"
+#include "../../Api/Include/Ptr.h"
 
 namespace Coplt
 {
-    struct D3d12GpuImage final : GpuObject<D3d12GpuImage, FD3d12GpuImage>, FGpuImageData
+    COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage)
+    {
+        virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
+        virtual NonNull<FGpuImageData> GetDataPtr() noexcept = 0;
+    };
+
+    struct D3d12GpuImage final : GpuObject<D3d12GpuImage, ID3d12GpuImage>, FGpuImageData
     {
         Rc<D3d12GpuDevice> m_device{};
         Rc<FString> m_name{};
@@ -27,7 +34,9 @@ namespace Coplt
         FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuImageData* GpuImageData() noexcept override;
+        NonNull<FGpuImageData> GetDataPtr() noexcept override;
 
-        FResult GetCurrentResourcePtr(void* out) const noexcept override;
+        void* GetRawResourcePtr() noexcept override;
+        NonNull<ID3D12Resource> GetResourcePtr() override;
     };
 }

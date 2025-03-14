@@ -2936,6 +2936,26 @@ namespace Coplt.Graphics.Native
         BC7_TypeLess = 97,
         BC7_UNorm = 98,
         BC7_UNorm_sRGB = 99,
+        AYUV = 100,
+        Y410 = 101,
+        Y416 = 102,
+        NV12 = 103,
+        P010 = 104,
+        P016 = 105,
+        Opaque_420 = 106,
+        YUY2 = 107,
+        Y210 = 108,
+        Y216 = 109,
+        NV11 = 110,
+        AI44 = 111,
+        IA44 = 112,
+        P8 = 113,
+        A8P8 = 114,
+        B4G4R4A4_UNorm = 115,
+        P208 = 130,
+        V208 = 131,
+        V408 = 132,
+        A4B4G4R4_UNorm = 191,
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -3385,14 +3405,6 @@ namespace Coplt.Graphics.Native
         public ulong SrcOffset;
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FImagePlanes : byte
-    {
-        All = 0,
-        Depth = 1 << 0,
-        Stencil = 1 << 1,
-    }
-
     public partial struct FBufferImageCopyRange
     {
         [NativeTypeName("Coplt::u64")]
@@ -3416,14 +3428,14 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint ImageCount;
 
-        [NativeTypeName("Coplt::u32")]
-        public uint MipLevel;
+        [NativeTypeName("Coplt::u16")]
+        public ushort MipLevel;
 
-        [NativeTypeName("Coplt::FImagePlanes")]
-        public FImagePlanes Plane;
+        [NativeTypeName("Coplt::u8")]
+        public byte PlaneIndex;
 
-        [NativeTypeName("Coplt::b8")]
-        public B8 ImageToBuffer;
+        [NativeTypeName("Coplt::u8")]
+        public byte PlaneCount;
 
         [InlineArray(3)]
         public partial struct _ImageOffset_e__FixedBuffer
@@ -3810,6 +3822,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FBufferRefType")]
         public FBufferRefType BufferType;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 ImageToBuffer;
     }
 
     [NativeTypeName("struct FCommandRender : Coplt::FCommandBase")]
@@ -3956,7 +3971,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L535_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L529_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -4182,7 +4197,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L566_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L560_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -4366,7 +4381,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L591_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L585_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

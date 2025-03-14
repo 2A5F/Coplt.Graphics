@@ -123,11 +123,17 @@ FGpuImageData* D3d12GpuImage::GpuImageData() noexcept
     return this;
 }
 
-FResult D3d12GpuImage::GetCurrentResourcePtr(void* out) const noexcept
+NonNull<FGpuImageData> D3d12GpuImage::GetDataPtr() noexcept
 {
-    return feb([&]
-    {
-        *static_cast<ID3D12Resource**>(out) = m_resource->m_resource.Get();
-        return FResult::None();
-    });
+    return NonNull<FGpuImageData>::Unchecked(this);
+}
+
+void* D3d12GpuImage::GetRawResourcePtr() noexcept
+{
+    return GetResourcePtr();
+}
+
+NonNull<ID3D12Resource> D3d12GpuImage::GetResourcePtr()
+{
+    return m_resource->m_resource.Get();
 }

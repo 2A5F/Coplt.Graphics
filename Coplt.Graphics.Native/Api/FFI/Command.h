@@ -227,13 +227,6 @@ namespace Coplt
         u64 SrcOffset{};
     };
 
-    COPLT_ENUM_FLAGS(FImagePlanes, u8)
-    {
-        All = 0,
-        Depth = 1 << 0,
-        Stencil = 1 << 1,
-    };
-
     struct FBufferImageCopyRange
     {
         u64 BufferOffset{};
@@ -244,10 +237,8 @@ namespace Coplt
         f32 ImageExtent[3]{};
         u32 ImageIndex{};
         u32 ImageCount{};
-        u32 MipLevel{};
-        FImagePlanes Plane{};
-        // false 为 Buffer To Image
-        b8 ImageToBuffer{};
+        u16 MipLevel{};
+        FImagePlane Plane{};
     };
 
     enum class FResolveMode : u8
@@ -438,6 +429,8 @@ namespace Coplt
         FResourceRef Image;
         FBufferRef Buffer{};
         FBufferRefType BufferType{};
+        // false 为 Buffer To Image
+        b8 ImageToBuffer{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

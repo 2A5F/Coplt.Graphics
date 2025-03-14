@@ -559,7 +559,123 @@ void D3d12CommandInterpreter::BufferCopy(const FCommandSubmit& submit, u32 i, co
 
 void D3d12CommandInterpreter::BufferImageCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferImageCopy& cmd) const
 {
-    // todo
+    const auto& cmd_pack = m_queue->m_cmd;
+    const auto& range = submit.BufferImageCopyRanges[cmd.RangeIndex];
+    const auto image_obj_may = TryGetImage(cmd.Image.Get(submit));
+    if (image_obj_may == nullptr)
+        COPLT_THROW_FMT("Image is null or resource is not image at command {}", i);
+    const NonNull image_obj = image_obj_may;
+    const auto image_data = image_obj->GetDataPtr();
+    const auto IsDsOrYCbCr = IsDepthStencil(image_data->m_format) || IsYCbCr(image_data->m_format);
+    auto bytes_per_row = range.BytesPerRow;
+    auto rows_per_image = range.RowsPerImage;
+    if (bytes_per_row == 0)
+    {
+        const auto [block_width, _] = GetBlockDimensions(image_data->m_format);
+        const auto block_size = GetBlockCopySize(image_data->m_format, IsDsOrYCbCr ? Some(range.Plane) : nullptr);
+        bytes_per_row = (range.ImageExtent[0] / block_width) * block_size;
+        bytes_per_row = Aligned256(bytes_per_row);
+    }
+    else
+    {
+        if (!IsAligned256(bytes_per_row))
+            COPLT_THROW_FMT("BytesPerRow must must be a multiple of 256 at command {}", i);
+    }
+    if (rows_per_image == 0)
+    {
+        if (image_data->m_dimension == FImageDimension::Three)
+        {
+            rows_per_image = range.ImageExtent[1] * range.ImageExtent[2];
+        }
+        else
+        {
+            rows_per_image = range.ImageExtent[1];
+        }
+    }
+    if (image_data->m_dimension == FImageDimension::Three)
+    {
+        if (range.ImageIndex != 0 || range.ImageCount != 1)
+            COPLT_THROW_FMT("Image index or count out of range at command {}", i);
+    }
+    else
+    {
+        if (range.ImageCount < 1 || range.ImageIndex + range.ImageCount > image_data->m_depth_or_length)
+            COPLT_THROW_FMT("Image index or count out of range at command {}", i);
+    }
+    if (IsDepthStencil(image_data->m_format) || IsYCbCr(image_data->m_format))
+    {
+        if (static_cast<u8>(range.Plane) >= 2)
+            COPLT_THROW_FMT("Plane index or count out of range at command {}", i);
+    }
+    else
+    {
+        if (range.Plane != FImagePlane::Color)
+            COPLT_THROW_FMT("Plane index or count out of range at command {}", i);
+    }
+    const auto image = image_obj->GetResourcePtr();
+    auto buffer = NonNull<ID3D12Resource>::Unchecked(nullptr);
+    if (cmd.BufferType == FBufferRefType::Buffer)
+    {
+        buffer = GetResource(cmd.Buffer.Buffer.Get(submit));
+    }
+    else if (cmd.BufferType == FBufferRefType::Upload)
+    {
+        const auto& obj = m_queue->m_frame_context->m_upload_buffers[cmd.Buffer.Upload.Index];
+        buffer = obj.m_resource.m_resource.Get();
+    }
+    else
+    {
+        COPLT_THROW_FMT("Unknown Buffer Type {} at command {}", static_cast<u8>(cmd.BufferType), i);
+    }
+    D3D12_TEXTURE_COPY_LOCATION buffer_loc{};
+    buffer_loc.pResource = buffer;
+    buffer_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    buffer_loc.PlacedFootprint.Footprint.Format = GetBufferImageCopyFormat(image_data->m_format, range.Plane, IsDsOrYCbCr);
+    buffer_loc.PlacedFootprint.Footprint.Width = range.ImageExtent[0];
+    buffer_loc.PlacedFootprint.Footprint.Height = range.ImageExtent[1];
+    buffer_loc.PlacedFootprint.Footprint.Depth = range.ImageExtent[2];
+    buffer_loc.PlacedFootprint.Footprint.RowPitch = bytes_per_row;
+    D3D12_TEXTURE_COPY_LOCATION image_loc{};
+    image_loc.pResource = image;
+    image_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    const auto image_stride = bytes_per_row * rows_per_image;
+    for (auto ai = 0u; ai < range.ImageCount; ++ai)
+    {
+        buffer_loc.PlacedFootprint.Offset = range.BufferOffset + ai * image_stride;
+        image_loc.SubresourceIndex = D3D12CalcSubresource(
+            range.MipLevel, range.ImageIndex + ai, static_cast<u8>(range.Plane),
+            image_data->m_mip_levels, image_data->m_depth_or_length
+        );
+        if (cmd.ImageToBuffer)
+        {
+            D3D12_BOX box{};
+            box.left = range.ImageOffset[0];
+            box.top = range.ImageOffset[1];
+            box.front = range.ImageOffset[2];
+            box.right = range.ImageOffset[0] + range.ImageExtent[0];
+            box.bottom = range.ImageOffset[1] + range.ImageExtent[1];
+            box.back = range.ImageOffset[2] + range.ImageExtent[2];
+            cmd_pack->CopyTextureRegion(
+                &image_loc,
+                0,
+                0,
+                0,
+                &buffer_loc,
+                &box
+            );
+        }
+        else
+        {
+            cmd_pack->CopyTextureRegion(
+                &buffer_loc,
+                range.ImageOffset[0],
+                range.ImageOffset[1],
+                range.ImageOffset[2],
+                &image_loc,
+                nullptr
+            );
+        }
+    }
 }
 
 void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
@@ -899,6 +1015,56 @@ void D3d12CommandInterpreter::UseBinding(NonNull<ID3d12ShaderBinding> binding, c
     // todo 其他 Root 项
 }
 
+Ptr<ID3d12GpuImage> D3d12CommandInterpreter::TryGetImage(const FResourceMeta& meta)
+{
+    return TryGetImage(meta.Output, meta.Type);
+}
+
+Ptr<ID3d12GpuImage> D3d12CommandInterpreter::TryGetImage(NonNull<FUnknown> object, FResourceRefType type)
+{
+    switch (type)
+    {
+    case FResourceRefType::Image:
+        {
+            const auto image = object->QueryInterface<ID3d12GpuImage>();
+            if (!image)
+                COPLT_THROW("Resources from different backends");
+            return image;
+        }
+    case FResourceRefType::Buffer:
+        return nullptr;
+    case FResourceRefType::Output:
+        return nullptr;
+    default:
+        COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(type));
+    }
+}
+
+Ptr<ID3d12GpuBuffer> D3d12CommandInterpreter::TryGetBuffer(const FResourceMeta& meta)
+{
+    return TryGetBuffer(meta.Output, meta.Type);
+}
+
+Ptr<ID3d12GpuBuffer> D3d12CommandInterpreter::TryGetBuffer(NonNull<FUnknown> object, FResourceRefType type)
+{
+    switch (type)
+    {
+    case FResourceRefType::Image:
+        return nullptr;
+    case FResourceRefType::Buffer:
+        {
+            const auto buffer = object->QueryInterface<ID3d12GpuBuffer>();
+            if (!buffer)
+                COPLT_THROW("Resources from different backends");
+            return buffer;
+        }
+    case FResourceRefType::Output:
+        return nullptr;
+    default:
+        COPLT_THROW_FMT("Unknown resource ref type {}", static_cast<u8>(type));
+    }
+}
+
 NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(const FResourceMeta& meta)
 {
     return GetResource(meta.Output, meta.Type);
@@ -910,27 +1076,23 @@ NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(NonNull<FUnknown> o
     {
     case FResourceRefType::Image:
         {
-            const auto image = object->QueryInterface<FD3d12GpuImage>();
+            const auto image = object->QueryInterface<ID3d12GpuImage>();
             if (!image)
-                COPLT_THROW("The memory may be corrupted");
-            ID3D12Resource* ptr{};
-            image->GetCurrentResourcePtr(&ptr).TryThrow();
-            return NonNull<ID3D12Resource>::Unchecked(ptr);
+                COPLT_THROW("Resources from different backends");
+            return image->GetResourcePtr();
         }
     case FResourceRefType::Buffer:
         {
-            const auto buffer = object->QueryInterface<FD3d12GpuBuffer>();
+            const auto buffer = object->QueryInterface<ID3d12GpuBuffer>();
             if (!buffer)
-                COPLT_THROW("The memory may be corrupted");
-            ID3D12Resource* ptr{};
-            buffer->GetCurrentResourcePtr(&ptr).TryThrow();
-            return NonNull<ID3D12Resource>::Unchecked(ptr);
+                COPLT_THROW("Resources from different backends");
+            return buffer->GetResourcePtr();
         }
     case FResourceRefType::Output:
         {
             const auto output = object->QueryInterface<FD3d12GpuOutput>();
             if (!output)
-                COPLT_THROW("The memory may be corrupted");
+                COPLT_THROW("Resources from different backends");
             ID3D12Resource* ptr{};
             output->GetCurrentResourcePtr(&ptr).TryThrow();
             return NonNull<ID3D12Resource>::Unchecked(ptr);

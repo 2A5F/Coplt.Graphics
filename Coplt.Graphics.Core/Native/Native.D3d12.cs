@@ -749,6 +749,200 @@ namespace Coplt.Graphics.Native.D3d12
         }
     }
 
+    [Guid("1A65CFB3-07EE-4A04-A9B6-170D92EA956B")]
+    [NativeTypeName("struct FD3d12GpuBuffer : Coplt::FGpuBuffer")]
+    public unsafe partial struct FD3d12GpuBuffer : FD3d12GpuBuffer.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuBuffer));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, void>)(lpVtbl[0]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, nuint>)(lpVtbl[1]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, nuint>)(lpVtbl[2]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, ulong>)(lpVtbl[4]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuViewableData *")]
+        public FGpuViewableData* GpuViewableData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FGpuViewableData*>)(lpVtbl[6]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuResourceData *")]
+        public FGpuResourceData* GpuResourceData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FGpuResourceData*>)(lpVtbl[7]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::ResourceType")]
+        public ResourceType GetResourceType()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, ResourceType>)(lpVtbl[8]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuBufferData *")]
+        public FGpuBufferData* GpuBufferData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FGpuBufferData*>)(lpVtbl[9]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Map(void** ptr, [NativeTypeName("Coplt::b8")] B8 Discard)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FResult*, void**, B8, FResult*>)(lpVtbl[10]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this), &result, ptr, Discard);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Unmap([NativeTypeName("Coplt::b8")] B8 Discard)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, FResult*, B8, FResult*>)(lpVtbl[11]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this), &result, Discard);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* GetRawResourcePtr()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuBuffer*, void*>)(lpVtbl[12]))((FD3d12GpuBuffer*)Unsafe.AsPointer(ref this));
+        }
+
+        public interface Interface : FGpuBuffer.Interface
+        {
+            void* GetRawResourcePtr();
+        }
+    }
+
+    [Guid("D10A7427-8798-4732-81FF-9C2DEB938637")]
+    [NativeTypeName("struct FD3d12GpuImage : Coplt::FGpuImage")]
+    public unsafe partial struct FD3d12GpuImage : FD3d12GpuImage.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FD3d12GpuImage));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, void>)(lpVtbl[0]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, nuint>)(lpVtbl[1]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, nuint>)(lpVtbl[2]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, Guid*, void*>)(lpVtbl[3]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, ulong>)(lpVtbl[4]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuViewableData *")]
+        public FGpuViewableData* GpuViewableData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, FGpuViewableData*>)(lpVtbl[6]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuResourceData *")]
+        public FGpuResourceData* GpuResourceData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, FGpuResourceData*>)(lpVtbl[7]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::ResourceType")]
+        public ResourceType GetResourceType()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, ResourceType>)(lpVtbl[8]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuImageData *")]
+        public FGpuImageData* GpuImageData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, FGpuImageData*>)(lpVtbl[9]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* GetRawResourcePtr()
+        {
+            return ((delegate* unmanaged[Thiscall]<FD3d12GpuImage*, void*>)(lpVtbl[10]))((FD3d12GpuImage*)Unsafe.AsPointer(ref this));
+        }
+
+        public interface Interface : FGpuImage.Interface
+        {
+            void* GetRawResourcePtr();
+        }
+    }
+
     public static unsafe partial class D3d12Native
     {
         [DllImport("Coplt.Graphics.Native.D3d12", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -777,5 +971,9 @@ namespace Coplt.Graphics.Native.D3d12
         public static readonly Guid IID_FD3d12PipelineState = new Guid(0x6D9C7DB7, 0x3261, 0x4D79, 0xBD, 0x21, 0x1F, 0x1B, 0xB5, 0xE0, 0x1E, 0x4D);
 
         public static readonly Guid IID_FD3d12GraphicsShaderPipeline = new Guid(0xA1C6B8A9, 0x1E4C, 0x4E6C, 0x85, 0xEA, 0x2E, 0x64, 0xAC, 0x89, 0xAF, 0xC6);
+
+        public static readonly Guid IID_FD3d12GpuBuffer = new Guid(0x1A65CFB3, 0x07EE, 0x4A04, 0xA9, 0xB6, 0x17, 0x0D, 0x92, 0xEA, 0x95, 0x6B);
+
+        public static readonly Guid IID_FD3d12GpuImage = new Guid(0xD10A7427, 0x8798, 0x4732, 0x81, 0xFF, 0x9C, 0x2D, 0xEB, 0x93, 0x86, 0x37);
     }
 }

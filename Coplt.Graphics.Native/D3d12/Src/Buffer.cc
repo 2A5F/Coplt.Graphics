@@ -75,10 +75,14 @@ FGpuBufferData* D3d12GpuBuffer::GpuBufferData() noexcept
     return this;
 }
 
-FResult D3d12GpuBuffer::GetCurrentResourcePtr(void* out) const noexcept
+void* D3d12GpuBuffer::GetRawResourcePtr() noexcept
 {
-    *static_cast<ID3D12Resource**>(out) = m_resource->m_resource.Get();
-    return FResult::None();
+    return GetResourcePtr();
+}
+
+NonNull<ID3D12Resource> D3d12GpuBuffer::GetResourcePtr()
+{
+    return m_resource->m_resource.Get();
 }
 
 FResult D3d12GpuBuffer::Map(void** ptr, const b8 Discard) noexcept
