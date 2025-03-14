@@ -7,12 +7,12 @@
 #include "../FFI/Resource.h"
 #include "Device.h"
 #include "Resource.h"
+#include "../../Api/Include/GpuObject.h"
 
 namespace Coplt
 {
-    struct D3d12GpuBuffer final : Object<D3d12GpuBuffer, FD3d12GpuBuffer>, FGpuBufferData
+    struct D3d12GpuBuffer final : GpuObject<D3d12GpuBuffer, FD3d12GpuBuffer>, FGpuBufferData
     {
-        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<FString> m_name{};
         ComPtr<D3D12MA::Allocator> m_allocator{};
@@ -21,11 +21,10 @@ namespace Coplt
 
         explicit D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCreateOptions& options);
 
-        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         ResourceType GetResourceType() noexcept override;
-        FGpuViewableData* GpuViewData() noexcept override;
+        FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuBufferData* GpuBufferData() noexcept override;
 

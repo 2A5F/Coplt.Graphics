@@ -13,7 +13,6 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options
 ) : m_device(std::move(device))
 {
-    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
 
     m_layout = Rc<ID3d12ShaderLayout>::UnsafeClone(options.Layout->QueryInterface<ID3d12ShaderLayout>());
@@ -46,11 +45,6 @@ D3d12ShaderBinding::D3d12ShaderBinding(
         const auto& info = infos[i];
         m_item_indexes[info.Class][info.Group].push_back(i);
     }
-}
-
-u64 D3d12ShaderBinding::ObjectId() noexcept
-{
-    return m_object_id;
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept

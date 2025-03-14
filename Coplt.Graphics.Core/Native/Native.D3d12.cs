@@ -165,6 +165,14 @@ namespace Coplt.Graphics.Native.D3d12
             return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[17]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FD3d12GpuDevice*, FResult*, FGpuImageCreateOptions*, FGpuImage**, FResult*>)(lpVtbl[18]))((FD3d12GpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
         public interface Interface : FGpuDevice.Interface
         {
         }

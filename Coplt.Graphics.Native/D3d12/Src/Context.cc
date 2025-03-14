@@ -2,12 +2,7 @@
 
 using namespace Coplt;
 
-namespace
-{
-    std::atomic<u64> s_id_inc{0};
-}
-
-D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue)), m_id(s_id_inc++)
+D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::move(queue))
 {
     m_device = m_queue->m_device;
     m_dx_device = m_queue->m_dx_device;
@@ -21,8 +16,15 @@ D3d12FrameContext::D3d12FrameContext(Rc<D3d12GpuQueue>&& queue) : m_queue(std::m
     );
     if (m_device->Debug())
     {
-        chr | m_command_allocator >> SetNameEx(FStr8or16(fmt::format(L"Frame Context ({}) Command Allocator", m_id)));
+        chr | m_command_allocator >> SetNameEx(FStr8or16(fmt::format(L"Frame Context ({}) Command Allocator", m_object_id)));
     }
+}
+
+FResult D3d12FrameContext::SetName(const FStr8or16& name) noexcept
+{
+    return feb([&]
+    {
+    });
 }
 
 FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcept
@@ -44,7 +46,7 @@ FResult D3d12FrameContext::GrowUploadBuffer(const u64 min_required_size) noexcep
         if (m_device->Debug())
         {
             const auto name = fmt::format(
-                L"Frame Context ({}) Upload Buffer ({})", m_id, upload_buffer.m_size
+                L"Frame Context ({}) Upload Buffer ({})", m_object_id, upload_buffer.m_size
             );
             chr | upload_buffer.m_resource.m_resource >> SetNameEx(FStr8or16(name));
         }

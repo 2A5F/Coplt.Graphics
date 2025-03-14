@@ -9,7 +9,7 @@ namespace Coplt
     {
         Unknown = 0,
         Buffer = 1,
-        Texture = 2,
+        Image = 2,
     };
 
     enum class FResourceViewType : u8
@@ -82,7 +82,7 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(FGpuViewable, "b3aeb8a5-1fa6-4866-97ef-1a5fa401e18f", FGpuObject)
     {
-        virtual FGpuViewableData* GpuViewData() noexcept = 0;
+        virtual FGpuViewableData* GpuViewableData() noexcept = 0;
     };
 
     struct FGpuResourceCreateOptions : FGpuViewCreateOptions
@@ -168,14 +168,18 @@ namespace Coplt
     //     virtual FGpuUploadBufferData* GpuUploadBufferData();
     // };
 
-    union FOptimizedClearColor
+    struct FOptimizedClearColor
     {
-        f32 Color[4];
-
-        struct
+        FGraphicsFormat Format;
+        union
         {
-            f32 Depth;
-            u8 Stencil;
+            f32 Color[4];
+
+            struct
+            {
+                f32 Depth;
+                u8 Stencil;
+            };
         };
     };
 
@@ -199,7 +203,7 @@ namespace Coplt
         Standard64kSwizzle,
     };
 
-    struct FGpuTextureCreateOptions : FGpuResourceCreateOptions
+    struct FGpuImageCreateOptions : FGpuResourceCreateOptions
     {
         // 纹理格式
         FGraphicsFormat Format{};
@@ -223,10 +227,6 @@ namespace Coplt
         FImageLayout Layout{};
     };
 
-    struct FGpuImageCreateOptions
-    {
-    };
-
     struct FGpuImageData : FGpuResourceData
     {
         // 纹理格式
@@ -241,6 +241,8 @@ namespace Coplt
         u16 m_mip_levels{};
         // 多重采样数量
         u8 m_multisample_count{};
+        // 有多少平面
+        u8 m_planes{};
         // 纹理维度
         FImageDimension m_dimension{};
         // 纹理布局

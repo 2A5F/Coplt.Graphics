@@ -9,11 +9,10 @@
 
 namespace Coplt
 {
-    struct D3d12FrameContext final : Object<D3d12FrameContext, FFrameContext>
+    struct D3d12FrameContext final : GpuObject<D3d12FrameContext, FFrameContext>
     {
         constexpr static u64 InitUploadBufferSize = 1024 * 1024;
 
-        u64 m_id{};
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<D3d12GpuQueue> m_queue{};
@@ -24,6 +23,8 @@ namespace Coplt
         usize m_cur_upload_buffer_size{};
 
         explicit D3d12FrameContext(Rc<D3d12GpuQueue>&& queue);
+
+        FResult SetName(const FStr8or16& name) noexcept override;
 
         FResult GrowUploadBuffer(u64 min_required_size) noexcept override;
 

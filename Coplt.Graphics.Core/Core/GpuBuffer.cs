@@ -55,16 +55,6 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
 
     #endregion
 
-    #region Drop
-
-    [Drop]
-    private void Drop()
-    {
-        m_ptr = null;
-    }
-
-    #endregion
-
     #region ToString
 
     public override string ToString() =>

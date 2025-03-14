@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
@@ -218,6 +219,63 @@ public sealed unsafe partial class GpuQueue
             };
             FGpuBuffer* ptr;
             m_device.m_ptr->CreateBuffer(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, this);
+        }
+    }
+
+    #endregion
+
+    #region CreateImage
+
+    public GpuImage CreateImage(
+        in GpuImageCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        if (options.Format == GraphicsFormat.Unknown)
+            throw new ArgumentException("The image format cannot be Unknown");
+        if (options.Purpose == ResourcePurpose.None)
+            throw new ArgumentException("The image purpose cannot be None");
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuImageCreateOptions f_options = new()
+            {
+                Base =
+                {
+                    Base =
+                    {
+                        Name = new(Name, Name8, p_name, p_name8),
+                        Purpose = options.Purpose.ToFFI(),
+                    },
+                    CpuAccess = options.CpuAccess.ToFFI(),
+                },
+                Format = options.Format.ToFFI(),
+                Width = Math.Max(options.Width, 1),
+                Height = Math.Max(options.Height, 1),
+                DepthOrLength = Math.Max(options.DepthOrLength, 1),
+                MipLevels = (ushort)Math.Max(options.MipLevels, 1),
+                MultisampleCount = (byte)Math.Max(options.MultisampleCount, 1),
+                Dimension = options.Dimension.ToFFI(),
+                Layout = options.Layout.ToFFI(),
+                HasOptimizedClearValue = !options.OptimizedClearColor.IsNone,
+            };
+            if (options.OptimizedClearColor.IsColor)
+            {
+                f_options.OptimizedClearValue.Format = options.OptimizedClearColor.Color.Format.ToFFI();
+                f_options.OptimizedClearValue.Anonymous.Color =
+                    Unsafe.BitCast<Color, FOptimizedClearColor._Anonymous_e__Union._Color_e__FixedBuffer>(
+                        options.OptimizedClearColor.Color.Color
+                    );
+            }
+            else if (options.OptimizedClearColor.IsDepth)
+            {
+                f_options.OptimizedClearValue.Format = options.OptimizedClearColor.Depth.Format.ToFFI();
+                f_options.OptimizedClearValue.Depth = options.OptimizedClearColor.Depth.Depth;
+                f_options.OptimizedClearValue.Stencil = options.OptimizedClearColor.Depth.Stencil;
+            }
+            FGpuImage* ptr;
+            m_device.m_ptr->CreateImage(&f_options, &ptr).TryThrow();
             return new(ptr, Name, this);
         }
     }

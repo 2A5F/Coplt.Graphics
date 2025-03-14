@@ -15,7 +15,8 @@ namespace Coplt
 
         explicit ResourcePack(
             D3d12GpuDevice* device, D3D12MA::Allocator* allocator, FCpuAccess cpu_access,
-            FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value
+            FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value,
+            bool image
         );
     };
 

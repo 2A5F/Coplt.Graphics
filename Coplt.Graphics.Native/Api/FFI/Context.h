@@ -3,6 +3,7 @@
 #include "Object.h"
 #include "Result.h"
 #include "List.h"
+#include "GpuObject.h"
 
 namespace Coplt
 {
@@ -13,7 +14,7 @@ namespace Coplt
         u64 size{};
     };
 
-    COPLT_INTERFACE_DEFINE(FFrameContext, "3a22de68-8377-4e57-a167-3efdb97c102a", FUnknown)
+    COPLT_INTERFACE_DEFINE(FFrameContext, "3a22de68-8377-4e57-a167-3efdb97c102a", FGpuObject)
     {
         FList<FUploadBufferBlock> m_upload_buffer{};
 

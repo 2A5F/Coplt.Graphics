@@ -370,4 +370,13 @@ public sealed unsafe partial class GpuDevice
     ) => MainQueue.CreateBuffer(in options, Name, Name8);
 
     #endregion
+
+    #region CreateImage
+
+    public GpuImage CreateImage(
+        in GpuImageCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainQueue.CreateImage(in options, Name, Name8);
+
+    #endregion
 }

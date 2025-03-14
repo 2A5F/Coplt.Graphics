@@ -89,5 +89,6 @@ namespace Coplt
         virtual FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept = 0;
 
         virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;
+        virtual FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept = 0;
     };
 }

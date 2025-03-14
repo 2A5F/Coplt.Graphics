@@ -60,15 +60,16 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         using var image_data = await LoadImage("./Image.png");
         var image_size = image_data.Width * image_data.Height * Unsafe.SizeOf<Rgba32>();
         image_data.CopyPixelDataTo(Device.MainQueue.AllocUploadMemory((uint)image_size, out var loc));
-        // todo
-        var test_buffer = Device.CreateBuffer(
+        var test_image = Device.CreateImage(
             new()
             {
-                Purpose = ResourcePurpose.None,
-                Size = (uint)image_size,
+                Purpose = ResourcePurpose.ShaderResource,
+                Format = GraphicsFormat.R8G8B8A8_UNorm_sRGB,
+                Width = (uint)image_data.Width,
+                Height = (uint)image_data.Height,
             }
         );
-        cmd.Upload(test_buffer, loc);
+        // cmd.Upload(test_buffer, loc);
     }
     protected override void Render(CommandList cmd, Time time)
     {

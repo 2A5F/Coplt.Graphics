@@ -150,6 +150,16 @@ namespace Coplt
             };
         }
 
+        static FResState ImageCommon()
+        {
+            return FResState{
+                .Layout = FResLayout::Common,
+                .Access = FResAccess::Common,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::Common,
+            };
+        }
+
         static FResState BufferGenericRead()
         {
             return FResState{
@@ -160,10 +170,30 @@ namespace Coplt
             };
         }
 
+        static FResState ImageGenericRead()
+        {
+            return FResState{
+                .Layout = FResLayout::GenericRead,
+                .Access = FResAccess::Common,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::GenericRead,
+            };
+        }
+
         static FResState BufferCopyDst()
         {
             return FResState{
                 .Layout = FResLayout::None,
+                .Access = FResAccess::CopyDst,
+                .Stages = FShaderStageFlags::None,
+                .Legacy = FLegacyState::CopyDst,
+            };
+        }
+
+        static FResState ImageCopyDst()
+        {
+            return FResState{
+                .Layout = FResLayout::CopyDst,
                 .Access = FResAccess::CopyDst,
                 .Stages = FShaderStageFlags::None,
                 .Legacy = FLegacyState::CopyDst,

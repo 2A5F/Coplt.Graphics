@@ -896,7 +896,14 @@ NonNull<ID3D12Resource> D3d12CommandInterpreter::GetResource(NonNull<FUnknown> o
     switch (type)
     {
     case FResourceRefType::Image:
-        COPLT_THROW("TODO");
+        {
+            const auto image = object->QueryInterface<FD3d12GpuImage>();
+            if (!image)
+                COPLT_THROW("The memory may be corrupted");
+            ID3D12Resource* ptr{};
+            image->GetCurrentResourcePtr(&ptr).TryThrow();
+            return NonNull<ID3D12Resource>::Unchecked(ptr);
+        }
     case FResourceRefType::Buffer:
         {
             const auto buffer = object->QueryInterface<FD3d12GpuBuffer>();

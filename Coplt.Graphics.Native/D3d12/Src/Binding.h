@@ -41,9 +41,8 @@ namespace Coplt
         }
     };
 
-    struct D3d12ShaderBinding final : Object<D3d12ShaderBinding, ID3d12ShaderBinding>
+    struct D3d12ShaderBinding final : GpuObject<D3d12ShaderBinding, ID3d12ShaderBinding>
     {
-        u64 m_object_id{};
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
         Rc<ID3d12ShaderLayout> m_layout{};
@@ -55,7 +54,6 @@ namespace Coplt
 
         explicit D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options);
 
-        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         void Set(std::span<const FBindItem> bindings) override;
