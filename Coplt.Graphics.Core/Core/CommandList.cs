@@ -325,6 +325,7 @@ public sealed unsafe class CommandList : IQueueOwned
     internal readonly List<FMeshBuffers> m_mesh_buffers = new();
     internal readonly List<FVertexBufferRange> m_vertex_buffer_ranges = new();
     internal readonly List<FBufferCopyRange> m_buffer_copy_ranges = new();
+    internal readonly List<FBufferImageCopyRange> m_buffer_image_copy_ranges = new();
     internal readonly List<FBindItem> m_bind_items = new();
     internal readonly List<FBarrier> m_barriers = new();
     internal readonly List<byte> m_string8 = new();
@@ -386,6 +387,7 @@ public sealed unsafe class CommandList : IQueueOwned
         m_mesh_buffers.Clear();
         m_vertex_buffer_ranges.Clear();
         m_buffer_copy_ranges.Clear();
+        m_buffer_image_copy_ranges.Clear();
         m_bind_items.Clear();
         m_barriers.Clear();
         m_string8.Clear();
@@ -428,6 +430,7 @@ public sealed unsafe class CommandList : IQueueOwned
         fixed (FMeshBuffers* p_mesh_buffers = CollectionsMarshal.AsSpan(m_mesh_buffers))
         fixed (FVertexBufferRange* p_vertex_buffer_ranges = CollectionsMarshal.AsSpan(m_vertex_buffer_ranges))
         fixed (FBufferCopyRange* p_buffer_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_copy_ranges))
+        fixed (FBufferImageCopyRange* p_buffer_image_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_image_copy_ranges))
         fixed (FBindItem* p_bind_items = CollectionsMarshal.AsSpan(m_bind_items))
         fixed (FBarrier* p_barriers = CollectionsMarshal.AsSpan(m_barriers))
         fixed (byte* p_string8 = CollectionsMarshal.AsSpan(m_string8))
@@ -447,6 +450,7 @@ public sealed unsafe class CommandList : IQueueOwned
                 MeshBuffers = p_mesh_buffers,
                 VertexBufferRanges = p_vertex_buffer_ranges,
                 BufferCopyRanges = p_buffer_copy_ranges,
+                BufferImageCopyRanges = p_buffer_image_copy_ranges,
                 BindItems = p_bind_items,
                 Barriers = p_barriers,
                 Str8 = p_string8,

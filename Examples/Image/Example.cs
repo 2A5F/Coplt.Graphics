@@ -1,8 +1,8 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace Examples;
 
@@ -58,17 +58,29 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         );
 
         using var image_data = await LoadImage("./Image.png");
-        var image_size = image_data.Width * image_data.Height * Unsafe.SizeOf<Rgba32>();
-        image_data.CopyPixelDataTo(Device.MainQueue.AllocUploadMemory((uint)image_size, out var loc));
-        var test_image = Device.CreateImage(
+        var upload_memory = Device.MainQueue.AllocImageUploadMemory(4, (uint)image_data.Width, (uint)image_data.Height, 1, out var loc);
+        for (var row = 0u; row < upload_memory.RowCount; row++)
+        {
+            var row_span = image_data.Frames[0].PixelBuffer.DangerousGetRowSpan((int)row);
+            MemoryMarshal.AsBytes(row_span).CopyTo(upload_memory[row]);
+        }
+        var test_buffer = Device.CreateBuffer(
             new()
             {
-                Purpose = ResourcePurpose.ShaderResource,
-                Format = GraphicsFormat.R8G8B8A8_UNorm_sRGB,
-                Width = (uint)image_data.Width,
-                Height = (uint)image_data.Height,
+                Purpose = ResourcePurpose.None,
+                Size = (uint)upload_memory.RawSpan.Length,
             }
         );
+        cmd.Upload(test_buffer, loc);
+        // var test_image = Device.CreateImage(
+        //     new()
+        //     {
+        //         Purpose = ResourcePurpose.ShaderResource,
+        //         Format = GraphicsFormat.R8G8B8A8_UNorm_sRGB,
+        //         Width = (uint)image_data.Width,
+        //         Height = (uint)image_data.Height,
+        //     }
+        // );
         // cmd.Upload(test_buffer, loc);
     }
     protected override void Render(CommandList cmd, Time time)

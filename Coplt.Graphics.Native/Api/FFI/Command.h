@@ -28,6 +28,7 @@ namespace Coplt
         Bind,
 
         BufferCopy,
+        BufferImageCopy,
 
         Render,
         Compute,
@@ -56,7 +57,6 @@ namespace Coplt
         Image,
         Buffer,
         Output,
-        // todo other
     };
 
     struct FResourceMeta
@@ -225,6 +225,29 @@ namespace Coplt
         u64 Size{};
         u64 DstOffset{};
         u64 SrcOffset{};
+    };
+
+    COPLT_ENUM_FLAGS(FImagePlanes, u8)
+    {
+        All = 0,
+        Depth = 1 << 0,
+        Stencil = 1 << 1,
+    };
+
+    struct FBufferImageCopyRange
+    {
+        u64 BufferOffset{};
+        // 必须是 256 的倍数
+        u32 BytesPerRow{};
+        u32 RowsPerImage{};
+        f32 ImageOffset[3]{};
+        f32 ImageExtent[3]{};
+        u32 ImageIndex{};
+        u32 ImageCount{};
+        u32 MipLevel{};
+        FImagePlanes Plane{};
+        // false 为 Buffer To Image
+        b8 ImageToBuffer{};
     };
 
     enum class FResolveMode : u8
@@ -408,6 +431,15 @@ namespace Coplt
         FBufferRefType SrcType{};
     };
 
+    struct FCommandBufferImageCopy : FCommandBase
+    {
+        // 类型为 FBufferImageCopyRange
+        u32 RangeIndex{};
+        FResourceRef Image;
+        FBufferRef Buffer{};
+        FBufferRefType BufferType{};
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCommandRender : FCommandBase
@@ -518,6 +550,7 @@ namespace Coplt
             FCommandBind Bind;
 
             FCommandBufferCopy BufferCopy;
+            FCommandBufferImageCopy BufferImageCopy;
 
             FCommandRender Render;
             FCommandCompute Compute;
@@ -590,6 +623,7 @@ namespace Coplt
         FMeshBuffers* MeshBuffers{};
         FVertexBufferRange* VertexBufferRanges{};
         FBufferCopyRange* BufferCopyRanges{};
+        FBufferImageCopyRange* BufferImageCopyRanges{};
         FBindItem* BindItems{};
         FBarrier* Barriers{};
         Char8* Str8{};

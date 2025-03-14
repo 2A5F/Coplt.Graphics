@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -319,6 +321,23 @@ public sealed unsafe partial class GpuQueue
     {
         Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc));
         return loc;
+    }
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory AllocImageUploadMemory(uint PixelSize, uint Width, uint Height, uint Depth, out UploadLoc loc)
+    {
+        if (PixelSize < 1 || Width < 1 || Height < 1 || Depth < 1) throw new ArgumentOutOfRangeException();
+        var row_stride = (PixelSize * Width).Aligned256();
+        var row_count = Height * Depth;
+        var buffer_size = row_stride * row_count + 256u;
+        var span = AllocUploadMemory(buffer_size, out loc);
+        ref var start = ref span[0];
+        var addr = (nuint)Unsafe.AsPointer(ref start);
+        var offset = addr.Aligned256() - addr;
+        span = MemoryMarshal.CreateSpan(ref Unsafe.Add(ref start, offset), (int)((uint)span.Length - offset));
+        return new ImageUploadBufferMemory(span, row_stride, row_count);
     }
 
     #endregion

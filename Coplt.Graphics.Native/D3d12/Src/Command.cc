@@ -141,6 +141,7 @@ void D3d12CommandInterpreter::Analyze(const FCommandSubmit& submit)
         case FCommandType::ClearColor:
         case FCommandType::ClearDepthStencil:
         case FCommandType::BufferCopy:
+        case FCommandType::BufferImageCopy:
             continue;
 
         case FCommandType::Bind:
@@ -211,6 +212,7 @@ void D3d12CommandInterpreter::AnalyzeRender(const FCommandSubmit& submit, u32 i,
         case FCommandType::ClearDepthStencil:
         case FCommandType::Bind:
         case FCommandType::BufferCopy:
+        case FCommandType::BufferImageCopy:
         case FCommandType::Render:
         case FCommandType::Compute:
             COPLT_THROW("Main commands cannot be placed in the sub command list");
@@ -254,6 +256,7 @@ void D3d12CommandInterpreter::AnalyzeCompute(const FCommandSubmit& submit, u32 i
         case FCommandType::ClearDepthStencil:
         case FCommandType::Bind:
         case FCommandType::BufferCopy:
+        case FCommandType::BufferImageCopy:
         case FCommandType::Render:
         case FCommandType::Compute:
             COPLT_THROW("Main commands cannot be placed in the sub command list");
@@ -363,6 +366,9 @@ void D3d12CommandInterpreter::Translate(const FCommandSubmit& submit)
             continue;
         case FCommandType::BufferCopy:
             BufferCopy(submit, i, item.BufferCopy);
+            continue;
+        case FCommandType::BufferImageCopy:
+            BufferImageCopy(submit, i, item.BufferImageCopy);
             continue;
         case FCommandType::Render:
             Render(submit, i, item.Render);
@@ -551,6 +557,11 @@ void D3d12CommandInterpreter::BufferCopy(const FCommandSubmit& submit, u32 i, co
     }
 }
 
+void D3d12CommandInterpreter::BufferImageCopy(const FCommandSubmit& submit, u32 i, const FCommandBufferImageCopy& cmd) const
+{
+    // todo
+}
+
 void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const FCommandRender& cmd)
 {
     m_context.Reset();
@@ -672,6 +683,7 @@ void D3d12CommandInterpreter::Render(const FCommandSubmit& submit, u32 i, const 
         case FCommandType::ClearDepthStencil:
         case FCommandType::Bind:
         case FCommandType::BufferCopy:
+        case FCommandType::BufferImageCopy:
         case FCommandType::Render:
         case FCommandType::Compute:
             COPLT_THROW("Main commands cannot be placed in the sub command list");
@@ -782,6 +794,7 @@ void D3d12CommandInterpreter::Compute(const FCommandSubmit& submit, u32 i, const
         case FCommandType::ClearDepthStencil:
         case FCommandType::Bind:
         case FCommandType::BufferCopy:
+        case FCommandType::BufferImageCopy:
         case FCommandType::Render:
         case FCommandType::Compute:
             COPLT_THROW("Main commands cannot be placed in the sub command list");

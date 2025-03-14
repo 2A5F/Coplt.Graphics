@@ -48,6 +48,14 @@ public static unsafe class Utils
 
     #endregion
 
+    #region Aligned256
+
+    public static uint Aligned256(this uint value) => (value + 0xFFu) & ~0xFFu;
+    public static ulong Aligned256(this ulong value) => (value + 0xFFu) & ~0xFFu;
+    public static nuint Aligned256(this nuint value) => (value + 0xFFu) & ~0xFFu;
+
+    #endregion
+
     #region AlignOf
 
     [StructLayout(LayoutKind.Sequential)]
