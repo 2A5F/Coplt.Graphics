@@ -28,6 +28,7 @@ namespace Coplt
         Bind,
 
         BufferCopy,
+        BufferImageCopy,
 
         Render,
         Compute,
@@ -56,7 +57,6 @@ namespace Coplt
         Image,
         Buffer,
         Output,
-        // todo other
     };
 
     struct FResourceMeta
@@ -65,7 +65,7 @@ namespace Coplt
         {
             FGpuOutput* Output{};
             FGpuBuffer* Buffer;
-            // todo other
+            FGpuImage* Image;
         };
 
         FResourceRefType Type{};
@@ -76,7 +76,7 @@ namespace Coplt
             switch (Type)
             {
             case FResourceRefType::Image:
-                return nullptr; // todo
+                return Image;
             case FResourceRefType::Buffer:
                 return Buffer;
             case FResourceRefType::Output:
@@ -225,6 +225,20 @@ namespace Coplt
         u64 Size{};
         u64 DstOffset{};
         u64 SrcOffset{};
+    };
+
+    struct FBufferImageCopyRange
+    {
+        u64 BufferOffset{};
+        // 必须是 256 的倍数
+        u32 BytesPerRow{};
+        u32 RowsPerImage{};
+        u32 ImageOffset[3]{};
+        u32 ImageExtent[3]{};
+        u32 ImageIndex{};
+        u32 ImageCount{};
+        u16 MipLevel{};
+        FImagePlane Plane{};
     };
 
     enum class FResolveMode : u8
@@ -408,6 +422,17 @@ namespace Coplt
         FBufferRefType SrcType{};
     };
 
+    struct FCommandBufferImageCopy : FCommandBase
+    {
+        // 类型为 FBufferImageCopyRange
+        u32 RangeIndex{};
+        FResourceRef Image;
+        FBufferRef Buffer{};
+        FBufferRefType BufferType{};
+        // false 为 Buffer To Image
+        b8 ImageToBuffer{};
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCommandRender : FCommandBase
@@ -518,6 +543,7 @@ namespace Coplt
             FCommandBind Bind;
 
             FCommandBufferCopy BufferCopy;
+            FCommandBufferImageCopy BufferImageCopy;
 
             FCommandRender Render;
             FCommandCompute Compute;
@@ -590,6 +616,7 @@ namespace Coplt
         FMeshBuffers* MeshBuffers{};
         FVertexBufferRange* VertexBufferRanges{};
         FBufferCopyRange* BufferCopyRanges{};
+        FBufferImageCopyRange* BufferImageCopyRanges{};
         FBindItem* BindItems{};
         FBarrier* Barriers{};
         Char8* Str8{};

@@ -32,4 +32,24 @@ namespace Coplt
     {
         return a;
     }
+
+    inline u32 Aligned256(const u32 value)
+    {
+        return (value + 0xFFu) & ~0xFFu;
+    }
+
+    inline u32 Aligned256(const u64 value)
+    {
+        return (value + 0xFFu) & ~0xFFu;
+    }
+
+    inline bool IsAligned256(const u32 value)
+    {
+        return (value & 0xFFu) == 0;
+    }
+
+    inline bool IsAligned256(const u64 value)
+    {
+        return (value & 0xFFu) == 0;
+    }
 }

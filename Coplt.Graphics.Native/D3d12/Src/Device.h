@@ -4,6 +4,7 @@
 
 #include "D3D12MemAlloc.h"
 #include "Instance.h"
+#include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/HashMap.h"
 #include "../../Api/Include/Object.h"
 #include "../FFI/Device.h"
@@ -14,11 +15,10 @@ namespace Coplt
     struct D3d12ShaderLayout;
     struct D3d12MeshLayout;
 
-    struct D3d12GpuDevice final : Object<D3d12GpuDevice, FD3d12GpuDevice>
+    struct D3d12GpuDevice final : GpuObject<D3d12GpuDevice, FD3d12GpuDevice>
     {
         using EmptyLayouts = HashMap<FShaderLayoutFlags, Rc<D3d12ShaderLayout>>;
 
-        u64 m_object_id{};
         Rc<D3d12Instance> m_instance{};
         Rc<D3d12GpuAdapter> m_adapter{};
         ComPtr<ID3D12Device2> m_device{};
@@ -37,7 +37,6 @@ namespace Coplt
 
         bool Debug() const noexcept;
 
-        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FGpuAdapter* GetAdapter() noexcept override;
@@ -67,5 +66,7 @@ namespace Coplt
         ) noexcept override;
 
         FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;
+        FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept override;
+        FResult CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept override;
     };
 }

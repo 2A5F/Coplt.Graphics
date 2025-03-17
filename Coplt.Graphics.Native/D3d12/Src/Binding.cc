@@ -13,7 +13,6 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options
 ) : m_device(std::move(device))
 {
-    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
 
     m_layout = Rc<ID3d12ShaderLayout>::UnsafeClone(options.Layout->QueryInterface<ID3d12ShaderLayout>());
@@ -48,11 +47,6 @@ D3d12ShaderBinding::D3d12ShaderBinding(
     }
 }
 
-u64 D3d12ShaderBinding::ObjectId() noexcept
-{
-    return m_object_id;
-}
-
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
@@ -75,6 +69,10 @@ void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
         case FViewType::Buffer:
             if (!define.IsAllowBuffer())
                 COPLT_THROW_FMT("Binding index {} is not allowed to bind to buffer.", Index);
+            break;
+        case FViewType::Image:
+            if (!define.IsAllowTexture())
+                COPLT_THROW_FMT("Binding index {} is not allowed to bind to image.", Index);
             break;
         }
         m_views[Index] = View;

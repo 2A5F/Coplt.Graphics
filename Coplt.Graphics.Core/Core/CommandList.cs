@@ -325,6 +325,7 @@ public sealed unsafe class CommandList : IQueueOwned
     internal readonly List<FMeshBuffers> m_mesh_buffers = new();
     internal readonly List<FVertexBufferRange> m_vertex_buffer_ranges = new();
     internal readonly List<FBufferCopyRange> m_buffer_copy_ranges = new();
+    internal readonly List<FBufferImageCopyRange> m_buffer_image_copy_ranges = new();
     internal readonly List<FBindItem> m_bind_items = new();
     internal readonly List<FBarrier> m_barriers = new();
     internal readonly List<byte> m_string8 = new();
@@ -386,6 +387,7 @@ public sealed unsafe class CommandList : IQueueOwned
         m_mesh_buffers.Clear();
         m_vertex_buffer_ranges.Clear();
         m_buffer_copy_ranges.Clear();
+        m_buffer_image_copy_ranges.Clear();
         m_bind_items.Clear();
         m_barriers.Clear();
         m_string8.Clear();
@@ -428,6 +430,7 @@ public sealed unsafe class CommandList : IQueueOwned
         fixed (FMeshBuffers* p_mesh_buffers = CollectionsMarshal.AsSpan(m_mesh_buffers))
         fixed (FVertexBufferRange* p_vertex_buffer_ranges = CollectionsMarshal.AsSpan(m_vertex_buffer_ranges))
         fixed (FBufferCopyRange* p_buffer_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_copy_ranges))
+        fixed (FBufferImageCopyRange* p_buffer_image_copy_ranges = CollectionsMarshal.AsSpan(m_buffer_image_copy_ranges))
         fixed (FBindItem* p_bind_items = CollectionsMarshal.AsSpan(m_bind_items))
         fixed (FBarrier* p_barriers = CollectionsMarshal.AsSpan(m_barriers))
         fixed (byte* p_string8 = CollectionsMarshal.AsSpan(m_string8))
@@ -447,6 +450,7 @@ public sealed unsafe class CommandList : IQueueOwned
                 MeshBuffers = p_mesh_buffers,
                 VertexBufferRanges = p_vertex_buffer_ranges,
                 BufferCopyRanges = p_buffer_copy_ranges,
+                BufferImageCopyRanges = p_buffer_image_copy_ranges,
                 BindItems = p_bind_items,
                 Barriers = p_barriers,
                 Str8 = p_string8,
@@ -763,7 +767,7 @@ public sealed unsafe class CommandList : IQueueOwned
     /// <summary>
     /// 使用指定的颜色清空 Rtv
     /// </summary>
-    public void ClearColor(IRtv Image, float4 Color, ReadOnlySpan<URect> Rects = default)
+    public void ClearColor(IRtv Image, Color Color, ReadOnlySpan<URect> Rects = default)
     {
         Image.AssertSameQueue(Queue);
         if (!Image.TryRtv()) throw new ArgumentException($"Resource {Image} cannot be used as Rtv");
@@ -773,7 +777,7 @@ public sealed unsafe class CommandList : IQueueOwned
             Base = { Type = FCommandType.ClearColor },
             RectCount = (uint)Rects.Length,
             Image = AddResource(Image.Resource),
-            Color = Unsafe.BitCast<float4, FCommandClearColor._Color_e__FixedBuffer>(Color),
+            Color = Unsafe.BitCast<Color, FCommandClearColor._Color_e__FixedBuffer>(Color),
         };
         if (Rects.Length > 0)
         {
@@ -1043,6 +1047,99 @@ public sealed unsafe class CommandList : IQueueOwned
 
     #endregion
 
+    #region ImageUpload
+
+    public void Upload(
+        GpuImage Dst,
+        ImageUploadBufferMemory Memory,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Memory.Loc, Memory.RowStride, Memory.RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Loc,
+        0, 0, 0,
+        Dst.Width, Dst.Height, Dst.DepthOrLength,
+        BytesPerRow, RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint DstX,
+        uint DstY,
+        uint DstZ,
+        uint DstWidth,
+        uint DstHeight,
+        uint DstDepth,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    )
+    {
+        Dst.AssertSameQueue(Queue);
+        if (Loc.SubmitId != m_queue.SubmitId)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        var cmd = new FCommandBufferImageCopy
+        {
+            Base = { Type = FCommandType.BufferImageCopy },
+            RangeIndex = (uint)m_buffer_image_copy_ranges.Count,
+            Image = AddResource(Dst),
+            Buffer = { Upload = Loc },
+            BufferType = FBufferRefType.Upload,
+            ImageToBuffer = false,
+        };
+        var range = new FBufferImageCopyRange
+        {
+            BufferOffset = Loc.Offset,
+            BytesPerRow = BytesPerRow,
+            RowsPerImage = RowsPerImage,
+            ImageIndex = ImageIndex,
+            ImageCount = ImageCount,
+            MipLevel = (ushort)MipLevel,
+            Plane = Plane.ToFFI(),
+        };
+        range.ImageOffset[0] = DstX;
+        range.ImageOffset[1] = DstY;
+        range.ImageOffset[2] = DstZ;
+        range.ImageExtent[0] = DstWidth;
+        range.ImageExtent[1] = DstHeight;
+        range.ImageExtent[2] = DstDepth;
+        m_buffer_image_copy_ranges.Add(range);
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Image);
+            state.ReqState(
+                this,
+                FResLayout.CopyDst,
+                FResAccess.CopyDst,
+                FShaderStageFlags.None,
+                FLegacyState.CopyDst
+            );
+        }
+        m_commands.Add(new() { BufferImageCopy = cmd });
+    }
+
+    #endregion
+
     #region Render
 
     public RenderScope Render(
@@ -1158,24 +1255,24 @@ public sealed unsafe class CommandList : IQueueOwned
 
         #region Rtv
 
-        var rt_size = Info.Dsv?.View.Size2d ?? Info.Rtvs[0].View.Size2d;
+        var rt_size = Info.Dsv?.View.USize2d ?? Info.Rtvs[0].View.USize2d;
         for (var i = 0; i < Info.Rtvs.Length; i++)
         {
             ref readonly var rtv = ref Info.Rtvs[i];
             rtv.View.AssertSameQueue(Queue);
-            if (!rtv.View.Size2d.Equals(rt_size))
+            if (!rtv.View.USize2d.Equals(rt_size))
                 throw new ArgumentException("RenderTargets And DepthStencil must be the same size");
             info.Rtv[i] = AddResource(rtv.View.Resource);
             info.ResolveInfoIndex[i] = uint.MaxValue; // todo
             if (rtv.Load is { IsClear: true, Clear: var cc })
-                Unsafe.As<float, float4>(ref info.Color[i * 4]) = cc;
+                Unsafe.As<float, Color>(ref info.Color[i * 4]) = cc;
             info.RtvLoadOp[i] = rtv.Load.Tag switch
             {
-                LoadOp<float4>.Tags.Load     => FLoadOp.Load,
-                LoadOp<float4>.Tags.Clear    => FLoadOp.Clear,
-                LoadOp<float4>.Tags.Discard  => FLoadOp.Discard,
-                LoadOp<float4>.Tags.NoAccess => FLoadOp.NoAccess,
-                _                            => throw new ArgumentOutOfRangeException()
+                LoadOp<Color>.Tags.Load     => FLoadOp.Load,
+                LoadOp<Color>.Tags.Clear    => FLoadOp.Clear,
+                LoadOp<Color>.Tags.Discard  => FLoadOp.Discard,
+                LoadOp<Color>.Tags.NoAccess => FLoadOp.NoAccess,
+                _                           => throw new ArgumentOutOfRangeException()
             };
             info.RtvStoreOp[i] = rtv.Store.Tag switch
             {
@@ -1261,8 +1358,8 @@ public sealed unsafe class CommandList : IQueueOwned
         if (AutoViewportScissor)
         {
             scope.SetViewportScissor(
-                [new UViewPort { Width = rt_size.x, Height = rt_size.y }],
-                [new URect { Right = rt_size.x, Bottom = rt_size.y }]
+                [new UViewPort { Width = rt_size.Width, Height = rt_size.Height }],
+                [new URect { Right = rt_size.Width, Bottom = rt_size.Height }]
             );
         }
 
@@ -1344,6 +1441,9 @@ public sealed unsafe class CommandList : IQueueOwned
                 case View.Tags.Buffer:
                     res = AddResource(view.Buffer);
                     is_buffer = true;
+                    break;
+                case View.Tags.Image:
+                    res = AddResource(view.Image);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -1586,15 +1686,15 @@ public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.D
             : this(View, DepthLoad, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
     }
 
-    public struct RtvInfo(IRtv View, LoadOp<float4> Load, StoreOp Store)
+    public struct RtvInfo(IRtv View, LoadOp<Color> Load, StoreOp Store)
     {
         public IRtv View = View;
-        public LoadOp<float4> Load = Load;
+        public LoadOp<Color> Load = Load;
         public StoreOp Store = Store;
 
         public RtvInfo(IRtv View) : this(View, LoadOp.Load, StoreOp.Store) { }
 
-        public RtvInfo(IRtv View, LoadOp<float4> Load) : this(View, Load, StoreOp.Store) { }
+        public RtvInfo(IRtv View, LoadOp<Color> Load) : this(View, Load, StoreOp.Store) { }
     }
 }
 

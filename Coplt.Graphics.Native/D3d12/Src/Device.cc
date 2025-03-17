@@ -7,8 +7,10 @@
 #include "DescriptorManager.h"
 #include "Buffer.h"
 #include "GraphicsPipeline.h"
+#include "Image.h"
 #include "Layout.h"
 #include "Queue.h"
+#include "Sampler.h"
 #include "../../Api/Include/AllocObjectId.h"
 
 using namespace Coplt;
@@ -46,7 +48,6 @@ namespace
 D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options):
     m_adapter(std::move(adapter))
 {
-    m_object_id = AllocObjectId();
     m_instance = m_adapter->m_instance;
 
     const auto feature_level = static_cast<D3D_FEATURE_LEVEL>(m_adapter->m_d3d_feature_level);
@@ -96,11 +97,6 @@ const Logger& D3d12GpuDevice::Logger() const noexcept
 bool D3d12GpuDevice::Debug() const noexcept
 {
     return m_instance->Debug();
-}
-
-u64 D3d12GpuDevice::ObjectId() noexcept
-{
-    return m_object_id;
 }
 
 FResult D3d12GpuDevice::SetName(const FStr8or16& name) noexcept
@@ -230,5 +226,21 @@ FResult D3d12GpuDevice::CreateBuffer(const FGpuBufferCreateOptions& options, FGp
     return feb([&]
     {
         *out = new D3d12GpuBuffer(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GpuImage(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GpuSampler(options);
     });
 }

@@ -17,6 +17,7 @@ Render Hardware Interface designed for c#
 |[<img src="./Examples/HelloTriangle/HelloTriangle.png" width="128"/>](./Examples/HelloTriangle/HelloTriangle.md)|[Hello Triangle](./Examples/HelloTriangle/HelloTriangle.md)|The most basic usage, basic swap chain creation, pipeline creation.<br/>No any resources, including vertex buffers.|
 |[<img src="./Examples/HelloTriangle/HelloTriangle.png" width="128"/>](./Examples/HelloTriangleVertex/HelloTriangleVertex.md)|[Hello Triangle Vertex](./Examples/HelloTriangleVertex/HelloTriangleVertex.md)|Demonstrates the use of vertex buffers.|
 |[<img src="./Examples/Colorful/Colorful.webp" width="128"/>](./Examples/Colorful/Colorful.md)|[Colorful](./Examples/Colorful/Colorful.md)|Demonstrates the use of shader binding.|
+|[<img src="./Examples/Image/Image.png" width="128"/>](./Examples/Image/Image.md)|[Image](./Examples/Image/Image.md)|Demonstrates the use of image load, upload and sampler.|
 
 # Build
 

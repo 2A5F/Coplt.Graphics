@@ -72,7 +72,6 @@ namespace
 D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
     : m_device(std::move(device))
 {
-    m_object_id = AllocObjectId();
     m_dx_device = m_device->m_device;
 
     Flags = options.Flags;
@@ -289,11 +288,6 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     }
 }
 
-u64 D3d12ShaderLayout::ObjectId() noexcept
-{
-    return m_object_id;
-}
-
 FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
@@ -335,7 +329,6 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
     Rc<D3d12GpuDevice>&& device, const FShaderInputLayoutCreateOptions& options
 ) : m_device(std::move(device))
 {
-    m_object_id = AllocObjectId();
     m_elements = std::vector(options.Element, options.Element + options.Count);
     m_slot_names.reserve(m_elements.size());
     for (auto& element : m_elements)
@@ -344,11 +337,6 @@ D3d12ShaderInputLayout::D3d12ShaderInputLayout(
         element.SlotName = name.get();
         m_slot_names.push_back(std::move(name));
     }
-}
-
-u64 D3d12ShaderInputLayout::ObjectId() noexcept
-{
-    return m_object_id;
 }
 
 FResult D3d12ShaderInputLayout::SetName(const FStr8or16& name) noexcept
@@ -365,7 +353,6 @@ const FShaderInputLayoutElement* D3d12ShaderInputLayout::GetElements(u32* out_co
 D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutCreateOptions& options) : m_device(
     std::move(device))
 {
-    m_object_id = AllocObjectId();
     m_buffers = std::vector(options.Buffers, options.Buffers + options.BufferCount);
     m_elements = std::vector(options.Elements, options.Elements + options.ElementCount);
     // 保留 1 个 slot 永远为 0
@@ -384,11 +371,6 @@ D3d12MeshLayout::D3d12MeshLayout(Rc<D3d12GpuDevice>&& device, const FMeshLayoutC
         if (element.BufferIndex > m_buffers.size())
             COPLT_THROW_FMT("BufferIndex of element {} is out of range", i);
     }
-}
-
-u64 D3d12MeshLayout::ObjectId() noexcept
-{
-    return m_object_id;
 }
 
 FResult D3d12MeshLayout::SetName(const FStr8or16& name) noexcept

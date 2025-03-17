@@ -1,6 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -224,13 +227,71 @@ public sealed unsafe partial class GpuQueue
 
     #endregion
 
+    #region CreateImage
+
+    public GpuImage CreateImage(
+        in GpuImageCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        if (options.Format == GraphicsFormat.Unknown)
+            throw new ArgumentException("The image format cannot be Unknown");
+        if (options.Purpose == ResourcePurpose.None)
+            throw new ArgumentException("The image purpose cannot be None");
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuImageCreateOptions f_options = new()
+            {
+                Base =
+                {
+                    Base =
+                    {
+                        Name = new(Name, Name8, p_name, p_name8),
+                        Purpose = options.Purpose.ToFFI(),
+                    },
+                    CpuAccess = options.CpuAccess.ToFFI(),
+                },
+                Format = options.Format.ToFFI(),
+                Width = Math.Max(options.Width, 1),
+                Height = Math.Max(options.Height, 1),
+                DepthOrLength = Math.Max(options.DepthOrLength, 1),
+                MipLevels = (ushort)Math.Max(options.MipLevels, 1),
+                MultisampleCount = (byte)Math.Max(options.MultisampleCount, 1),
+                Dimension = options.Dimension.ToFFI(),
+                Layout = options.Layout.ToFFI(),
+                HasOptimizedClearValue = !options.OptimizedClearColor.IsNone,
+            };
+            if (options.OptimizedClearColor.IsColor)
+            {
+                f_options.OptimizedClearValue.Format = options.OptimizedClearColor.Color.Format.ToFFI();
+                f_options.OptimizedClearValue.Anonymous.Color =
+                    Unsafe.BitCast<Color, FOptimizedClearColor._Anonymous_e__Union._Color_e__FixedBuffer>(
+                        options.OptimizedClearColor.Color.Color
+                    );
+            }
+            else if (options.OptimizedClearColor.IsDepth)
+            {
+                f_options.OptimizedClearValue.Format = options.OptimizedClearColor.Depth.Format.ToFFI();
+                f_options.OptimizedClearValue.Depth = options.OptimizedClearColor.Depth.Depth;
+                f_options.OptimizedClearValue.Stencil = options.OptimizedClearColor.Depth.Stencil;
+            }
+            FGpuImage* ptr;
+            m_device.m_ptr->CreateImage(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, this);
+        }
+    }
+
+    #endregion
+
     #region WriteToUpload
 
     /// <summary>
     /// 返回的 Span 只能写入
     /// </summary>
-    public Span<byte> AllocUploadMemory(uint Size, out UploadLoc loc)
+    public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc loc, uint Align = 4)
     {
+        if (Align > 1) Size += Align - 1;
         using var _ = m_lock.EnterScope();
         ref var upload_buffers = ref m_ptr->m_context->m_upload_buffer;
         for (nuint i = 0; i < upload_buffers.LongLength; i++)
@@ -238,8 +299,9 @@ public sealed unsafe partial class GpuQueue
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size < block.size)
             {
-                var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
-                loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+                var offset = block.cur_offset.Aligned(Align);
+                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+                loc = new UploadLoc(i, offset, Size, SubmitId);
                 block.cur_offset += Size;
                 return r;
             }
@@ -250,17 +312,37 @@ public sealed unsafe partial class GpuQueue
             var i = upload_buffers.LongLength - 1;
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
-            var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
-            loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+            var offset = block.cur_offset.Aligned(Align);
+            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+            loc = new UploadLoc(i, offset, Size, SubmitId);
             block.cur_offset += Size;
             return r;
         }
     }
 
-    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data)
+    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data, uint Align = 4)
     {
-        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc));
+        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc, Align));
         return loc;
+    }
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length = 1) =>
+        AllocImageUploadMemory2D(PixelSize, Width, Height, Length, out _);
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc loc)
+    {
+        if (PixelSize < 1 || Width < 1 || Height < 1 || Length < 1) throw new ArgumentOutOfRangeException();
+        var row_stride = (PixelSize * Width).Aligned(256);
+        var row_count = Height * Length;
+        var buffer_size = row_stride * row_count + 256u;
+        var slice = AllocUploadMemory(buffer_size, out loc, 256u);
+        return new ImageUploadBufferMemory(slice, row_stride, row_count, Length, Height, loc);
     }
 
     #endregion

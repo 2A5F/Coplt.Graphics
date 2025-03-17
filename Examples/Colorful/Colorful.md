@@ -68,6 +68,6 @@ cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
 ```cs
 // Write time data
 cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
-using var render = cmd.Render([new(Output, new float4(0.83f, 0.8f, 0.97f, 1f))]);
+using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f, 1f))]);
 render.Draw(Pipeline, 4, Binding: ShaderBinding);
 ```

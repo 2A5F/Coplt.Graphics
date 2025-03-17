@@ -7,36 +7,49 @@ using namespace Coplt;
 
 ResourcePack::ResourcePack(
     D3d12GpuDevice* device, D3D12MA::Allocator* allocator, const FCpuAccess cpu_access,
-    FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value
+    FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value,
+    bool image
 )
 {
     D3D12MA::ALLOCATION_DESC alloc_desc{};
     alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
 
+    D3D12_BARRIER_LAYOUT layout = D3D12_BARRIER_LAYOUT_UNDEFINED;
     D3D12_RESOURCE_STATES init_state{};
     switch (cpu_access)
     {
     case FCpuAccess::Write:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
         init_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-        state = FResState::BufferGenericRead();
+        if (image)
+        {
+            state = FResState::ImageGenericRead();
+            layout = D3D12_BARRIER_LAYOUT_GENERIC_READ;
+        }
+        else state = FResState::BufferGenericRead();
         break;
     case FCpuAccess::Read:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
         init_state = D3D12_RESOURCE_STATE_COPY_DEST;
-        state = FResState::BufferCopyDst();
+        if (image)
+        {
+            state = FResState::ImageCopyDst();
+            layout = D3D12_BARRIER_LAYOUT_COPY_DEST;
+        }
+        else state = FResState::BufferCopyDst();
         break;
     default:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
         init_state = D3D12_RESOURCE_STATE_COMMON;
-        state = FResState::BufferCommon();
+        if (image) state = FResState::ImageCommon();
+        else state = FResState::BufferCommon();
         break;
     }
 
     if (device->m_adapter->m_features.EnhancedBarriers)
     {
         chr | allocator->CreateResource3(
-            &alloc_desc, desc, D3D12_BARRIER_LAYOUT_UNDEFINED, clear_value,
+            &alloc_desc, desc, layout, clear_value,
             0, nullptr, &m_allocation, IID_PPV_ARGS(&m_resource)
         );
     }
@@ -67,5 +80,5 @@ BufferPack::BufferPack(
 ) : m_size(size)
 {
     const auto desc = CD3DX12_RESOURCE_DESC1::Buffer(size, Flags);
-    m_resource = ResourcePack(device, allocator, cpu_access, m_state, &desc, nullptr);
+    m_resource = ResourcePack(device, allocator, cpu_access, m_state, &desc, nullptr, false);
 }

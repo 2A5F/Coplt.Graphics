@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Serilog;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Examples;
 
@@ -105,6 +108,15 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
         }
         return Task.WhenAll(tasks);
     }
+
+    #endregion
+
+    #region LoadImage
+
+    public static Task<Image<Rgba32>> LoadImage(string path) => LoadImage<Rgba32>(path);
+    public static Task<Image<T>> LoadImage<T>(string path) where T : unmanaged, IPixel<T> => Image.LoadAsync<T>(
+        Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path)
+    );
 
     #endregion
 

@@ -13,9 +13,8 @@ namespace Coplt
 {
     struct D3d12GpuDevice;
 
-    struct D3d12GpuSwapChainOutput final : Object<D3d12GpuSwapChainOutput, FD3d12GpuSwapChainOutput, ID3d12GpuExecutor>
+    struct D3d12GpuSwapChainOutput final : GpuObject<D3d12GpuSwapChainOutput, FD3d12GpuSwapChainOutput, ID3d12GpuExecutor>
     {
-        u64 m_object_id{};
         constexpr static UINT MaxBufferCount = 3;
 
         Rc<D3d12GpuQueue> m_queue{};
@@ -57,7 +56,6 @@ namespace Coplt
 
         static FGraphicsFormat SelectFormat(const FGpuOutputCreateOptions& options, bool& is_hdr);
 
-        u64 ObjectId() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FResult SetVSync(b8 Enable) noexcept override;

@@ -1,10 +1,18 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "Sampler.h"
 #include "States.h"
 
 namespace Coplt
 {
+    enum class ResourceType : u8
+    {
+        Unknown = 0,
+        Buffer = 1,
+        Image = 2,
+    };
+
     enum class FResourceViewType : u8
     {
         None = 0,
@@ -68,9 +76,14 @@ namespace Coplt
         FResourcePurpose Purpose{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuView, "b3aeb8a5-1fa6-4866-97ef-1a5fa401e18f", FGpuObject)
+    struct FGpuViewableData
     {
         FResourcePurpose m_purpose{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FGpuViewable, "b3aeb8a5-1fa6-4866-97ef-1a5fa401e18f", FGpuObject)
+    {
+        virtual FGpuViewableData* GpuViewableData() noexcept = 0;
     };
 
     struct FGpuResourceCreateOptions : FGpuViewCreateOptions
@@ -78,15 +91,22 @@ namespace Coplt
         FCpuAccess CpuAccess{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuView)
+    struct FGpuResourceData : FGpuViewableData
     {
         FResState m_state{};
         FCpuAccess m_cpu_access{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuTransientView, "f7dfc622-972b-49b2-8999-8fb129c61ac6", FGpuView)
+    COPLT_INTERFACE_DEFINE(FGpuResource, "f99dceec-2f0c-4a28-b666-beb7c35219d6", FGpuViewable)
     {
+        virtual FGpuResourceData* GpuResourceData() noexcept = 0;
+
+        virtual ResourceType GetResourceType() noexcept = 0;
     };
+
+    // COPLT_INTERFACE_DEFINE(FGpuTransientView, "f7dfc622-972b-49b2-8999-8fb129c61ac6", FGpuViewable)
+    // {
+    // };
 
     struct FGpuBufferCreateOptions : FGpuResourceCreateOptions
     {
@@ -100,50 +120,67 @@ namespace Coplt
         FBufferUsage Usage{};
     };
 
+    struct FGpuBufferData : FGpuResourceData
+    {
+        // 字节大小
+        u64 m_size{};
+        // 默认的 Structured Buffer 元素数量
+        u32 m_count{};
+        // 默认的 Structured Buffer 元素步幅
+        u32 m_stride{};
+        // 指示默认用法
+        FBufferUsage m_usage{};
+    };
+
     COPLT_INTERFACE_DEFINE(FGpuBuffer, "283740e3-fe96-41d0-830a-0a4c6a725336", FGpuResource)
     {
-        // 字节大小
-        u64 m_size{};
-        // 默认的 Structured Buffer 元素数量
-        u32 m_count{};
-        // 默认的 Structured Buffer 元素步幅
-        u32 m_stride{};
-        // 指示默认用法
-        FBufferUsage m_usage{};
+        virtual FGpuBufferData* GpuBufferData() noexcept = 0;
+
+        virtual FResult Map(void** ptr, b8 Discard) noexcept = 0;
+        virtual FResult Unmap(b8 Discard) noexcept = 0;
     };
 
-    struct FGpuUploadBufferCreateOptions : FGpuViewCreateOptions
-    {
-        // 字节大小
-        u64 Size{};
-        // 默认的 Structured Buffer 元素数量
-        u32 Count{};
-        // 默认的 Structured Buffer 元素步幅
-        u32 Stride{};
-        // 指示默认用法
-        FBufferUsage Usage{};
-    };
+    // struct FGpuUploadBufferCreateOptions : FGpuViewCreateOptions
+    // {
+    //     // 字节大小
+    //     u64 Size{};
+    //     // 默认的 Structured Buffer 元素数量
+    //     u32 Count{};
+    //     // 默认的 Structured Buffer 元素步幅
+    //     u32 Stride{};
+    //     // 指示默认用法
+    //     FBufferUsage Usage{};
+    // };
+    //
+    // struct FGpuUploadBufferData
+    // {
+    //     // 字节大小
+    //     u64 m_size{};
+    //     // 默认的 Structured Buffer 元素数量
+    //     u32 m_count{};
+    //     // 默认的 Structured Buffer 元素步幅
+    //     u32 m_stride{};
+    //     // 指示默认用法
+    //     FBufferUsage m_usage{};
+    // };
+    //
+    // COPLT_INTERFACE_DEFINE(FGpuUploadBuffer, "3e85392d-8fd3-49eb-9872-cf7a0d7c8e4c", FGpuTransientView)
+    // {
+    //     virtual FGpuUploadBufferData* GpuUploadBufferData();
+    // };
 
-    COPLT_INTERFACE_DEFINE(FGpuUploadBuffer, "3e85392d-8fd3-49eb-9872-cf7a0d7c8e4c", FGpuTransientView)
+    struct FOptimizedClearColor
     {
-        // 字节大小
-        u64 m_size{};
-        // 默认的 Structured Buffer 元素数量
-        u32 m_count{};
-        // 默认的 Structured Buffer 元素步幅
-        u32 m_stride{};
-        // 指示默认用法
-        FBufferUsage m_usage{};
-    };
-
-    union FOptimizedClearColor
-    {
-        f32 Color[4];
-
-        struct
+        FGraphicsFormat Format;
+        union
         {
-            f32 Depth;
-            u8 Stencil;
+            f32 Color[4];
+
+            struct
+            {
+                f32 Depth;
+                u8 Stencil;
+            };
         };
     };
 
@@ -167,7 +204,7 @@ namespace Coplt
         Standard64kSwizzle,
     };
 
-    struct FGpuTextureCreateOptions : FGpuResourceCreateOptions
+    struct FGpuImageCreateOptions : FGpuResourceCreateOptions
     {
         // 纹理格式
         FGraphicsFormat Format{};
@@ -191,7 +228,7 @@ namespace Coplt
         FImageLayout Layout{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuImage, "667efa36-21c7-4561-abad-85780fa4929e", FGpuResource)
+    struct FGpuImageData : FGpuResourceData
     {
         // 纹理格式
         FGraphicsFormat m_format{};
@@ -205,16 +242,25 @@ namespace Coplt
         u16 m_mip_levels{};
         // 多重采样数量
         u8 m_multisample_count{};
+        // 有多少平面
+        u8 m_planes{};
         // 纹理维度
         FImageDimension m_dimension{};
         // 纹理布局
         FImageLayout m_layout{};
     };
 
+    COPLT_INTERFACE_DEFINE(FGpuImage, "667efa36-21c7-4561-abad-85780fa4929e", FGpuResource)
+    {
+        virtual FGpuImageData* GpuImageData() noexcept = 0;
+    };
+
     enum class FViewType : u8
     {
         None,
         Buffer,
+        Image,
+        Sampler,
     };
 
     struct FView
@@ -222,7 +268,10 @@ namespace Coplt
         union
         {
             FGpuBuffer* Buffer;
+            FGpuImage* Image;
+            FGpuSampler* Sampler;
         };
+
         FViewType Type;
     };
 }

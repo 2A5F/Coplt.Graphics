@@ -104,6 +104,68 @@ namespace Coplt.Graphics
         BC7_TypeLess = 97,
         BC7_UNorm = 98,
         BC7_UNorm_sRGB = 99,
+        AYUV = 100,
+        Y410 = 101,
+        Y416 = 102,
+        NV12 = 103,
+        P010 = 104,
+        P016 = 105,
+        Opaque_420 = 106,
+        YUY2 = 107,
+        Y210 = 108,
+        Y216 = 109,
+        NV11 = 110,
+        AI44 = 111,
+        IA44 = 112,
+        P8 = 113,
+        A8P8 = 114,
+        B4G4R4A4_UNorm = 115,
+        P208 = 130,
+        V208 = 131,
+        V408 = 132,
+        A4B4G4R4_UNorm = 191,
+
+        S8_UInt = 127,
+
+        Etc2_R8G8B8_UNorm = 147,
+        Etc2_R8G8B8_sRGB = 148,
+        Etc2_R8G8B8A1_UNorm = 149,
+        Etc2_R8G8B8A1_sRGB = 150,
+        Etc2_R8G8B8A8_UNorm = 151,
+        Etc2_R8G8B8A8_sRGB = 152,
+        Eac_R11_UNorm = 153,
+        Eac_R11_SNorm = 154,
+        Eac_R11G11_UNorm = 155,
+        Eac_R11G11_SNorm = 156,
+
+        Astc_4x4_UNorm = 157,
+        Astc_4x4_sRGB = 158,
+        Astc_5x4_UNorm = 159,
+        Astc_5x4_sRGB = 160,
+        Astc_5x5_UNorm = 161,
+        Astc_5x5_sRGB = 162,
+        Astc_6x5_UNorm = 163,
+        Astc_6x5_sRGB = 164,
+        Astc_6x6_UNorm = 165,
+        Astc_6x6_sRGB = 166,
+        Astc_8x5_UNorm = 167,
+        Astc_8x5_sRGB = 168,
+        Astc_8x6_UNorm = 169,
+        Astc_8x6_sRGB = 170,
+        Astc_8x8_UNorm = 171,
+        Astc_8x8_sRGB = 172,
+        Astc_10x5_UNorm = 173,
+        Astc_10x5_sRGB = 174,
+        Astc_10x6_UNorm = 175,
+        Astc_10x6_sRGB = 176,
+        Astc_10x8_UNorm = 177,
+        Astc_10x8_sRGB = 178,
+        Astc_10x10_UNorm = 179,
+        Astc_10x10_sRGB = 180,
+        Astc_12x10_UNorm = 181,
+        Astc_12x10_sRGB = 182,
+        Astc_12x12_UNorm = 183,
+        Astc_12x12_sRGB = 184,
     }
 }
 
@@ -114,5 +176,67 @@ namespace Coplt.Graphics.Core
         public static FGraphicsFormat ToFFI(this GraphicsFormat value) => (FGraphicsFormat)value;
 
         public static GraphicsFormat FromFFI(this FGraphicsFormat value) => (GraphicsFormat)value;
+
+        public static bool IsSrgb(this GraphicsFormat value) => value switch
+        {
+            GraphicsFormat.B8G8R8A8_UNorm_sRGB or GraphicsFormat.B8G8R8X8_UNorm_sRGB or GraphicsFormat.R8G8B8A8_UNorm_sRGB
+                or GraphicsFormat.BC1_UNorm_sRGB or GraphicsFormat.BC2_UNorm_sRGB or GraphicsFormat.BC3_UNorm_sRGB or GraphicsFormat.BC7_UNorm_sRGB
+                => true,
+            GraphicsFormat.Etc2_R8G8B8_sRGB or
+                GraphicsFormat.Etc2_R8G8B8A1_sRGB or
+                GraphicsFormat.Etc2_R8G8B8A8_sRGB
+                => true,
+            GraphicsFormat.Astc_4x4_sRGB or
+                GraphicsFormat.Astc_5x4_sRGB or
+                GraphicsFormat.Astc_5x5_sRGB or
+                GraphicsFormat.Astc_6x5_sRGB or
+                GraphicsFormat.Astc_6x6_sRGB or
+                GraphicsFormat.Astc_8x5_sRGB or
+                GraphicsFormat.Astc_8x6_sRGB or
+                GraphicsFormat.Astc_8x8_sRGB or
+                GraphicsFormat.Astc_10x5_sRGB or
+                GraphicsFormat.Astc_10x6_sRGB or
+                GraphicsFormat.Astc_10x8_sRGB or
+                GraphicsFormat.Astc_10x10_sRGB or
+                GraphicsFormat.Astc_12x10_sRGB or
+                GraphicsFormat.Astc_12x12_sRGB
+                => true,
+            _ => false,
+        };
+
+        public static bool IsDepthStencil(this GraphicsFormat value) => value switch
+        {
+            GraphicsFormat.D32_Float_S8X24_UInt or GraphicsFormat.D32_Float
+                or GraphicsFormat.D24_UNorm_S8_UInt or GraphicsFormat.D16_UNorm
+                or GraphicsFormat.S8_UInt
+                => true,
+            _ => false,
+        };
+
+        public static bool HasDepth(this GraphicsFormat value) => value switch
+        {
+            GraphicsFormat.D32_Float_S8X24_UInt or GraphicsFormat.D32_Float
+                or GraphicsFormat.D24_UNorm_S8_UInt or GraphicsFormat.D16_UNorm
+                => true,
+            _ => false,
+        };
+
+        public static bool HasStencil(this GraphicsFormat value) => value switch
+        {
+            GraphicsFormat.D32_Float_S8X24_UInt
+                or GraphicsFormat.D24_UNorm_S8_UInt
+                or GraphicsFormat.S8_UInt
+                => true,
+            _ => false,
+        };
+
+        public static bool IsYCbCr(this GraphicsFormat value) => value switch
+        {
+            GraphicsFormat.AYUV or GraphicsFormat.Y410 or GraphicsFormat.Y416 or GraphicsFormat.NV12 or GraphicsFormat.P010 or GraphicsFormat.P016
+                or GraphicsFormat.Opaque_420 or GraphicsFormat.YUY2 or GraphicsFormat.Y210 or GraphicsFormat.Y216 or GraphicsFormat.NV11 or GraphicsFormat.AI44
+                or GraphicsFormat.IA44 or GraphicsFormat.P8 or GraphicsFormat.A8P8 or GraphicsFormat.P208 or GraphicsFormat.V208 or GraphicsFormat.V408
+                => true,
+            _ => false
+        };
     }
 }
