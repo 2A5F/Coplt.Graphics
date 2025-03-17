@@ -10,6 +10,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
 {
     private ShaderLayout Layout = null!;
     private Shader Shader = null!;
+    private Sampler Sampler = null!;
     private GraphicsShaderPipeline Pipeline = null!;
     private ShaderBinding ShaderBinding = null!;
 
@@ -56,6 +57,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 Topology = PrimitiveTopologyType.TriangleStrip,
             }, Name: Name
         );
+        Sampler = Device.CreateSampler(SamplerInfo.LinearRepeat);
 
         using var image_data = await LoadImage("./Image.png");
         var upload_memory = Device.MainQueue.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
@@ -76,6 +78,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         );
         cmd.Upload(test_image, upload_memory);
         cmd.Bind(ShaderBinding, [new(0, test_image)]);
+        cmd.Bind(ShaderBinding, [new(1, Sampler)]);
     }
     protected override void Render(CommandList cmd, Time time)
     {

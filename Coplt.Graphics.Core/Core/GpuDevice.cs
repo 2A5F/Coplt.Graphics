@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
@@ -377,6 +378,29 @@ public sealed unsafe partial class GpuDevice
         in GpuImageCreateOptions options,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     ) => MainQueue.CreateImage(in options, Name, Name8);
+
+    #endregion
+
+    #region CreateSampler
+
+    public Sampler CreateSampler(
+        in SamplerInfo info,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuSamplerCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Info = Unsafe.As<SamplerInfo, FSamplerInfo>(ref Unsafe.AsRef(in info)),
+            };
+            FGpuSampler* ptr;
+            m_ptr->CreateSampler(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, this);
+        }
+    }
 
     #endregion
 }

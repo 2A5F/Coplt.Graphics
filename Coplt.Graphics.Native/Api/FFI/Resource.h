@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "Sampler.h"
 #include "States.h"
 
 namespace Coplt
@@ -259,6 +260,7 @@ namespace Coplt
         None,
         Buffer,
         Image,
+        Sampler,
     };
 
     struct FView
@@ -267,6 +269,7 @@ namespace Coplt
         {
             FGpuBuffer* Buffer;
             FGpuImage* Image;
+            FGpuSampler* Sampler;
         };
 
         FViewType Type;

@@ -36,6 +36,20 @@ const Rc<ID3d12GpuImage>& View::Image() const
     return m_image;
 }
 
+Rc<ID3d12GpuSampler>& View::Sampler()
+{
+    if (m_type != Type::Sampler)
+        COPLT_THROW("null");
+    return m_sampler;
+}
+
+const Rc<ID3d12GpuSampler>& View::Sampler() const
+{
+    if (m_type != Type::Sampler)
+        COPLT_THROW("null");
+    return m_sampler;
+}
+
 View::~View()
 {
     // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -49,6 +63,9 @@ View::~View()
     case Type::Image:
         m_image.~Rc();
         return;
+    case Type::Sampler:
+        m_sampler.~Rc();
+        break;
     }
     std::unreachable();
 }
@@ -70,6 +87,9 @@ View::View(const View& other) : m_type(other.m_type)
     case Type::Image:
         new(std::addressof(m_image)) Rc(other.m_image);
         break;
+    case Type::Sampler:
+        new(std::addressof(m_sampler)) Rc(other.m_sampler);
+        break;
     }
 }
 
@@ -84,6 +104,9 @@ View::View(View&& other) noexcept : m_type(std::exchange(other.m_type, Type::Non
         break;
     case Type::Image:
         new(std::addressof(m_image)) Rc(std::move(other.m_image));
+        break;
+    case Type::Sampler:
+        new(std::addressof(m_sampler)) Rc(std::move(other.m_sampler));
         break;
     }
 }
@@ -129,6 +152,17 @@ View::View(const FView& view)
             new(std::addressof(m_image)) Rc(Rc<ID3d12GpuImage>::UnsafeClone(db));
             break;
         }
+    case FViewType::Sampler:
+        {
+            m_type = Type::Sampler;
+            if (view.Sampler == nullptr) new(std::addressof(m_sampler)) Rc<ID3d12GpuSampler>();
+            const auto db = view.Sampler->QueryInterface<ID3d12GpuSampler>();
+            if (db == nullptr)
+                COPLT_THROW("GpuSampler from different backends.");
+            new(std::addressof(m_sampler)) Rc(Rc<ID3d12GpuSampler>::UnsafeClone(db));
+            break;
+        }
+        break;
     }
 }
 
@@ -201,6 +235,9 @@ void View::CreateDescriptor(
         break;
     case Type::Image:
         CreateImageDescriptor(device, def, handle, type);
+        break;
+    case Type::Sampler:
+        CreateSamplerDescriptor(device, def, handle, type);
         break;
     }
 }
@@ -642,5 +679,24 @@ void View::CreateImageDescriptor(
         }
     case FShaderLayoutGroupView::Sampler:
         COPLT_THROW("Image cannot be used as a sampler");
+    }
+}
+
+void View::CreateSamplerDescriptor(
+    NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+) const
+{
+    const auto sampler = Sampler().get();
+    switch (type)
+    {
+    case FShaderLayoutGroupView::Cbv:
+        COPLT_THROW("Sampler cannot be used as a Cbv");
+    case FShaderLayoutGroupView::Srv:
+        COPLT_THROW("Sampler cannot be used as a Srv");
+    case FShaderLayoutGroupView::Uav:
+        COPLT_THROW("Sampler cannot be used as a Uav");
+    case FShaderLayoutGroupView::Sampler:
+        device->CreateSampler(sampler->Desc(), handle);
+        break;
     }
 }

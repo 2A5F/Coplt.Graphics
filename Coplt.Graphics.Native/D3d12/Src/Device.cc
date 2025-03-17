@@ -10,6 +10,7 @@
 #include "Image.h"
 #include "Layout.h"
 #include "Queue.h"
+#include "Sampler.h"
 #include "../../Api/Include/AllocObjectId.h"
 
 using namespace Coplt;
@@ -233,5 +234,13 @@ FResult D3d12GpuDevice::CreateImage(const FGpuImageCreateOptions& options, FGpuI
     return feb([&]
     {
         *out = new D3d12GpuImage(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12GpuSampler(options);
     });
 }

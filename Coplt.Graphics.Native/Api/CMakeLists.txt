@@ -55,6 +55,7 @@ add_library(${target_name} STATIC
     Include/ObjectKey.h
     Include/GpuObject.h
     Include/Option.h
+    FFI/Sampler.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

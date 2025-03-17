@@ -67,5 +67,6 @@ namespace Coplt
 
         FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;
         FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept override;
+        FResult CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept override;
     };
 }

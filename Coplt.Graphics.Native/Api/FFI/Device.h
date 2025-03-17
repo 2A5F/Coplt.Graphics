@@ -8,6 +8,7 @@
 #include "Shader.h"
 #include "Pipeline.h"
 #include "Resource.h"
+#include "Sampler.h"
 
 namespace Coplt
 {
@@ -90,5 +91,6 @@ namespace Coplt
 
         virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;
         virtual FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept = 0;
+        virtual FResult CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept = 0;
     };
 }

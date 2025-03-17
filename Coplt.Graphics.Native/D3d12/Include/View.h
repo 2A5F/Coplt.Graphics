@@ -6,6 +6,7 @@
 #include "../../Api/Include/Ptr.h"
 #include "../Src/Buffer.h"
 #include "../Src/Image.h"
+#include "../Src/Sampler.h"
 
 namespace Coplt
 {
@@ -16,6 +17,7 @@ namespace Coplt
             None,
             Buffer,
             Image,
+            Sampler,
         };
 
     private:
@@ -23,16 +25,19 @@ namespace Coplt
         {
             Rc<ID3d12GpuBuffer> m_buffer;
             Rc<ID3d12GpuImage> m_image;
+            Rc<ID3d12GpuSampler> m_sampler;
         };
 
         Type m_type;
 
     public:
         Type Type() const;
-        Rc<ID3d12GpuBuffer>& Buffer() ;
-        const Rc<ID3d12GpuBuffer>& Buffer() const ;
+        Rc<ID3d12GpuBuffer>& Buffer();
+        const Rc<ID3d12GpuBuffer>& Buffer() const;
         Rc<ID3d12GpuImage>& Image();
-        const Rc<ID3d12GpuImage>& Image() const ;
+        const Rc<ID3d12GpuImage>& Image() const;
+        Rc<ID3d12GpuSampler>& Sampler();
+        const Rc<ID3d12GpuSampler>& Sampler() const;
 
         ~View();
 
@@ -66,6 +71,9 @@ namespace Coplt
             NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
             ) const;
         void CreateImageDescriptor(
+            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+            ) const;
+        void CreateSamplerDescriptor(
             NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
         ) const;
     };

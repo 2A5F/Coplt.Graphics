@@ -179,6 +179,15 @@ public partial struct FShaderLayoutItemDefine
             }
             break;
         }
+        case Core.View.Tags.Sampler:
+        {
+            var sampler = view.Sampler;
+            if (Type != FShaderLayoutItemType.Sampler)
+                throw new ArgumentException(
+                    $"Binding slot [{index}] required [{Type}] but [{sampler}] is a {nameof(Sampler)}."
+                );
+            break;
+        }
         default:
             throw new ArgumentOutOfRangeException();
         }
