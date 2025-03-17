@@ -58,7 +58,6 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             }, Name: Name
         );
         Sampler = Device.CreateSampler(SamplerInfo.LinearRepeat);
-
         using var image_data = await LoadImage("./Image.png");
         var upload_memory = Device.MainQueue.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
         for (var row = 0u; row < upload_memory.RowCount; row++)
@@ -81,7 +80,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     }
     protected override void Render(CommandList cmd, Time time)
     {
-        using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))]);
+        using var render = cmd.Render([new(Output, LoadOp.Discard)]);
         render.Draw(Pipeline, 4, Binding: ShaderBinding);
     }
 }
