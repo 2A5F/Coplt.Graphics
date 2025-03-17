@@ -1047,6 +1047,99 @@ public sealed unsafe class CommandList : IQueueOwned
 
     #endregion
 
+    #region ImageUpload
+
+    public void Upload(
+        GpuImage Dst,
+        ImageUploadBufferMemory Memory,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Memory.Loc, Memory.RowStride, Memory.RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Loc,
+        0, 0, 0,
+        Dst.Width, Dst.Height, Dst.DepthOrLength,
+        BytesPerRow, RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint DstX,
+        uint DstY,
+        uint DstZ,
+        uint DstWidth,
+        uint DstHeight,
+        uint DstDepth,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    )
+    {
+        Dst.AssertSameQueue(Queue);
+        if (Loc.SubmitId != m_queue.SubmitId)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        var cmd = new FCommandBufferImageCopy
+        {
+            Base = { Type = FCommandType.BufferImageCopy },
+            RangeIndex = (uint)m_buffer_image_copy_ranges.Count,
+            Image = AddResource(Dst),
+            Buffer = { Upload = Loc },
+            BufferType = FBufferRefType.Upload,
+            ImageToBuffer = false,
+        };
+        var range = new FBufferImageCopyRange
+        {
+            BufferOffset = Loc.Offset,
+            BytesPerRow = BytesPerRow,
+            RowsPerImage = RowsPerImage,
+            ImageIndex = ImageIndex,
+            ImageCount = ImageCount,
+            MipLevel = (ushort)MipLevel,
+            Plane = Plane.ToFFI(),
+        };
+        range.ImageOffset[0] = DstX;
+        range.ImageOffset[1] = DstY;
+        range.ImageOffset[2] = DstZ;
+        range.ImageExtent[0] = DstWidth;
+        range.ImageExtent[1] = DstHeight;
+        range.ImageExtent[2] = DstDepth;
+        m_buffer_image_copy_ranges.Add(range);
+        if (AutoBarrierEnabled)
+        {
+            ref var state = ref StateAt(cmd.Image);
+            state.ReqState(
+                this,
+                FResLayout.CopyDst,
+                FResAccess.CopyDst,
+                FShaderStageFlags.None,
+                FLegacyState.CopyDst
+            );
+        }
+        m_commands.Add(new() { BufferImageCopy = cmd });
+    }
+
+    #endregion
+
     #region Render
 
     public RenderScope Render(

@@ -58,30 +58,23 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         );
 
         using var image_data = await LoadImage("./Image.png");
-        var upload_memory = Device.MainQueue.AllocImageUploadMemory(4, (uint)image_data.Width, (uint)image_data.Height, 1, out var loc);
+        var upload_memory = Device.MainQueue.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
         for (var row = 0u; row < upload_memory.RowCount; row++)
         {
             var row_span = image_data.Frames[0].PixelBuffer.DangerousGetRowSpan((int)row);
             MemoryMarshal.AsBytes(row_span).CopyTo(upload_memory[row]);
         }
-        var test_buffer = Device.CreateBuffer(
+        var test_image = Device.CreateImage(
             new()
             {
-                Purpose = ResourcePurpose.None,
-                Size = (uint)upload_memory.RawSpan.Length,
-            }
+                Purpose = ResourcePurpose.ShaderResource,
+                Format = GraphicsFormat.R8G8B8A8_UNorm,
+                Width = (uint)image_data.Width,
+                Height = (uint)image_data.Height,
+            },
+            Name: "Test Image"
         );
-        cmd.Upload(test_buffer, loc);
-        // var test_image = Device.CreateImage(
-        //     new()
-        //     {
-        //         Purpose = ResourcePurpose.ShaderResource,
-        //         Format = GraphicsFormat.R8G8B8A8_UNorm_sRGB,
-        //         Width = (uint)image_data.Width,
-        //         Height = (uint)image_data.Height,
-        //     }
-        // );
-        // cmd.Upload(test_buffer, loc);
+        cmd.Upload(test_image, upload_memory);
     }
     protected override void Render(CommandList cmd, Time time)
     {

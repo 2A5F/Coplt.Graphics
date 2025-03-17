@@ -2834,6 +2834,16 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FImagePlane : byte
+    {
+        All = 0,
+        Depth = 0,
+        Stencil = 1,
+        Y = 0,
+        CbCr = 1,
+    }
+
     public enum FGraphicsFormat
     {
         Unknown = 0,
@@ -2956,6 +2966,45 @@ namespace Coplt.Graphics.Native
         V208 = 131,
         V408 = 132,
         A4B4G4R4_UNorm = 191,
+        S8_UInt = 127,
+        Etc2_R8G8B8_UNorm = 147,
+        Etc2_R8G8B8_sRGB = 148,
+        Etc2_R8G8B8A1_UNorm = 149,
+        Etc2_R8G8B8A1_sRGB = 150,
+        Etc2_R8G8B8A8_UNorm = 151,
+        Etc2_R8G8B8A8_sRGB = 152,
+        Eac_R11_UNorm = 153,
+        Eac_R11_SNorm = 154,
+        Eac_R11G11_UNorm = 155,
+        Eac_R11G11_SNorm = 156,
+        Astc_4x4_UNorm = 157,
+        Astc_4x4_sRGB = 158,
+        Astc_5x4_UNorm = 159,
+        Astc_5x4_sRGB = 160,
+        Astc_5x5_UNorm = 161,
+        Astc_5x5_sRGB = 162,
+        Astc_6x5_UNorm = 163,
+        Astc_6x5_sRGB = 164,
+        Astc_6x6_UNorm = 165,
+        Astc_6x6_sRGB = 166,
+        Astc_8x5_UNorm = 167,
+        Astc_8x5_sRGB = 168,
+        Astc_8x6_UNorm = 169,
+        Astc_8x6_sRGB = 170,
+        Astc_8x8_UNorm = 171,
+        Astc_8x8_sRGB = 172,
+        Astc_10x5_UNorm = 173,
+        Astc_10x5_sRGB = 174,
+        Astc_10x6_UNorm = 175,
+        Astc_10x6_sRGB = 176,
+        Astc_10x8_UNorm = 177,
+        Astc_10x8_sRGB = 178,
+        Astc_10x10_UNorm = 179,
+        Astc_10x10_sRGB = 180,
+        Astc_12x10_UNorm = 181,
+        Astc_12x10_sRGB = 182,
+        Astc_12x12_UNorm = 183,
+        Astc_12x12_sRGB = 184,
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -3416,10 +3465,10 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint RowsPerImage;
 
-        [NativeTypeName("f32[3]")]
+        [NativeTypeName("u32[3]")]
         public _ImageOffset_e__FixedBuffer ImageOffset;
 
-        [NativeTypeName("f32[3]")]
+        [NativeTypeName("u32[3]")]
         public _ImageExtent_e__FixedBuffer ImageExtent;
 
         [NativeTypeName("Coplt::u32")]
@@ -3431,22 +3480,19 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u16")]
         public ushort MipLevel;
 
-        [NativeTypeName("Coplt::u8")]
-        public byte PlaneIndex;
-
-        [NativeTypeName("Coplt::u8")]
-        public byte PlaneCount;
+        [NativeTypeName("Coplt::FImagePlane")]
+        public FImagePlane Plane;
 
         [InlineArray(3)]
         public partial struct _ImageOffset_e__FixedBuffer
         {
-            public float e0;
+            public uint e0;
         }
 
         [InlineArray(3)]
         public partial struct _ImageExtent_e__FixedBuffer
         {
-            public float e0;
+            public uint e0;
         }
     }
 
@@ -3971,7 +4017,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L529_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L528_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -4197,7 +4243,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L560_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L559_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -4381,7 +4427,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L585_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L584_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

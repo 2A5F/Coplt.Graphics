@@ -233,8 +233,8 @@ namespace Coplt
         // 必须是 256 的倍数
         u32 BytesPerRow{};
         u32 RowsPerImage{};
-        f32 ImageOffset[3]{};
-        f32 ImageExtent[3]{};
+        u32 ImageOffset[3]{};
+        u32 ImageExtent[3]{};
         u32 ImageIndex{};
         u32 ImageCount{};
         u16 MipLevel{};

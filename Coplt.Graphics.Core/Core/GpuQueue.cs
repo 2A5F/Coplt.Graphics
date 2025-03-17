@@ -326,18 +326,24 @@ public sealed unsafe partial class GpuQueue
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
     /// </summary>
-    public ImageUploadBufferMemory AllocImageUploadMemory(uint PixelSize, uint Width, uint Height, uint Depth, out UploadLoc loc)
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length = 1) =>
+        AllocImageUploadMemory2D(PixelSize, Width, Height, Length, out _);
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc loc)
     {
-        if (PixelSize < 1 || Width < 1 || Height < 1 || Depth < 1) throw new ArgumentOutOfRangeException();
+        if (PixelSize < 1 || Width < 1 || Height < 1 || Length < 1) throw new ArgumentOutOfRangeException();
         var row_stride = (PixelSize * Width).Aligned256();
-        var row_count = Height * Depth;
+        var row_count = Height * Length;
         var buffer_size = row_stride * row_count + 256u;
         var span = AllocUploadMemory(buffer_size, out loc);
         ref var start = ref span[0];
         var addr = (nuint)Unsafe.AsPointer(ref start);
         var offset = addr.Aligned256() - addr;
         span = MemoryMarshal.CreateSpan(ref Unsafe.Add(ref start, offset), (int)((uint)span.Length - offset));
-        return new ImageUploadBufferMemory(span, row_stride, row_count);
+        return new ImageUploadBufferMemory(span, row_stride, row_count, Length, Height, loc);
     }
 
     #endregion

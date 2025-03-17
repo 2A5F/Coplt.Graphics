@@ -609,7 +609,7 @@ void D3d12CommandInterpreter::BufferImageCopy(const FCommandSubmit& submit, u32 
     }
     else
     {
-        if (range.Plane != FImagePlane::Color)
+        if (range.Plane != FImagePlane::All)
             COPLT_THROW_FMT("Plane index or count out of range at command {}", i);
     }
     const auto image = image_obj->GetResourcePtr();
@@ -656,22 +656,22 @@ void D3d12CommandInterpreter::BufferImageCopy(const FCommandSubmit& submit, u32 
             box.bottom = range.ImageOffset[1] + range.ImageExtent[1];
             box.back = range.ImageOffset[2] + range.ImageExtent[2];
             cmd_pack->CopyTextureRegion(
-                &image_loc,
-                0,
-                0,
-                0,
                 &buffer_loc,
+                0,
+                0,
+                0,
+                &image_loc,
                 &box
             );
         }
         else
         {
             cmd_pack->CopyTextureRegion(
-                &buffer_loc,
+                &image_loc,
                 range.ImageOffset[0],
                 range.ImageOffset[1],
                 range.ImageOffset[2],
-                &image_loc,
+                &buffer_loc,
                 nullptr
             );
         }

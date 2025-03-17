@@ -14,19 +14,28 @@ ResourcePack::ResourcePack(
     D3D12MA::ALLOCATION_DESC alloc_desc{};
     alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
 
+    D3D12_BARRIER_LAYOUT layout = D3D12_BARRIER_LAYOUT_UNDEFINED;
     D3D12_RESOURCE_STATES init_state{};
     switch (cpu_access)
     {
     case FCpuAccess::Write:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
         init_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-        if (image) state = FResState::ImageGenericRead();
+        if (image)
+        {
+            state = FResState::ImageGenericRead();
+            layout = D3D12_BARRIER_LAYOUT_GENERIC_READ;
+        }
         else state = FResState::BufferGenericRead();
         break;
     case FCpuAccess::Read:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
         init_state = D3D12_RESOURCE_STATE_COPY_DEST;
-        if (image) state = FResState::ImageCopyDst();
+        if (image)
+        {
+            state = FResState::ImageCopyDst();
+            layout = D3D12_BARRIER_LAYOUT_COPY_DEST;
+        }
         else state = FResState::BufferCopyDst();
         break;
     default:
@@ -40,7 +49,7 @@ ResourcePack::ResourcePack(
     if (device->m_adapter->m_features.EnhancedBarriers)
     {
         chr | allocator->CreateResource3(
-            &alloc_desc, desc, D3D12_BARRIER_LAYOUT_UNDEFINED, clear_value,
+            &alloc_desc, desc, layout, clear_value,
             0, nullptr, &m_allocation, IID_PPV_ARGS(&m_resource)
         );
     }

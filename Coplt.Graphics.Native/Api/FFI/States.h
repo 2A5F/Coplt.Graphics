@@ -153,7 +153,7 @@ namespace Coplt
         static FResState ImageCommon()
         {
             return FResState{
-                .Layout = FResLayout::Common,
+                .Layout = FResLayout::None,
                 .Access = FResAccess::Common,
                 .Stages = FShaderStageFlags::None,
                 .Legacy = FLegacyState::Common,

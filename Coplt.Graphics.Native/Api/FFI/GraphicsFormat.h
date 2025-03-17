@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Types.h"
 #ifdef FFI_SRC
 #include "../Include/Option.h"
 #endif
@@ -8,7 +9,7 @@ namespace Coplt
 {
     enum class FImagePlane : u8
     {
-        Color = 0,
+        All = 0,
         Depth = 0,
         Stencil = 1,
         Y = 0,
