@@ -70,6 +70,10 @@ void D3d12ShaderBinding::Set(const std::span<const FBindItem> bindings)
             if (!define.IsAllowBuffer())
                 COPLT_THROW_FMT("Binding index {} is not allowed to bind to buffer.", Index);
             break;
+        case FViewType::Image:
+            if (!define.IsAllowTexture())
+                COPLT_THROW_FMT("Binding index {} is not allowed to bind to image.", Index);
+            break;
         }
         m_views[Index] = View;
         if (info.Place == FShaderLayoutItemPlace::Grouped)

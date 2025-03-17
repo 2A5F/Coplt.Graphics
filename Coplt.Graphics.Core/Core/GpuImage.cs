@@ -99,6 +99,7 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
     public uint DepthOrLength => Data->m_depth_or_length;
     public uint MipLevels => Data->m_mip_levels;
     public uint Planes => Data->m_planes;
+    public uint MultisampleCount => Data->m_multisample_count;
     public ImageDimension Dimension => Data->m_dimension.FromFFI();
     public ImageLayout Layout => Data->m_layout.FromFFI();
     uint IGpuView.Count => 0;

@@ -289,8 +289,9 @@ public sealed unsafe partial class GpuQueue
     /// <summary>
     /// 返回的 Span 只能写入
     /// </summary>
-    public Span<byte> AllocUploadMemory(uint Size, out UploadLoc loc)
+    public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc loc, uint Align = 4)
     {
+        if (Align > 1) Size += Align - 1;
         using var _ = m_lock.EnterScope();
         ref var upload_buffers = ref m_ptr->m_context->m_upload_buffer;
         for (nuint i = 0; i < upload_buffers.LongLength; i++)
@@ -298,8 +299,9 @@ public sealed unsafe partial class GpuQueue
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size < block.size)
             {
-                var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
-                loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+                var offset = block.cur_offset.Aligned(Align);
+                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+                loc = new UploadLoc(i, offset, Size, SubmitId);
                 block.cur_offset += Size;
                 return r;
             }
@@ -310,16 +312,17 @@ public sealed unsafe partial class GpuQueue
             var i = upload_buffers.LongLength - 1;
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
-            var r = new Span<byte>(block.mapped_ptr, (int)block.size)[(int)block.cur_offset..];
-            loc = new UploadLoc(i, block.cur_offset, Size, SubmitId);
+            var offset = block.cur_offset.Aligned(Align);
+            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+            loc = new UploadLoc(i, offset, Size, SubmitId);
             block.cur_offset += Size;
             return r;
         }
     }
 
-    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data)
+    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data, uint Align = 4)
     {
-        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc));
+        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc, Align));
         return loc;
     }
 
@@ -335,15 +338,11 @@ public sealed unsafe partial class GpuQueue
     public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc loc)
     {
         if (PixelSize < 1 || Width < 1 || Height < 1 || Length < 1) throw new ArgumentOutOfRangeException();
-        var row_stride = (PixelSize * Width).Aligned256();
+        var row_stride = (PixelSize * Width).Aligned(256);
         var row_count = Height * Length;
         var buffer_size = row_stride * row_count + 256u;
-        var span = AllocUploadMemory(buffer_size, out loc);
-        ref var start = ref span[0];
-        var addr = (nuint)Unsafe.AsPointer(ref start);
-        var offset = addr.Aligned256() - addr;
-        span = MemoryMarshal.CreateSpan(ref Unsafe.Add(ref start, offset), (int)((uint)span.Length - offset));
-        return new ImageUploadBufferMemory(span, row_stride, row_count, Length, Height, loc);
+        var slice = AllocUploadMemory(buffer_size, out loc, 256u);
+        return new ImageUploadBufferMemory(slice, row_stride, row_count, Length, Height, loc);
     }
 
     #endregion

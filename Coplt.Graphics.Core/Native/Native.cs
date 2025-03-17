@@ -2568,11 +2568,12 @@ namespace Coplt.Graphics.Native
     {
         None,
         Buffer,
+        Image,
     }
 
     public unsafe partial struct FView
     {
-        [NativeTypeName("__AnonymousRecord_Resource_L265_C9")]
+        [NativeTypeName("__AnonymousRecord_Resource_L266_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FViewType")]
@@ -2588,12 +2589,26 @@ namespace Coplt.Graphics.Native
             }
         }
 
+        [UnscopedRef]
+        public ref FGpuImage* Image
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Image;
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         public unsafe partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FGpuBuffer *")]
             public FGpuBuffer* Buffer;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuImage *")]
+            public FGpuImage* Image;
         }
     }
 

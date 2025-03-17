@@ -75,6 +75,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             Name: "Test Image"
         );
         cmd.Upload(test_image, upload_memory);
+        cmd.Bind(ShaderBinding, [new(0, test_image)]);
     }
     protected override void Render(CommandList cmd, Time time)
     {

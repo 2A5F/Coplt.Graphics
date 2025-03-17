@@ -48,11 +48,71 @@ public static unsafe class Utils
 
     #endregion
 
-    #region Aligned256
+    #region IsAligned
 
-    public static uint Aligned256(this uint value) => (value + 0xFFu) & ~0xFFu;
-    public static ulong Aligned256(this ulong value) => (value + 0xFFu) & ~0xFFu;
-    public static nuint Aligned256(this nuint value) => (value + 0xFFu) & ~0xFFu;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(this uint value, uint alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return true;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value & mask) == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(this ulong value, ulong alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return true;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value & mask) == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(this nuint value, nuint alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return true;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value & mask) == 0;
+    }
+
+    #endregion
+
+    #region Aligned
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint Aligned(this uint value, uint alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return value;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value + mask) & ~mask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong Aligned(this ulong value, ulong alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return value;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value + mask) & ~mask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nuint Aligned(this nuint value, nuint alignment)
+    {
+        if (alignment == 0) throw new ArgumentException("Alignment must > 0", nameof(alignment));
+        if (alignment == 1) return value;
+        var mask = alignment - 1;
+        if ((mask & alignment) != 0) throw new ArgumentException("Alignment must be power of 2", nameof(alignment));
+        return (value + mask) & ~mask;
+    }
 
     #endregion
 

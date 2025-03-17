@@ -70,6 +70,24 @@ public readonly unsafe struct FSlice<T>(T* Data, nuint Size) : IEquatable<FSlice
 
     #endregion
 
+    #region Slice nuint
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FSlice<T> Slice(nuint start)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(start, Size);
+        return new(Data + start, Size - start);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FSlice<T> Slice(nuint start, nuint length)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(start + length, Size);
+        return new(Data + start, length);
+    }
+
+    #endregion
+
     #region Enumerator
 
     public Span<T>.Enumerator GetEnumerator() => Span.GetEnumerator();

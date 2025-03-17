@@ -258,6 +258,7 @@ namespace Coplt
     {
         None,
         Buffer,
+        Image,
     };
 
     struct FView
@@ -265,6 +266,7 @@ namespace Coplt
         union
         {
             FGpuBuffer* Buffer;
+            FGpuImage* Image;
         };
 
         FViewType Type;

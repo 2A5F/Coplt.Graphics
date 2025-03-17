@@ -1,21 +1,23 @@
-﻿namespace Coplt.Graphics.Core;
+﻿using Coplt.Graphics.Native;
 
-public readonly ref struct ImageUploadBufferMemory(Span<byte> RawSpan, uint RowStride, uint RowCount, uint ImageCount, uint RowsPerImage, UploadLoc Loc)
+namespace Coplt.Graphics.Core;
+
+public readonly struct ImageUploadBufferMemory(FSlice<byte> Slice, uint RowStride, uint RowCount, uint ImageCount, uint RowsPerImage, UploadLoc Loc)
 {
-    public readonly Span<byte> RawSpan = RawSpan;
+    public readonly FSlice<byte> Slice = Slice;
     public readonly uint RowStride = RowStride;
     public readonly uint RowCount = RowCount;
     public readonly uint ImageCount = ImageCount;
     public readonly uint RowsPerImage = RowsPerImage;
     public readonly UploadLoc Loc = Loc;
 
-    public Span<byte> this[uint index]
+    public FSlice<byte> this[uint index]
     {
         get
         {
             if (index >= RowCount) throw new IndexOutOfRangeException();
             var offset = RowStride * index;
-            return RawSpan.Slice((int)offset, (int)RowStride);
+            return Slice.Slice(offset, RowStride);
         }
     }
 }

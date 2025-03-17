@@ -1442,6 +1442,9 @@ public sealed unsafe class CommandList : IQueueOwned
                     res = AddResource(view.Buffer);
                     is_buffer = true;
                     break;
+                case View.Tags.Image:
+                    res = AddResource(view.Image);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
                 }
