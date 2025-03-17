@@ -420,7 +420,7 @@ void View::CreateNullDescriptor(
     case FShaderLayoutGroupView::Sampler:
         {
             D3D12_SAMPLER_DESC desc{};
-            desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+            desc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
             desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -451,11 +451,101 @@ void View::CreateBufferDescriptor(
             break;
         }
     case FShaderLayoutGroupView::Srv:
-        // todo
-        break;
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+            desc.Format = ToDx(def.Format);
+            desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            switch (def.Type)
+            {
+            case FShaderLayoutItemType::ConstantBuffer:
+                COPLT_THROW("Srv does not support ConstantBuffer");
+            case FShaderLayoutItemType::Buffer:
+                desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+                break;
+            case FShaderLayoutItemType::RawBuffer:
+                if (data->m_usage != FBufferUsage::Raw)
+                    COPLT_THROW("Buffer not a Raw Buffer");
+                desc.Format = DXGI_FORMAT_R32_TYPELESS;
+                desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+                desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+                break;
+            case FShaderLayoutItemType::StructureBuffer:
+            case FShaderLayoutItemType::StructureBufferWithCounter:
+                if (data->m_usage != FBufferUsage::Structured)
+                    COPLT_THROW("Buffer not a Structured Buffer");
+                desc.Format = DXGI_FORMAT_UNKNOWN;
+                desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+                desc.Buffer.FirstElement = 0;
+                desc.Buffer.NumElements = data->m_count;
+                desc.Buffer.StructureByteStride = data->m_stride;
+                break;
+            case FShaderLayoutItemType::Texture1D:
+            case FShaderLayoutItemType::Texture1DArray:
+            case FShaderLayoutItemType::Texture2D:
+            case FShaderLayoutItemType::Texture2DArray:
+            case FShaderLayoutItemType::Texture2DMultisample:
+            case FShaderLayoutItemType::Texture2DArrayMultisample:
+            case FShaderLayoutItemType::Texture3D:
+            case FShaderLayoutItemType::TextureCube:
+            case FShaderLayoutItemType::TextureCubeArray:
+                COPLT_THROW("Buffer Srv does not support Texture");
+            case FShaderLayoutItemType::Sampler:
+                COPLT_THROW("Buffer Srv does not support Sampler");
+            case FShaderLayoutItemType::RayTracingAccelerationStructure:
+                desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+                desc.RaytracingAccelerationStructure.Location = resource->GetGPUVirtualAddress();
+                break;
+            }
+            device->CreateShaderResourceView(resource, &desc, handle);
+            break;
+        }
     case FShaderLayoutGroupView::Uav:
-        // todo
-        break;
+        {
+            D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+            desc.Format = ToDx(def.Format);
+            switch (def.Type)
+            {
+            case FShaderLayoutItemType::ConstantBuffer:
+                COPLT_THROW("Uav does not support ConstantBuffer");
+            case FShaderLayoutItemType::Buffer:
+                desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+                break;
+            case FShaderLayoutItemType::RawBuffer:
+                if (data->m_usage != FBufferUsage::Raw)
+                    COPLT_THROW("Buffer not a Raw Buffer");
+                desc.Format = DXGI_FORMAT_R32_TYPELESS;
+                desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+                desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+                break;
+            case FShaderLayoutItemType::StructureBuffer:
+            case FShaderLayoutItemType::StructureBufferWithCounter:
+                if (data->m_usage != FBufferUsage::Structured)
+                    COPLT_THROW("Buffer not a Structured Buffer");
+                desc.Format = DXGI_FORMAT_UNKNOWN;
+                desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+                desc.Buffer.FirstElement = 0;
+                desc.Buffer.NumElements = data->m_count;
+                desc.Buffer.StructureByteStride = data->m_stride;
+                desc.Buffer.CounterOffsetInBytes = 0;
+                break;
+            case FShaderLayoutItemType::Texture1D:
+            case FShaderLayoutItemType::Texture1DArray:
+            case FShaderLayoutItemType::Texture2D:
+            case FShaderLayoutItemType::Texture2DArray:
+            case FShaderLayoutItemType::Texture2DMultisample:
+            case FShaderLayoutItemType::Texture2DArrayMultisample:
+            case FShaderLayoutItemType::Texture3D:
+            case FShaderLayoutItemType::TextureCube:
+            case FShaderLayoutItemType::TextureCubeArray:
+                COPLT_THROW("Buffer Uav does not support Texture");
+            case FShaderLayoutItemType::Sampler:
+                COPLT_THROW("Buffer Uav does not support Sampler");
+            case FShaderLayoutItemType::RayTracingAccelerationStructure:
+                COPLT_THROW("Buffer Uav does not support RayTracingAccelerationStructure");
+            }
+            device->CreateUnorderedAccessView(resource, nullptr, &desc, handle);
+            break;
+        }
     case FShaderLayoutGroupView::Sampler:
         COPLT_THROW("Buffer cannot be used as a sampler");
     }
