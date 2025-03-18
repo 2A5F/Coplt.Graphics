@@ -149,3 +149,83 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuRes
 
     #endregion
 }
+
+[Dropping(Unmanaged = true)]
+public abstract unsafe partial class GpuOutput2 : IsolateChild
+{
+    #region Fields
+
+    internal FGpuOutputData* m_data;
+
+    #endregion
+
+    #region Props
+
+    public new FGpuOutput2* Ptr => (FGpuOutput2*)m_ptr;
+    public ref readonly FGpuOutputData Data => ref *m_data;
+
+    #endregion
+
+    #region Ctor
+
+    internal GpuOutput2(FGpuOutput2* ptr, FGpuOutputData* data, string? name, GpuIsolate isolate) : base((FGpuObject*)ptr, name, isolate)
+    {
+        m_data = data;
+    }
+
+    #endregion
+
+    #region Drop
+
+    [Drop]
+    private void Drop()
+    {
+        m_data = null;
+    }
+
+    #endregion
+
+    #region Methods
+
+    public void Resize(uint Width, uint Height) => Ptr->Resize(Width, Height).TryThrow();
+
+    public void Present() => Ptr->Present().TryThrow();
+    public void PresentNoWait() => Ptr->PresentNoWait().TryThrow();
+    public void Wait() => Ptr->Wait().TryThrow();
+
+    #endregion
+}
+
+public record struct GpuSwapChainCreateOptions()
+{
+    public required uint Width;
+    public required uint Height;
+    public GraphicsFormat Format = GraphicsFormat.R8G8B8A8_UNorm;
+    public PresentMode PresentMode = PresentMode.TripleBuffer;
+    public OutputAlphaMode AlphaMode = OutputAlphaMode.Opaque;
+    public bool VSync = false;
+    public GpuOutputFormatSelector FormatSelector;
+}
+
+public sealed unsafe class GpuSwapChain : GpuOutput2
+{
+    #region Props
+
+    public new FGpuSwapChain* Ptr => (FGpuSwapChain*)m_ptr;
+    public new ref readonly FGpuSwapChainData Data => ref *(FGpuSwapChainData*)m_data;
+
+    #endregion
+
+    #region Ctor
+
+    internal GpuSwapChain(FGpuSwapChain* ptr, FGpuSwapChainData* data, string? name, GpuIsolate isolate)
+        : base((FGpuOutput2*)ptr, (FGpuOutputData*)data, name, isolate) { }
+
+    #endregion
+
+    #region Methods
+
+    public void SetVSync(bool Enable) => Ptr->SetVSync(Enable).TryThrow();
+
+    #endregion
+}

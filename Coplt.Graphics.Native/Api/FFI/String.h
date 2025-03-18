@@ -139,6 +139,11 @@ namespace Coplt
         {
         }
 
+        const wchar_t* wcstr() const
+        {
+            return reinterpret_cast<const wchar_t*>(this->str16);
+        }
+
         #endif
 
         bool is8() const

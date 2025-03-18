@@ -74,21 +74,29 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(ID3d12GpuQueue, "a60df5da-ecff-4ae4-a38b-6ddef7db5922", FD3d12GpuQueue2)
     {
-        virtual const Rc<D3d12GpuDevice>& Device() const noexcept = 0;
-        virtual const ComPtr<ID3D12CommandQueue>& Queue() const noexcept = 0;
+        Rc<D3d12GpuDevice> m_device{};
+        ComPtr<ID3D12CommandQueue> m_queue{};
+        ComPtr<ID3D12Fence> m_fence{};
+        u64 m_fence_value{};
+        std::mutex m_mutex{};
+
+        virtual u64 Signal() = 0;
+        virtual u64 SignalNoLock() = 0;
+
+        virtual void WaitFenceValue(u64 fence_value, HANDLE event) = 0;
     };
 
     struct D3d12GpuQueue2 final : GpuObject<D3d12GpuQueue2, ID3d12GpuQueue>, FGpuQueueData
     {
-        Rc<D3d12GpuDevice> m_device{};
-        ComPtr<ID3D12CommandQueue> m_queue{};
-
         explicit D3d12GpuQueue2(NonNull<D3d12GpuIsolate> isolate, FGpuQueueType type);
 
         FGpuQueueData* GpuQueueData() noexcept override;
         FResult SetName(const FStr8or16& name) noexcept override;
         void* GetRawQueue() noexcept override;
-        const Rc<D3d12GpuDevice>& Device() const noexcept override;
-        const ComPtr<ID3D12CommandQueue>& Queue() const noexcept override;
+
+        u64 Signal() override;
+        u64 SignalNoLock() override;
+
+        void WaitFenceValue(u64 fence_value, HANDLE event) override;
     };
 } // Coplt

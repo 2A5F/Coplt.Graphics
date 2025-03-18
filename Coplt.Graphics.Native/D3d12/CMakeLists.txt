@@ -57,7 +57,10 @@ add_library(${target_name} SHARED
     Include/Sampler.h
     Src/Isolate.h
     Src/Isolate.cc
-    FFI/Isolate.h
+    Src/Record.h
+    Src/Record.cc
+    Src/SwapChain.h
+    Src/SwapChain.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

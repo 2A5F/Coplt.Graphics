@@ -369,7 +369,7 @@ public sealed unsafe partial class GpuQueue2 : IsolateChild
 
     public new FGpuQueue2* Ptr => (FGpuQueue2*)m_ptr;
     public ref readonly FGpuQueueData Data => ref *m_data;
-    public GpuQueueType QueueType => Data.m_queue_type.FromFFI();
+    public GpuQueueType QueueType => Data.QueueType.FromFFI();
 
     #endregion
 

@@ -55,7 +55,7 @@ namespace Coplt
 
     struct FGpuQueueData
     {
-        FGpuQueueType m_queue_type{};
+        FGpuQueueType QueueType{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuQueue2, "fc94e4d0-5f01-4d4f-894c-6aefaad90499", FGpuObject)

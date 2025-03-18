@@ -139,9 +139,11 @@ FResult D3d12GpuQueue::SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit
 }
 
 D3d12GpuQueue2::D3d12GpuQueue2(const NonNull<D3d12GpuIsolate> isolate, const FGpuQueueType type)
-    : m_device(isolate->m_device)
+    : FGpuQueueData()
 {
-    m_queue_type = type;
+    m_device = isolate->m_device;
+    QueueType = type;
+    const NonNull device = m_device->m_device.Get();
 
     constexpr UINT node_mask = 0;
 
@@ -151,7 +153,10 @@ D3d12GpuQueue2::D3d12GpuQueue2(const NonNull<D3d12GpuIsolate> isolate, const FGp
     desc.Type = ToDx(type);
     desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 
-    chr | m_device->m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_queue));
+    chr | device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_queue));
+
+    chr | device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+    m_fence_value = 1;
 }
 
 FGpuQueueData* D3d12GpuQueue2::GpuQueueData() noexcept
@@ -164,7 +169,18 @@ FResult D3d12GpuQueue2::SetName(const FStr8or16& name) noexcept
     return feb([&]
     {
         if (!m_device->Debug()) return;
+        if (name.is_null()) return;
         chr | m_queue >> SetNameEx(name);
+        if (name.is8())
+        {
+            const auto str = fmt::format("[{}]::Fence", name.str8);
+            chr | m_fence >> SetNameEx(FStr8or16(str));
+        }
+        else
+        {
+            const auto str = fmt::format(L"[{}]::Fence", reinterpret_cast<const wchar_t*>(name.str16));
+            chr | m_fence >> SetNameEx(FStr8or16(str));
+        }
     });
 }
 
@@ -173,12 +189,25 @@ void* D3d12GpuQueue2::GetRawQueue() noexcept
     return m_queue.Get();
 }
 
-const Rc<D3d12GpuDevice>& D3d12GpuQueue2::Device() const noexcept
+u64 D3d12GpuQueue2::Signal()
 {
-    return m_device;
+    std::lock_guard lock(m_mutex);
+    return SignalNoLock();
 }
 
-const ComPtr<ID3D12CommandQueue>& D3d12GpuQueue2::Queue() const noexcept
+u64 D3d12GpuQueue2::SignalNoLock()
 {
-    return m_queue;
+    const auto fence_value = m_fence_value;
+    chr | m_queue->Signal(m_fence.Get(), fence_value);
+    m_fence_value++;
+    return fence_value;
+}
+
+void D3d12GpuQueue2::WaitFenceValue(u64 fence_value, HANDLE event)
+{
+    if (m_fence->GetCompletedValue() < fence_value)
+    {
+        chr | m_fence->SetEventOnCompletion(fence_value, event);
+        WaitForSingleObject(event, INFINITE);
+    }
 }

@@ -97,4 +97,41 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
     }
 
     #endregion
+
+    #region CreateSwapChainForHwnd
+
+    /// <summary>
+    /// Will fail on non Windows systems
+    /// </summary>
+    public GpuSwapChain CreateSwapChainForHwnd(IntPtr Hwnd, in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuSwapChainCreateOptions f_options = new()
+            {
+                Base = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    PresentMode = (FPresentMode)Options.PresentMode,
+                },
+                Width = Options.Width,
+                Height = Options.Height,
+                Format = Options.Format.ToFFI(),
+                AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
+                VSync = Options.VSync,
+                FormatSelector =
+                {
+                    Specify = Options.FormatSelector.Specify,
+                    Srgb = Options.FormatSelector.Srgb,
+                    Hdr = (FHdrType)Options.FormatSelector.Hdr,
+                },
+            };
+            FGpuSwapChainCreateResult r;
+            Ptr->CreateSwapChainForHwnd(&f_options, (void*)Hwnd, &r).TryThrow();
+            return new(r.SwapChain, r.Data, Name, this);
+        }
+    }
+
+    #endregion
 }
