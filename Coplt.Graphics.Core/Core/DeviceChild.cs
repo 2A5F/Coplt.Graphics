@@ -19,3 +19,21 @@ public abstract unsafe class DeviceChild : GpuObject
 
     #endregion
 }
+
+public abstract unsafe class IsolateChild : DeviceChild
+{
+    #region Props
+
+    public GpuIsolate Isolate { get; }
+
+    #endregion
+
+    #region Ctor
+
+    internal IsolateChild(FGpuObject* ptr, string? name, GpuIsolate isolate) : base(ptr, name, isolate.Device)
+    {
+        Isolate = isolate;
+    }
+
+    #endregion
+}

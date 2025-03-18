@@ -1,8 +1,8 @@
 #include "Queue.h"
 
 #include "Device.h"
+#include "Isolate.h"
 #include "Output.h"
-#include "../../Api/Include/AllocObjectId.h"
 #include "../../Api/Include/Error.h"
 
 using namespace Coplt;
@@ -136,4 +136,49 @@ FResult D3d12GpuQueue::SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit
             COPLT_THROW("Executors from different backends");
         executor->SubmitNoWait(this, submit);
     });
+}
+
+D3d12GpuQueue2::D3d12GpuQueue2(const NonNull<D3d12GpuIsolate> isolate, const FGpuQueueType type)
+    : m_device(isolate->m_device)
+{
+    m_queue_type = type;
+
+    constexpr UINT node_mask = 0;
+
+    D3D12_COMMAND_QUEUE_DESC desc{};
+    desc.NodeMask = node_mask;
+    desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    desc.Type = ToDx(type);
+    desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+
+    chr | m_device->m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_queue));
+}
+
+FGpuQueueData* D3d12GpuQueue2::GpuQueueData() noexcept
+{
+    return this;
+}
+
+FResult D3d12GpuQueue2::SetName(const FStr8or16& name) noexcept
+{
+    return feb([&]
+    {
+        if (!m_device->Debug()) return;
+        chr | m_queue >> SetNameEx(name);
+    });
+}
+
+void* D3d12GpuQueue2::GetRawQueue() noexcept
+{
+    return m_queue.Get();
+}
+
+const Rc<D3d12GpuDevice>& D3d12GpuQueue2::Device() const noexcept
+{
+    return m_device;
+}
+
+const ComPtr<ID3D12CommandQueue>& D3d12GpuQueue2::Queue() const noexcept
+{
+    return m_queue;
 }

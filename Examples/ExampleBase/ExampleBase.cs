@@ -13,6 +13,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
     public bool IsClosed = false;
     public GraphicsInstance Graphics = null!;
     public GpuDevice Device = null!;
+    public GpuIsolate Isolate = null!;
     public GpuOutput Output = null!;
     public IntPtr Handle = Handle;
 
@@ -41,6 +42,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                     Adapter.Features.ShaderModelLevel
                 }
             );
+            Isolate = Device.CreateIsolate(Name: "Main Isolate");
             Output = Device.MainQueue.CreateOutputForHwnd(
                 new()
                 {

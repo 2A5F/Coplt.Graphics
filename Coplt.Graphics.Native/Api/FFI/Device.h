@@ -3,6 +3,7 @@
 #include "Binding.h"
 #include "Features.h"
 #include "GpuObject.h"
+#include "Isolate.h"
 #include "Layout.h"
 #include "Queue.h"
 #include "Shader.h"
@@ -77,6 +78,7 @@ namespace Coplt
         virtual void* GetRawDevice() noexcept = 0;
 
         virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
+        virtual FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept = 0;
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
         virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;

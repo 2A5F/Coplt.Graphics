@@ -8,6 +8,7 @@
 #include "Buffer.h"
 #include "GraphicsPipeline.h"
 #include "Image.h"
+#include "Isolate.h"
 #include "Layout.h"
 #include "Queue.h"
 #include "Sampler.h"
@@ -150,6 +151,21 @@ FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, 
     return feb([&]
     {
         *out = new D3d12GpuQueue(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept
+{
+    return feb([&]
+    {
+        const auto ptr = new D3d12GpuIsolate(this->CloneThis(), options);
+        out.Isolate = ptr;
+        out.Data = ptr;
+        out.Queues = out.Isolate->GetQueues(&out.NumQueues);
+        for (u32 i = 0; i < out.NumQueues; ++i)
+        {
+            out.Queues[i].Queue->AddRef();
+        }
     });
 }
 

@@ -52,4 +52,22 @@ namespace Coplt
         // 提交命令但是不等待执行器可用，必须先等待才能重新使用此执行器提交
         virtual FResult SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit* submit) noexcept = 0;
     };
+
+    struct FGpuQueueData
+    {
+        FGpuQueueType m_queue_type{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FGpuQueue2, "fc94e4d0-5f01-4d4f-894c-6aefaad90499", FGpuObject)
+    {
+        virtual FGpuQueueData* GpuQueueData() noexcept = 0;
+        // d3d12 返回 ID3D12CommandQueue*
+        virtual void* GetRawQueue() noexcept = 0;
+    };
+
+    struct FGpuQueueCreateResult
+    {
+        FGpuQueue2* Queue{};
+        FGpuQueueData* Data{};
+    };
 }

@@ -19,6 +19,14 @@ public static partial class GraphicsExtensions
     public static FGpuQueueType ToFFI(this GpuQueueType value) => (FGpuQueueType)value;
 
     public static GpuQueueType FromFFI(this FGpuQueueType value) => (GpuQueueType)value;
+
+    public static ReadOnlySpan<byte> ToUtf8String(this GpuQueueType value) => value switch
+    {
+        GpuQueueType.Direct  => "Direct"u8,
+        GpuQueueType.Compute => "Compute"u8,
+        GpuQueueType.Copy    => "Copy"u8,
+        _                    => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+    };
 }
 
 [Dropping(Unmanaged = true)]
@@ -186,7 +194,7 @@ public sealed unsafe partial class GpuQueue
                 Layout = Layout.m_ptr,
             };
             FShaderBinding* ptr;
-            m_device.m_ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
+            m_device.Ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
             return new(ptr, Name, m_device, this, Layout);
         }
     }
@@ -220,7 +228,7 @@ public sealed unsafe partial class GpuQueue
                 Usage = options.Usage.ToFFI(),
             };
             FGpuBuffer* ptr;
-            m_device.m_ptr->CreateBuffer(&f_options, &ptr).TryThrow();
+            m_device.Ptr->CreateBuffer(&f_options, &ptr).TryThrow();
             return new(ptr, Name, this);
         }
     }
@@ -277,7 +285,7 @@ public sealed unsafe partial class GpuQueue
                 f_options.OptimizedClearValue.Stencil = options.OptimizedClearColor.Depth.Stencil;
             }
             FGpuImage* ptr;
-            m_device.m_ptr->CreateImage(&f_options, &ptr).TryThrow();
+            m_device.Ptr->CreateImage(&f_options, &ptr).TryThrow();
             return new(ptr, Name, this);
         }
     }
@@ -343,6 +351,43 @@ public sealed unsafe partial class GpuQueue
         var buffer_size = row_stride * row_count + 256u;
         var slice = AllocUploadMemory(buffer_size, out loc, 256u);
         return new ImageUploadBufferMemory(slice, row_stride, row_count, Length, Height, loc);
+    }
+
+    #endregion
+}
+
+[Dropping(Unmanaged = true)]
+public sealed unsafe partial class GpuQueue2 : IsolateChild
+{
+    #region Fields
+
+    internal FGpuQueueData* m_data;
+
+    #endregion
+
+    #region Props
+
+    public new FGpuQueue2* Ptr => (FGpuQueue2*)m_ptr;
+    public ref readonly FGpuQueueData Data => ref *m_data;
+    public GpuQueueType QueueType => Data.m_queue_type.FromFFI();
+
+    #endregion
+
+    #region Ctor
+
+    internal GpuQueue2(FGpuQueue2* ptr, FGpuQueueData* data, string? name, GpuIsolate isolate) : base((FGpuObject*)ptr, name, isolate)
+    {
+        m_data = data;
+    }
+
+    #endregion
+
+    #region Drop
+
+    [Drop]
+    private void Drop()
+    {
+        m_data = null;
     }
 
     #endregion
