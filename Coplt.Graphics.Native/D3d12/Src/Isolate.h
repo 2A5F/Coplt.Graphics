@@ -27,10 +27,11 @@ namespace Coplt
     {
         using RecordQueue = moodycamel::ConcurrentQueue<Rc<ID3d12GpuRecord>>;
 
-        Box<RecordQueue> m_waiting_ctx{};
+        HANDLE m_event{};
+        Box<RecordQueue> m_waiting_record{};
         Box<RecordQueue> m_record_pool{};
         std::binary_semaphore m_waiting_signal{0};
-        std::jthread m_wait_thread{};
+        std::thread m_wait_thread{};
         std::atomic_bool m_exited{false};
         std::atomic<u64> m_record_inc{0};
 
@@ -54,5 +55,6 @@ namespace Coplt
         void ReturnRecords(std::span<FGpuRecord*> records);
         void Submit(std::span<FGpuRecord*> records, std::span<FGpuRecordCreateResult> out);
         void SubmitReturn(std::span<FGpuRecord*> records);
+        void SubmitReturn(std::span<Rc<ID3d12GpuRecord>> records);
     };
 }

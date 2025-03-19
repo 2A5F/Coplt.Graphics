@@ -64,7 +64,7 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuResource, IRtv, ISrv
+public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, ISrv
 {
     #region Fields
 
@@ -99,6 +99,7 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuRes
         Type = FResourceRefType.Output,
         Output = m_ptr,
     };
+    public FCmdRes IntoCmd() => throw new NotImplementedException();
 
     #endregion
 
@@ -148,10 +149,12 @@ public sealed unsafe partial class GpuOutput : GpuExecutor, IQueueOwned, IGpuRes
     public void Resize(uint width, uint height) => m_ptr->Resize(width, height).TryThrow();
 
     #endregion
+
+    public GpuIsolate Isolate => throw new NotImplementedException();
 }
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuOutput2 : IsolateChild
+public abstract unsafe partial class GpuOutput2 : IsolateChild, IGpuResource, IRtv, ISrv
 {
     #region Fields
 
@@ -162,7 +165,19 @@ public abstract unsafe partial class GpuOutput2 : IsolateChild
     #region Props
 
     public new FGpuOutput2* Ptr => (FGpuOutput2*)m_ptr;
-    public ref readonly FGpuOutputData Data => ref *m_data;
+    internal ref readonly FGpuOutputData Data => ref *m_data;
+    GpuResourceType IGpuResource.Type => GpuResourceType.Image;
+    IGpuResource IGpuView.Resource => this;
+    public GraphicsFormat Format => Data.Format.FromFFI();
+    ulong IGpuView.Size => (ulong)Width * Height;
+    public uint Width => Data.Width;
+    public uint Height => Data.Height;
+    uint IGpuView.DepthOrLength => 1;
+    uint IGpuView.MipLevels => 1;
+    uint IGpuView.Planes => 1;
+    uint IGpuView.Count => 0;
+    uint IGpuView.Stride => 0;
+    public PresentMode PresentMode => (PresentMode)Data.PresentMode;
 
     #endregion
 
@@ -185,6 +200,23 @@ public abstract unsafe partial class GpuOutput2 : IsolateChild
 
     #endregion
 
+    #region Cmd
+
+    FCmdRes IGpuResource.IntoCmd() => new()
+    {
+        Type = FCmdResType.Output,
+        Output = Ptr,
+    };
+
+    #endregion
+
+    #region Views
+
+    public bool TrySrv() => true;
+    public bool TryRtv() => true;
+
+    #endregion
+
     #region Methods
 
     public void Resize(uint Width, uint Height) => Ptr->Resize(Width, Height).TryThrow();
@@ -194,6 +226,15 @@ public abstract unsafe partial class GpuOutput2 : IsolateChild
     public void Wait() => Ptr->Wait().TryThrow();
 
     #endregion
+
+    public FResourceMeta GetMeta() => throw new NotSupportedException();
+    public ResState State
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+    public ref FResState NativeState => throw new NotSupportedException();
+    public GpuQueue Queue => throw new NotSupportedException();
 }
 
 public record struct GpuSwapChainCreateOptions()
@@ -212,7 +253,14 @@ public sealed unsafe class GpuSwapChain : GpuOutput2
     #region Props
 
     public new FGpuSwapChain* Ptr => (FGpuSwapChain*)m_ptr;
-    public new ref readonly FGpuSwapChainData Data => ref *(FGpuSwapChainData*)m_data;
+    internal new ref readonly FGpuSwapChainData Data => ref *(FGpuSwapChainData*)m_data;
+
+    public OutputAlphaMode AlphaMode => (OutputAlphaMode)Data.AlphaMode;
+    public bool VSync
+    {
+        get => Data.VSync;
+        set => SetVSync(value);
+    }
 
     #endregion
 

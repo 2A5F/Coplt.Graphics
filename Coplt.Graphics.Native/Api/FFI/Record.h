@@ -27,6 +27,7 @@ namespace Coplt
         FList<u8> Blob;
         // 统计不重复的 Output 数量
         usize OutputCount{};
+        b8 Ended{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)

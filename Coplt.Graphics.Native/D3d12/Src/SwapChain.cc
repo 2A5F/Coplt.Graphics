@@ -23,6 +23,9 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(
     {
         m_name = options.Name.ToString();
     }
+
+    m_event = CreateEventW(nullptr, false, false, nullptr);
+    if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
 }
 
 void D3d12GpuSwapChain::Initialize()

@@ -9,7 +9,7 @@ using namespace Coplt;
 D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCreateOptions& options)
     : FGpuIsolateData()
 {
-    m_waiting_ctx = box<RecordQueue>();
+    m_waiting_record = box<RecordQueue>();
     m_record_pool = box<RecordQueue>();
     m_device = std::move(device);
     m_main_queue = new D3d12GpuQueue2(this, FGpuQueueType::Direct);
@@ -21,22 +21,28 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
         FGpuQueueCreateResult{m_copy_queue.get(), m_copy_queue.get()},
     };
 
-    m_wait_thread = std::jthread([this]
+    m_event = CreateEventW(nullptr, false, false, nullptr);
+    if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
+
+    m_wait_thread = std::thread([this]
     {
         while (!m_exited)
         {
             m_waiting_signal.acquire();
-            Rc<ID3d12GpuRecord> records[8]{};
-        re:
-            if (const auto count = m_waiting_ctx->try_dequeue_bulk(records, 8); count > 0)
+            feb(m_device->m_instance->m_logger, [&]
             {
-                for (auto i = 0; i < count; ++i)
+                Rc<ID3d12GpuRecord> records[8]{};
+            re:
+                if (const auto count = m_waiting_record->try_dequeue_bulk(records, 8); count > 0)
                 {
-                    records[i]->Recycle();
-                    m_record_pool->enqueue(std::move(records[i]));
+                    for (auto i = 0; i < count; ++i)
+                    {
+                        records[i]->WaitAndRecycle(m_event);
+                        m_record_pool->enqueue(std::move(records[i]));
+                    }
+                    goto re;
                 }
-                goto re;
-            }
+            });
         }
     });
 }
@@ -45,6 +51,8 @@ D3d12GpuIsolate::~D3d12GpuIsolate()
 {
     m_exited = true;
     m_waiting_signal.release(1);
+    m_wait_thread.join();
+    CloseHandle(m_event);
 }
 
 FResult D3d12GpuIsolate::SetName(const FStr8or16& name) noexcept
@@ -184,5 +192,39 @@ void D3d12GpuIsolate::Submit(std::span<FGpuRecord*> records, std::span<FGpuRecor
 
 void D3d12GpuIsolate::SubmitReturn(std::span<FGpuRecord*> records)
 {
+    const auto f = [&](const std::span<Rc<ID3d12GpuRecord>> items)
+    {
+        for (u32 i = 0; i < items.size(); ++i)
+        {
+            items[i] = records[i]->QueryInterface<ID3d12GpuRecord>();
+        }
+        for (u32 i = 0; i < items.size(); ++i)
+        {
+            if (items[i] == nullptr)
+                COPLT_THROW("Record from different backends");
+        }
+        SubmitReturn(items);
+    };
+    if (records.size() < 16)
+    {
+        Rc<ID3d12GpuRecord> items[records.size()];
+        for (u32 i = 0; i < records.size(); ++i) items[i] = {};
+        f(std::span(items, records.size()));
+    }
+    else
+    {
+        std::vector<Rc<ID3d12GpuRecord>> items(records.size(), {});
+        f(std::span(items));
+    }
+}
+
+void D3d12GpuIsolate::SubmitReturn(std::span<Rc<ID3d12GpuRecord>> records)
+{
+    for (u32 i = 0; i < records.size(); ++i)
+    {
+        records[i]->Analyze();
+    }
     // todo
+    m_waiting_record->enqueue_bulk(records.data(), records.size());
+    m_waiting_signal.release(1);
 }

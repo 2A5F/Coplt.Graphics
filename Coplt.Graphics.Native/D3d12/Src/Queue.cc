@@ -149,6 +149,15 @@ RentedCommandAllocator::~RentedCommandAllocator()
     m_queue->ReturnCommandAllocator(std::move(m_command_allocator));
 }
 
+QueueWaitPoint::QueueWaitPoint(Rc<ID3d12GpuQueue>&& queue, const u64 fence_value) : m_queue(std::move(queue)), m_fence_value(fence_value)
+{
+}
+
+void QueueWaitPoint::Wait(const HANDLE event) const
+{
+    m_queue->WaitFenceValue(m_fence_value, event);
+}
+
 D3d12GpuQueue2::D3d12GpuQueue2(const NonNull<D3d12GpuIsolate> isolate, const FGpuQueueType type)
     : FGpuQueueData()
 {
@@ -206,6 +215,11 @@ u64 D3d12GpuQueue2::Signal()
 {
     std::lock_guard lock(m_mutex);
     return SignalNoLock();
+}
+
+QueueWaitPoint D3d12GpuQueue2::SignalWaitPointer()
+{
+    return QueueWaitPoint(this->CloneThis(), Signal());
 }
 
 u64 D3d12GpuQueue2::SignalNoLock()

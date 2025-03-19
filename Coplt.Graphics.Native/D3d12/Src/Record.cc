@@ -31,10 +31,21 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
+void D3d12GpuRecord::WaitAndRecycle(const HANDLE event)
+{
+    for (auto& wait_point : m_queue_wait_points)
+    {
+        wait_point.Wait(event);
+    }
+    Recycle();
+}
+
 void D3d12GpuRecord::Recycle()
 {
-    ClearData();
+    m_queue_wait_points.clear();
     m_context->Recycle();
+    m_resources_owner.clear();
+    ClearData();
 }
 
 FResult D3d12GpuRecord::End() noexcept
@@ -47,14 +58,26 @@ FResult D3d12GpuRecord::End() noexcept
 
 void D3d12GpuRecord::EnsureEnd()
 {
-    if (m_ended) return;
+    if (Ended) return;
     DoEnd();
 }
 
 void D3d12GpuRecord::DoEnd()
 {
-    if (m_ended)
+    if (Ended)
         COPLT_THROW("End cannot be called multiple times");
-    m_ended = true;
+    Ended = true;
+    m_resources_owner.reserve(Resources.size());
+    for (usize i = 0; i < Resources.size(); ++i)
+    {
+        const auto& res = Resources[i];
+        m_resources_owner.push_back(Rc<FUnknown>::UnsafeClone(res.GetObjectPtr()));
+    }
+    // todo
+}
+
+void D3d12GpuRecord::Analyze()
+{
+    EnsureEnd();
     // todo
 }

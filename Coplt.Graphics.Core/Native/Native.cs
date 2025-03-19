@@ -1541,6 +1541,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::usize")]
         public nuint OutputCount;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Ended;
     }
 
     [NativeTypeName("Coplt::u32")]
@@ -1619,7 +1622,7 @@ namespace Coplt.Graphics.Native
     public partial struct FCmdResRef
     {
         [NativeTypeName("Coplt::u32")]
-        public uint Index;
+        public uint IndexPlusOne;
     }
 
     public partial struct FCmdBase
@@ -1714,7 +1717,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L115_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L117_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

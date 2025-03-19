@@ -131,6 +131,16 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
 
     #endregion
 
+    #region Cmd
+
+    FCmdRes IGpuResource.IntoCmd() => new()
+    {
+        Type = FCmdResType.Image,
+        Image = Ptr,
+    };
+
+    #endregion
+
     #region View
 
     public bool TryRtv() => Purpose.HasFlags(ResourcePurpose.RenderTarget);
@@ -139,4 +149,6 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
     public bool TrySrv() => Purpose.HasFlags(ResourcePurpose.ShaderResource);
 
     #endregion
+
+    public GpuIsolate Isolate => throw new NotImplementedException();
 }

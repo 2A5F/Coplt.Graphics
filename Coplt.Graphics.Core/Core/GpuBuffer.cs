@@ -64,6 +64,16 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
 
     #endregion
 
+    #region Cmd
+
+    FCmdRes IGpuResource.IntoCmd() => new()
+    {
+        Type = FCmdResType.Buffer,
+        Buffer = Ptr,
+    };
+
+    #endregion
+
     #region View
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);
@@ -105,4 +115,6 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
     }
 
     #endregion
+
+    public GpuIsolate Isolate => throw new NotImplementedException();
 }

@@ -76,6 +76,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                             };
 
                             Render(Record, time);
+                            Isolate.Submit(Record);
                             Output.Present();
                         }
                         catch (Exception e)

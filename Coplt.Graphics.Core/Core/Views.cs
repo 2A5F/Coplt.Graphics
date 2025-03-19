@@ -2,7 +2,7 @@
 
 namespace Coplt.Graphics.Core;
 
-public interface IGpuView : IQueueOwned
+public interface IGpuView : IQueueOwned, IIsolateChild
 {
     /// <summary>
     /// 视图所属资源
@@ -69,6 +69,7 @@ public interface IGpuResource : IGpuView
     public ref FResState NativeState { get; }
 
     public FResourceMeta GetMeta();
+    public FCmdRes IntoCmd();
 }
 
 public interface ICbv : IGpuView

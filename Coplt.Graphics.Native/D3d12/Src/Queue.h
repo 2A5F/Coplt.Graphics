@@ -74,6 +74,7 @@ namespace Coplt
         }
     }
 
+    struct ID3d12GpuQueue;
     struct D3d12GpuQueue2;
 
     // 必须等待队列 fence 完成才能析构，或者可以 move 走
@@ -88,6 +89,17 @@ namespace Coplt
         ~RentedCommandAllocator();
     };
 
+    struct QueueWaitPoint final
+    {
+        Rc<ID3d12GpuQueue> m_queue{};
+        u64 m_fence_value{};
+
+        QueueWaitPoint() = default;
+        explicit QueueWaitPoint(Rc<ID3d12GpuQueue>&& queue, u64 fence_value);
+
+        void Wait(HANDLE event) const;
+    };
+
     COPLT_INTERFACE_DEFINE(ID3d12GpuQueue, "a60df5da-ecff-4ae4-a38b-6ddef7db5922", FD3d12GpuQueue2)
     {
         Rc<D3d12GpuDevice> m_device{};
@@ -97,6 +109,7 @@ namespace Coplt
         std::mutex m_mutex{};
 
         virtual u64 Signal() = 0;
+        virtual QueueWaitPoint SignalWaitPointer() = 0;
         virtual u64 SignalNoLock() = 0;
 
         virtual void WaitFenceValue(u64 fence_value, HANDLE event) = 0;
@@ -117,6 +130,7 @@ namespace Coplt
         void* GetRawQueue() noexcept override;
 
         u64 Signal() override;
+        QueueWaitPoint SignalWaitPointer() override;
         u64 SignalNoLock() override;
 
         void WaitFenceValue(u64 fence_value, HANDLE event) override;

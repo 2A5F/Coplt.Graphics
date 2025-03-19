@@ -56,10 +56,12 @@ namespace Coplt
 
     struct FCmdResRef
     {
-        u32 Index{};
+        u32 IndexPlusOne{};
 
         #ifdef FFI_SRC
-        operator bool() const { return Index == 0; }
+        operator bool() const { return IndexPlusOne == 0; }
+
+        FCmdRes& Get(FList<FCmdRes>& list) const { return list[IndexPlusOne - 1]; }
         #endif
     };
 

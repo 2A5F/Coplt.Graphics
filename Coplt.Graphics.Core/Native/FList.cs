@@ -108,6 +108,26 @@ public unsafe partial struct FList<T> where T : unmanaged
 
     #endregion
 
+    #region EnsureCap
+
+    public void EnsureCap(nuint cap)
+    {
+        if ((cap & 1) != 0) cap += 1;
+        if (m_ptr == null)
+        {
+            m_cap = cap;
+            m_ptr = (T*)m_allocator->MemoryAlloc(m_cap * (nuint)sizeof(T), (nuint)Utils.AlignOf<T>());
+        }
+        else if (m_cap < cap)
+        {
+            m_cap = cap;
+            m_ptr = (T*)m_allocator->MemoryReAlloc(m_ptr, m_cap * (nuint)sizeof(T), (nuint)Utils.AlignOf<T>());
+        }
+        
+    }
+
+    #endregion
+
     #region Add
 
     public ref T UnsafeAdd()
