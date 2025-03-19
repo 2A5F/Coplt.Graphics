@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
@@ -19,6 +20,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
     public new FGpuIsolate* Ptr => (FGpuIsolate*)m_ptr;
     public ref readonly FGpuIsolateData Data => ref *m_data;
     public ReadOnlySpan<GpuQueue2> Queues => m_queues;
+    public FrameId FrameId => new(Data.FrameId);
 
     #endregion
 
@@ -130,6 +132,97 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
             FGpuSwapChainCreateResult r;
             Ptr->CreateSwapChainForHwnd(&f_options, (void*)Hwnd, &r).TryThrow();
             return new(r.SwapChain, r.Data, Name, this);
+        }
+    }
+
+    #endregion
+
+    #region Rent Reocrds
+
+    public GpuRecord RentRecord()
+    {
+        GpuRecord? record = null;
+        RentRecords(new Span<GpuRecord?>(ref record));
+        return record!;
+    }
+
+    public void RentRecords(Span<GpuRecord?> records)
+    {
+        if (records.Length == 0) return;
+        if (records.Length < 8)
+        {
+            var p = stackalloc FGpuRecordCreateResult[records.Length];
+            Ptr->RentRecords((uint)records.Length, p).TryThrow();
+            for (var i = 0; i < records.Length; i++)
+            {
+                records[i] = new(p[i].Record, p[i].Data, null, this);
+            }
+        }
+        else
+        {
+            var arr = ArrayPool<FGpuRecordCreateResult>.Shared.Rent(records.Length);
+            try
+            {
+                fixed (FGpuRecordCreateResult* p = arr)
+                {
+                    Ptr->RentRecords((uint)records.Length, p).TryThrow();
+                    for (var i = 0; i < records.Length; i++)
+                    {
+                        records[i] = new(p[i].Record, p[i].Data, null, this);
+                    }
+                }
+            }
+            finally
+            {
+                ArrayPool<FGpuRecordCreateResult>.Shared.Return(arr);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Return Reocrds
+
+    public void ReturnRecords(ReadOnlySpan<GpuRecord> records)
+    {
+        if (records.Length == 0) return;
+        bool disposed = false;
+        if (records.Length < 8)
+        {
+            var p = stackalloc FGpuRecord*[records.Length];
+            var c = 0u;
+            foreach (var t in records)
+            {
+                if (ExchangeUtils.ExchangePtr(ref t.m_ptr, null, out var ptr) is null) disposed = true;
+                else p[c++] = (FGpuRecord*)ptr;
+            }
+            if (c > 0) Ptr->ReturnRecords(c, p).TryThrow();
+            if (disposed) throw new ObjectDisposedException(nameof(GpuRecord));
+        }
+        else
+        {
+            var arr = ArrayPool<IntPtr>.Shared.Rent(records.Length);
+            var c = 0u;
+            try
+            {
+                foreach (var t in records)
+                {
+                    if (ExchangeUtils.ExchangePtr(ref t.m_ptr, null, out var ptr) is null) disposed = true;
+                    else arr[c++] = (IntPtr)ptr;
+                }
+                if (c > 0)
+                {
+                    fixed (IntPtr* p = arr)
+                    {
+                        Ptr->ReturnRecords(c, (FGpuRecord**)p).TryThrow();
+                    }
+                }
+                if (disposed) throw new ObjectDisposedException(nameof(GpuRecord));
+            }
+            finally
+            {
+                ArrayPool<IntPtr>.Shared.Return(arr);
+            }
         }
     }
 

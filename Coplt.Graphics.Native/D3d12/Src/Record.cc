@@ -31,7 +31,30 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
-void D3d12GpuRecord::Recycle() const
+void D3d12GpuRecord::Recycle()
 {
+    ClearData();
     m_context->Recycle();
+}
+
+FResult D3d12GpuRecord::End() noexcept
+{
+    return feb([&]
+    {
+        DoEnd();
+    });
+}
+
+void D3d12GpuRecord::EnsureEnd()
+{
+    if (m_ended) return;
+    DoEnd();
+}
+
+void D3d12GpuRecord::DoEnd()
+{
+    if (m_ended)
+        COPLT_THROW("End cannot be called multiple times");
+    m_ended = true;
+    // todo
 }

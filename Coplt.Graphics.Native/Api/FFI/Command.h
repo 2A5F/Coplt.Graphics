@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Structs.h"
 #include "Binding.h"
 #include "Blob.h"
 #include "Output.h"
@@ -89,7 +90,6 @@ namespace Coplt
 
     struct FResourceRef
     {
-        // u32::max 表示 empty
         u32 ResourceIndex{};
 
         #ifdef FFI_SRC
@@ -173,24 +173,6 @@ namespace Coplt
             FBufferBarrier Buffer;
             FImageBarrier Image;
         };
-    };
-
-    struct FRect
-    {
-        u32 Left;
-        u32 Top;
-        u32 Right;
-        u32 Bottom;
-    };
-
-    struct FViewport
-    {
-        f32 X;
-        f32 Y;
-        f32 Width;
-        f32 Height;
-        f32 MinDepth;
-        f32 MaxDepth;
     };
 
     COPLT_ENUM_FLAGS(FDepthStencilClearFlags, u8)

@@ -6,6 +6,54 @@ using static Coplt.Graphics.Native.Native;
 
 namespace Coplt.Graphics.Native
 {
+    public partial struct FRect
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Left;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Top;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Right;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Bottom;
+    }
+
+    public partial struct FViewport
+    {
+        [NativeTypeName("Coplt::f32")]
+        public float X;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Y;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Width;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Height;
+
+        [NativeTypeName("Coplt::f32")]
+        public float MinDepth;
+
+        [NativeTypeName("Coplt::f32")]
+        public float MaxDepth;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct FOrRectViewport
+    {
+        [FieldOffset(0)]
+        [NativeTypeName("Coplt::FRect")]
+        public FRect Rect;
+
+        [FieldOffset(0)]
+        [NativeTypeName("Coplt::FViewport")]
+        public FViewport Viewport;
+    }
+
     public unsafe partial struct FObject : FObject.Interface
     {
         public void** lpVtbl;
@@ -1220,8 +1268,91 @@ namespace Coplt.Graphics.Native
     {
     }
 
+    [Guid("0EF83584-CA65-44DE-B38A-648BFB3A85A6")]
+    [NativeTypeName("struct FGpuRecord : Coplt::FGpuObject")]
+    public unsafe partial struct FGpuRecord : FGpuRecord.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuRecord));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FGpuRecord*, void>)(lpVtbl[0]))((FGpuRecord*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuRecord*, nuint>)(lpVtbl[1]))((FGpuRecord*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuRecord*, nuint>)(lpVtbl[2]))((FGpuRecord*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuRecord*, Guid*, void*>)(lpVtbl[3]))((FGpuRecord*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuRecord*, ulong>)(lpVtbl[4]))((FGpuRecord*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuRecord*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FGpuRecord*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuRecordData *")]
+        public FGpuRecordData* GpuFGpuRecordData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuRecord*, FGpuRecordData*>)(lpVtbl[6]))((FGpuRecord*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult End()
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuRecord*, FResult*, FResult*>)(lpVtbl[7]))((FGpuRecord*)Unsafe.AsPointer(ref this), &result);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+            [return: NativeTypeName("Coplt::FGpuRecordData *")]
+            FGpuRecordData* GpuFGpuRecordData();
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult End();
+        }
+    }
+
     public partial struct FGpuRecordCreateResult
     {
+    }
+
+    public unsafe partial struct FGpuRecordCreateResult
+    {
+        [NativeTypeName("Coplt::FGpuRecord *")]
+        public FGpuRecord* Record;
+
+        [NativeTypeName("Coplt::FGpuRecordData *")]
+        public FGpuRecordData* Data;
     }
 
     public partial struct FGpuIsolateCreateOptions
@@ -1392,6 +1523,293 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint NumQueues;
+    }
+
+    public unsafe partial struct FGpuRecordData
+    {
+        [NativeTypeName("Coplt::FRecordContext *")]
+        public FRecordContext* Context;
+
+        public FList<FCmdItem> Commands;
+
+        public FList<FCmdRes> Resources;
+
+        public FList<FOrRectViewport> Payload;
+
+        [NativeTypeName("FList<u8>")]
+        public FList<byte> Blob;
+
+        [NativeTypeName("Coplt::usize")]
+        public nuint OutputCount;
+    }
+
+    [NativeTypeName("Coplt::u32")]
+    public enum FCmdType : uint
+    {
+        None = 0,
+        Label,
+        BeginScope,
+        EndScope,
+        ClearColor,
+        ClearDepthStencil,
+    }
+
+    public enum FCmdResType
+    {
+        Image,
+        Buffer,
+        Output,
+    }
+
+    public unsafe partial struct FCmdRes
+    {
+        [NativeTypeName("__AnonymousRecord_Cmd_L31_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [NativeTypeName("Coplt::FCmdResType")]
+        public FCmdResType Type;
+
+        [UnscopedRef]
+        public ref FGpuOutput2* Output
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Output;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FGpuBuffer* Buffer
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Buffer;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FGpuImage* Image
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Image;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public unsafe partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuOutput2 *")]
+            public FGpuOutput2* Output;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuBuffer *")]
+            public FGpuBuffer* Buffer;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FGpuImage *")]
+            public FGpuImage* Image;
+        }
+    }
+
+    public partial struct FCmdResRef
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
+    public partial struct FCmdBase
+    {
+        [NativeTypeName("Coplt::FCmdType")]
+        public FCmdType Type;
+    }
+
+    [NativeTypeName("struct FCmdLabel : Coplt::FCmdBase")]
+    public partial struct FCmdLabel
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringLength;
+
+        [NativeTypeName("Coplt::usize")]
+        public nuint StringIndex;
+
+        [NativeTypeName("Coplt::FStrType")]
+        public FStrType StrType;
+
+        [NativeTypeName("u8[3]")]
+        public _Color_e__FixedBuffer Color;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 HasColor;
+
+        [InlineArray(3)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+
+    [NativeTypeName("struct FCmdBeginScope : Coplt::FCmdBase")]
+    public partial struct FCmdBeginScope
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint StringLength;
+
+        [NativeTypeName("Coplt::usize")]
+        public nuint StringIndex;
+
+        [NativeTypeName("Coplt::FStrType")]
+        public FStrType StrType;
+
+        [NativeTypeName("u8[3]")]
+        public _Color_e__FixedBuffer Color;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 HasColor;
+
+        [InlineArray(3)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public byte e0;
+        }
+    }
+
+    [NativeTypeName("struct FCmdEndScope : Coplt::FCmdBase")]
+    public partial struct FCmdEndScope
+    {
+        public FCmdBase Base;
+    }
+
+    [NativeTypeName("struct FCmdClearColor : Coplt::FCmdBase")]
+    public partial struct FCmdClearColor
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectIndex;
+
+        [NativeTypeName("Coplt::FCmdResRef")]
+        public FCmdResRef Image;
+
+        [NativeTypeName("f32[4]")]
+        public _Color_e__FixedBuffer Color;
+
+        [InlineArray(4)]
+        public partial struct _Color_e__FixedBuffer
+        {
+            public float e0;
+        }
+    }
+
+    public partial struct FCmdItem
+    {
+        [NativeTypeName("__AnonymousRecord_Cmd_L115_C9")]
+        public _Anonymous_e__Union Anonymous;
+
+        [UnscopedRef]
+        public ref FCmdType Type
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Type;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdLabel Label
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Label;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdBeginScope BeginScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BeginScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdEndScope EndScope
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.EndScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdClearColor ClearColor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.ClearColor;
+            }
+        }
+
+        [UnscopedRef]
+        public Span<byte> _pad
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Anonymous._pad;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdType")]
+            public FCmdType Type;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdLabel")]
+            public FCmdLabel Label;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdBeginScope")]
+            public FCmdBeginScope BeginScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdEndScope")]
+            public FCmdEndScope EndScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdClearColor")]
+            public FCmdClearColor ClearColor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("u8[32]")]
+            public __pad_e__FixedBuffer _pad;
+
+            [InlineArray(32)]
+            public partial struct __pad_e__FixedBuffer
+            {
+                public byte e0;
+            }
+        }
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -3900,7 +4318,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FResourceMeta
     {
-        [NativeTypeName("__AnonymousRecord_Command_L64_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L65_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FResourceRefType")]
@@ -4131,42 +4549,6 @@ namespace Coplt.Graphics.Native
             [NativeTypeName("Coplt::FImageBarrier")]
             public FImageBarrier Image;
         }
-    }
-
-    public partial struct FRect
-    {
-        [NativeTypeName("Coplt::u32")]
-        public uint Left;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Top;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Right;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint Bottom;
-    }
-
-    public partial struct FViewport
-    {
-        [NativeTypeName("Coplt::f32")]
-        public float X;
-
-        [NativeTypeName("Coplt::f32")]
-        public float Y;
-
-        [NativeTypeName("Coplt::f32")]
-        public float Width;
-
-        [NativeTypeName("Coplt::f32")]
-        public float Height;
-
-        [NativeTypeName("Coplt::f32")]
-        public float MinDepth;
-
-        [NativeTypeName("Coplt::f32")]
-        public float MaxDepth;
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -4777,7 +5159,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L528_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L510_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5003,7 +5385,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L559_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L541_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5187,7 +5569,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L584_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L566_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -6393,6 +6775,8 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FGpuDevice = new Guid(0x557F032D, 0xED50, 0x403A, 0xAD, 0xC5, 0x21, 0x4F, 0xDD, 0xBE, 0x6C, 0x6B);
 
         public static readonly Guid IID_FGpuIsolate = new Guid(0x777C5774, 0x8EB8, 0x4550, 0xA9, 0x77, 0x62, 0xCC, 0xCD, 0x7B, 0xDD, 0xA6);
+
+        public static readonly Guid IID_FGpuRecord = new Guid(0x0EF83584, 0xCA65, 0x44DE, 0xB3, 0x8A, 0x64, 0x8B, 0xFB, 0x3A, 0x85, 0xA6);
 
         public static readonly Guid IID_FShaderModule = new Guid(0x5C0E1FDB, 0x2ACD, 0x4FCE, 0xB9, 0x85, 0x09, 0xE1, 0x2A, 0x7A, 0x1A, 0xAD);
 

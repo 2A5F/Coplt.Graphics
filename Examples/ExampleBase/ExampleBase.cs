@@ -14,7 +14,8 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
     public GraphicsInstance Graphics = null!;
     public GpuDevice Device = null!;
     public GpuIsolate Isolate = null!;
-    public GpuOutput Output = null!;
+    public GpuSwapChain Output = null!;
+    public GpuRecord Record = null!;
     public IntPtr Handle = Handle;
 
     public abstract string Name { get; }
@@ -43,21 +44,21 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 }
             );
             Isolate = Device.CreateIsolate(Name: "Main Isolate");
-            Output = Device.MainQueue.CreateOutputForHwnd(
-                new()
+            Output = Isolate.CreateSwapChainForHwnd(
+                Handle, new()
                 {
                     Width = Width,
                     Height = Height,
                     // VSync = true,
-                }, Handle
+                }
             );
+            Record = Isolate.RentRecord();
             InitGraphics();
             new Thread(
                 () =>
                 {
                     Thread.CurrentThread.Name = "Render Thread";
-                    var cmd = Device.MainCommandList;
-                    LoadResources(cmd).Wait();
+                    LoadResources(Record).Wait();
                     var start_time = Stopwatch.GetTimestamp();
                     var last_time = start_time;
                     while (!IsClosed)
@@ -74,7 +75,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                                 Delta = delta_time
                             };
 
-                            Render(cmd, time);
+                            Render(Record, time);
                             Output.Present();
                         }
                         catch (Exception e)
@@ -124,13 +125,13 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
 
     #region LoadResources
 
-    protected abstract Task LoadResources(CommandList cmd);
+    protected virtual Task LoadResources(GpuRecord cmd) => Task.CompletedTask;
 
     #endregion
 
     #region Render
 
-    protected abstract void Render(CommandList cmd, Time time);
+    protected virtual void Render(GpuRecord cmd, Time time) { }
 
     #endregion
 }
