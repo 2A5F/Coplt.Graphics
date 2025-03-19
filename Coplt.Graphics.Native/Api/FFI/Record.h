@@ -7,12 +7,6 @@ namespace Coplt
 {
     struct FGpuRecordData;
 
-    struct FGpuRecordCreateOptions
-    {
-        // 可选
-        FStr8or16 Name{};
-    };
-
     COPLT_INTERFACE_DEFINE(FGpuRecord, "0ef83584-ca65-44de-b38a-648bfb3a85a6", FGpuObject)
     {
         virtual FGpuRecordData* GpuFGpuRecordData() noexcept = 0;
@@ -21,6 +15,7 @@ namespace Coplt
     // 里面的 FList<T*> 的 T* 生命周期由 c# 部分保证
     struct FGpuRecordData
     {
+        FRecordContext* Context{};
         FList<FGpuOutput*> Outputs;
 
         #ifdef FFI_SRC

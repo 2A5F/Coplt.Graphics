@@ -1220,10 +1220,6 @@ namespace Coplt.Graphics.Native
     {
     }
 
-    public partial struct FGpuRecordCreateOptions
-    {
-    }
-
     public partial struct FGpuRecordCreateResult
     {
     }
@@ -1236,6 +1232,8 @@ namespace Coplt.Graphics.Native
 
     public partial struct FGpuIsolateData
     {
+        [NativeTypeName("Coplt::u64")]
+        public ulong FrameId;
     }
 
     [Guid("777C5774-8EB8-4550-A977-62CCCD7BDDA6")]
@@ -1303,10 +1301,34 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateRecord([NativeTypeName("const FGpuRecordCreateOptions &")] FGpuRecordCreateOptions* options, [NativeTypeName("Coplt::FGpuRecordCreateResult &")] FGpuRecordCreateResult* @out)
+        public FResult RentRecords([NativeTypeName("Coplt::u32")] uint NumRecords, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuRecordCreateOptions*, FGpuRecordCreateResult*, FResult*>)(lpVtbl[8]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecordCreateResult*, FResult*>)(lpVtbl[8]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, OutRecords);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult ReturnRecords([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[9]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult Submit([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FGpuRecordCreateResult*, FResult*>)(lpVtbl[10]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records, OutRecords);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SubmitReturn([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[11]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1314,7 +1336,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateSwapChainFromExists([NativeTypeName("const FGpuSwapChainFromExistsCreateOptions &")] FGpuSwapChainFromExistsCreateOptions* options, [NativeTypeName("Coplt::FGpuSwapChainCreateResult &")] FGpuSwapChainCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainFromExistsCreateOptions*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[9]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainFromExistsCreateOptions*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[12]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1322,7 +1344,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateSwapChainForHwnd([NativeTypeName("const FGpuSwapChainCreateOptions &")] FGpuSwapChainCreateOptions* options, void* hwnd, [NativeTypeName("Coplt::FGpuSwapChainCreateResult &")] FGpuSwapChainCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainCreateOptions*, void*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[10]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainCreateOptions*, void*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[13]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -1334,7 +1356,16 @@ namespace Coplt.Graphics.Native
             FGpuIsolateData* GpuIsolateData();
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateRecord([NativeTypeName("const FGpuRecordCreateOptions &")] FGpuRecordCreateOptions* options, [NativeTypeName("Coplt::FGpuRecordCreateResult &")] FGpuRecordCreateResult* @out);
+            FResult RentRecords([NativeTypeName("Coplt::u32")] uint NumRecords, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult ReturnRecords([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult Submit([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult SubmitReturn([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateSwapChainFromExists([NativeTypeName("const FGpuSwapChainFromExistsCreateOptions &")] FGpuSwapChainFromExistsCreateOptions* options, [NativeTypeName("Coplt::FGpuSwapChainCreateResult &")] FGpuSwapChainCreateResult* @out);
@@ -1917,6 +1948,126 @@ namespace Coplt.Graphics.Native
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FFrameContext*, FResult*, ulong, FResult*>)(lpVtbl[6]))((FFrameContext*)Unsafe.AsPointer(ref this), &result, min_required_size);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult GrowUploadBuffer([NativeTypeName("Coplt::u64")] ulong min_required_size);
+        }
+    }
+
+    [Guid("FA9C7561-AB0B-4311-BB4C-C6BEF93F86FE")]
+    [NativeTypeName("struct FFrameContext2 : Coplt::FGpuObject")]
+    public unsafe partial struct FFrameContext2 : FFrameContext2.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FFrameContext2));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FFrameContext2*, void>)(lpVtbl[0]))((FFrameContext2*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, nuint>)(lpVtbl[1]))((FFrameContext2*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, nuint>)(lpVtbl[2]))((FFrameContext2*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, Guid*, void*>)(lpVtbl[3]))((FFrameContext2*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, ulong>)(lpVtbl[4]))((FFrameContext2*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FFrameContext2*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FFrameContext2*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+        }
+    }
+
+    [Guid("15B4821D-0648-4B78-9C21-C6A5B6A5ED75")]
+    [NativeTypeName("struct FRecordContext : Coplt::FGpuObject")]
+    public unsafe partial struct FRecordContext : FRecordContext.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FRecordContext));
+
+        public void** lpVtbl;
+
+        public FList<FUploadBufferBlock> m_upload_buffer;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FRecordContext*, void>)(lpVtbl[0]))((FRecordContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FRecordContext*, nuint>)(lpVtbl[1]))((FRecordContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FRecordContext*, nuint>)(lpVtbl[2]))((FRecordContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FRecordContext*, Guid*, void*>)(lpVtbl[3]))((FRecordContext*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FRecordContext*, ulong>)(lpVtbl[4]))((FRecordContext*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FRecordContext*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FRecordContext*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult GrowUploadBuffer([NativeTypeName("Coplt::u64")] ulong min_required_size)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FRecordContext*, FResult*, ulong, FResult*>)(lpVtbl[6]))((FRecordContext*)Unsafe.AsPointer(ref this), &result, min_required_size);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -6250,6 +6401,10 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FShaderBinding = new Guid(0xA3CA644A, 0x0E02, 0x4D25, 0x9A, 0x18, 0x88, 0x35, 0xD6, 0x66, 0x00, 0xF7);
 
         public static readonly Guid IID_FFrameContext = new Guid(0x3A22DE68, 0x8377, 0x4E57, 0xA1, 0x67, 0x3E, 0xFD, 0xB9, 0x7C, 0x10, 0x2A);
+
+        public static readonly Guid IID_FFrameContext2 = new Guid(0xFA9C7561, 0xAB0B, 0x4311, 0xBB, 0x4C, 0xC6, 0xBE, 0xF9, 0x3F, 0x86, 0xFE);
+
+        public static readonly Guid IID_FRecordContext = new Guid(0x15B4821D, 0x0648, 0x4B78, 0x9C, 0x21, 0xC6, 0xA5, 0xB6, 0xA5, 0xED, 0x75);
 
         public static readonly Guid IID_FGpuQueue = new Guid(0x95E60E28, 0xE387, 0x4055, 0x9B, 0x33, 0x2D, 0x23, 0xAF, 0x90, 0x1F, 0x8A);
 

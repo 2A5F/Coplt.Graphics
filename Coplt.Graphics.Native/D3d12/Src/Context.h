@@ -4,6 +4,7 @@
 #include "../../Api/Include/Object.h"
 #include "CmdListPack.h"
 #include "Device.h"
+#include "Isolate.h"
 #include "Queue.h"
 #include "Resource.h"
 
@@ -23,6 +24,26 @@ namespace Coplt
         usize m_cur_upload_buffer_size{};
 
         explicit D3d12FrameContext(Rc<D3d12GpuQueue>&& queue);
+
+        FResult SetName(const FStr8or16& name) noexcept override;
+
+        FResult GrowUploadBuffer(u64 min_required_size) noexcept override;
+
+        // 回收帧使用的资源，重复使用，需要在队列中等待帧完成后调用
+        void Recycle();
+    };
+
+    struct D3d12RecordContext final : GpuObject<D3d12RecordContext, FRecordContext>
+    {
+        constexpr static u64 InitUploadBufferSize = 1024 * 1024;
+
+        Rc<D3d12GpuDevice> m_device{};
+        std::vector<RentedCommandAllocator> m_command_allocators{};
+        std::vector<BufferPack> m_upload_buffers{};
+        usize m_cur_upload_buffer_index{};
+        usize m_cur_upload_buffer_size{};
+
+        explicit D3d12RecordContext(NonNull<D3d12GpuIsolate> isolate);
 
         FResult SetName(const FStr8or16& name) noexcept override;
 

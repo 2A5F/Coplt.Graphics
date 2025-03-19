@@ -3,7 +3,6 @@
 #include "directx/d3dx12.h"
 
 #include <array>
-#include <concurrent_queue.h>
 #include <mutex>
 #include <bit>
 
