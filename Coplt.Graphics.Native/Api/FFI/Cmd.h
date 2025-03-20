@@ -61,7 +61,12 @@ namespace Coplt
         #ifdef FFI_SRC
         operator bool() const { return IndexPlusOne == 0; }
 
-        FCmdRes& Get(FList<FCmdRes>& list) const { return list[IndexPlusOne - 1]; }
+        FCmdRes& Get(FList<FCmdRes>& list) const
+        {
+            const auto index = IndexPlusOne - 1;
+            if (index > list.m_len) COPLT_THROW("Index out of range");
+            return list[index];
+        }
         #endif
     };
 

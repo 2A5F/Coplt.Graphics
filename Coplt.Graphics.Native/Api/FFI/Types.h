@@ -6,6 +6,7 @@
 
 #ifdef FFI_SRC
 #include <type_traits>
+#include <functional>
 #include <glm/glm.hpp>
 #include <shared_mutex>
 
@@ -63,7 +64,12 @@ namespace Coplt
     using RwLock = std::shared_mutex;
     using WriteLock = std::unique_lock<RwLock>;
     using ReadLock = std::shared_lock<RwLock>;
+
+    template <class T>
+    using Ref = std::reference_wrapper<T>;
+
     #else
+
     using f32 = float;
     using f64 = double;
 
@@ -91,6 +97,7 @@ namespace Coplt
 
     using Char8 = u8;
     using Char16 = u16;
+
     #endif
 
     struct Guid

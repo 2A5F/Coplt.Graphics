@@ -5,14 +5,15 @@
 
 #if FFI_SRC
 #include <utility>
+#include <span>
 #endif
 
 namespace Coplt
 {
     template <typename T>
-#ifdef FFI_SRC
+    #ifdef FFI_SRC
         requires std::is_trivially_copyable_v<T>
-#endif
+    #endif
     struct FList COPLT_FINAL
     {
         FAllocator* m_allocator{};
@@ -20,7 +21,7 @@ namespace Coplt
         size_t m_len{};
         size_t m_cap{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
 
         constexpr static size_t InitCapacity = 4;
 
@@ -135,6 +136,16 @@ namespace Coplt
         {
             m_len = 0;
         }
-#endif
+
+        std::span<T> AsSpan()
+        {
+            return std::span(data(), size());
+        }
+
+        std::span<const T> AsSpan() const
+        {
+            return std::span(data(), size());
+        }
+        #endif
     };
 }

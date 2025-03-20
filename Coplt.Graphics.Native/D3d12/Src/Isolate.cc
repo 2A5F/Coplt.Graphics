@@ -220,9 +220,10 @@ void D3d12GpuIsolate::SubmitReturn(std::span<FGpuRecord*> records)
 
 void D3d12GpuIsolate::SubmitReturn(std::span<Rc<ID3d12GpuRecord>> records)
 {
+    std::lock_guard lock(m_mutex);
     for (u32 i = 0; i < records.size(); ++i)
     {
-        records[i]->Analyze();
+        records[i]->EnsureEnd();
     }
     // todo
     m_waiting_record->enqueue_bulk(records.data(), records.size());

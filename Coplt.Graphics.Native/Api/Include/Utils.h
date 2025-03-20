@@ -52,4 +52,23 @@ namespace Coplt
     {
         return (value & 0xFFu) == 0;
     }
+
+    inline void hash_combine(std::size_t& seed)
+    {
+    }
+
+    template <class T>
+    void hash_combine(std::size_t& seed, const T& v)
+    {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    template <class T, class... Rest>
+    size_t hash_multi(const T& v, const Rest&... rest)
+    {
+        auto seed = std::hash<T>{}(v);
+        (hash_combine(seed, rest), ...);
+        return seed;
+    }
 }

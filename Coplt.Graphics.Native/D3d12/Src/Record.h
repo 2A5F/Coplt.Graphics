@@ -7,9 +7,61 @@
 
 namespace Coplt
 {
+    struct D3d12GpuRecord;
+
+    namespace Recording
+    {
+        enum class ResUseType : u8
+        {
+            None,
+            Read,
+            Write,
+            ReadWrite,
+        };
+
+        struct ResUse
+        {
+            u32 LastUse{};
+            u32 ResIndex{};
+            u32 CmdIndex{};
+            D3D12_BARRIER_LAYOUT Layout{};
+            D3D12_BARRIER_ACCESS Access{};
+            FShaderStageFlags Stages{};
+            ResUseType Type{};
+        };
+
+        ResUseType GetUseType(D3D12_BARRIER_ACCESS access, ResUseType UavUse = ResUseType::ReadWrite);
+
+        struct ResInfo
+        {
+            Rc<FUnknown> m_owner{};
+            u32 m_res_index{};
+
+            u32 m_last_use{COPLT_U32_MAX};
+            u32 m_last_write_use{COPLT_U32_MAX};
+            u32 m_last_read_use_after_write{COPLT_U32_MAX};
+
+            ResInfo() = default;
+
+            explicit ResInfo(Rc<FUnknown>&& resource, u32 res_index);
+
+            void MarkUse(
+                NonNull<D3d12GpuRecord> self, u32 index,
+                D3D12_BARRIER_ACCESS Access, D3D12_BARRIER_LAYOUT Layout,
+                FShaderStageFlags Stages, ResUseType UavUse = ResUseType::ReadWrite
+            );
+        };
+    }
+
     COPLT_INTERFACE_DEFINE(ID3d12GpuRecord, "57a9c7f9-1ec0-4d78-89b9-e547667c50b3", FGpuRecord)
     {
-        std::vector<Rc<FUnknown>> m_resources_owner{};
+        using ResUseType = Recording::ResUseType;
+        using ResUse = Recording::ResUse;
+        using ResInfo = Recording::ResInfo;
+
+        std::vector<ResInfo> m_resources{};
+        std::vector<u32> m_outputs{};
+        std::vector<ResUse> m_res_use{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
 
         virtual FGpuRecordData* Data() noexcept = 0;
@@ -19,8 +71,6 @@ namespace Coplt
         virtual void Recycle() = 0;
 
         virtual void EnsureEnd() = 0;
-
-        virtual void Analyze() = 0;
     };
 
     struct D3d12GpuRecord final : GpuObject<D3d12GpuRecord, ID3d12GpuRecord>, FGpuRecordData
@@ -37,6 +87,8 @@ namespace Coplt
         FGpuRecordData* Data() noexcept override;
         const FGpuRecordData* Data() const noexcept override;
 
+        std::pair<NonNull<FCmdRes>, NonNull<ResInfo>> Get(const FCmdResRef& ref);
+
         void WaitAndRecycle(HANDLE event) override;
         void Recycle() override;
 
@@ -44,6 +96,7 @@ namespace Coplt
         void EnsureEnd() override;
         void DoEnd();
 
-        void Analyze() override;
+        void Analyze();
+        void Analyze_ClearColor(u32 i, const FCmdClearColor& cmd);
     };
 }
