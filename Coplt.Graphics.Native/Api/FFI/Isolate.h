@@ -8,15 +8,29 @@ namespace Coplt
     struct FGpuRecord;
     struct FGpuRecordCreateResult;
 
+    struct FQueueConfig
+    {
+        // 额外的直接队列，默认保证有一个主队列
+        u32 NumDirect{0};
+        u32 NumCompute{1};
+        u32 NumCopy{1};
+        u32 NumVideoEncode{0};
+        u32 NumVideoDecode{0};
+        u32 NumVideoProcess{0};
+    };
+
     struct FGpuIsolateCreateOptions
     {
         // 可选
         FStr8or16 Name{};
+        // 可选
+        FQueueConfig* QueueConfig{};
     };
 
     struct FGpuIsolateData
     {
         u64 FrameId{};
+        FQueueConfig* QueueConfig{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuIsolate, "777c5774-8eb8-4550-a977-62cccd7bdda6", FGpuObject)

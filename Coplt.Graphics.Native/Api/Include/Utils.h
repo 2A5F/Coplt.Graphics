@@ -12,6 +12,15 @@ namespace Coplt
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
 
+    template <class T>
+    using SRc = std::shared_ptr<T>;
+
+    template <class T, class... Args>
+    SRc<T> src(Args&&... args)
+    {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+
     // move or forward
     template <class T>
     std::remove_reference_t<T>&& fove(T&& a)

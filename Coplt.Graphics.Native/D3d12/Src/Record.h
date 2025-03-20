@@ -21,13 +21,16 @@ namespace Coplt
 
         struct ResUse
         {
-            u32 LastUse{};
+            // u32::max 表示没有来源
+            u32 FromUse{};
             u32 ResIndex{};
-            u32 CmdIndex{};
             D3D12_BARRIER_LAYOUT Layout{};
             D3D12_BARRIER_ACCESS Access{};
             FShaderStageFlags Stages{};
             ResUseType Type{};
+
+            bool IsReadCompatible(D3D12_BARRIER_LAYOUT Layout) const;
+            void MergeRead(D3D12_BARRIER_ACCESS Access, FShaderStageFlags Stages);
         };
 
         ResUseType GetUseType(D3D12_BARRIER_ACCESS access, ResUseType UavUse = ResUseType::ReadWrite);
@@ -37,17 +40,14 @@ namespace Coplt
             Rc<FUnknown> m_owner{};
             u32 m_res_index{};
 
-            u32 m_last_use{COPLT_U32_MAX};
-            u32 m_last_write_use{COPLT_U32_MAX};
-            u32 m_last_read_use_after_write{COPLT_U32_MAX};
+            u32 m_last_unique_use{COPLT_U32_MAX};
 
             ResInfo() = default;
 
             explicit ResInfo(Rc<FUnknown>&& resource, u32 res_index);
 
-            void MarkUse(
-                NonNull<D3d12GpuRecord> self, u32 index,
-                D3D12_BARRIER_ACCESS Access, D3D12_BARRIER_LAYOUT Layout,
+            u32 MarkUse(
+                NonNull<D3d12GpuRecord> self, D3D12_BARRIER_ACCESS Access, D3D12_BARRIER_LAYOUT Layout,
                 FShaderStageFlags Stages, ResUseType UavUse = ResUseType::ReadWrite
             );
         };
@@ -59,6 +59,7 @@ namespace Coplt
         using ResUse = Recording::ResUse;
         using ResInfo = Recording::ResInfo;
 
+        SRc<FQueueConfig> m_queue_config{};
         std::vector<ResInfo> m_resources{};
         std::vector<u32> m_outputs{};
         std::vector<ResUse> m_res_use{};

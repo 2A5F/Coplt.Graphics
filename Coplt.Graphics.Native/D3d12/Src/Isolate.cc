@@ -9,17 +9,75 @@ using namespace Coplt;
 D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCreateOptions& options)
     : FGpuIsolateData()
 {
+    m_queue_config = std::make_shared<FQueueConfig>(options.QueueConfig == nullptr ? FQueueConfig() : *options.QueueConfig);
+    this->QueueConfig = m_queue_config.get();
     m_waiting_record = box<RecordQueue>();
     m_record_pool = box<RecordQueue>();
     m_device = std::move(device);
+
+    #pragma region Create Queues
+
     m_main_queue = new D3d12GpuQueue2(this, FGpuQueueType::Direct);
-    m_back_queue = new D3d12GpuQueue2(this, FGpuQueueType::Compute);
-    m_copy_queue = new D3d12GpuQueue2(this, FGpuQueueType::Copy);
-    m_queues = {
-        FGpuQueueCreateResult{m_main_queue.get(), m_main_queue.get()},
-        FGpuQueueCreateResult{m_back_queue.get(), m_back_queue.get()},
-        FGpuQueueCreateResult{m_copy_queue.get(), m_copy_queue.get()},
-    };
+
+    m_direct_queues.reserve(m_queue_config->NumDirect);
+    for (u32 i = 0; i < m_queue_config->NumDirect; i++)
+    {
+        m_direct_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::Direct));
+    }
+    m_compute_queues.reserve(m_queue_config->NumCompute);
+    for (u32 i = 0; i < m_queue_config->NumCompute; i++)
+    {
+        m_compute_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::Compute));
+    }
+    m_copy_queues.reserve(m_queue_config->NumCopy);
+    for (u32 i = 0; i < m_queue_config->NumCopy; i++)
+    {
+        m_copy_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::Copy));
+    }
+    m_video_encode_queues.reserve(m_queue_config->NumVideoEncode);
+    for (u32 i = 0; i < m_queue_config->NumVideoEncode; i++)
+    {
+        m_video_encode_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::VideoEncode));
+    }
+    m_video_decode_queues.reserve(m_queue_config->NumVideoDecode);
+    for (u32 i = 0; i < m_queue_config->NumVideoDecode; i++)
+    {
+        m_video_decode_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::VideoDecode));
+    }
+    m_video_process_queues.reserve(m_queue_config->NumVideoProcess);
+    for (u32 i = 0; i < m_queue_config->NumVideoProcess; i++)
+    {
+        m_video_process_queues.push_back(new D3d12GpuQueue2(this, FGpuQueueType::VideoProcess));
+    }
+    m_queues.reserve(1 + m_queue_config->NumDirect + m_queue_config->NumCompute + m_queue_config->NumCopy
+        + m_queue_config->NumVideoEncode + m_queue_config->NumVideoDecode + m_queue_config->NumVideoProcess);
+    m_queues.push_back(FGpuQueueCreateResult{m_main_queue.get(), m_main_queue.get()});
+    for (auto& queue : m_direct_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+    for (auto& queue : m_compute_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+    for (auto& queue : m_copy_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+    for (auto& queue : m_video_encode_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+    for (auto& queue : m_video_decode_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+    for (auto& queue : m_video_process_queues)
+    {
+        m_queues.push_back(FGpuQueueCreateResult{queue.get(), queue.get()});
+    }
+
+    #pragma endregion
 
     m_event = CreateEventW(nullptr, false, false, nullptr);
     if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());

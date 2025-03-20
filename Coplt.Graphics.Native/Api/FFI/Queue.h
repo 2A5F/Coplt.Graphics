@@ -18,7 +18,9 @@ namespace Coplt
         Direct,
         Compute,
         Copy,
-        Video,
+        VideoEncode,
+        VideoDecode,
+        VideoProcess,
     };
 
     COPLT_INTERFACE_DEFINE(FGpuQueue, "95e60e28-e387-4055-9b33-2d23af901f8a", FGpuObject)

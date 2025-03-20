@@ -13,11 +13,16 @@ namespace Coplt
 {
     COPLT_INTERFACE_DEFINE(ID3d12GpuIsolate, "1c507c7f-140a-4717-809e-88096b475fea", FGpuIsolate)
     {
+        SRc<FQueueConfig> m_queue_config{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<D3d12GpuQueue2> m_main_queue{};
-        Rc<D3d12GpuQueue2> m_back_queue{};
-        Rc<D3d12GpuQueue2> m_copy_queue{};
-        std::array<FGpuQueueCreateResult, 3> m_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_direct_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_compute_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_copy_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_video_encode_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_video_decode_queues{};
+        std::vector<Rc<D3d12GpuQueue2>> m_video_process_queues{};
+        std::vector<FGpuQueueCreateResult> m_queues{};
         std::mutex m_mutex{};
     };
 

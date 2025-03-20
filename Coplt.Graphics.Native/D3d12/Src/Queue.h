@@ -69,9 +69,14 @@ namespace Coplt
             return D3D12_COMMAND_LIST_TYPE_COMPUTE;
         case FGpuQueueType::Copy:
             return D3D12_COMMAND_LIST_TYPE_COPY;
-        default:
-            return D3D12_COMMAND_LIST_TYPE_DIRECT;
+        case FGpuQueueType::VideoEncode:
+            return D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE;
+        case FGpuQueueType::VideoDecode:
+            return D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE;
+        case FGpuQueueType::VideoProcess:
+            return D3D12_COMMAND_LIST_TYPE_VIDEO_PROCESS;
         }
+        return D3D12_COMMAND_LIST_TYPE_DIRECT;
     }
 
     struct ID3d12GpuQueue;

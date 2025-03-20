@@ -3,6 +3,17 @@
 using namespace Coplt;
 using namespace Recording;
 
+bool ResUse::IsReadCompatible(const D3D12_BARRIER_LAYOUT Layout) const
+{
+    return Type == ResUseType::Read && this->Layout == Layout;
+}
+
+void ResUse::MergeRead(const D3D12_BARRIER_ACCESS Access, const FShaderStageFlags Stages)
+{
+    this->Access |= Access;
+    this->Stages |= Stages;
+}
+
 ResUseType Recording::GetUseType(const D3D12_BARRIER_ACCESS access, const ResUseType UavUse)
 {
     if (access & D3D12_BARRIER_ACCESS_NO_ACCESS) return ResUseType::None;
@@ -23,44 +34,46 @@ ResInfo::ResInfo(Rc<FUnknown>&& resource, const u32 res_index) : m_owner(std::mo
 {
 }
 
-void ResInfo::MarkUse(
-    const NonNull<D3d12GpuRecord> self, const u32 index,
-    const D3D12_BARRIER_ACCESS Access, const D3D12_BARRIER_LAYOUT Layout,
+u32 ResInfo::MarkUse(
+    const NonNull<D3d12GpuRecord> self, const D3D12_BARRIER_ACCESS Access, const D3D12_BARRIER_LAYOUT Layout,
     const FShaderStageFlags Stages, const ResUseType UavUse
 )
 {
     const auto use_type = GetUseType(Access, UavUse);
-    ResUse use{};
-    use.ResIndex = m_res_index;
-    use.CmdIndex = index;
-    use.Layout = Layout;
-    use.Access = Access;
-    use.Stages = Stages;
-    use.Type = use_type;
-    const auto cur = self->m_res_use.size();
     switch (use_type)
     {
     case ResUseType::None:
     case ResUseType::Write:
     case ResUseType::ReadWrite:
-        use.LastUse = m_last_use;
-        m_last_write_use = cur;
-        break;
+        goto Add;
     case ResUseType::Read:
-        use.LastUse = std::max(m_last_read_use_after_write, m_last_write_use);
-        if (m_last_write_use > m_last_read_use_after_write)
-        {
-            m_last_read_use_after_write = cur;
-        }
-        break;
+        if (m_last_unique_use == COPLT_U32_MAX) goto Add;
+        goto TryMerge;
     }
-    m_last_use = cur;
+    COPLT_THROW_FMT("Unknown ResUseType {}", static_cast<u32>(use_type));
+Add:
+    ResUse use{};
+    use.FromUse = m_last_unique_use;
+    use.ResIndex = m_res_index;
+    use.Layout = Layout;
+    use.Access = Access;
+    use.Stages = Stages;
+    use.Type = use_type;
+    const auto cur = self->m_res_use.size();
+    m_last_unique_use = cur;
     self->m_res_use.push_back(use);
+    return cur;
+TryMerge:
+    auto& last = self->m_res_use[m_last_unique_use];
+    if (!last.IsReadCompatible(Layout)) goto Add;
+    last.MergeRead(Access, Stages);
+    return m_last_unique_use;
 }
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()), m_device(isolate->m_device)
 {
+    m_queue_config = isolate->m_queue_config;
     m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
     m_context = new D3d12RecordContext(isolate);
@@ -183,5 +196,5 @@ void D3d12GpuRecord::Analyze()
 void D3d12GpuRecord::Analyze_ClearColor(u32 i, const FCmdClearColor& cmd)
 {
     const auto [meta, info] = Get(cmd.Image);
-    info->MarkUse(this, i, D3D12_BARRIER_ACCESS_RENDER_TARGET, D3D12_BARRIER_LAYOUT_RENDER_TARGET, FShaderStageFlags::None);
+    const auto use = info->MarkUse(this, D3D12_BARRIER_ACCESS_RENDER_TARGET, D3D12_BARRIER_LAYOUT_RENDER_TARGET, FShaderStageFlags::None);
 }

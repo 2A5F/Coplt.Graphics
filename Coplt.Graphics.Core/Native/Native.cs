@@ -1355,16 +1355,43 @@ namespace Coplt.Graphics.Native
         public FGpuRecordData* Data;
     }
 
-    public partial struct FGpuIsolateCreateOptions
+    public partial struct FQueueConfig
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint NumDirect;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumCompute;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumCopy;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumVideoEncode;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumVideoDecode;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumVideoProcess;
+    }
+
+    public unsafe partial struct FGpuIsolateCreateOptions
     {
         [NativeTypeName("Coplt::FStr8or16")]
         public FStr8or16 Name;
+
+        [NativeTypeName("Coplt::FQueueConfig *")]
+        public FQueueConfig* QueueConfig;
     }
 
-    public partial struct FGpuIsolateData
+    public unsafe partial struct FGpuIsolateData
     {
         [NativeTypeName("Coplt::u64")]
         public ulong FrameId;
+
+        [NativeTypeName("Coplt::FQueueConfig *")]
+        public FQueueConfig* QueueConfig;
     }
 
     [Guid("777C5774-8EB8-4550-A977-62CCCD7BDDA6")]
@@ -1717,7 +1744,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L117_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L122_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2510,7 +2537,9 @@ namespace Coplt.Graphics.Native
         Direct,
         Compute,
         Copy,
-        Video,
+        VideoEncode,
+        VideoDecode,
+        VideoProcess,
     }
 
     [Guid("95E60E28-E387-4055-9B33-2D23AF901F8A")]

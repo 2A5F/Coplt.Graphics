@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
@@ -21,6 +22,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
     internal ref readonly FGpuIsolateData Data => ref *m_data;
     public ReadOnlySpan<GpuQueue2> Queues => m_queues;
     public FrameId FrameId => new(Data.FrameId);
+    public ref readonly QueueConfig QueueConfig => ref Unsafe.As<FQueueConfig, QueueConfig>(ref *m_data->QueueConfig);
 
     #endregion
 

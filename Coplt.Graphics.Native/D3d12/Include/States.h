@@ -122,7 +122,9 @@ namespace Coplt
                 break;
             case FGpuQueueType::Copy:
                 break;
-            case FGpuQueueType::Video:
+            case FGpuQueueType::VideoEncode:
+            case FGpuQueueType::VideoDecode:
+            case FGpuQueueType::VideoProcess:
                 switch (value)
                 {
                 case FResLayout::Common:
