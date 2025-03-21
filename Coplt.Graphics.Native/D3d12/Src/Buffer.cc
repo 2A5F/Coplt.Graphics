@@ -75,6 +75,11 @@ FGpuBufferData* D3d12GpuBuffer::GpuBufferData() noexcept
     return this;
 }
 
+NonNull<FGpuBufferData> D3d12GpuBuffer::Data()
+{
+    return this;
+}
+
 void* D3d12GpuBuffer::GetRawResourcePtr() noexcept
 {
     return GetResourcePtr();

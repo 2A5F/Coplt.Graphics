@@ -565,7 +565,7 @@ void D3d12CommandInterpreter::BufferImageCopy(const FCommandSubmit& submit, u32 
     if (image_obj_may == nullptr)
         COPLT_THROW_FMT("Image is null or resource is not image at command {}", i);
     const NonNull image_obj = image_obj_may;
-    const auto image_data = image_obj->GetDataPtr();
+    const auto image_data = image_obj->Data();
     const auto IsDsOrYCbCr = IsDepthStencil(image_data->m_format) || IsYCbCr(image_data->m_format);
     auto bytes_per_row = range.BytesPerRow;
     auto rows_per_image = range.RowsPerImage;

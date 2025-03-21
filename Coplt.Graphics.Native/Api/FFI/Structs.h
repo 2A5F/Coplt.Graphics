@@ -27,4 +27,11 @@ namespace Coplt
         FRect Rect;
         FViewport Viewport;
     };
+
+    COPLT_ENUM_FLAGS(FDepthStencilClearFlags, u8)
+    {
+        None = 0,
+        Depth = 1,
+        Stencil = 2,
+    };
 }

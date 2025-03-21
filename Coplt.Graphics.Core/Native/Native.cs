@@ -54,6 +54,14 @@ namespace Coplt.Graphics.Native
         public FViewport Viewport;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FDepthStencilClearFlags : byte
+    {
+        None = 0,
+        Depth = 1,
+        Stencil = 2,
+    }
+
     public unsafe partial struct FObject : FObject.Interface
     {
         public void** lpVtbl;
@@ -1561,7 +1569,9 @@ namespace Coplt.Graphics.Native
 
         public FList<FCmdRes> Resources;
 
-        public FList<FOrRectViewport> Payload;
+        public FList<FRect> PayloadRect;
+
+        public FList<FViewport> PayloadViewport;
 
         [NativeTypeName("FList<u8>")]
         public FList<byte> Blob;
@@ -1584,7 +1594,8 @@ namespace Coplt.Graphics.Native
         ClearDepthStencil,
     }
 
-    public enum FCmdResType
+    [NativeTypeName("Coplt::u8")]
+    public enum FCmdResType : byte
     {
         Image,
         Buffer,
@@ -1593,7 +1604,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L31_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L47_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -1742,9 +1753,33 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    [NativeTypeName("struct FCmdClearDepthStencil : Coplt::FCmdBase")]
+    public partial struct FCmdClearDepthStencil
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint RectIndex;
+
+        [NativeTypeName("Coplt::FCmdResRef")]
+        public FCmdResRef Image;
+
+        [NativeTypeName("Coplt::f32")]
+        public float Depth;
+
+        [NativeTypeName("Coplt::u8")]
+        public byte Stencil;
+
+        [NativeTypeName("Coplt::FDepthStencilClearFlags")]
+        public FDepthStencilClearFlags Clear;
+    }
+
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L122_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L151_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -1798,6 +1833,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCmdClearDepthStencil ClearDepthStencil
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.ClearDepthStencil;
+            }
+        }
+
+        [UnscopedRef]
         public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1829,6 +1874,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdClearColor")]
             public FCmdClearColor ClearColor;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdClearDepthStencil")]
+            public FCmdClearDepthStencil ClearDepthStencil;
 
             [FieldOffset(0)]
             [NativeTypeName("u8[32]")]
@@ -4583,14 +4632,6 @@ namespace Coplt.Graphics.Native
         }
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FDepthStencilClearFlags : byte
-    {
-        None = 0,
-        Depth = 1,
-        Stencil = 2,
-    }
-
     public partial struct FUploadLoc
     {
         [NativeTypeName("Coplt::u32")]
@@ -5191,7 +5232,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L510_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L503_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5417,7 +5458,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L541_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L534_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5601,7 +5642,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L566_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L559_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

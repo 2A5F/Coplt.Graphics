@@ -23,7 +23,8 @@ namespace Coplt
         FList<FCmdItem> Commands;
         // 需要保证不重复，c# 部分需要使用 HashMap 去重
         FList<FCmdRes> Resources;
-        FList<FOrRectViewport> Payload;
+        FList<FRect> PayloadRect;
+        FList<FViewport> PayloadViewport;
         FList<u8> Blob;
         // 统计不重复的 Output 数量
         usize OutputCount{};
@@ -31,7 +32,7 @@ namespace Coplt
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), Payload(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator), Blob(allocator)
         {
         }
 
@@ -39,7 +40,8 @@ namespace Coplt
         {
             Commands.Clear();
             Resources.Clear();
-            Payload.Clear();
+            PayloadRect.Clear();
+            PayloadViewport.Clear();
             Blob.Clear();
             OutputCount = 0;
         }

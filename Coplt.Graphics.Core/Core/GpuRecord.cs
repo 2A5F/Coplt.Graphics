@@ -95,21 +95,19 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     internal uint AddRects(ReadOnlySpan<URect> Rects)
     {
-        var len = Data.Payload.LongLength;
+        var len = Data.PayloadRect.LongLength;
         if (len >= uint.MaxValue) throw new IndexOutOfRangeException("Payload >= uint32 max are not supported");
-        Data.Payload.EnsureCap(len + (uint)Rects.Length);
+        Data.PayloadRect.EnsureCap(len + (uint)Rects.Length);
         foreach (var rect in Rects)
         {
-            Data.Payload.Add(
+            // todo add range
+            Data.PayloadRect.Add(
                 new()
                 {
-                    Rect = new()
-                    {
-                        Left = rect.Left,
-                        Top = rect.Top,
-                        Right = rect.Right,
-                        Bottom = rect.Bottom,
-                    }
+                    Left = rect.Left,
+                    Top = rect.Top,
+                    Right = rect.Right,
+                    Bottom = rect.Bottom,
                 }
             );
         }

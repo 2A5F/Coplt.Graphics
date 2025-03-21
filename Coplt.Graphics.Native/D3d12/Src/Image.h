@@ -15,8 +15,8 @@ namespace Coplt
 {
     COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage)
     {
+        virtual NonNull<FGpuImageData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
-        virtual NonNull<FGpuImageData> GetDataPtr() noexcept = 0;
     };
 
     struct D3d12GpuImage final : GpuObject<D3d12GpuImage, ID3d12GpuImage>, FGpuImageData
@@ -34,7 +34,7 @@ namespace Coplt
         FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuImageData* GpuImageData() noexcept override;
-        NonNull<FGpuImageData> GetDataPtr() noexcept override;
+        NonNull<FGpuImageData> Data() override;
 
         void* GetRawResourcePtr() noexcept override;
         NonNull<ID3D12Resource> GetResourcePtr() override;

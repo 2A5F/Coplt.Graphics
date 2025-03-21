@@ -123,9 +123,9 @@ FGpuImageData* D3d12GpuImage::GpuImageData() noexcept
     return this;
 }
 
-NonNull<FGpuImageData> D3d12GpuImage::GetDataPtr() noexcept
+NonNull<FGpuImageData> D3d12GpuImage::Data()
 {
-    return NonNull<FGpuImageData>::Unchecked(this);
+    return this;
 }
 
 void* D3d12GpuImage::GetRawResourcePtr() noexcept

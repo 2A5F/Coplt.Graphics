@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Output.h"
 #include "Queue.h"
 #include "../../Api/FFI/Output.h"
 #include "../../Api/Include/GpuObject.h"
@@ -32,8 +33,10 @@ namespace Coplt
         b8 m_debug_enabled{};
     };
 
-    struct D3d12GpuSwapChain final : GpuObject<FGpuSwapChain, ID3d12GpuSwapChain>, FGpuSwapChainData
+    struct D3d12GpuSwapChain final : GpuObject<FGpuSwapChain, ID3d12GpuSwapChain, ID3d12GpuOutput2>, FGpuSwapChainData
     {
+        FGpuImageData m_image_data{};
+
     private:
         explicit D3d12GpuSwapChain(
             NonNull<D3d12GpuIsolate> isolate, const FGpuOutput2CreateOptions& options,
@@ -56,6 +59,11 @@ namespace Coplt
         const FGpuOutputData* GpuOutputData() noexcept override;
         const FGpuSwapChainData* GpuSwapChainData() noexcept override;
         FGpuIsolate* GetIsolate() noexcept override;
+
+        NonNull<FGpuOutputData> Data() override;
+        NonNull<FGpuImageData> ImageData() override;
+        NonNull<ID3D12Resource> GetResourcePtr() override;
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv() override;
 
         FResult Resize(u32 Width, u32 Height) noexcept override;
         FResult SetVSync(b8 Enable) noexcept override;

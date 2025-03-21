@@ -19,12 +19,28 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    enum class FCmdResType
+    enum class FCmdResType : u8
     {
         Image,
         Buffer,
         Output,
     };
+
+    #ifdef FFI_SRC
+    inline bool IsBuffer(const FCmdResType Type)
+    {
+        switch (Type)
+        {
+        case FCmdResType::Image:
+            return false;
+        case FCmdResType::Buffer:
+            return true;
+        case FCmdResType::Output:
+            return false;
+        }
+        return false;
+    }
+    #endif
 
     struct FCmdRes
     {
@@ -64,7 +80,8 @@ namespace Coplt
         FCmdRes& Get(FList<FCmdRes>& list) const
         {
             const auto index = IndexPlusOne - 1;
-            if (index > list.m_len) COPLT_THROW("Index out of range");
+            if (index > list.m_len)
+                COPLT_THROW("Index out of range");
             return list[index];
         }
         #endif
@@ -109,10 +126,22 @@ namespace Coplt
     {
         // 有多少个 Rect
         u32 RectCount{};
-        // Payload 中的 Index, 类型为 Rect
+        // Payload 中的索引, 类型为 FRect
         u32 RectIndex{};
         FCmdResRef Image{};
         f32 Color[4]{};
+    };
+
+    struct FCmdClearDepthStencil : FCmdBase
+    {
+        // 有多少个 Rect
+        u32 RectCount{};
+        // Payload 内的索引, 类型为 FRect
+        u32 RectIndex{};
+        FCmdResRef Image{};
+        f32 Depth{};
+        u8 Stencil{};
+        FDepthStencilClearFlags Clear{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +157,7 @@ namespace Coplt
             FCmdEndScope EndScope;
 
             FCmdClearColor ClearColor;
+            FCmdClearDepthStencil ClearDepthStencil;
 
             u8 _pad[32];
         };

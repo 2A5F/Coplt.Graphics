@@ -14,6 +14,7 @@ namespace Coplt
 {
     COPLT_INTERFACE_DEFINE(ID3d12GpuBuffer, "6edf3bc5-dfc7-461a-ab6b-0e5f5a9d71e7", FD3d12GpuBuffer)
     {
+        virtual NonNull<FGpuBufferData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
     };
 
@@ -33,6 +34,7 @@ namespace Coplt
         FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuBufferData* GpuBufferData() noexcept override;
+        NonNull<FGpuBufferData> Data() override;
 
         void* GetRawResourcePtr() noexcept override;
         NonNull<ID3D12Resource> GetResourcePtr() override;

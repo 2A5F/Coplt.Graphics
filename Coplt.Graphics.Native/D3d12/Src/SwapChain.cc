@@ -53,6 +53,16 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
     this->Height = desc.Height;
     m_frame_count = desc.BufferCount;
 
+    m_image_data.m_format = this->Format;
+    m_image_data.m_width = this->Width;
+    m_image_data.m_height = this->Height;
+    m_image_data.m_depth_or_length = 1;
+    m_image_data.m_mip_levels = 1;
+    m_image_data.m_multisample_count = 1;
+    m_image_data.m_planes = 1;
+    m_image_data.m_dimension = FImageDimension::Two;
+    m_image_data.m_layout = FImageLayout::Undefined;
+
     Initialize();
 }
 
@@ -205,6 +215,28 @@ FGpuIsolate* D3d12GpuSwapChain::GetIsolate() noexcept
     return m_isolate.get();
 }
 
+NonNull<FGpuOutputData> D3d12GpuSwapChain::Data()
+{
+    return this;
+}
+
+NonNull<FGpuImageData> D3d12GpuSwapChain::ImageData()
+{
+    return &m_image_data;
+}
+
+NonNull<ID3D12Resource> D3d12GpuSwapChain::GetResourcePtr()
+{
+    return m_buffers[m_frame_index].Get();
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE D3d12GpuSwapChain::GetRtv()
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(m_rtv_heap->GetCPUDescriptorHandleForHeapStart());
+    rtv_handle.Offset(static_cast<i32>(m_frame_index), m_rtv_descriptor_size);
+    return rtv_handle;
+}
+
 FResult D3d12GpuSwapChain::Resize(const u32 Width, const u32 Height) noexcept
 {
     return feb([&]
@@ -300,8 +332,8 @@ void D3d12GpuSwapChain::ResizeNoLock(const u32 width, const u32 height)
     chr | m_swap_chain->ResizeBuffers(m_frame_count, width, height, ToDx(this->Format), 0);
     CreateRts();
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-    this->Width = width;
-    this->Height = height;
+    m_image_data.m_width = this->Width = width;
+    m_image_data.m_height = this->Height = height;
 }
 
 void D3d12GpuSwapChain::WaitAll()

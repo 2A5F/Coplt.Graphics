@@ -299,7 +299,7 @@ namespace Coplt
         return r;
     }
 
-    template<Fn<void, D3D12_CLEAR_VALUE&> F>
+    template <Fn<void, D3D12_CLEAR_VALUE&> F>
     inline D3D12_RENDER_PASS_BEGINNING_ACCESS ToDx(const FLoadOp load, F SetClearValue)
     {
         D3D12_RENDER_PASS_BEGINNING_ACCESS acc{};
@@ -322,7 +322,7 @@ namespace Coplt
         return acc;
     }
 
-    template<Fn<void, D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS&> F>
+    template <Fn<void, D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS&> F>
     D3D12_RENDER_PASS_ENDING_ACCESS ToDx(const FStoreOp store, F SetResolve)
     {
         D3D12_RENDER_PASS_ENDING_ACCESS acc{};
