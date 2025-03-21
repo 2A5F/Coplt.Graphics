@@ -2,6 +2,7 @@
 
 #include "Record.h"
 #include "SwapChain.h"
+#include "Context.h"
 #include "../../Api/FFI/Record.h"
 
 using namespace Coplt;
@@ -78,6 +79,8 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
     }
 
     #pragma endregion
+
+    m_cmd_alloc_pool = new D3d12CommandListPoolCluster(m_device);
 
     m_event = CreateEventW(nullptr, false, false, nullptr);
     if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());

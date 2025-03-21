@@ -1560,6 +1560,14 @@ namespace Coplt.Graphics.Native
         public uint NumQueues;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FGpuRecordMode : byte
+    {
+        Direct = 0,
+        Compute = 1,
+        Copy = 2,
+    }
+
     public unsafe partial struct FGpuRecordData
     {
         [NativeTypeName("Coplt::FRecordContext *")]
@@ -1576,11 +1584,11 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("FList<u8>")]
         public FList<byte> Blob;
 
-        [NativeTypeName("Coplt::usize")]
-        public nuint OutputCount;
-
         [NativeTypeName("Coplt::b8")]
         public B8 Ended;
+
+        [NativeTypeName("Coplt::FGpuRecordMode")]
+        public FGpuRecordMode Mode;
     }
 
     [NativeTypeName("Coplt::u32")]

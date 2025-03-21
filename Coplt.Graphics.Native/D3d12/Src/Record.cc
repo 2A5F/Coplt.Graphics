@@ -63,6 +63,7 @@ void D3d12GpuRecord::WaitAndRecycle(const HANDLE event)
 void D3d12GpuRecord::Recycle()
 {
     m_queue_wait_points.clear();
+    m_list = {};
     m_context->Recycle();
     m_resources_owner.clear();
     ClearData();
@@ -96,6 +97,7 @@ void D3d12GpuRecord::DoEnd()
         m_resources_owner.push_back(Rc<FUnknown>::UnsafeClone(res.GetObjectPtr()));
     }
     Analyze();
+    Interpret();
     Ended = true;
 }
 
@@ -106,10 +108,19 @@ FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
 
 void D3d12GpuRecord::Analyze()
 {
-    m_barrier_analyzer->Analyzer(NonNull<D3d12GpuRecord>::Unchecked(this));
+    m_barrier_analyzer->Analyzer(this);
 }
 
-void D3d12GpuRecord::Interpret(const CmdListPack& clp, const u32 cmd_index, const u32 cmd_count)
+void D3d12GpuRecord::Interpret()
+{
+    auto allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(ToListType(Mode));
+    m_list = allocator.RentCommandList();
+    m_context->m_recycled_command_allocators.push_back(std::move(allocator));
+    m_barrier_analyzer->Interpret(this);
+    m_list->Close();
+}
+
+void D3d12GpuRecord::Interpret(const u32 cmd_index, const u32 cmd_count)
 {
     const auto commands = Commands.AsSpan();
     for (u32 n = 0; n < cmd_count; ++n)
@@ -130,31 +141,31 @@ void D3d12GpuRecord::Interpret(const CmdListPack& clp, const u32 cmd_index, cons
             // todo
             continue;
         case FCmdType::ClearColor:
-            Interpret_ClearColor(clp, i, command.ClearColor);
+            Interpret_ClearColor(i, command.ClearColor);
             continue;
         case FCmdType::ClearDepthStencil:
-            Interpret_ClearDepthStencil(clp, i, command.ClearDepthStencil);
+            Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
             continue;
         }
     }
 }
 
-void D3d12GpuRecord::Interpret_ClearColor(const CmdListPack& clp, u32 i, const FCmdClearColor& cmd)
+void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
 {
     const auto rtv = GetRtv(GetRes(cmd.Image));
-    clp->ClearRenderTargetView(
+    m_list->g0->ClearRenderTargetView(
         rtv, cmd.Color, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
 }
 
-void D3d12GpuRecord::Interpret_ClearDepthStencil(const CmdListPack& clp, u32 i, const FCmdClearDepthStencil& cmd)
+void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd)
 {
     const auto dsv = GetDsv(GetRes(cmd.Image));
     D3D12_CLEAR_FLAGS flags{};
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Depth)) flags |= D3D12_CLEAR_FLAG_DEPTH;
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Stencil)) flags |= D3D12_CLEAR_FLAG_STENCIL;
-    clp->ClearDepthStencilView(
+    m_list->g0->ClearDepthStencilView(
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
@@ -337,8 +348,23 @@ void D3d12BarrierAnalyzer::Analyze_ClearDepthStencil(const u32 i, const FCmdClea
     MarkUse(info, D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE, D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE, D3D12_BARRIER_SYNC_DEPTH_STENCIL);
 }
 
-void D3d12BarrierAnalyzer::Interpret(NonNull<D3d12GpuRecord> record, CmdListPack& cmd)
+void D3d12BarrierAnalyzer::Interpret(NonNull<D3d12GpuRecord> record)
 {
+    for (auto& part : m_parts)
+    {
+        switch (part.Type)
+        {
+        case PartType::Cmd:
+            record->Interpret(part.Cmd.Index, part.Cmd.Count);
+            break;
+        case PartType::BarrierBegin:
+            // todo
+            break;
+        case PartType::BarrierEnd:
+            // todo
+            break;
+        }
+    }
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
@@ -443,4 +469,18 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetDsv(const FCmdRes& res)
         }
     }
     COPLT_THROW("Unreachable");
+}
+
+D3D12_COMMAND_LIST_TYPE Coplt::ToListType(const FGpuRecordMode value)
+{
+    switch (value)
+    {
+    case FGpuRecordMode::Direct:
+        return D3D12_COMMAND_LIST_TYPE_DIRECT;
+    case FGpuRecordMode::Compute:
+        return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+    case FGpuRecordMode::Copy:
+        return D3D12_COMMAND_LIST_TYPE_COPY;
+    }
+    return D3D12_COMMAND_LIST_TYPE_DIRECT;
 }

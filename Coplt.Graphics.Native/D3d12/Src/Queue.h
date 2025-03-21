@@ -82,18 +82,6 @@ namespace Coplt
     struct ID3d12GpuQueue;
     struct D3d12GpuQueue2;
 
-    // 必须等待队列 fence 完成才能析构，或者可以 move 走
-    struct RentedCommandAllocator final
-    {
-        Rc<D3d12GpuQueue2> m_queue{};
-        ComPtr<ID3D12CommandAllocator> m_command_allocator{};
-
-        RentedCommandAllocator() = default;
-        explicit RentedCommandAllocator(Rc<D3d12GpuQueue2>&& queue, ComPtr<ID3D12CommandAllocator>&& command_allocator);
-
-        ~RentedCommandAllocator();
-    };
-
     struct QueueWaitPoint final
     {
         Rc<ID3d12GpuQueue> m_queue{};
@@ -118,16 +106,10 @@ namespace Coplt
         virtual u64 SignalNoLock() = 0;
 
         virtual void WaitFenceValue(u64 fence_value, HANDLE event) = 0;
-        virtual RentedCommandAllocator RentCommandAllocator() = 0;
-        virtual void ReturnCommandAllocator(ComPtr<ID3D12CommandAllocator>&& command_allocator) = 0;
     };
 
     struct D3d12GpuQueue2 final : GpuObject<D3d12GpuQueue2, ID3d12GpuQueue>, FGpuQueueData
     {
-        using CommandAllocatorConcurrentQueue = moodycamel::ConcurrentQueue<ComPtr<ID3D12CommandAllocator>>;
-
-        Box<CommandAllocatorConcurrentQueue> m_command_allocator_pool{};
-
         explicit D3d12GpuQueue2(NonNull<D3d12GpuIsolate> isolate, FGpuQueueType type);
 
         FGpuQueueData* GpuQueueData() noexcept override;
@@ -139,8 +121,5 @@ namespace Coplt
         u64 SignalNoLock() override;
 
         void WaitFenceValue(u64 fence_value, HANDLE event) override;
-
-        RentedCommandAllocator RentCommandAllocator() override;
-        void ReturnCommandAllocator(ComPtr<ID3D12CommandAllocator>&& command_allocator) override;
     };
 } // Coplt

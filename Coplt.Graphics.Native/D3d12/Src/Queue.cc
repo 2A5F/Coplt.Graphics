@@ -138,17 +138,6 @@ FResult D3d12GpuQueue::SubmitNoWait(FGpuExecutor* Executor, const FCommandSubmit
     });
 }
 
-RentedCommandAllocator::RentedCommandAllocator(Rc<D3d12GpuQueue2>&& queue, ComPtr<ID3D12CommandAllocator>&& command_allocator)
-    : m_queue(std::move(queue)), m_command_allocator(std::move(command_allocator))
-{
-}
-
-RentedCommandAllocator::~RentedCommandAllocator()
-{
-    if (!m_queue) return;
-    m_queue->ReturnCommandAllocator(std::move(m_command_allocator));
-}
-
 QueueWaitPoint::QueueWaitPoint(Rc<ID3d12GpuQueue>&& queue, const u64 fence_value) : m_queue(std::move(queue)), m_fence_value(fence_value)
 {
 }
@@ -161,8 +150,6 @@ void QueueWaitPoint::Wait(const HANDLE event) const
 D3d12GpuQueue2::D3d12GpuQueue2(const NonNull<D3d12GpuIsolate> isolate, const FGpuQueueType type)
     : FGpuQueueData()
 {
-    m_command_allocator_pool = box<CommandAllocatorConcurrentQueue>();
-
     m_device = isolate->m_device;
     QueueType = type;
     const NonNull device = m_device->m_device.Get();
@@ -237,22 +224,4 @@ void D3d12GpuQueue2::WaitFenceValue(u64 fence_value, HANDLE event)
         chr | m_fence->SetEventOnCompletion(fence_value, event);
         WaitForSingleObject(event, INFINITE);
     }
-}
-
-RentedCommandAllocator D3d12GpuQueue2::RentCommandAllocator()
-{
-    ComPtr<ID3D12CommandAllocator> command_allocator{};
-    if (!m_command_allocator_pool->try_dequeue(command_allocator))
-    {
-        chr | m_device->m_device->CreateCommandAllocator(
-            ToDx(this->QueueType), IID_PPV_ARGS(&command_allocator)
-        );
-    }
-    return RentedCommandAllocator(this->CloneThis(), std::move(command_allocator));
-}
-
-void D3d12GpuQueue2::ReturnCommandAllocator(ComPtr<ID3D12CommandAllocator>&& command_allocator)
-{
-    chr | command_allocator->Reset();
-    m_command_allocator_pool->enqueue(std::move(command_allocator));
 }

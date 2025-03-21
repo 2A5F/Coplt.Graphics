@@ -83,7 +83,6 @@ public sealed unsafe class GpuRecord : IsolateChild
             var len = Data.Resources.LongLength;
             if (len + 1 >= uint.MaxValue) throw new IndexOutOfRangeException("Resources >= uint32 max are not supported");
             slot = (uint)len;
-            if (resource is GpuOutput) Data.OutputCount++;
             Data.Resources.Add(resource.IntoCmd());
         }
         return new() { IndexPlusOne = slot + 1 };

@@ -11,6 +11,7 @@
 
 namespace Coplt
 {
+    struct D3d12CommandListPoolCluster;
     COPLT_INTERFACE_DEFINE(ID3d12GpuIsolate, "1c507c7f-140a-4717-809e-88096b475fea", FGpuIsolate)
     {
         SRc<FQueueConfig> m_queue_config{};
@@ -35,6 +36,7 @@ namespace Coplt
         HANDLE m_event{};
         Box<RecordQueue> m_waiting_record{};
         Box<RecordQueue> m_record_pool{};
+        Rc<D3d12CommandListPoolCluster> m_cmd_alloc_pool{};
         std::binary_semaphore m_waiting_signal{0};
         std::thread m_wait_thread{};
         std::atomic_bool m_exited{false};

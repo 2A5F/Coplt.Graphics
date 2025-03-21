@@ -56,6 +56,7 @@ namespace Coplt
         u64 m_record_id{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<D3d12RecordContext> m_context{};
+        D3d12RentedCommandList m_list{};
 
         explicit D3d12GpuRecord(NonNull<D3d12GpuIsolate> isolate);
 
@@ -74,10 +75,11 @@ namespace Coplt
         FCmdRes& GetRes(const FCmdResRef& ref);
 
         void Analyze();
-        void Interpret(const CmdListPack& clp, u32 cmd_index, u32 cmd_count);
+        void Interpret();
+        void Interpret(u32 cmd_index, u32 cmd_count);
 
-        void Interpret_ClearColor(const CmdListPack& clp, u32 i, const FCmdClearColor& cmd);
-        void Interpret_ClearDepthStencil(const CmdListPack& clp, u32 i, const FCmdClearDepthStencil& cmd);
+        void Interpret_ClearColor(u32 i, const FCmdClearColor& cmd);
+        void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
     };
 
     COPLT_INTERFACE_DEFINE(I3d12BarrierAnalyzer, "80086589-a583-41de-9aec-205afc022cd9", FUnknown)
@@ -90,7 +92,7 @@ namespace Coplt
 
         virtual void Recycle() = 0;
         virtual void Analyzer(NonNull<D3d12GpuRecord> record) = 0;
-        virtual void Interpret(NonNull<D3d12GpuRecord> record, CmdListPack& cmd) = 0;
+        virtual void Interpret(NonNull<D3d12GpuRecord> record) = 0;
     };
 
     struct D3d12BarrierAnalyzer final : Object<D3d12BarrierAnalyzer, I3d12BarrierAnalyzer>
@@ -185,7 +187,7 @@ namespace Coplt
         void Analyze_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
 
     public:
-        void Interpret(NonNull<D3d12GpuRecord> record, CmdListPack& cmd) override;
+        void Interpret(NonNull<D3d12GpuRecord> record) override;
     };
 
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
@@ -193,4 +195,6 @@ namespace Coplt
     NonNull<FGpuImageData> GetImageData(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetDsv(const FCmdRes& res);
+
+    D3D12_COMMAND_LIST_TYPE ToListType(const FGpuRecordMode value);
 }

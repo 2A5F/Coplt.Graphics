@@ -6,6 +6,13 @@
 
 namespace Coplt
 {
+    enum class FGpuRecordMode : u8
+    {
+        Direct = 0,
+        Compute = 1,
+        Copy = 2,
+    };
+
     struct FGpuRecordData;
 
     COPLT_INTERFACE_DEFINE(FGpuRecord, "0ef83584-ca65-44de-b38a-648bfb3a85a6", FGpuObject)
@@ -26,9 +33,8 @@ namespace Coplt
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
         FList<u8> Blob;
-        // 统计不重复的 Output 数量
-        usize OutputCount{};
         b8 Ended{};
+        FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
@@ -43,7 +49,6 @@ namespace Coplt
             PayloadRect.Clear();
             PayloadViewport.Clear();
             Blob.Clear();
-            OutputCount = 0;
         }
         #endif
     };
@@ -53,6 +58,4 @@ namespace Coplt
         FGpuRecord* Record{};
         FGpuRecordData* Data{};
     };
-
-
 }
