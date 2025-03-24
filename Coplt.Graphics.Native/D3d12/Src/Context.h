@@ -126,6 +126,10 @@ namespace Coplt
 
         explicit D3d12CommandList(const D3d12RentedCommandAllocator& allocator);
 
+    private:
+        friend struct D3d12RentedCommandList;
+        friend struct D3d12RentedCommandAllocator;
+
         void Reset(const D3d12RentedCommandAllocator& allocator) const;
         void Close() const;
     };
@@ -149,6 +153,8 @@ namespace Coplt
         D3d12CommandList& operator*() const noexcept;
 
         operator bool() const noexcept;
+
+        void Close();
     };
 
     // 必须等待队列 fence 完成才能析构，或者可以 move 走
@@ -157,6 +163,7 @@ namespace Coplt
         Rc<D3d12CommandPool> m_pool{};
         ComPtr<ID3D12CommandAllocator> m_allocator{};
 
+        D3d12RentedCommandAllocator() = default;
         explicit D3d12RentedCommandAllocator(const Rc<D3d12CommandPool>& pool, ComPtr<ID3D12CommandAllocator>&& allocator);
         ~D3d12RentedCommandAllocator();
 
@@ -167,5 +174,7 @@ namespace Coplt
         D3d12RentedCommandAllocator& operator=(const D3d12RentedCommandAllocator&) = delete;
 
         D3d12RentedCommandList RentCommandList() const;
+
+        operator bool() const noexcept;
     };
 }

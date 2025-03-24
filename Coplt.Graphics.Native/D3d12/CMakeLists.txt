@@ -61,7 +61,12 @@ add_library(${target_name} SHARED
     Src/Record.cc
     Src/SwapChain.h
     Src/SwapChain.cc
-    Include/Access.h
+    Src/Barrier.h
+    Src/Barrier.cc
+    Include/ResState.h
+    Src/ResState.cc
+    Src/RecordStorage.h
+    Src/RecordStorage.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

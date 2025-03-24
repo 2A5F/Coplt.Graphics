@@ -3,31 +3,15 @@
 #include "Output.h"
 
 using namespace Coplt;
-using namespace Recording;
-
-ResUseType Recording::GetUseType(const D3D12_BARRIER_ACCESS access, const ResUseType UavUse)
-{
-    if (access & D3D12_BARRIER_ACCESS_NO_ACCESS) return ResUseType::None;
-    if (access & D3D12_BARRIER_ACCESS_UNORDERED_ACCESS) return UavUse;
-    if (
-        access & D3D12_BARRIER_ACCESS_RENDER_TARGET || access & D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE
-        || access & D3D12_BARRIER_ACCESS_STREAM_OUTPUT || access & D3D12_BARRIER_ACCESS_COPY_DEST
-        || access & D3D12_BARRIER_ACCESS_RESOLVE_DEST || access & D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE
-        || access & D3D12_BARRIER_ACCESS_VIDEO_DECODE_WRITE
-        || access & D3D12_BARRIER_ACCESS_VIDEO_PROCESS_WRITE
-        || access & D3D12_BARRIER_ACCESS_VIDEO_ENCODE_WRITE
-    )
-        return ResUseType::Write;
-    return ResUseType::Read;
-}
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()), m_device(isolate->m_device)
 {
     m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
-    m_barrier_analyzer = new D3d12BarrierAnalyzer();
     m_context = new D3d12RecordContext(isolate);
+    m_storage = new D3d12RecordStorage(isolate, m_context);
+    m_barrier_recorder = isolate->m_barrier_analyzer->CreateRecorder(m_storage);
     Context = m_context.get();
 }
 
@@ -51,6 +35,11 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
+void D3d12GpuRecord::RegisterWaitPoint(QueueWaitPoint&& wait_point)
+{
+    m_queue_wait_points.push_back(std::move(wait_point));
+}
+
 void D3d12GpuRecord::WaitAndRecycle(const HANDLE event)
 {
     for (auto& wait_point : m_queue_wait_points)
@@ -63,7 +52,8 @@ void D3d12GpuRecord::WaitAndRecycle(const HANDLE event)
 void D3d12GpuRecord::Recycle()
 {
     m_queue_wait_points.clear();
-    m_list = {};
+    m_barrier_recorder->Clear();
+    m_storage->Clear();
     m_context->Recycle();
     m_resources_owner.clear();
     ClearData();
@@ -90,13 +80,7 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("End cannot be called multiple times");
     if (Resources.size() >= std::numeric_limits<u32>::max())
         COPLT_THROW("Too many resources");
-    m_resources_owner.reserve(Resources.size());
-    for (u32 i = 0; i < Resources.size(); ++i)
-    {
-        const auto& res = Resources[i];
-        m_resources_owner.push_back(Rc<FUnknown>::UnsafeClone(res.GetObjectPtr()));
-    }
-    Analyze();
+    ReadyResource();
     Interpret();
     Ended = true;
 }
@@ -106,26 +90,28 @@ FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
     return ref.Get(Resources);
 }
 
-void D3d12GpuRecord::Analyze()
+D3d12RentedCommandList& D3d12GpuRecord::CurList() const
 {
-    m_barrier_analyzer->Analyzer(this);
+    return m_storage->CurList();
+}
+
+void D3d12GpuRecord::ReadyResource()
+{
+    m_resources_owner.reserve(Resources.size());
+    for (u32 i = 0; i < Resources.size(); ++i)
+    {
+        const auto& res = Resources[i];
+        m_resources_owner.push_back(Rc<FUnknown>::UnsafeClone(res.GetObjectPtr()));
+    }
 }
 
 void D3d12GpuRecord::Interpret()
 {
-    auto allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(ToListType(Mode));
-    m_list = allocator.RentCommandList();
-    m_context->m_recycled_command_allocators.push_back(std::move(allocator));
-    m_barrier_analyzer->Interpret(this);
-    m_list->Close();
-}
-
-void D3d12GpuRecord::Interpret(const u32 cmd_index, const u32 cmd_count)
-{
+    m_storage->StartRecord(Mode);
+    m_barrier_recorder->StartRecord(Resources.AsSpan());
     const auto commands = Commands.AsSpan();
-    for (u32 n = 0; n < cmd_count; ++n)
+    for (u32 i = 0; i < commands.size(); ++i)
     {
-        const auto i = cmd_index + n;
         const auto& command = commands[i];
         switch (command.Type)
         {
@@ -148,12 +134,15 @@ void D3d12GpuRecord::Interpret(const u32 cmd_index, const u32 cmd_count)
             continue;
         }
     }
+    m_barrier_recorder->EndRecord();
+    m_storage->EndRecord();
 }
 
 void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
 {
+    m_barrier_recorder->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
     const auto rtv = GetRtv(GetRes(cmd.Image));
-    m_list->g0->ClearRenderTargetView(
+    CurList()->g0->ClearRenderTargetView(
         rtv, cmd.Color, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
@@ -161,210 +150,15 @@ void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
 
 void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd)
 {
+    m_barrier_recorder->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
     const auto dsv = GetDsv(GetRes(cmd.Image));
     D3D12_CLEAR_FLAGS flags{};
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Depth)) flags |= D3D12_CLEAR_FLAG_DEPTH;
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Stencil)) flags |= D3D12_CLEAR_FLAG_STENCIL;
-    m_list->g0->ClearDepthStencilView(
+    CurList()->g0->ClearDepthStencilView(
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
-}
-
-D3d12BarrierAnalyzer::ResInfo::ResInfo(const FCmdResType ResType) : ResInfo()
-{
-    this->ResType = ResType;
-}
-
-bool D3d12BarrierAnalyzer::ResInfo::IsReadCompatible(const D3D12_BARRIER_LAYOUT Layout) const
-{
-    return Type == ResUseType::Read && this->Layout == Layout;
-}
-
-bool D3d12BarrierAnalyzer::ResInfo::MergeRead(const D3D12_BARRIER_ACCESS Access, const D3D12_BARRIER_SYNC Sync)
-{
-    const auto old_access = Access;
-    const auto old_sync = Sync;
-    this->Access |= Access;
-    this->Sync |= Sync;
-    return this->Access != old_access || this->Sync != old_sync;
-}
-
-D3d12BarrierAnalyzer::D3d12BarrierAnalyzer() : m_record(NonNull<D3d12GpuRecord>::Unchecked(nullptr))
-{
-}
-
-void D3d12BarrierAnalyzer::Recycle()
-{
-    m_res_inputs.clear();
-    m_res_outputs.clear();
-    m_resources.clear();
-    m_parts.clear();
-    m_begin_global_barriers.clear();
-    m_begin_texture_barriers.clear();
-    m_begin_buffer_barriers.clear();
-    m_end_global_barriers.clear();
-    m_end_texture_barriers.clear();
-    m_end_buffer_barriers.clear();
-    m_current_barrier_begin_part = 0;
-    m_current_cmd_part = 0;
-}
-
-void D3d12BarrierAnalyzer::Analyzer(const NonNull<D3d12GpuRecord> record)
-{
-    Recycle();
-    m_record = record;
-    m_resources.reserve(m_record->Resources.size());
-    for (u32 i = 0; i < m_record->Resources.size(); ++i)
-    {
-        const auto& res = m_record->Resources[i];
-        m_resources.push_back(ResInfo(res.Type));
-    }
-    m_parts.push_back(Part{.Barrier = {.Type = PartType::BarrierBegin}});
-    m_parts.push_back(Part{.Cmd = {}});
-    m_current_barrier_begin_part = 0;
-    m_current_cmd_part = 1;
-    const auto commands = m_record->Commands.AsSpan();
-    if (commands.size() >= std::numeric_limits<u32>::max())
-        COPLT_THROW("Too many commands");
-    for (u32 i = 0; i < commands.size(); ++i)
-    {
-        const auto& command = commands[i];
-        switch (command.Type)
-        {
-        case FCmdType::None:
-        case FCmdType::Label:
-        case FCmdType::BeginScope:
-        case FCmdType::EndScope:
-            goto CmdNext;
-        case FCmdType::ClearColor:
-            Analyze_ClearColor(i, command.ClearColor);
-            goto CmdNext;
-        case FCmdType::ClearDepthStencil:
-            Analyze_ClearDepthStencil(i, command.ClearDepthStencil);
-            goto CmdNext;
-        }
-        COPLT_THROW_FMT("Unknown command type {}", static_cast<u32>(command.Type));
-    CmdNext:
-        CmdNext();
-        continue;
-    }
-    BuildInputOutput();
-}
-
-D3d12BarrierAnalyzer::ResInfo& D3d12BarrierAnalyzer::GetInfo(const FCmdResRef& ref)
-{
-    return m_resources[ref.IndexPlusOne - 1];
-}
-
-std::pair<NonNull<FCmdRes>, NonNull<D3d12BarrierAnalyzer::ResInfo>> D3d12BarrierAnalyzer::Get(const FCmdResRef& ref)
-{
-    return {&ref.Get(m_record->Resources), &m_resources[ref.IndexPlusOne - 1]};
-}
-
-NonNull<ID3D12Resource> D3d12BarrierAnalyzer::GetResource(const u32 index) const
-{
-    const auto& res = m_record->Resources[index];
-    return Coplt::GetResource(res);
-}
-
-NonNull<FGpuBufferData> D3d12BarrierAnalyzer::GetBufferData(const u32 index) const
-{
-    const auto& res = m_record->Resources[index];
-    return Coplt::GetBufferData(res);
-}
-
-NonNull<FGpuImageData> D3d12BarrierAnalyzer::GetImageData(u32 index) const
-{
-    const auto& res = m_record->Resources[index];
-    return Coplt::GetImageData(res);
-}
-
-void D3d12BarrierAnalyzer::MarkUse(
-    ResInfo& Info, const D3D12_BARRIER_ACCESS Access, const D3D12_BARRIER_LAYOUT Layout, D3D12_BARRIER_SYNC Sync, const ResUseType UavUse
-)
-{
-    const auto type = GetUseType(Access, UavUse);
-    if (Info.First)
-    {
-        Info.First = false;
-        Info.Type = type;
-        Info.Access = Access;
-        Info.Layout = Layout;
-        Info.Sync = Sync;
-        return;
-    }
-    COPLT_THROW("TODO");
-    // if (type == ResUseType::Read && Info.IsReadCompatible(Layout))
-    // {
-    //     Info.MergeRead(Access, Stages);
-    //     return;
-    // }
-    // const auto& cur_barrier = m_parts[m_current_barrier_begin_part].Barrier;
-    // const auto& cur_cmd = m_parts[m_current_cmd_part].Cmd;
-    // if (Info.WasDefInput)
-    // {
-    //
-    // }
-    // else if (Info.CurrentBarrierPart == COPLT_U32_MAX)
-    // {
-    //
-    // }
-    // return;
-}
-
-void D3d12BarrierAnalyzer::CmdNext()
-{
-    m_parts[m_current_cmd_part].Cmd.Count++;
-}
-
-void D3d12BarrierAnalyzer::BuildInputOutput()
-{
-    for (u32 i = 0; i < m_resources.size(); ++i)
-    {
-        const auto& res = m_resources[i];
-        const auto use = ResUse{
-            .ResIndex = i,
-            .Layout = res.Layout,
-            .Access = res.Access,
-            .Sync = res.Sync,
-            .Type = res.Type,
-        };
-        m_res_outputs.push_back(use);
-        if (res.WasDefInput) continue;
-        m_res_inputs.push_back(use);
-    }
-}
-
-void D3d12BarrierAnalyzer::Analyze_ClearColor(const u32 i, const FCmdClearColor& cmd)
-{
-    auto& info = GetInfo(cmd.Image);
-    MarkUse(info, D3D12_BARRIER_ACCESS_RENDER_TARGET, D3D12_BARRIER_LAYOUT_RENDER_TARGET, D3D12_BARRIER_SYNC_RENDER_TARGET);
-}
-
-void D3d12BarrierAnalyzer::Analyze_ClearDepthStencil(const u32 i, const FCmdClearDepthStencil& cmd)
-{
-    auto& info = GetInfo(cmd.Image);
-    MarkUse(info, D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE, D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE, D3D12_BARRIER_SYNC_DEPTH_STENCIL);
-}
-
-void D3d12BarrierAnalyzer::Interpret(NonNull<D3d12GpuRecord> record)
-{
-    for (auto& part : m_parts)
-    {
-        switch (part.Type)
-        {
-        case PartType::Cmd:
-            record->Interpret(part.Cmd.Index, part.Cmd.Count);
-            break;
-        case PartType::BarrierBegin:
-            // todo
-            break;
-        case PartType::BarrierEnd:
-            // todo
-            break;
-        }
-    }
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
@@ -469,18 +263,4 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetDsv(const FCmdRes& res)
         }
     }
     COPLT_THROW("Unreachable");
-}
-
-D3D12_COMMAND_LIST_TYPE Coplt::ToListType(const FGpuRecordMode value)
-{
-    switch (value)
-    {
-    case FGpuRecordMode::Direct:
-        return D3D12_COMMAND_LIST_TYPE_DIRECT;
-    case FGpuRecordMode::Compute:
-        return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-    case FGpuRecordMode::Copy:
-        return D3D12_COMMAND_LIST_TYPE_COPY;
-    }
-    return D3D12_COMMAND_LIST_TYPE_DIRECT;
 }

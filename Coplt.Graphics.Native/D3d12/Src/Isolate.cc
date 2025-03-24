@@ -4,6 +4,7 @@
 #include "SwapChain.h"
 #include "Context.h"
 #include "../../Api/FFI/Record.h"
+#include "Barrier.h"
 
 using namespace Coplt;
 
@@ -79,6 +80,8 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
     }
 
     #pragma endregion
+
+    m_barrier_analyzer = new Enhanced::EnhancedBarrierAnalyzer(m_device);
 
     m_cmd_alloc_pool = new D3d12CommandListPoolCluster(m_device);
 

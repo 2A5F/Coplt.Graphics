@@ -28,11 +28,13 @@ namespace Coplt
     };
 
     struct ID3d12GpuRecord;
+    struct I3d12BarrierAnalyzer;
 
     struct D3d12GpuIsolate final : GpuObject<D3d12GpuIsolate, ID3d12GpuIsolate>, FGpuIsolateData
     {
         using RecordQueue = moodycamel::ConcurrentQueue<Rc<ID3d12GpuRecord>>;
 
+        Rc<I3d12BarrierAnalyzer> m_barrier_analyzer{};
         HANDLE m_event{};
         Box<RecordQueue> m_waiting_record{};
         Box<RecordQueue> m_record_pool{};

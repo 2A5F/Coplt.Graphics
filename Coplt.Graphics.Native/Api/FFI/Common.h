@@ -63,6 +63,7 @@
 #endif
 
 #define COPLT_U32_MAX 4294967295
+#define COPLT_U64_MAX 18446744073709551615
 
 #ifdef FFI_SRC
 #define COPLT_ENUM_FLAGS(Name, Type) enum class Name : Type;\
@@ -117,6 +118,10 @@ inline constexpr bool HasFlags(Name a, Name b)\
 inline constexpr bool HasAnyFlags(Name a, Name b)\
 {\
     return (a & b) != 0;\
+}\
+inline constexpr bool HasFlagsOnly(Name a, Name b)\
+{\
+return (a & ~(b)) == 0;\
 }\
 enum class Name : Type
 #else

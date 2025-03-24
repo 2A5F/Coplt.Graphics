@@ -356,6 +356,20 @@ D3d12RentedCommandList::operator bool() const noexcept
     return static_cast<bool>(m_pool);
 }
 
+void D3d12RentedCommandList::Close()
+{
+    try
+    {
+        m_list->Close();
+    }
+    catch (...)
+    {
+        m_pool = {};
+        m_list = {};
+        std::rethrow_exception(std::current_exception());
+    }
+}
+
 D3d12RentedCommandAllocator::D3d12RentedCommandAllocator(const Rc<D3d12CommandPool>& pool, ComPtr<ID3D12CommandAllocator>&& allocator)
     : m_pool(pool), m_allocator(std::move(allocator))
 {
@@ -379,4 +393,9 @@ D3d12RentedCommandList D3d12RentedCommandAllocator::RentCommandList() const
         list = new D3d12CommandList(*this);
     }
     return D3d12RentedCommandList(m_pool, std::move(list));
+}
+
+D3d12RentedCommandAllocator::operator bool() const noexcept
+{
+    return static_cast<bool>(m_pool);
 }
