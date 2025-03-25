@@ -59,13 +59,16 @@ namespace Coplt
 
         void ReadyResource();
         void Interpret();
+        void Interpret_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;
         void Interpret_ClearColor(u32 i, const FCmdClearColor& cmd);
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
     };
 
+    FGpuQueueType ToQueueType(FGpuRecordMode mode);
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
     NonNull<FGpuBufferData> GetBufferData(const FCmdRes& res);
     NonNull<FGpuImageData> GetImageData(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetDsv(const FCmdRes& res);
+    NonNull<ResourceState> GetState(const FCmdRes& res);
 }

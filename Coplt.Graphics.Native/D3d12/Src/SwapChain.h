@@ -36,6 +36,7 @@ namespace Coplt
     struct D3d12GpuSwapChain final : GpuObject<FGpuSwapChain, ID3d12GpuSwapChain, ID3d12GpuOutput2>, FGpuSwapChainData
     {
         FGpuImageData m_image_data{};
+        ResourceState m_res_state{};
 
     private:
         explicit D3d12GpuSwapChain(
@@ -60,6 +61,7 @@ namespace Coplt
         const FGpuSwapChainData* GpuSwapChainData() noexcept override;
         FGpuIsolate* GetIsolate() noexcept override;
 
+        NonNull<ResourceState> State() override;
         NonNull<FGpuOutputData> Data() override;
         NonNull<FGpuImageData> ImageData() override;
         NonNull<ID3D12Resource> GetResourcePtr() override;

@@ -577,9 +577,11 @@ namespace Coplt
     };
 
     // 对象不允许多继承，只允许具有多个接口
-    template <class This, ObjectLike Base, Interface... Interfaces>
-    struct ObjectImpl<This, Base, Interfaces...> : Base, _internal::MergeInterface<Interfaces...>::Output
+    template <class This, ObjectLike TBase, Interface... Interfaces>
+    struct ObjectImpl<This, TBase, Interfaces...> : TBase, _internal::MergeInterface<Interfaces...>::Output
     {
+        using Base = ObjectImpl;
+
         void* ObjectStart() noexcept override
         {
             This* self = static_cast<This*>(this);
@@ -588,17 +590,17 @@ namespace Coplt
 
         size_t Release() noexcept override
         {
-            return Base::Release();
+            return TBase::Release();
         }
 
         size_t AddRef() noexcept override
         {
-            return Base::AddRef();
+            return TBase::AddRef();
         }
 
         void* QueryInterface(const Guid& id) noexcept override
         {
-            return Base::QueryInterface(id);
+            return TBase::QueryInterface(id);
         }
     };
 

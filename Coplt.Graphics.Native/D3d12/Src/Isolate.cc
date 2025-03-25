@@ -250,6 +250,15 @@ void D3d12GpuIsolate::RentRecords(const std::span<FGpuRecordCreateResult> out)
     }
 }
 
+void D3d12GpuIsolate::RentRecords(std::span<Rc<ID3d12GpuRecord>> out)
+{
+    const auto count = m_record_pool->try_dequeue_bulk(out.data(), out.size());
+    for (u32 i = count; i < out.size(); ++i)
+    {
+        out[i] = new D3d12GpuRecord(this);
+    }
+}
+
 void D3d12GpuIsolate::ReturnRecords(const std::span<FGpuRecord*> records)
 {
     const auto f = [&](const std::span<Rc<ID3d12GpuRecord>> items)
@@ -277,6 +286,15 @@ void D3d12GpuIsolate::ReturnRecords(const std::span<FGpuRecord*> records)
         std::vector<Rc<ID3d12GpuRecord>> items(records.size(), {});
         f(std::span(items));
     }
+}
+
+void D3d12GpuIsolate::ReturnRecords(std::span<Rc<ID3d12GpuRecord>> records)
+{
+    for (const auto& item : records)
+    {
+        item->Recycle();
+    }
+    m_record_pool->enqueue_bulk(records.data(), records.size());
 }
 
 void D3d12GpuIsolate::Submit(std::span<FGpuRecord*> records, std::span<FGpuRecordCreateResult> out)

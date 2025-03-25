@@ -11,7 +11,7 @@ namespace Coplt
     struct InputResState
     {
         u32 ResIndex{};
-        u32 ListIndex{};
+        u32 BeforeUseListIndex{};
         ResState State{};
     };
 
@@ -46,6 +46,7 @@ namespace Coplt
         struct ResInfo
         {
             FCmdRes Res{};
+            NonNull<ResourceState> State;
         };
 
         struct ListRange
@@ -96,6 +97,8 @@ namespace Coplt
             struct ResInfo
             {
                 ResState State{};
+                // 在使用前的，可以插入屏障的 list 的 index
+                u32 CurrentBeforeUseListIndex{};
                 u32 CurrentBeginBarrierGroupIndex{};
                 u32 CurrentEndBarrierGroupIndex{};
                 const FCmdResType ResType{};
@@ -137,6 +140,11 @@ namespace Coplt
         struct EnhancedBarrierCombiner final : Object<EnhancedBarrierCombiner, AD3d12BarrierCombiner>
         {
             explicit EnhancedBarrierCombiner(const Rc<D3d12GpuDevice>& device);
+
+            std::vector<D3D12_BUFFER_BARRIER> m_buffer_barriers{};
+            std::vector<D3D12_TEXTURE_BARRIER> m_texture_barriers{};
+
+            void EndSubmit() override;
 
             void Process(NonNull<D3d12GpuIsolate> isolate, std::span<Rc<ID3d12GpuRecord>> records) override;
         };

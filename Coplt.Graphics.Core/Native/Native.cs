@@ -1598,6 +1598,7 @@ namespace Coplt.Graphics.Native
         Label,
         BeginScope,
         EndScope,
+        PreparePresent,
         ClearColor,
         ClearDepthStencil,
     }
@@ -1612,7 +1613,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L47_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L49_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -1737,6 +1738,15 @@ namespace Coplt.Graphics.Native
         public FCmdBase Base;
     }
 
+    [NativeTypeName("struct FCmdPreparePresent : Coplt::FCmdBase")]
+    public partial struct FCmdPreparePresent
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::FCmdResRef")]
+        public FCmdResRef Output;
+    }
+
     [NativeTypeName("struct FCmdClearColor : Coplt::FCmdBase")]
     public partial struct FCmdClearColor
     {
@@ -1787,7 +1797,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L153_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L176_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -1827,6 +1837,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.EndScope;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdPreparePresent PreparePresent
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.PreparePresent;
             }
         }
 
@@ -1878,6 +1898,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdEndScope")]
             public FCmdEndScope EndScope;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdPreparePresent")]
+            public FCmdPreparePresent PreparePresent;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdClearColor")]

@@ -13,6 +13,8 @@ namespace Coplt
         BeginScope,
         EndScope,
 
+        PreparePresent,
+
         ClearColor,
         ClearDepthStencil,
     };
@@ -66,6 +68,20 @@ namespace Coplt
                 return Output;
             }
             return nullptr;
+        }
+
+        bool IsImage() const
+        {
+            switch (Type)
+            {
+            case FCmdResType::Image:
+                return true;
+            case FCmdResType::Buffer:
+                return false;
+            case FCmdResType::Output:
+                return true;
+            }
+            return false;
         }
         #endif
     };
@@ -124,6 +140,13 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    struct FCmdPreparePresent : FCmdBase
+    {
+        FCmdResRef Output{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCmdClearColor : FCmdBase
     {
         // 有多少个 Rect
@@ -157,6 +180,8 @@ namespace Coplt
             FCmdLabel Label;
             FCmdBeginScope BeginScope;
             FCmdEndScope EndScope;
+
+            FCmdPreparePresent PreparePresent;
 
             FCmdClearColor ClearColor;
             FCmdClearDepthStencil ClearDepthStencil;

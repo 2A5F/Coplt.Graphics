@@ -19,6 +19,10 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(
     this->PresentMode = options.PresentMode;
     this->AlphaMode = AlphaMode;
 
+    m_res_state.State = ResState(ResAccess::None, ResUsage::Common, ResLayout::Common);
+    m_res_state.QueueType = FGpuQueueType::Direct;
+    m_res_state.CrossQueue = true;
+
     if (m_debug_enabled && !options.Name.is_null())
     {
         m_name = options.Name.ToString();
@@ -215,6 +219,11 @@ const FGpuSwapChainData* D3d12GpuSwapChain::GpuSwapChainData() noexcept
 FGpuIsolate* D3d12GpuSwapChain::GetIsolate() noexcept
 {
     return m_isolate.get();
+}
+
+NonNull<ResourceState> D3d12GpuSwapChain::State()
+{
+    return &m_res_state;
 }
 
 NonNull<FGpuOutputData> D3d12GpuSwapChain::Data()

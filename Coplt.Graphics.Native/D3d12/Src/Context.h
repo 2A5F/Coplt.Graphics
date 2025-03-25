@@ -132,6 +132,10 @@ namespace Coplt
 
         void Reset(const D3d12RentedCommandAllocator& allocator) const;
         void Close() const;
+
+    public:
+        ID3D12CommandList* ToCommandList() const;
+        void Barrier(UINT32 NumBarrierGroups, const D3D12_BARRIER_GROUP* pBarrierGroups) const;
     };
 
     struct D3d12RentedCommandList final

@@ -62,6 +62,16 @@ namespace Coplt::Enhanced
 
     void EnhancedBarrierRecorder::EndRecord()
     {
+        for (u32 i = 0; i < m_resources.size(); ++i)
+        {
+            auto& info = m_resources[i];
+            if (info.InfoState == InfoState::Unused) continue;
+            if (info.InfoState == InfoState::Input)
+            {
+                m_inputs.push_back(InputResState{.ResIndex = i, .BeforeUseListIndex = info.CurrentBeforeUseListIndex, .State = info.State});
+            }
+            // todo output
+        }
     }
 
     void EnhancedBarrierRecorder::OnUse(const FCmdResRef ResRef, const ResAccess Access, const ResUsage Usage, const ResLayout Layout)
@@ -73,6 +83,7 @@ namespace Coplt::Enhanced
         {
             info.InfoState = InfoState::Input;
             info.State = new_state;
+            info.CurrentBeforeUseListIndex = m_storage->CurrentListIndex() - 1;
             return;
         }
         else if (info.InfoState == InfoState::Input)
@@ -82,11 +93,12 @@ namespace Coplt::Enhanced
                 info.State = info.State.Merge(new_state);
                 return;
             }
-            const auto list_index = m_storage->Split();
-            m_inputs.push_back(InputResState{.ResIndex = ResIndex, .ListIndex = list_index, .State = info.State});
+            m_inputs.push_back(InputResState{.ResIndex = ResIndex, .BeforeUseListIndex = info.CurrentBeforeUseListIndex, .State = info.State});
             info.State = new_state;
             info.InfoState = InfoState::Used;
-            // todo
+            info.CurrentBeforeUseListIndex = m_storage->CurrentListIndex();
+            m_storage->Split();
+            // todo 记录屏障
             return;
         }
         else
@@ -105,12 +117,21 @@ namespace Coplt::Enhanced
         m_device = device;
     }
 
+    void EnhancedBarrierCombiner::EndSubmit()
+    {
+        m_buffer_barriers.clear();
+        m_texture_barriers.clear();
+        Base::EndSubmit();
+    }
+
     void EnhancedBarrierCombiner::Process(NonNull<D3d12GpuIsolate> isolate, std::span<Rc<ID3d12GpuRecord>> records)
     {
         for (const auto& record : records)
         {
             const NonNull data = record->Data();
             const auto& barrier_recorder = record->BarrierRecorder();
+            const auto& storage = record->Storage();
+            u32 buffer_barrier_index = m_buffer_barriers.size(), texture_barrier_index = m_texture_barriers.size();
             for (const auto& input : barrier_recorder->Inputs())
             {
                 const auto& res = data->Resources[input.ResIndex];
@@ -119,10 +140,90 @@ namespace Coplt::Enhanced
                 {
                     p.put(ResInfo{
                         .Res = res,
+                        .State = GetState(res),
                     });
                 });
+                if (!exist)
+                {
+                    if (res.IsImage())
+                    {
+                        const auto img_data = GetImageData(res);
+                        D3D12_TEXTURE_BARRIER barrier{
+                            .SyncBefore = D3D12_BARRIER_SYNC_NONE,
+                            .SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage),
+                            // .SyncAfter = D3D12_BARRIER_SYNC_SPLIT, // todo 拆分屏障
+                            .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
+                            .AccessAfter = GetBarrierAccess(input.State.Access),
+                            .LayoutBefore = GetBarrierLayout(sr.State->State.Layout, ToQueueType(data->Mode), sr.State->CrossQueue),
+                            .LayoutAfter = GetBarrierLayout(input.State.Layout, ToQueueType(data->Mode), false),
+                            .pResource = GetResource(res),
+                            .Subresources = {
+                                .IndexOrFirstMipLevel = 0,
+                                .NumMipLevels = img_data->m_mip_levels,
+                                .FirstArraySlice = 0,
+                                .NumArraySlices = img_data->m_depth_or_length,
+                                .FirstPlane = 0,
+                                .NumPlanes = img_data->m_planes,
+                            },
+                            .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
+                        };
+                        m_texture_barriers.push_back(barrier);
+                    }
+                    else
+                    {
+                        //todo
+                    }
+                }
                 // todo
             }
+
+            #pragma region 插入输入屏障
+
+            const u32 buffer_barrier_count = m_buffer_barriers.size() - buffer_barrier_index;
+            const u32 texture_barrier_count = m_texture_barriers.size() - texture_barrier_index;
+            if (buffer_barrier_count > 0 || texture_barrier_count > 0)
+            {
+                D3D12_BARRIER_GROUP groups[2];
+                u32 group_count = 0;
+                if (buffer_barrier_count > 0)
+                {
+                    groups[group_count++] = D3D12_BARRIER_GROUP{
+                        .Type = D3D12_BARRIER_TYPE_BUFFER,
+                        .NumBarriers = buffer_barrier_count,
+                        .pBufferBarriers = m_buffer_barriers.data() + buffer_barrier_index,
+                    };
+                }
+                if (texture_barrier_count > 0)
+                {
+                    groups[group_count++] = D3D12_BARRIER_GROUP{
+                        .Type = D3D12_BARRIER_TYPE_TEXTURE,
+                        .NumBarriers = texture_barrier_count,
+                        .pTextureBarriers = m_texture_barriers.data() + texture_barrier_index,
+                    };
+                }
+                // 第一个列表是保留的用于屏障的
+                storage->Lists()[0]->Barrier(group_count, groups);
+            }
+
+            #pragma endregion
+
+            #pragma region 完成录制 记录 list 范围
+
+            {
+                ListRange range{};
+                // todo fence
+                range.ListIndex = m_submit_lists.size();
+                const auto lists = storage->Lists();
+                range.ListCount = lists.size();
+                range.QueueAt = QueueAt(0, FGpuQueueType::Direct); // todo 选择队列
+                for (const auto& list : lists)
+                {
+                    m_submit_lists.push_back(list->ToCommandList());
+                }
+                m_list_ranges.push_back(range);
+            }
+
+            #pragma endregion
         }
     }
 }

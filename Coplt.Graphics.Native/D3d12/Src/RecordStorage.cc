@@ -15,8 +15,11 @@ void D3d12RecordStorage::Clear()
 
 void D3d12RecordStorage::StartRecord(const FGpuRecordMode Mode)
 {
-    m_cmd_allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(ToListType(Mode));
-    m_cur_list = m_cmd_allocator.RentCommandList();
+    m_list_type = ToListType(Mode);
+    auto cmd_allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(m_list_type);
+    m_cur_list = cmd_allocator.RentCommandList();
+    m_context->m_recycled_command_allocators.push_back(std::move(cmd_allocator));
+    Split();
 }
 
 void D3d12RecordStorage::EndRecord()
@@ -34,13 +37,14 @@ void D3d12RecordStorage::BeforeSubmit()
 
 void D3d12RecordStorage::AfterSubmit()
 {
-    m_context->m_recycled_command_allocators.push_back(std::move(m_cmd_allocator));
 }
 
 u32 D3d12RecordStorage::Split()
 {
     const auto i = m_result_lists.size();
-    m_result_lists.push_back(std::exchange(m_cur_list, m_cmd_allocator.RentCommandList()));
+    auto cmd_allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(m_list_type);
+    m_result_lists.push_back(std::exchange(m_cur_list, cmd_allocator.RentCommandList()));
+    m_context->m_recycled_command_allocators.push_back(std::move(cmd_allocator));
     return i;
 }
 
@@ -52,6 +56,11 @@ D3d12RentedCommandList& D3d12RecordStorage::CurList()
 std::span<D3d12RentedCommandList> D3d12RecordStorage::Lists()
 {
     return m_result_lists;
+}
+
+u32 D3d12RecordStorage::CurrentListIndex()
+{
+    return m_result_lists.size();
 }
 
 D3D12_COMMAND_LIST_TYPE Coplt::ToListType(const FGpuRecordMode value)

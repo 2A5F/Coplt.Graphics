@@ -94,6 +94,13 @@ namespace Coplt
         ResState Split() const;
     };
 
+    struct ResourceState
+    {
+        ResState State{};
+        FGpuQueueType QueueType{};
+        bool CrossQueue{};
+    };
+
     bool IsValid(ResAccess access);
 
     ResUseType GetUseType(ResAccess access);

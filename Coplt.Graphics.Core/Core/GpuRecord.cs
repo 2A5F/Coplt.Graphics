@@ -115,6 +115,22 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #endregion
 
+    #region PreparePresent
+
+    public void PreparePresent(GpuOutput2 Output)
+    {
+        AssertNotEnded();
+        Output.AssertSameIsolate(Isolate);
+        var cmd = new FCmdPreparePresent
+        {
+            Base = { Type = FCmdType.PreparePresent },
+            Output = AddResource(Output),
+        };
+        Data.Commands.Add(new() { PreparePresent = cmd });
+    }
+
+    #endregion
+
     #region ClearColor
 
     public void ClearColor(IRtv Image, ReadOnlySpan<URect> Rects = default) =>

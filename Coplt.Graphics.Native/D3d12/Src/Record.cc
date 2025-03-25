@@ -126,26 +126,36 @@ void D3d12GpuRecord::Interpret()
         switch (command.Type)
         {
         case FCmdType::None:
-            continue;
+            break;
         case FCmdType::Label:
             // todo
-            continue;
+            break;
         case FCmdType::BeginScope:
             // todo
-            continue;
+            break;
         case FCmdType::EndScope:
             // todo
-            continue;
+            break;
+        case FCmdType::PreparePresent:
+            Interpret_PreparePresent(i, command.PreparePresent);
+            break;
         case FCmdType::ClearColor:
             Interpret_ClearColor(i, command.ClearColor);
-            continue;
+            break;
         case FCmdType::ClearDepthStencil:
             Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
-            continue;
+            break;
         }
     }
     m_barrier_recorder->EndRecord();
     m_storage->EndRecord();
+}
+
+void D3d12GpuRecord::Interpret_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const
+{
+    if (Mode != FGpuRecordMode::Direct)
+        COPLT_THROW("Can only present on the direct mode");
+    m_barrier_recorder->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
 }
 
 void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
@@ -169,6 +179,20 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthSten
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
+}
+
+FGpuQueueType Coplt::ToQueueType(const FGpuRecordMode mode)
+{
+    switch (mode)
+    {
+    case FGpuRecordMode::Direct:
+        return FGpuQueueType::Direct;
+    case FGpuRecordMode::Compute:
+        return FGpuQueueType::Compute;
+    case FGpuRecordMode::Copy:
+        return FGpuQueueType::Copy;
+    }
+    return FGpuQueueType::Direct;
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
@@ -270,6 +294,29 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetDsv(const FCmdRes& res)
     case FCmdResType::Output:
         {
             COPLT_THROW("Output dose not support Dsv");
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
+NonNull<ResourceState> Coplt::GetState(const FCmdRes& res)
+{
+    switch (res.Type)
+    {
+    case FCmdResType::Image:
+        {
+            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Buffer:
+        {
+            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Output:
+        {
+            const NonNull obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
+            return obj->State();
         }
     }
     COPLT_THROW("Unreachable");

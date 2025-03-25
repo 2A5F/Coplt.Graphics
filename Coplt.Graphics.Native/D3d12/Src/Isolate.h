@@ -78,7 +78,9 @@ namespace Coplt
         FResult CreateSwapChainForHwnd(const FGpuSwapChainCreateOptions& options, void* hwnd, FGpuSwapChainCreateResult& out) noexcept override;
 
         void RentRecords(std::span<FGpuRecordCreateResult> out);
+        void RentRecords(std::span<Rc<ID3d12GpuRecord>> out);
         void ReturnRecords(std::span<FGpuRecord*> records);
+        void ReturnRecords(std::span<Rc<ID3d12GpuRecord>> records);
         void Submit(std::span<FGpuRecord*> records, std::span<FGpuRecordCreateResult> out);
         void SubmitReturn(std::span<FGpuRecord*> records);
         void SubmitReturn(std::span<Rc<ID3d12GpuRecord>> records);

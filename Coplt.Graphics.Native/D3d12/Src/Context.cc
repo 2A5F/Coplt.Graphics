@@ -331,6 +331,76 @@ void D3d12CommandList::Close() const
     std::unreachable();
 }
 
+ID3D12CommandList* D3d12CommandList::ToCommandList() const
+{
+    switch (type)
+    {
+    case D3D12_COMMAND_LIST_TYPE_DIRECT:
+    case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+    case D3D12_COMMAND_LIST_TYPE_COPY:
+        {
+            return g0.Get();
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE:
+        {
+            return vd0.Get();
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_PROCESS:
+        {
+            return vp0.Get();
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE:
+        {
+            return ve0.Get();
+        }
+    case D3D12_COMMAND_LIST_TYPE_NONE:
+    case D3D12_COMMAND_LIST_TYPE_BUNDLE:
+        std::unreachable();
+    }
+    std::unreachable();
+}
+
+void D3d12CommandList::Barrier(const UINT32 NumBarrierGroups, const D3D12_BARRIER_GROUP* pBarrierGroups) const
+{
+    switch (type)
+    {
+    case D3D12_COMMAND_LIST_TYPE_DIRECT:
+    case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+    case D3D12_COMMAND_LIST_TYPE_COPY:
+        {
+            if (g7 == nullptr)
+                COPLT_THROW("Does not support enhanced barriers");
+            g7->Barrier(NumBarrierGroups, pBarrierGroups);
+            return;
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE:
+        {
+            if (vd3 == nullptr)
+                COPLT_THROW("Does not support enhanced barriers");
+            vd3->Barrier(NumBarrierGroups, pBarrierGroups);
+            return;
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_PROCESS:
+        {
+            if (vp3 == nullptr)
+                COPLT_THROW("Does not support enhanced barriers");
+            vp3->Barrier(NumBarrierGroups, pBarrierGroups);
+            return;
+        }
+    case D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE:
+        {
+            if (ve3 == nullptr)
+                COPLT_THROW("Does not support enhanced barriers");
+            ve3->Barrier(NumBarrierGroups, pBarrierGroups);
+            return;
+        }
+    case D3D12_COMMAND_LIST_TYPE_NONE:
+    case D3D12_COMMAND_LIST_TYPE_BUNDLE:
+        std::unreachable();
+    }
+    std::unreachable();
+}
+
 D3d12RentedCommandList::D3d12RentedCommandList(const Rc<D3d12CommandPool>& pool, Rc<D3d12CommandList>&& list)
     : m_pool(pool), m_list(std::move(list))
 {
