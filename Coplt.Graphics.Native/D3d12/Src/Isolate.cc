@@ -8,6 +8,15 @@
 
 using namespace Coplt;
 
+QueueAt::QueueAt(const u32 index, const FGpuQueueType type) : Index(index), Type(type)
+{
+}
+
+bool QueueAt::IsMain() const
+{
+    return Type == FGpuQueueType::Direct && Index == 0;
+}
+
 D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCreateOptions& options)
     : FGpuIsolateData()
 {
@@ -82,6 +91,7 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
     #pragma endregion
 
     m_barrier_analyzer = new Enhanced::EnhancedBarrierAnalyzer(m_device);
+    m_barrier_combiner = m_barrier_analyzer->CreateCombiner();
 
     m_cmd_alloc_pool = new D3d12CommandListPoolCluster(m_device);
 
@@ -133,6 +143,27 @@ FGpuQueueCreateResult* D3d12GpuIsolate::GetQueues(u32* OutNumQueues) noexcept
 FGpuIsolateData* D3d12GpuIsolate::GpuIsolateData() noexcept
 {
     return this;
+}
+
+const Rc<D3d12GpuQueue2>& D3d12GpuIsolate::GetQueue(const QueueAt at)
+{
+    switch (at.Type)
+    {
+    case FGpuQueueType::Direct:
+        if (at.Index == 0) return m_main_queue;
+        return m_direct_queues[at.Index - 1];
+    case FGpuQueueType::Compute:
+        return m_compute_queues[at.Index];
+    case FGpuQueueType::Copy:
+        return m_copy_queues[at.Index];
+    case FGpuQueueType::VideoEncode:
+        return m_video_encode_queues[at.Index];
+    case FGpuQueueType::VideoDecode:
+        return m_video_decode_queues[at.Index];
+    case FGpuQueueType::VideoProcess:
+        return m_video_process_queues[at.Index];
+    }
+    return m_main_queue;
 }
 
 FResult D3d12GpuIsolate::RentRecords(const u32 NumRecords, FGpuRecordCreateResult* OutRecords) noexcept
@@ -285,11 +316,16 @@ void D3d12GpuIsolate::SubmitReturn(std::span<FGpuRecord*> records)
 void D3d12GpuIsolate::SubmitReturn(std::span<Rc<ID3d12GpuRecord>> records)
 {
     std::lock_guard lock(m_mutex);
-    for (u32 i = 0; i < records.size(); ++i)
+    SubmitNoLock(records);
+}
+
+void D3d12GpuIsolate::SubmitNoLock(std::span<Rc<ID3d12GpuRecord>> records)
+{
+    for (const auto& record : records)
     {
-        records[i]->EnsureEnd();
+        record->EnsureEnd();
     }
-    // todo
+    m_barrier_combiner->Submit(this, records);
     m_waiting_record->enqueue_bulk(records.data(), records.size());
     m_waiting_signal.release(1);
 }

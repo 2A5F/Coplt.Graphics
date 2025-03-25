@@ -54,7 +54,7 @@ namespace Coplt
         FCmdResType Type{};
 
         #ifdef FFI_SRC
-        FUnknown* GetObjectPtr() const
+        FGpuObject* GetObjectPtr() const
         {
             switch (Type)
             {

@@ -2,6 +2,26 @@
 
 using namespace Coplt;
 
+ResState::ResState(const ResAccess Access, const ResUsage Usage, const ResLayout Layout) : Access(Access), Usage(Usage), Layout(Layout)
+{
+}
+
+bool ResState::IsCompatible(const ResState& New, const bool Enhanced) const
+{
+    if (Enhanced && Layout != New.Layout) return false;
+    return Coplt::IsCompatible(Access, New.Access);
+}
+
+ResState ResState::Merge(const ResState& New) const
+{
+    return ResState(Access | New.Access, Usage | New.Usage, New.Layout);
+}
+
+ResState ResState::Split() const
+{
+    return ResState(Access, ResUsage::Common, Layout);
+}
+
 bool Coplt::IsValid(const ResAccess access)
 {
     switch (access)
@@ -72,6 +92,21 @@ bool Coplt::IsReadOnly(const ResAccess access)
         ResAccess::ResolveSourceRead | ResAccess::RayTracingAccelerationStructureRead | ResAccess::ShadingRateSourceRead |
         ResAccess::VideoEncodeRead | ResAccess::VideoDecodeRead | ResAccess::VideoProcessRead
     );
+}
+
+bool Coplt::IsCompatible(const ResAccess Old, const ResAccess New)
+{
+    switch (Old)
+    {
+    case ResAccess::None:
+        return true;
+    case ResAccess::UnorderedAccessRead:
+    case ResAccess::RayTracingAccelerationStructureRead:
+        return false;
+    default:
+        if (IsReadOnly(Old) && IsReadOnly(New)) return true;
+        return false;
+    }
 }
 
 D3D12_RESOURCE_STATES Coplt::GetResourceState(const ResAccess access)

@@ -85,6 +85,13 @@ namespace Coplt
         ResAccess Access{};
         ResUsage Usage{};
         ResLayout Layout{};
+
+        ResState() = default;
+        explicit ResState(ResAccess Access, ResUsage Usage, ResLayout Layout);
+
+        bool IsCompatible(const ResState& New, bool Enhanced) const;
+        ResState Merge(const ResState& New) const;
+        ResState Split() const;
     };
 
     bool IsValid(ResAccess access);
@@ -92,6 +99,8 @@ namespace Coplt
     ResUseType GetUseType(ResAccess access);
 
     bool IsReadOnly(ResAccess access);
+
+    bool IsCompatible(ResAccess Old, ResAccess New);
 
     D3D12_RESOURCE_STATES GetResourceState(ResAccess access);
 

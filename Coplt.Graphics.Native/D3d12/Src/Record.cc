@@ -35,6 +35,16 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
+const Rc<D3d12RecordStorage>& D3d12GpuRecord::Storage()
+{
+    return m_storage;
+}
+
+const Rc<ID3d12BarrierRecorder>& D3d12GpuRecord::BarrierRecorder()
+{
+    return m_barrier_recorder;
+}
+
 void D3d12GpuRecord::RegisterWaitPoint(QueueWaitPoint&& wait_point)
 {
     m_queue_wait_points.push_back(std::move(wait_point));
@@ -101,7 +111,7 @@ void D3d12GpuRecord::ReadyResource()
     for (u32 i = 0; i < Resources.size(); ++i)
     {
         const auto& res = Resources[i];
-        m_resources_owner.push_back(Rc<FUnknown>::UnsafeClone(res.GetObjectPtr()));
+        m_resources_owner.push_back(Rc<FGpuObject>::UnsafeClone(res.GetObjectPtr()));
     }
 }
 

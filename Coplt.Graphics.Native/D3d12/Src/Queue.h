@@ -93,6 +93,8 @@ namespace Coplt
         void Wait(HANDLE event) const;
     };
 
+    struct D3d12GpuQueue2;
+
     COPLT_INTERFACE_DEFINE(ID3d12GpuQueue, "a60df5da-ecff-4ae4-a38b-6ddef7db5922", FD3d12GpuQueue2)
     {
         Rc<D3d12GpuDevice> m_device{};
@@ -106,6 +108,7 @@ namespace Coplt
         virtual u64 SignalNoLock() = 0;
 
         virtual void WaitFenceValue(u64 fence_value, HANDLE event) = 0;
+        virtual void Wait(D3d12GpuQueue2& other, u64 fence_value) = 0;
     };
 
     struct D3d12GpuQueue2 final : GpuObject<D3d12GpuQueue2, ID3d12GpuQueue>, FGpuQueueData
@@ -121,5 +124,6 @@ namespace Coplt
         u64 SignalNoLock() override;
 
         void WaitFenceValue(u64 fence_value, HANDLE event) override;
+        void Wait(D3d12GpuQueue2& other, u64 fence_value) override;
     };
 } // Coplt

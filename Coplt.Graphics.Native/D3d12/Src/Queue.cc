@@ -217,11 +217,16 @@ u64 D3d12GpuQueue2::SignalNoLock()
     return fence_value;
 }
 
-void D3d12GpuQueue2::WaitFenceValue(u64 fence_value, HANDLE event)
+void D3d12GpuQueue2::WaitFenceValue(const u64 fence_value, const HANDLE event)
 {
     if (m_fence->GetCompletedValue() < fence_value)
     {
         chr | m_fence->SetEventOnCompletion(fence_value, event);
         WaitForSingleObject(event, INFINITE);
     }
+}
+
+void D3d12GpuQueue2::Wait(D3d12GpuQueue2& other, const u64 fence_value)
+{
+    chr | m_queue->Wait(other.m_fence.Get(), fence_value);
 }

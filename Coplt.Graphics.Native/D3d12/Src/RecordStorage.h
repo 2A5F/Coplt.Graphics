@@ -13,9 +13,11 @@ namespace Coplt
 
         virtual void StartRecord(FGpuRecordMode Mode) = 0;
         virtual void EndRecord() = 0;
+        virtual void BeforeSubmit() = 0;
         virtual void AfterSubmit() = 0;
 
-        virtual void Split() = 0;
+        // 返回当前 List 的 index
+        virtual u32 Split() = 0;
         virtual D3d12RentedCommandList& CurList() = 0;
 
         virtual std::span<D3d12RentedCommandList> Lists() = 0;
@@ -35,9 +37,10 @@ namespace Coplt
 
         void StartRecord(FGpuRecordMode Mode) override;
         void EndRecord() override;
+        void BeforeSubmit() override;
         void AfterSubmit() override;
 
-        void Split() override;
+        u32 Split() override;
         D3d12RentedCommandList& CurList() override;
 
         std::span<D3d12RentedCommandList> Lists() override;

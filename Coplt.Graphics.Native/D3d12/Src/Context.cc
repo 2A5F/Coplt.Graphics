@@ -150,6 +150,7 @@ D3d12CommandPool::D3d12CommandPool(const Rc<D3d12GpuDevice>& device, const D3D12
     : m_device(device), m_type(type)
 {
     m_command_allocator_pool = box<CommandAllocatorConcurrentQueue>();
+    m_command_list_pool = box<CommandListConcurrentQueue>();
 }
 
 D3d12RentedCommandAllocator D3d12CommandPool::RentCommandAllocator()

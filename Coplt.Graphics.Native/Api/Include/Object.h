@@ -602,6 +602,16 @@ namespace Coplt
         }
     };
 
+    template <class This, class Base>
+    struct SubObject : Base
+    {
+        void* ObjectStart() noexcept override
+        {
+            This* self = static_cast<This*>(this);
+            return self;
+        }
+    };
+
     template <class This, class Base, Interface... Interfaces>
     using Object = std::conditional_t<
         std::is_base_of_v<IsObject, Base>,

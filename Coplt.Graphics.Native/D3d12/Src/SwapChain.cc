@@ -23,9 +23,6 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(
     {
         m_name = options.Name.ToString();
     }
-
-    m_event = CreateEventW(nullptr, false, false, nullptr);
-    if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
 }
 
 void D3d12GpuSwapChain::Initialize()
@@ -38,6 +35,11 @@ void D3d12GpuSwapChain::Initialize()
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     chr | m_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&m_rtv_heap));
     m_rtv_descriptor_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    CreateRts();
+
+    m_event = CreateEventW(nullptr, false, false, nullptr);
+    if (m_event == nullptr) chr | HRESULT_FROM_WIN32(GetLastError());
 }
 
 D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainFromExistsCreateOptions& options)

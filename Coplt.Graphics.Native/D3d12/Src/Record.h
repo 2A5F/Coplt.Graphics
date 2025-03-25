@@ -19,6 +19,9 @@ namespace Coplt
         virtual void Recycle() = 0;
 
         virtual void EnsureEnd() = 0;
+
+        virtual const Rc<D3d12RecordStorage>& Storage() = 0;
+        virtual const Rc<ID3d12BarrierRecorder>& BarrierRecorder() = 0;
     };
 
     struct D3d12GpuRecord final : GpuObject<D3d12GpuRecord, ID3d12GpuRecord>, FGpuRecordData
@@ -27,9 +30,9 @@ namespace Coplt
         u64 m_record_id{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<D3d12RecordContext> m_context{};
-        Rc<ID3d12RecordStorage> m_storage{};
-        Rc<I3d12BarrierRecorder> m_barrier_recorder{};
-        std::vector<Rc<FUnknown>> m_resources_owner{};
+        Rc<D3d12RecordStorage> m_storage{};
+        Rc<ID3d12BarrierRecorder> m_barrier_recorder{};
+        std::vector<Rc<FGpuObject>> m_resources_owner{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
 
         explicit D3d12GpuRecord(NonNull<D3d12GpuIsolate> isolate);
@@ -38,6 +41,9 @@ namespace Coplt
         FGpuRecordData* GpuFGpuRecordData() noexcept override;
         FGpuRecordData* Data() noexcept override;
         const FGpuRecordData* Data() const noexcept override;
+
+        const Rc<D3d12RecordStorage>& Storage() override;
+        const Rc<ID3d12BarrierRecorder>& BarrierRecorder() override;
 
         void RegisterWaitPoint(QueueWaitPoint&& wait_point) override;
         void WaitAndRecycle(HANDLE event) override;

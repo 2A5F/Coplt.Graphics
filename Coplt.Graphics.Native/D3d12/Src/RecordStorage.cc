@@ -22,6 +22,10 @@ void D3d12RecordStorage::StartRecord(const FGpuRecordMode Mode)
 void D3d12RecordStorage::EndRecord()
 {
     m_result_lists.push_back(std::move(m_cur_list));
+}
+
+void D3d12RecordStorage::BeforeSubmit()
+{
     for (auto& list : m_result_lists)
     {
         list.Close();
@@ -33,9 +37,11 @@ void D3d12RecordStorage::AfterSubmit()
     m_context->m_recycled_command_allocators.push_back(std::move(m_cmd_allocator));
 }
 
-void D3d12RecordStorage::Split()
+u32 D3d12RecordStorage::Split()
 {
+    const auto i = m_result_lists.size();
     m_result_lists.push_back(std::exchange(m_cur_list, m_cmd_allocator.RentCommandList()));
+    return i;
 }
 
 D3d12RentedCommandList& D3d12RecordStorage::CurList()

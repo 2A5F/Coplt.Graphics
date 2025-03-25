@@ -1787,7 +1787,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L151_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L153_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
