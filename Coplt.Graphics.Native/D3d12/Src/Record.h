@@ -64,7 +64,6 @@ namespace Coplt
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
     };
 
-    ResQueue ToResQueue(FGpuRecordMode mode);
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
     NonNull<FGpuBufferData> GetBufferData(const FCmdRes& res);
     NonNull<FGpuImageData> GetImageData(const FCmdRes& res);

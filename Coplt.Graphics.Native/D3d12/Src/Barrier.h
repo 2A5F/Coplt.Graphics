@@ -33,6 +33,8 @@ namespace Coplt
         virtual void EndRecord() = 0;
 
         virtual void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
+        // 实际录制命令前需要调用，让暂存的屏障写入命令列表
+        virtual void OnCmd() = 0;
     };
 
     COPLT_INTERFACE_DEFINE(ID3d12BarrierCombiner, "e1e15444-6369-4d8a-90b3-153672abca39", FUnknown)
@@ -94,38 +96,34 @@ namespace Coplt
                 Used,
             };
 
-            struct ResInfo
+            struct BarrierPoint
             {
-                ResState State{};
-                // 在使用前的，可以插入屏障的 list 的 index
-                u32 CurrentBeforeUseListIndex{};
-                u32 CurrentBeginBarrierGroupIndex{};
-                u32 CurrentEndBarrierGroupIndex{};
-                const FCmdResType ResType{};
-                InfoState InfoState{};
-
-                explicit ResInfo(FCmdResType ResType);
+                u32 ListIndex{};
+                u32 BarrierIndex{};
+                bool IsImage{};
             };
 
-            struct BarrierGroupRange
+            struct ResInfo
             {
-                u32 BufferIndex{};
-                u32 BufferCount{};
-                u32 TextureIndex{};
-                u32 TextureCount{};
+                NonNull<const FCmdRes> Res;
+                ResState State{};
+                ResState OldState{};
+                u32 CurrentBeforeUseListIndex{};
+                u32 LastBarrierPoint{COPLT_U32_MAX};
+                InfoState InfoState{};
+
+                explicit ResInfo(NonNull<const FCmdRes> Res);
             };
 
             Rc<D3d12GpuDevice> m_device{};
             Rc<ID3d12RecordStorage> m_storage{};
             std::vector<ResInfo> m_resources{};
             std::vector<InputResState> m_inputs{};
-            std::vector<BarrierGroupRange> m_groups{};
-            std::vector<D3D12_BUFFER_BARRIER> m_begin_buffer_barriers{};
-            std::vector<D3D12_TEXTURE_BARRIER> m_begin_texture_barriers{};
-            std::vector<D3D12_BUFFER_BARRIER> m_end_buffer_barriers{};
-            std::vector<D3D12_TEXTURE_BARRIER> m_end_texture_barriers{};
-            u32 m_current_begin_barrier_group_index{};
-            u32 m_current_end_barrier_group_index{};
+            std::vector<D3D12_BUFFER_BARRIER> m_buffer_barriers{};
+            std::vector<D3D12_TEXTURE_BARRIER> m_texture_barriers{};
+            // std::vector<D3D12_BUFFER_BARRIER> m_split_buffer_barriers{};
+            // std::vector<D3D12_TEXTURE_BARRIER> m_split_texture_barriers{};
+            std::vector<BarrierPoint> m_barrier_points{};
 
             explicit EnhancedBarrierRecorder(const Rc<D3d12GpuDevice>& device, const Rc<ID3d12RecordStorage>& storage);
 
@@ -135,6 +133,11 @@ namespace Coplt
             void StartRecord(std::span<FCmdRes> resources) override;
             void EndRecord() override;
             void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
+            void OnCmd() override;
+
+            void Split(ResInfo& info, ResState new_state, bool barrier = true);
+            void CreateBarrier(const ResInfo& info);
+            void SubmitBarrier();
         };
 
         struct EnhancedBarrierCombiner final : Object<EnhancedBarrierCombiner, AD3d12BarrierCombiner>

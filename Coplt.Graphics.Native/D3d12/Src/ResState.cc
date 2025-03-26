@@ -22,6 +22,11 @@ ResState ResState::Split() const
     return ResState(Access, ResUsage::Common, Layout);
 }
 
+bool ResState::Same(const ResState& other) const
+{
+    return Access == other.Access && Layout == other.Layout;
+}
+
 bool Coplt::IsValid(const ResAccess access)
 {
     switch (access)
@@ -276,7 +281,7 @@ D3D12_BARRIER_ACCESS Coplt::GetBarrierAccess(const ResAccess access)
     return ba;
 }
 
-D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(ResLayout layout, ResQueue queue)
+D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(ResLayout layout)
 {
     switch (layout)
     {
@@ -307,73 +312,17 @@ D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(ResLayout layout, ResQueue queue)
     case ResLayout::VideoProcessWrite:
         return D3D12_BARRIER_LAYOUT_VIDEO_PROCESS_WRITE;
     case ResLayout::GenericRead:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_GENERIC_READ;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_GENERIC_READ;
     case ResLayout::UnorderedAccess:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_UNORDERED_ACCESS;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_UNORDERED_ACCESS;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
     case ResLayout::ShaderResource:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_SHADER_RESOURCE;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_SHADER_RESOURCE;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
     case ResLayout::CopySource:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_SOURCE;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
     case ResLayout::CopyDest:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_DEST;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_COPY_DEST;
     case ResLayout::Common:
     default:
-        switch (queue)
-        {
-        case ResQueue::Direct:
-            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
-        case ResQueue::Compute:
-            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON;
-        case ResQueue::Video:
-            return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
-        default:
-            break;
-        }
         return D3D12_BARRIER_LAYOUT_COMMON;
     }
 }

@@ -29,17 +29,6 @@ namespace Coplt
         Float16,
     };
 
-    // 输出格式选择器，按选择器选择，不符合将回退，保证成功；指定格式不保证
-    struct FGpuOutputFormatSelector
-    {
-        // 指定格式，忽略选择器
-        b8 Specify{};
-        // 如果可能，使用 srgb 格式
-        b8 Srgb{};
-        // 如果可能，使用 hdr 格式，和 srgb 冲突，并且优先级更高
-        FHdrType Hdr{};
-    };
-
     struct FGpuOutputFromSwapChainCreateOptions
     {
         b8 VSync{};
@@ -50,12 +39,14 @@ namespace Coplt
         FStr8or16 Name{};
         u32 Width{};
         u32 Height{};
-        FGraphicsFormat Format{};
+        // 是否使用 srgb，实现可以选择忽略
+        b8 Srgb{};
+        // 是否使用 hdr，实现可以选择忽略
+        FHdrType Hdr{};
         // 呈现模式，实现可以选择忽略
         FPresentMode PresentMode{};
         FOutputAlphaMode AlphaMode{};
         b8 VSync{};
-        FGpuOutputFormatSelector FormatSelector{};
     };
 
     using WhenDoneFn = void COPLT_CDECL(void* obj);
@@ -83,6 +74,8 @@ namespace Coplt
         FGraphicsFormat Format{};
         u32 Width{};
         u32 Height{};
+        b8 Srgb{};
+        FHdrType Hdr{};
         FPresentMode PresentMode{};
     };
 
@@ -91,6 +84,8 @@ namespace Coplt
         FStr8or16 Name{};
         // 呈现模式，实现可以选择忽略
         FPresentMode PresentMode{};
+        b8 Srgb{};
+        FHdrType Hdr{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuOutput2, "3f82be7f-2cf5-48a9-8ca4-bb2f9cfe58b2", FGpuExecutor)
@@ -109,14 +104,16 @@ namespace Coplt
     {
         FOutputAlphaMode AlphaMode{};
         b8 VSync{};
+        // 是否使用 srgb，实现可以选择忽略
+        b8 Srgb{};
+        // 是否使用 hdr，实现可以选择忽略
+        FHdrType Hdr{};
     };
 
     struct FGpuSwapChainCreateOptions : FGpuOutput2CreateOptions
     {
         u32 Width{};
         u32 Height{};
-        FGraphicsFormat Format{};
-        FGpuOutputFormatSelector FormatSelector{};
         FOutputAlphaMode AlphaMode{};
         b8 VSync{};
     };

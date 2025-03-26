@@ -252,18 +252,13 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 {
                     Name = new(Name, Name8, p_name, p_name8),
                     PresentMode = (FPresentMode)Options.PresentMode,
+                    Hdr = (FHdrType)Options.Hdr,
+                    Srgb = Options.Srgb,
                 },
                 Width = Options.Width,
                 Height = Options.Height,
-                Format = Options.Format.ToFFI(),
                 AlphaMode = (FOutputAlphaMode)Options.AlphaMode,
                 VSync = Options.VSync,
-                FormatSelector =
-                {
-                    Specify = Options.FormatSelector.Specify,
-                    Srgb = Options.FormatSelector.Srgb,
-                    Hdr = (FHdrType)Options.FormatSelector.Hdr,
-                },
             };
             FGpuSwapChainCreateResult r;
             Ptr->CreateSwapChainForHwnd(&f_options, (void*)Hwnd, &r).TryThrow();

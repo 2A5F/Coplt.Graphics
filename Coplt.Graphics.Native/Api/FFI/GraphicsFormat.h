@@ -625,6 +625,63 @@ namespace Coplt
         }
     }
 
+    inline FGraphicsFormat ToSrgb(const FGraphicsFormat value)
+    {
+        switch (value)
+        {
+        case FGraphicsFormat::BC1_UNorm:
+            return FGraphicsFormat::BC1_UNorm_sRGB;
+        case FGraphicsFormat::BC2_UNorm:
+            return FGraphicsFormat::BC2_UNorm_sRGB;
+        case FGraphicsFormat::BC3_UNorm:
+            return FGraphicsFormat::BC3_UNorm_sRGB;
+        case FGraphicsFormat::BC7_UNorm:
+            return FGraphicsFormat::BC7_UNorm_sRGB;
+        case FGraphicsFormat::B8G8R8A8_UNorm:
+            return FGraphicsFormat::B8G8R8A8_UNorm_sRGB;
+        case FGraphicsFormat::B8G8R8X8_UNorm:
+            return FGraphicsFormat::B8G8R8X8_UNorm_sRGB;
+        case FGraphicsFormat::R8G8B8A8_UNorm:
+            return FGraphicsFormat::R8G8B8A8_UNorm_sRGB;
+        case FGraphicsFormat::Etc2_R8G8B8_UNorm:
+            return FGraphicsFormat::Etc2_R8G8B8_sRGB;
+        case FGraphicsFormat::Etc2_R8G8B8A1_UNorm:
+            return FGraphicsFormat::Etc2_R8G8B8A1_sRGB;
+        case FGraphicsFormat::Etc2_R8G8B8A8_UNorm:
+            return FGraphicsFormat::Etc2_R8G8B8A8_sRGB;
+        case FGraphicsFormat::Astc_4x4_UNorm:
+            return FGraphicsFormat::Astc_4x4_sRGB;
+        case FGraphicsFormat::Astc_5x4_UNorm:
+            return FGraphicsFormat::Astc_5x4_sRGB;
+        case FGraphicsFormat::Astc_5x5_UNorm:
+            return FGraphicsFormat::Astc_5x5_sRGB;
+        case FGraphicsFormat::Astc_6x5_UNorm:
+            return FGraphicsFormat::Astc_6x5_sRGB;
+        case FGraphicsFormat::Astc_6x6_UNorm:
+            return FGraphicsFormat::Astc_6x6_sRGB;
+        case FGraphicsFormat::Astc_8x5_UNorm:
+            return FGraphicsFormat::Astc_8x5_sRGB;
+        case FGraphicsFormat::Astc_8x6_UNorm:
+            return FGraphicsFormat::Astc_8x6_sRGB;
+        case FGraphicsFormat::Astc_8x8_UNorm:
+            return FGraphicsFormat::Astc_8x8_sRGB;
+        case FGraphicsFormat::Astc_10x5_UNorm:
+            return FGraphicsFormat::Astc_10x5_sRGB;
+        case FGraphicsFormat::Astc_10x6_UNorm:
+            return FGraphicsFormat::Astc_10x6_sRGB;
+        case FGraphicsFormat::Astc_10x8_UNorm:
+            return FGraphicsFormat::Astc_10x8_sRGB;
+        case FGraphicsFormat::Astc_10x10_UNorm:
+            return FGraphicsFormat::Astc_10x10_sRGB;
+        case FGraphicsFormat::Astc_12x10_UNorm:
+            return FGraphicsFormat::Astc_12x10_sRGB;
+        case FGraphicsFormat::Astc_12x12_UNorm:
+            return FGraphicsFormat::Astc_12x12_sRGB;
+        default:
+            return value;
+        }
+    }
+
     inline bool IsDepthStencil(const FGraphicsFormat value)
     {
         switch (value)

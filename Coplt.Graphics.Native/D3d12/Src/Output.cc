@@ -166,18 +166,16 @@ FGraphicsFormat D3d12GpuSwapChainOutput::SelectFormat(
     const FGpuOutputCreateOptions& options, bool& is_hdr
 )
 {
-    if (options.FormatSelector.Specify) return options.Format;
-    if (options.FormatSelector.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
+    if (options.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
     {
         is_hdr = true;
         return FGraphicsFormat::R10G10B10A2_UNorm;
     }
-    if (options.FormatSelector.Hdr == FHdrType::Float16)
+    if (options.Hdr == FHdrType::Float16)
     {
         is_hdr = true;
         return FGraphicsFormat::R16G16B16A16_Float;
     }
-    if (options.FormatSelector.Srgb) return FGraphicsFormat::R8G8B8A8_UNorm_sRGB;
     return FGraphicsFormat::R8G8B8A8_UNorm;
 }
 

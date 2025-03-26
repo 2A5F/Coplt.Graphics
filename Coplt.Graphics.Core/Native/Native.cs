@@ -3563,18 +3563,6 @@ namespace Coplt.Graphics.Native
         Float16,
     }
 
-    public partial struct FGpuOutputFormatSelector
-    {
-        [NativeTypeName("Coplt::b8")]
-        public B8 Specify;
-
-        [NativeTypeName("Coplt::b8")]
-        public B8 Srgb;
-
-        [NativeTypeName("Coplt::FHdrType")]
-        public FHdrType Hdr;
-    }
-
     public partial struct FGpuOutputFromSwapChainCreateOptions
     {
         [NativeTypeName("Coplt::b8")]
@@ -3592,8 +3580,11 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint Height;
 
-        [NativeTypeName("Coplt::FGraphicsFormat")]
-        public FGraphicsFormat Format;
+        [NativeTypeName("Coplt::b8")]
+        public B8 Srgb;
+
+        [NativeTypeName("Coplt::FHdrType")]
+        public FHdrType Hdr;
 
         [NativeTypeName("Coplt::FPresentMode")]
         public FPresentMode PresentMode;
@@ -3603,9 +3594,6 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 VSync;
-
-        [NativeTypeName("Coplt::FGpuOutputFormatSelector")]
-        public FGpuOutputFormatSelector FormatSelector;
     }
 
     public partial struct FCommandSubmit
@@ -3787,6 +3775,12 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint Height;
 
+        [NativeTypeName("Coplt::b8")]
+        public B8 Srgb;
+
+        [NativeTypeName("Coplt::FHdrType")]
+        public FHdrType Hdr;
+
         [NativeTypeName("Coplt::FPresentMode")]
         public FPresentMode PresentMode;
     }
@@ -3798,6 +3792,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FPresentMode")]
         public FPresentMode PresentMode;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Srgb;
+
+        [NativeTypeName("Coplt::FHdrType")]
+        public FHdrType Hdr;
     }
 
     [Guid("3F82BE7F-2CF5-48A9-8CA4-BB2F9CFE58B2")]
@@ -3922,6 +3922,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 VSync;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 Srgb;
+
+        [NativeTypeName("Coplt::FHdrType")]
+        public FHdrType Hdr;
     }
 
     [NativeTypeName("struct FGpuSwapChainCreateOptions : Coplt::FGpuOutput2CreateOptions")]
@@ -3934,12 +3940,6 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint Height;
-
-        [NativeTypeName("Coplt::FGraphicsFormat")]
-        public FGraphicsFormat Format;
-
-        [NativeTypeName("Coplt::FGpuOutputFormatSelector")]
-        public FGpuOutputFormatSelector FormatSelector;
 
         [NativeTypeName("Coplt::FOutputAlphaMode")]
         public FOutputAlphaMode AlphaMode;

@@ -21,7 +21,7 @@ namespace Coplt::Enhanced
         return new EnhancedBarrierCombiner(m_device);
     }
 
-    EnhancedBarrierRecorder::ResInfo::ResInfo(const FCmdResType ResType) : ResType(ResType)
+    EnhancedBarrierRecorder::ResInfo::ResInfo(const NonNull<const FCmdRes> Res) : Res(Res)
     {
     }
 
@@ -39,13 +39,11 @@ namespace Coplt::Enhanced
     {
         m_resources.clear();
         m_inputs.clear();
-        m_groups.clear();
-        m_begin_buffer_barriers.clear();
-        m_begin_texture_barriers.clear();
-        m_end_buffer_barriers.clear();
-        m_end_texture_barriers.clear();
-        m_current_begin_barrier_group_index = 0;
-        m_current_end_barrier_group_index = 0;
+        m_buffer_barriers.clear();
+        m_texture_barriers.clear();
+        // m_split_buffer_barriers.clear();
+        // m_split_texture_barriers.clear();
+        m_barrier_points.clear();
     }
 
     void EnhancedBarrierRecorder::StartRecord(const std::span<FCmdRes> resources)
@@ -55,9 +53,8 @@ namespace Coplt::Enhanced
         for (usize i = 0; i < resources.size(); ++i)
         {
             const auto& res = resources[i];
-            m_resources.push_back(ResInfo(res.Type));
+            m_resources.push_back(ResInfo(&res));
         }
-        m_groups.push_back({});
     }
 
     void EnhancedBarrierRecorder::EndRecord()
@@ -70,8 +67,19 @@ namespace Coplt::Enhanced
             {
                 m_inputs.push_back(InputResState{.ResIndex = i, .BeforeUseListIndex = info.CurrentBeforeUseListIndex, .State = info.State});
             }
+            else
+            {
+                info.CurrentBeforeUseListIndex = m_storage->CurrentListIndex();
+                CreateBarrier(info);
+            }
             // todo output
+            // GetState(*info.Res)->Layout = info.State.Layout;
         }
+        // OnCmd();
+        std::ranges::sort(m_barrier_points, [](const BarrierPoint& a, const BarrierPoint& b)
+        {
+            return a.ListIndex < b.ListIndex && a.IsImage < b.IsImage;
+        });
     }
 
     void EnhancedBarrierRecorder::OnUse(const FCmdResRef ResRef, const ResAccess Access, const ResUsage Usage, const ResLayout Layout)
@@ -94,11 +102,8 @@ namespace Coplt::Enhanced
                 return;
             }
             m_inputs.push_back(InputResState{.ResIndex = ResIndex, .BeforeUseListIndex = info.CurrentBeforeUseListIndex, .State = info.State});
-            info.State = new_state;
             info.InfoState = InfoState::Used;
-            info.CurrentBeforeUseListIndex = m_storage->CurrentListIndex();
-            m_storage->Split();
-            // todo 记录屏障
+            Split(info, new_state, false);
             return;
         }
         else
@@ -108,8 +113,129 @@ namespace Coplt::Enhanced
                 info.State = info.State.Merge(new_state);
                 return;
             }
-            // todo
+            Split(info, new_state);
         }
+    }
+
+    void EnhancedBarrierRecorder::OnCmd()
+    {
+        // if (m_split_texture_barriers.size() == 0 && m_split_buffer_barriers.size() == 0) return;
+        // D3D12_BARRIER_GROUP groups[2];
+        // u32 group_count = 0;
+        // if (m_split_texture_barriers.size() > 0)
+        // {
+        //     groups[group_count++] = D3D12_BARRIER_GROUP{
+        //         .Type = D3D12_BARRIER_TYPE_TEXTURE,
+        //         .NumBarriers = m_split_texture_barriers.size(),
+        //         .pTextureBarriers = m_split_texture_barriers.data(),
+        //     };
+        // }
+        // if (m_split_buffer_barriers.size() > 0)
+        // {
+        //     groups[group_count++] = D3D12_BARRIER_GROUP{
+        //         .Type = D3D12_BARRIER_TYPE_BUFFER,
+        //         .NumBarriers = m_split_buffer_barriers.size(),
+        //         .pBufferBarriers = m_split_buffer_barriers.data(),
+        //     };
+        // }
+        // m_storage->Lists()[m_storage->CurrentListIndex() - 1]->Barrier(group_count, groups);
+        // m_split_buffer_barriers.clear();
+        // m_split_texture_barriers.clear();
+    }
+
+    void EnhancedBarrierRecorder::Split(ResInfo& info, const ResState new_state, bool barrier)
+    {
+        info.CurrentBeforeUseListIndex = m_storage->CurrentListIndex();
+        m_storage->Split();
+        if (barrier) CreateBarrier(info);
+        info.OldState = info.State;
+        info.State = new_state;
+    }
+
+    void EnhancedBarrierRecorder::CreateBarrier(const ResInfo& info)
+    {
+        const auto& res = *info.Res;
+        BarrierPoint point{};
+        point.IsImage = res.IsImage();
+        const auto LastListIndex =
+            info.LastBarrierPoint == COPLT_U32_MAX
+                ? info.CurrentBeforeUseListIndex
+                : m_barrier_points[info.LastBarrierPoint].ListIndex;
+        const auto SyncBefore = GetBarrierSync(info.OldState.Access, info.OldState.Usage);
+        const auto SyncAfter = GetBarrierSync(info.State.Access, info.State.Usage);
+        const auto AccessBefore = GetBarrierAccess(info.OldState.Access);
+        const auto AccessAfter = GetBarrierAccess(info.State.Access);
+        const auto push = [&](auto& barriers, auto& barrier)
+        {
+            if (LastListIndex + 1 >= info.CurrentBeforeUseListIndex)
+            {
+                point.ListIndex = info.CurrentBeforeUseListIndex;
+                point.BarrierIndex = barriers.size();
+                m_barrier_points.push_back(point);
+
+                barrier.SyncAfter = SyncAfter;
+                barriers.push_back(barrier);
+            }
+            else
+            {
+                point.ListIndex = LastListIndex + 1;
+                point.BarrierIndex = barriers.size();
+                m_barrier_points.push_back(point);
+
+                barriers.push_back(barrier);
+
+                point.ListIndex = info.CurrentBeforeUseListIndex;
+                point.BarrierIndex = barriers.size();
+                m_barrier_points.push_back(point);
+
+                barrier.SyncBefore = D3D12_BARRIER_SYNC_SPLIT;
+                barrier.SyncAfter = SyncAfter;
+                barriers.push_back(barrier);
+            }
+        };
+        if (point.IsImage)
+        {
+            const auto img_data = GetImageData(res);
+            D3D12_TEXTURE_BARRIER barrier{
+                .SyncBefore = SyncBefore,
+                .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
+                .AccessBefore = AccessBefore,
+                .AccessAfter = AccessAfter,
+                .LayoutBefore = GetBarrierLayout(info.OldState.Layout),
+                .LayoutAfter = GetBarrierLayout(info.State.Layout),
+                .pResource = GetResource(res),
+                .Subresources = {
+                    .IndexOrFirstMipLevel = 0,
+                    .NumMipLevels = img_data->m_mip_levels,
+                    .FirstArraySlice = 0,
+                    .NumArraySlices = img_data->m_depth_or_length,
+                    .FirstPlane = 0,
+                    .NumPlanes = img_data->m_planes,
+                },
+                .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
+            };
+            push(m_texture_barriers, barrier);
+            return;
+        }
+        else
+        {
+            const auto buffer_data = GetBufferData(res);
+            D3D12_BUFFER_BARRIER barrier{
+                .SyncBefore = SyncBefore,
+                .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
+                .AccessBefore = AccessBefore,
+                .AccessAfter = AccessAfter,
+                .pResource = GetResource(res),
+                .Offset = 0,
+                .Size = buffer_data->m_size,
+            };
+            push(m_buffer_barriers, barrier);
+            return;
+        }
+    }
+
+    void EnhancedBarrierRecorder::SubmitBarrier()
+    {
     }
 
     EnhancedBarrierCombiner::EnhancedBarrierCombiner(const Rc<D3d12GpuDevice>& device)
@@ -154,8 +280,8 @@ namespace Coplt::Enhanced
                             // .SyncAfter = D3D12_BARRIER_SYNC_SPLIT, // todo 拆分屏障
                             .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
                             .AccessAfter = GetBarrierAccess(input.State.Access),
-                            .LayoutBefore = GetBarrierLayout(sr.State->Layout, sr.State->Queue),
-                            .LayoutAfter = GetBarrierLayout(input.State.Layout, ToResQueue(data->Mode)),
+                            .LayoutBefore = GetBarrierLayout(sr.State->Layout),
+                            .LayoutAfter = GetBarrierLayout(input.State.Layout),
                             .pResource = GetResource(res),
                             .Subresources = {
                                 .IndexOrFirstMipLevel = 0,

@@ -31,34 +31,21 @@ public enum HdrType : byte
 
 #region GpuOutputOptions
 
-/// <summary>
-/// 输出格式选择器，按选择器选择，不符合将回退，保证成功；指定格式不保证
-/// </summary>
-public record struct GpuOutputFormatSelector
-{
-    /// <summary>
-    /// 指定格式，忽略选择器
-    /// </summary>
-    public bool Specify;
-    /// <summary>
-    /// 如果可能，使用 srgb 格式
-    /// </summary>
-    public bool Srgb;
-    /// <summary>
-    /// 如果可能，使用 hdr 格式，和 srgb 冲突，并且优先级更高
-    /// </summary>
-    public HdrType Hdr;
-}
-
 public record struct GpuOutputOptions()
 {
     public required uint Width;
     public required uint Height;
-    public GraphicsFormat Format = GraphicsFormat.R8G8B8A8_UNorm;
+    /// <summary>
+    /// 是否使用 srgb，实现可以选择忽略
+    /// </summary>
+    public bool Srgb;
+    /// <summary>
+    /// 是否使用 hdr，实现可以选择忽略
+    /// </summary>
+    public HdrType Hdr;
     public PresentMode PresentMode = PresentMode.TripleBuffer;
     public OutputAlphaMode AlphaMode = OutputAlphaMode.Opaque;
     public bool VSync = false;
-    public GpuOutputFormatSelector FormatSelector;
 }
 
 #endregion
@@ -241,11 +228,17 @@ public record struct GpuSwapChainCreateOptions()
 {
     public required uint Width;
     public required uint Height;
-    public GraphicsFormat Format = GraphicsFormat.R8G8B8A8_UNorm;
+    /// <summary>
+    /// 是否使用 srgb，实现可以选择忽略
+    /// </summary>
+    public bool Srgb;
+    /// <summary>
+    /// 是否使用 hdr，实现可以选择忽略
+    /// </summary>
+    public HdrType Hdr;
     public PresentMode PresentMode = PresentMode.TripleBuffer;
     public OutputAlphaMode AlphaMode = OutputAlphaMode.Opaque;
     public bool VSync = false;
-    public GpuOutputFormatSelector FormatSelector;
 }
 
 public sealed unsafe class GpuSwapChain : GpuOutput2

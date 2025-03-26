@@ -18,9 +18,10 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(
     this->VSync = VSync;
     this->PresentMode = options.PresentMode;
     this->AlphaMode = AlphaMode;
+    this->Hdr = options.Hdr;
+    this->Srgb = options.Srgb;
 
     m_layout_state.Layout = ResLayout::Common;
-    m_layout_state.Queue = ResQueue::Common;
 
     if (m_debug_enabled && !options.Name.is_null())
     {
@@ -83,28 +84,18 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
     desc.Format = ToDx(this->Format);
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     switch (options.PresentMode)
     {
     case FPresentMode::NoBuffer:
-        if (is_hdr)
-        {
-            m_frame_count = desc.BufferCount = 2;
-            desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        }
-        else
-        {
-            m_frame_count = desc.BufferCount = 2;
-            desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-        }
+        m_frame_count = desc.BufferCount = 1;
         break;
     case FPresentMode::DoubleBuffer:
         m_frame_count = desc.BufferCount = 2;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         break;
     case FPresentMode::TripleBuffer:
     default:
         m_frame_count = desc.BufferCount = 3;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         break;
     }
     switch (options.AlphaMode)
@@ -143,18 +134,16 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
 
 FGraphicsFormat D3d12GpuSwapChain::SelectFormat(const FGpuSwapChainCreateOptions& options, bool& is_hdr)
 {
-    if (options.FormatSelector.Specify) return options.Format;
-    if (options.FormatSelector.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
+    if (options.Hdr == FHdrType::UNorm10 && options.AlphaMode == FOutputAlphaMode::Opaque)
     {
         is_hdr = true;
         return FGraphicsFormat::R10G10B10A2_UNorm;
     }
-    if (options.FormatSelector.Hdr == FHdrType::Float16)
+    if (options.Hdr == FHdrType::Float16)
     {
         is_hdr = true;
         return FGraphicsFormat::R16G16B16A16_Float;
     }
-    if (options.FormatSelector.Srgb) return FGraphicsFormat::R8G8B8A8_UNorm_sRGB;
     return FGraphicsFormat::R8G8B8A8_UNorm;
 }
 
@@ -170,7 +159,12 @@ void D3d12GpuSwapChain::CreateRts()
     for (u32 i = 0; i < m_frame_count; ++i)
     {
         chr | m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
-        m_device->CreateRenderTargetView(m_buffers[i].Get(), nullptr, rtv_handle);
+        D3D12_RENDER_TARGET_VIEW_DESC desc{};
+        desc.Format = ToDx(this->Srgb ? ToSrgb(this->Format) : this->Format);
+        desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        desc.Texture2D.MipSlice = 0;
+        desc.Texture2D.PlaneSlice = 0;
+        m_device->CreateRenderTargetView(m_buffers[i].Get(), &desc, rtv_handle);
         rtv_handle.Offset(1, m_rtv_descriptor_size);
     }
 }

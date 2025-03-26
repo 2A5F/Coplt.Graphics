@@ -156,11 +156,13 @@ void D3d12GpuRecord::Interpret_PreparePresent(u32 i, const FCmdPreparePresent& c
     if (Mode != FGpuRecordMode::Direct)
         COPLT_THROW("Can only present on the direct mode");
     m_barrier_recorder->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
+    m_barrier_recorder->OnCmd();
 }
 
 void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
 {
     m_barrier_recorder->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+    m_barrier_recorder->OnCmd();
     const auto rtv = GetRtv(GetRes(cmd.Image));
     CurList()->g0->ClearRenderTargetView(
         rtv, cmd.Color, cmd.RectCount,
@@ -171,6 +173,7 @@ void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
 void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd)
 {
     m_barrier_recorder->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+    m_barrier_recorder->OnCmd();
     const auto dsv = GetDsv(GetRes(cmd.Image));
     D3D12_CLEAR_FLAGS flags{};
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Depth)) flags |= D3D12_CLEAR_FLAG_DEPTH;
@@ -179,20 +182,6 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthSten
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
-}
-
-ResQueue Coplt::ToResQueue(const FGpuRecordMode mode)
-{
-    switch (mode)
-    {
-    case FGpuRecordMode::Direct:
-        return ResQueue::Direct;
-    case FGpuRecordMode::Compute:
-        return ResQueue::Compute;
-    default:
-        break;
-    }
-    return ResQueue::Common;
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
