@@ -67,25 +67,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
         FGpuIsolateCreateOptions f_options = new();
         FMainQueueCreateResult f_result;
         Ptr->CreateIsolate(&f_options, &f_result).TryThrow();
-        var queues = new GpuQueue2[f_result.NumQueues];
-        var isolate = new GpuIsolate(f_result.Isolate, null, this, f_result.Data, queues);
-        for (var i = 0; i < queues.Length; i++)
-        {
-            ref var q = ref f_result.Queues[i];
-            queues[i] = new GpuQueue2(q.Queue, q.Data, null, isolate);
-        }
-        if (Instance.DebugEnabled)
-        {
-            if (Name8.Length > 0)
-            {
-                isolate.SetName(Name8, Name);
-            }
-            else if (Name != null)
-            {
-                isolate.SetName(Name);
-            }
-        }
-        return isolate;
+        return new GpuIsolate(f_result.Isolate, null, this, f_result.Data);
     }
 
     #endregion

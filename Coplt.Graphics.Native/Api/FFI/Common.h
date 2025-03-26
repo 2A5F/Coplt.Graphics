@@ -8,6 +8,22 @@
 #endif
 #endif
 
+#ifndef COPLT_REQUIRES
+#ifdef FFI_SRC
+#define COPLT_REQUIRES requires
+#else
+#define COPLT_REQUIRES
+#endif
+#endif
+
+#ifndef COPLT_POD
+#ifdef FFI_SRC
+#define COPLT_POD(T) std::is_trivially_copyable_v<T>
+#else
+#define COPLT_POD(T)
+#endif
+#endif
+
 #ifndef COPLT_CDECL
 #ifdef _MSC_VER
 #define COPLT_CDECL __cdecl

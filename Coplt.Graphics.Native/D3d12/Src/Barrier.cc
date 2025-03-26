@@ -154,8 +154,8 @@ namespace Coplt::Enhanced
                             // .SyncAfter = D3D12_BARRIER_SYNC_SPLIT, // todo 拆分屏障
                             .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
                             .AccessAfter = GetBarrierAccess(input.State.Access),
-                            .LayoutBefore = GetBarrierLayout(sr.State->State.Layout, ToQueueType(data->Mode), sr.State->CrossQueue),
-                            .LayoutAfter = GetBarrierLayout(input.State.Layout, ToQueueType(data->Mode), false),
+                            .LayoutBefore = GetBarrierLayout(sr.State->Layout, sr.State->Queue),
+                            .LayoutAfter = GetBarrierLayout(input.State.Layout, ToResQueue(data->Mode)),
                             .pResource = GetResource(res),
                             .Subresources = {
                                 .IndexOrFirstMipLevel = 0,
@@ -215,7 +215,7 @@ namespace Coplt::Enhanced
                 range.ListIndex = m_submit_lists.size();
                 const auto lists = storage->Lists();
                 range.ListCount = lists.size();
-                range.QueueAt = QueueAt(0, FGpuQueueType::Direct); // todo 选择队列
+                range.Queue = FGpuQueueType::Direct; // todo 选择队列
                 for (const auto& list : lists)
                 {
                     m_submit_lists.push_back(list->ToCommandList());
@@ -236,9 +236,9 @@ void AD3d12BarrierCombiner::EndSubmit()
 {
     m_submit_lists.clear();
     m_list_ranges.clear();
-    m_fence_info.clear();
-    m_used_queues.clear();
+    m_queue_deps.clear();
     m_submit_resources.Clear();
+    m_used_queues = FGpuQueueFlags::None;
 }
 
 bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<Rc<ID3d12GpuRecord>> records)
@@ -259,11 +259,11 @@ bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<R
 
         for (const auto& range : m_list_ranges)
         {
-            const auto& queue = isolate->GetQueue(range.QueueAt);
-            for (u32 i = 0; i < range.FenceCount; ++i)
+            const auto& queue = isolate->GetQueue(range.Queue);
+            for (u32 i = 0; i < range.DepCount; ++i)
             {
-                const auto& at = m_fence_info[i + range.FenceIndex];
-                const auto& dep_queue = isolate->GetQueue(at);
+                const auto& dep = m_queue_deps[i + range.DepIndex];
+                const auto& dep_queue = isolate->GetQueue(dep);
                 queue->Wait(*dep_queue, dep_queue->Signal());
             }
             queue->m_queue->ExecuteCommandLists(range.ListCount, m_submit_lists.data() + range.ListIndex);
@@ -273,11 +273,17 @@ bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<R
 
         #pragma region 在主队列中等待其他队列
 
-        for (auto& at : m_used_queues)
         {
-            if (at.IsMain()) continue;
-            const auto& dep_queue = isolate->GetQueue(at);
-            main_queue->Wait(*dep_queue, dep_queue->Signal());
+            if (HasFlags(m_used_queues, FGpuQueueFlags::Compute))
+            {
+                const auto& dep_queue = isolate->GetQueue(FGpuQueueType::Compute);
+                main_queue->Wait(*dep_queue, dep_queue->Signal());
+            }
+            if (HasFlags(m_used_queues, FGpuQueueFlags::Copy))
+            {
+                const auto& dep_queue = isolate->GetQueue(FGpuQueueType::Copy);
+                main_queue->Wait(*dep_queue, dep_queue->Signal());
+            }
         }
 
         #pragma endregion

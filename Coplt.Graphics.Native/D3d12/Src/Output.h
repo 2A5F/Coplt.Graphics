@@ -89,7 +89,7 @@ namespace Coplt
 
     COPLT_INTERFACE_DEFINE(ID3d12GpuOutput2, "59aa68d8-91bd-4032-ba51-6a05795945b6", FGpuOutput2)
     {
-        virtual NonNull<ResourceState> State() = 0;
+        virtual NonNull<LayoutState> State() = 0;
         virtual NonNull<FGpuOutputData> Data() = 0;
         virtual NonNull<FGpuImageData> ImageData() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;

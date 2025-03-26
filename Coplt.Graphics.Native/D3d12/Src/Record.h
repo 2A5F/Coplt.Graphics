@@ -64,11 +64,11 @@ namespace Coplt
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
     };
 
-    FGpuQueueType ToQueueType(FGpuRecordMode mode);
+    ResQueue ToResQueue(FGpuRecordMode mode);
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
     NonNull<FGpuBufferData> GetBufferData(const FCmdRes& res);
     NonNull<FGpuImageData> GetImageData(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv(const FCmdRes& res);
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetDsv(const FCmdRes& res);
-    NonNull<ResourceState> GetState(const FCmdRes& res);
+    NonNull<LayoutState> GetState(const FCmdRes& res);
 }

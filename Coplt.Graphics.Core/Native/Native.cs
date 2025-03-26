@@ -1363,43 +1363,22 @@ namespace Coplt.Graphics.Native
         public FGpuRecordData* Data;
     }
 
-    public partial struct FQueueConfig
+    public enum FGpuIsolateType
     {
-        [NativeTypeName("Coplt::u32")]
-        public uint NumDirect;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumCompute;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumCopy;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumVideoEncode;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumVideoDecode;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumVideoProcess;
+        Main,
+        BackgroundCopy,
     }
 
-    public unsafe partial struct FGpuIsolateCreateOptions
+    public partial struct FGpuIsolateCreateOptions
     {
         [NativeTypeName("Coplt::FStr8or16")]
         public FStr8or16 Name;
-
-        [NativeTypeName("Coplt::FQueueConfig *")]
-        public FQueueConfig* QueueConfig;
     }
 
-    public unsafe partial struct FGpuIsolateData
+    public partial struct FGpuIsolateData
     {
         [NativeTypeName("Coplt::u64")]
         public ulong FrameId;
-
-        [NativeTypeName("Coplt::FQueueConfig *")]
-        public FQueueConfig* QueueConfig;
     }
 
     [Guid("777C5774-8EB8-4550-A977-62CCCD7BDDA6")]
@@ -1452,17 +1431,10 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FGpuQueueCreateResult *")]
-        public FGpuQueueCreateResult* GetQueues([NativeTypeName("Coplt::u32 *")] uint* OutNumQueues)
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuIsolate*, uint*, FGpuQueueCreateResult*>)(lpVtbl[6]))((FGpuIsolate*)Unsafe.AsPointer(ref this), OutNumQueues);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FGpuIsolateData *")]
         public FGpuIsolateData* GpuIsolateData()
         {
-            return ((delegate* unmanaged[Thiscall]<FGpuIsolate*, FGpuIsolateData*>)(lpVtbl[7]))((FGpuIsolate*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FGpuIsolate*, FGpuIsolateData*>)(lpVtbl[6]))((FGpuIsolate*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1470,7 +1442,7 @@ namespace Coplt.Graphics.Native
         public FResult RentRecords([NativeTypeName("Coplt::u32")] uint NumRecords, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecordCreateResult*, FResult*>)(lpVtbl[8]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, OutRecords);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecordCreateResult*, FResult*>)(lpVtbl[7]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, OutRecords);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1478,7 +1450,7 @@ namespace Coplt.Graphics.Native
         public FResult ReturnRecords([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[9]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[8]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1486,7 +1458,7 @@ namespace Coplt.Graphics.Native
         public FResult Submit([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records, [NativeTypeName("Coplt::FGpuRecordCreateResult *")] FGpuRecordCreateResult* OutRecords)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FGpuRecordCreateResult*, FResult*>)(lpVtbl[10]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records, OutRecords);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FGpuRecordCreateResult*, FResult*>)(lpVtbl[9]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records, OutRecords);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1494,7 +1466,7 @@ namespace Coplt.Graphics.Native
         public FResult SubmitReturn([NativeTypeName("Coplt::u32")] uint NumRecords, FGpuRecord** Records)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[11]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, uint, FGpuRecord**, FResult*>)(lpVtbl[10]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, NumRecords, Records);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1502,7 +1474,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateSwapChainFromExists([NativeTypeName("const FGpuSwapChainFromExistsCreateOptions &")] FGpuSwapChainFromExistsCreateOptions* options, [NativeTypeName("Coplt::FGpuSwapChainCreateResult &")] FGpuSwapChainCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainFromExistsCreateOptions*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[12]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainFromExistsCreateOptions*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[11]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1510,14 +1482,11 @@ namespace Coplt.Graphics.Native
         public FResult CreateSwapChainForHwnd([NativeTypeName("const FGpuSwapChainCreateOptions &")] FGpuSwapChainCreateOptions* options, void* hwnd, [NativeTypeName("Coplt::FGpuSwapChainCreateResult &")] FGpuSwapChainCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainCreateOptions*, void*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[13]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuIsolate*, FResult*, FGpuSwapChainCreateOptions*, void*, FGpuSwapChainCreateResult*, FResult*>)(lpVtbl[12]))((FGpuIsolate*)Unsafe.AsPointer(ref this), &result, options, hwnd, @out);
         }
 
         public interface Interface : FGpuObject.Interface
         {
-            [return: NativeTypeName("Coplt::FGpuQueueCreateResult *")]
-            FGpuQueueCreateResult* GetQueues([NativeTypeName("Coplt::u32 *")] uint* OutNumQueues);
-
             [return: NativeTypeName("Coplt::FGpuIsolateData *")]
             FGpuIsolateData* GpuIsolateData();
 
@@ -1552,12 +1521,6 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FGpuIsolateData *")]
         public FGpuIsolateData* Data;
-
-        [NativeTypeName("Coplt::FGpuQueueCreateResult *")]
-        public FGpuQueueCreateResult* Queues;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint NumQueues;
     }
 
     [NativeTypeName("Coplt::u8")]
@@ -2621,6 +2584,18 @@ namespace Coplt.Graphics.Native
         VideoEncode,
         VideoDecode,
         VideoProcess,
+    }
+
+    [NativeTypeName("Coplt::u8")]
+    public enum FGpuQueueFlags : byte
+    {
+        None = 0,
+        Direct = 1 << 0,
+        Compute = 1 << 1,
+        Copy = 1 << 2,
+        VideoEncode = 1 << 3,
+        VideoDecode = 1 << 4,
+        VideoProcess = 1 << 5,
     }
 
     [Guid("95E60E28-E387-4055-9B33-2D23AF901F8A")]

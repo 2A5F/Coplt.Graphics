@@ -71,7 +71,7 @@ namespace Coplt
         CopyDest,
         ResolveSource,
         ResolveDest,
-        ShaderRateSource,
+        ShadingRateSource,
         VideoEncodeRead,
         VideoEncodeWrite,
         VideoDecodeRead,
@@ -80,11 +80,20 @@ namespace Coplt
         VideoProcessWrite,
     };
 
+    enum class ResQueue : u16
+    {
+        Common = 0,
+        Direct = 1,
+        Compute = 2,
+        Video = 3,
+    };
+
     struct ResState
     {
         ResAccess Access{};
         ResUsage Usage{};
         ResLayout Layout{};
+        ResQueue Queue{};
 
         ResState() = default;
         explicit ResState(ResAccess Access, ResUsage Usage, ResLayout Layout);
@@ -94,11 +103,10 @@ namespace Coplt
         ResState Split() const;
     };
 
-    struct ResourceState
+    struct LayoutState
     {
-        ResState State{};
-        FGpuQueueType QueueType{};
-        bool CrossQueue{};
+        ResLayout Layout{};
+        ResQueue Queue{};
     };
 
     bool IsValid(ResAccess access);
@@ -111,9 +119,11 @@ namespace Coplt
 
     D3D12_RESOURCE_STATES GetResourceState(ResAccess access);
 
+    D3D12_RESOURCE_STATES GetResourceState(ResLayout layout);
+
     D3D12_BARRIER_ACCESS GetBarrierAccess(ResAccess access);
 
-    D3D12_BARRIER_LAYOUT GetBarrierLayout(ResLayout layout, FGpuQueueType queue, bool cross_queue);
+    D3D12_BARRIER_LAYOUT GetBarrierLayout(ResLayout layout, ResQueue queue);
 
     D3D12_BARRIER_SYNC GetBarrierSync(ResAccess access, ResUsage usage);
 }

@@ -161,11 +161,6 @@ FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, F
         const auto ptr = new D3d12GpuIsolate(this->CloneThis(), options);
         out.Isolate = ptr;
         out.Data = ptr;
-        out.Queues = out.Isolate->GetQueues(&out.NumQueues);
-        for (u32 i = 0; i < out.NumQueues; ++i)
-        {
-            out.Queues[i].Queue->AddRef();
-        }
     });
 }
 

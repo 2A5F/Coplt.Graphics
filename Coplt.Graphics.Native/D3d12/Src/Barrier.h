@@ -46,23 +46,23 @@ namespace Coplt
         struct ResInfo
         {
             FCmdRes Res{};
-            NonNull<ResourceState> State;
+            NonNull<LayoutState> State;
         };
 
         struct ListRange
         {
-            u32 FenceIndex{};
-            u32 FenceCount{};
+            u32 DepIndex{};
+            u32 DepCount{};
             u32 ListIndex{};
             u32 ListCount{};
-            QueueAt QueueAt{};
+            FGpuQueueType Queue{};
         };
 
         Rc<D3d12GpuDevice> m_device{};
         std::vector<ID3D12CommandList*> m_submit_lists{};
         std::vector<ListRange> m_list_ranges{};
-        std::vector<QueueAt> m_fence_info{};
-        std::vector<QueueAt> m_used_queues{};
+        std::vector<FGpuQueueType> m_queue_deps{};
+        FGpuQueueFlags m_used_queues{};
         HashMap<u64, ResInfo> m_submit_resources{};
 
         virtual void StartSubmit();

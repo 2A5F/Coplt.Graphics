@@ -181,18 +181,18 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthSten
     );
 }
 
-FGpuQueueType Coplt::ToQueueType(const FGpuRecordMode mode)
+ResQueue Coplt::ToResQueue(const FGpuRecordMode mode)
 {
     switch (mode)
     {
     case FGpuRecordMode::Direct:
-        return FGpuQueueType::Direct;
+        return ResQueue::Direct;
     case FGpuRecordMode::Compute:
-        return FGpuQueueType::Compute;
-    case FGpuRecordMode::Copy:
-        return FGpuQueueType::Copy;
+        return ResQueue::Compute;
+    default:
+        break;
     }
-    return FGpuQueueType::Direct;
+    return ResQueue::Common;
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
@@ -299,7 +299,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetDsv(const FCmdRes& res)
     COPLT_THROW("Unreachable");
 }
 
-NonNull<ResourceState> Coplt::GetState(const FCmdRes& res)
+NonNull<LayoutState> Coplt::GetState(const FCmdRes& res)
 {
     switch (res.Type)
     {

@@ -23,6 +23,17 @@ namespace Coplt
         VideoProcess,
     };
 
+    COPLT_ENUM_FLAGS(FGpuQueueFlags, u8)
+    {
+        None = 0,
+        Direct = 1 << 0,
+        Compute = 1 << 1,
+        Copy = 1 << 2,
+        VideoEncode = 1 << 3,
+        VideoDecode = 1 << 4,
+        VideoProcess = 1 << 5,
+    };
+
     COPLT_INTERFACE_DEFINE(FGpuQueue, "95e60e28-e387-4055-9b33-2d23af901f8a", FGpuObject)
     {
         // 不安全的内存暴露，外部不能修改，每帧必须保证当前指向可用的帧上下文

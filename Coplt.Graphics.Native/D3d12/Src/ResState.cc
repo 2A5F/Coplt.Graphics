@@ -168,6 +168,51 @@ D3D12_RESOURCE_STATES Coplt::GetResourceState(const ResAccess access)
     return state;
 }
 
+D3D12_RESOURCE_STATES Coplt::GetResourceState(const ResLayout layout)
+{
+    switch (layout)
+    {
+    case ResLayout::Undefined:
+    case ResLayout::Common:
+        return D3D12_RESOURCE_STATE_COMMON;
+    case ResLayout::GenericRead:
+        return D3D12_RESOURCE_STATE_GENERIC_READ;
+    case ResLayout::RenderTarget:
+        return D3D12_RESOURCE_STATE_RENDER_TARGET;
+    case ResLayout::UnorderedAccess:
+        return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    case ResLayout::DepthStencilWrite:
+        return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    case ResLayout::DepthStencilRead:
+        return D3D12_RESOURCE_STATE_DEPTH_READ;
+    case ResLayout::ShaderResource:
+        return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+    case ResLayout::CopySource:
+        return D3D12_RESOURCE_STATE_COPY_SOURCE;
+    case ResLayout::CopyDest:
+        return D3D12_RESOURCE_STATE_COPY_DEST;
+    case ResLayout::ResolveSource:
+        return D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+    case ResLayout::ResolveDest:
+        return D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    case ResLayout::ShadingRateSource:
+        return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+    case ResLayout::VideoEncodeRead:
+        return D3D12_RESOURCE_STATE_VIDEO_ENCODE_READ;
+    case ResLayout::VideoEncodeWrite:
+        return D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE;
+    case ResLayout::VideoDecodeRead:
+        return D3D12_RESOURCE_STATE_VIDEO_DECODE_READ;
+    case ResLayout::VideoDecodeWrite:
+        return D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE;
+    case ResLayout::VideoProcessRead:
+        return D3D12_RESOURCE_STATE_VIDEO_PROCESS_READ;
+    case ResLayout::VideoProcessWrite:
+        return D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE;
+    }
+    return D3D12_RESOURCE_STATE_COMMON;
+}
+
 D3D12_BARRIER_ACCESS Coplt::GetBarrierAccess(const ResAccess access)
 {
     D3D12_BARRIER_ACCESS ba = D3D12_BARRIER_ACCESS_COMMON;
@@ -231,7 +276,7 @@ D3D12_BARRIER_ACCESS Coplt::GetBarrierAccess(const ResAccess access)
     return ba;
 }
 
-D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(const ResLayout layout, const FGpuQueueType queue, const bool cross_queue)
+D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(ResLayout layout, ResQueue queue)
 {
     switch (layout)
     {
@@ -247,7 +292,7 @@ D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(const ResLayout layout, const FGpuQ
         return D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
     case ResLayout::ResolveDest:
         return D3D12_BARRIER_LAYOUT_RESOLVE_DEST;
-    case ResLayout::ShaderRateSource:
+    case ResLayout::ShadingRateSource:
         return D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE;
     case ResLayout::VideoEncodeRead:
         return D3D12_BARRIER_LAYOUT_VIDEO_ENCODE_READ;
@@ -262,92 +307,72 @@ D3D12_BARRIER_LAYOUT Coplt::GetBarrierLayout(const ResLayout layout, const FGpuQ
     case ResLayout::VideoProcessWrite:
         return D3D12_BARRIER_LAYOUT_VIDEO_PROCESS_WRITE;
     case ResLayout::GenericRead:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_GENERIC_READ;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_GENERIC_READ;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_GENERIC_READ;
     case ResLayout::UnorderedAccess:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_UNORDERED_ACCESS;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_UNORDERED_ACCESS;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_UNORDERED_ACCESS;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_UNORDERED_ACCESS;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
     case ResLayout::ShaderResource:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_SHADER_RESOURCE;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_SHADER_RESOURCE;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_SHADER_RESOURCE;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_SHADER_RESOURCE;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
     case ResLayout::CopySource:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_SOURCE;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_SOURCE;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
     case ResLayout::CopyDest:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_DEST;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_DEST;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_COPY_DEST;
     case ResLayout::Common:
     default:
-        if (!cross_queue)
+        switch (queue)
         {
-            switch (queue)
-            {
-            case FGpuQueueType::Direct:
-                return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
-            case FGpuQueueType::Compute:
-                return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON;
-            case FGpuQueueType::VideoEncode:
-            case FGpuQueueType::VideoDecode:
-            case FGpuQueueType::VideoProcess:
-                return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
-            default:
-                break;
-            }
+        case ResQueue::Direct:
+            return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
+        case ResQueue::Compute:
+            return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON;
+        case ResQueue::Video:
+            return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
+        default:
+            break;
         }
         return D3D12_BARRIER_LAYOUT_COMMON;
     }

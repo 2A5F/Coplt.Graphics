@@ -11,9 +11,7 @@
 namespace Coplt
 {
     template <typename T>
-    #ifdef FFI_SRC
-        requires std::is_trivially_copyable_v<T>
-    #endif
+        COPLT_REQUIRES COPLT_POD(T)
     struct FList COPLT_FINAL
     {
         FAllocator* m_allocator{};
@@ -92,11 +90,13 @@ namespace Coplt
         {
             if (m_ptr == nullptr)
             {
+                if (m_allocator == nullptr) throw std::bad_alloc();
                 m_cap = InitCapacity;
                 m_ptr = static_cast<T*>(m_allocator->MemoryAlloc(m_cap * sizeof(T), alignof(T)));
             }
             else
             {
+                if (m_allocator == nullptr) throw std::bad_alloc();
                 m_cap *= 2;
                 m_ptr = static_cast<T*>(m_allocator->MemoryReAlloc(m_ptr, m_cap * sizeof(T), alignof(T)));
             }
