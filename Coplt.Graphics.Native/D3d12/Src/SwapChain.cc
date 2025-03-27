@@ -129,6 +129,16 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
         chr | m_swap_chain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
     }
 
+    m_image_data.m_format = this->Format;
+    m_image_data.m_width = this->Width;
+    m_image_data.m_height = this->Height;
+    m_image_data.m_depth_or_length = 1;
+    m_image_data.m_mip_levels = 1;
+    m_image_data.m_multisample_count = 1;
+    m_image_data.m_planes = 1;
+    m_image_data.m_dimension = FImageDimension::Two;
+    m_image_data.m_layout = FImageLayout::Undefined;
+
     Initialize();
 }
 

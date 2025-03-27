@@ -156,7 +156,6 @@ void D3d12GpuRecord::Interpret_PreparePresent(u32 i, const FCmdPreparePresent& c
     if (Mode != FGpuRecordMode::Direct)
         COPLT_THROW("Can only present on the direct mode");
     m_barrier_recorder->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
-    m_barrier_recorder->OnCmd();
 }
 
 void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
