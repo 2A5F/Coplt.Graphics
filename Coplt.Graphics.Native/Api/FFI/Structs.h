@@ -34,4 +34,28 @@ namespace Coplt
         Depth = 1,
         Stencil = 2,
     };
+
+    enum class FLoadOp : u8
+    {
+        Load,
+        Clear,
+        Discard,
+        NoAccess,
+    };
+
+    enum class FStoreOp : u8
+    {
+        Store,
+        Discard,
+        Resolve,
+        NoAccess,
+    };
+
+    enum class FResolveMode : u8
+    {
+        Decompress,
+        Min,
+        Max,
+        Average,
+    };
 }

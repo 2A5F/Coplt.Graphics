@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Structs.h"
-#include "Output.h"
+#include "Output.h""
+#include "Binding.h"
+#include "Pipeline.h"
 
 namespace Coplt
 {
@@ -17,6 +19,21 @@ namespace Coplt
 
         ClearColor,
         ClearDepthStencil,
+
+        Render,
+        Compute,
+
+        // Render / Compute
+        SetPipeline,
+        SetBinding,
+
+        // Render
+        SetViewportScissor,
+        SetMeshBuffers,
+        Draw,
+
+        // Render / Compute
+        Dispatch,
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,6 +122,35 @@ namespace Coplt
         #endif
     };
 
+    struct FResolveInfo2
+    {
+        FCmdResRef Src{};
+        FCmdResRef Dst{};
+        FGraphicsFormat Format{};
+        FResolveMode Mode{};
+    };
+
+    struct FRenderInfo2
+    {
+        // 可选
+        FCmdResRef Dsv{};
+        u32 NumRtv{};
+        FCmdResRef Rtv[8]{};
+        // 类型为 FResolveInfo
+        u32 ResolveInfoIndex[8]{};
+        u32 DsvResolveInfoIndex{};
+        FGraphicsFormat RtvFormat[8]{};
+        FGraphicsFormat DsvFormat{};
+        f32 Color[4 * 8]{};
+        f32 Depth{};
+        u8 Stencil{};
+        FLoadOp DsvLoadOp[2]{};
+        FStoreOp DsvStoreOp[2]{};
+        FLoadOp RtvLoadOp[8]{};
+        FStoreOp RtvStoreOp[8]{};
+        b8 HasUavWrites{};
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCmdBase
@@ -170,6 +216,64 @@ namespace Coplt
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///
+    struct FCmdRender : FCmdBase
+    {
+        // 类型为 FRenderInfo
+        u32 InfoIndex{};
+        u32 CommandCount{};
+    };
+
+    struct FCmdCompute : FCmdBase
+    {
+        u32 CommandCount{};
+    }; ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCmdSetPipeline : FCmdBase
+    {
+        FShaderPipeline* Pipeline{};
+    };
+
+    struct FCmdSetBinding : FCmdBase
+    {
+        FShaderBinding* Binding{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FCmdSetViewportScissor : FCmdBase
+    {
+        // 有多少个 Viewport
+        u32 ViewportCount{};
+        // Payload 内的索引
+        u32 ViewportIndex{};
+        // 有多少个 Rect
+        u32 ScissorRectCount{};
+        // Payload 内的索引, 类型为 FRect
+        u32 ScissorRectIndex{};
+    };
+
+    struct FCmdSetMeshBuffers : FCmdBase
+    {
+        FGraphicsFormat IndexFormat{};
+        // 0 .. 31
+        u32 VertexStartSlot{};
+        // 类型为 FMeshBuffers
+        u32 PayloadIndex{};
+    };
+
+    struct FCmdDraw : FCmdBase
+    {
+        u32 VertexOrIndexCount{};
+        u32 InstanceCount{};
+        u32 FirstVertexOrIndex{};
+        u32 FirstInstance{};
+        // 仅 Indexed 使用
+        u32 VertexOffset{};
+        b8 Indexed{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCmdItem
     {
@@ -185,6 +289,13 @@ namespace Coplt
 
             FCmdClearColor ClearColor;
             FCmdClearDepthStencil ClearDepthStencil;
+
+            FCmdSetPipeline SetPipeline;
+            FCmdSetBinding SetBinding;
+
+            FCmdSetViewportScissor SetViewportScissor;
+            FCmdSetMeshBuffers SetMeshBuffers;
+            FCmdDraw Draw;
 
             u8 _pad[32];
         };

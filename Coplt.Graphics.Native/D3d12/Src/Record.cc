@@ -1,5 +1,7 @@
 #include "Record.h"
 
+#include <pix3.h>
+
 #include "Output.h"
 
 using namespace Coplt;
@@ -128,13 +130,13 @@ void D3d12GpuRecord::Interpret()
         case FCmdType::None:
             break;
         case FCmdType::Label:
-            // todo
+            Interpret_Label(i, command.Label);
             break;
         case FCmdType::BeginScope:
-            // todo
+            Interpret_BeginScope(i, command.BeginScope);
             break;
         case FCmdType::EndScope:
-            // todo
+            Interpret_EndScope(i, command.EndScope);
             break;
         case FCmdType::PreparePresent:
             Interpret_PreparePresent(i, command.PreparePresent);
@@ -145,21 +147,76 @@ void D3d12GpuRecord::Interpret()
         case FCmdType::ClearDepthStencil:
             Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
             break;
+        case FCmdType::Render:
+        case FCmdType::Compute:
+        case FCmdType::SetPipeline:
+        case FCmdType::SetBinding:
+        case FCmdType::SetViewportScissor:
+        case FCmdType::SetMeshBuffers:
+        case FCmdType::Draw:
+        case FCmdType::Dispatch:
+            COPLT_THROW("TODO");
         }
     }
     m_barrier_recorder->EndRecord();
     m_storage->EndRecord();
 }
 
-void D3d12GpuRecord::Interpret_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const
+void D3d12GpuRecord::Interpret_Label(u32 i, const FCmdLabel& cmd) const
 {
+    if (!m_device->Debug()) return;
+    const auto& list = CurList();
+    if (!list->g0) return;
+    auto color = PIX_COLOR_DEFAULT;
+    if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
+    if (cmd.StrType == FStrType::Str8)
+    {
+        PIXSetMarker(list->g0.Get(), color, "%s", reinterpret_cast<const char*>(Blob.data() + cmd.StringIndex));
+    }
+    else
+    {
+        PIXSetMarker(list->g0.Get(), color, L"%s", reinterpret_cast<const wchar_t*>(Blob.data() + cmd.StringIndex));
+    }
+}
+
+void D3d12GpuRecord::Interpret_BeginScope(u32 i, const FCmdBeginScope& cmd) const
+{
+    if (!m_device->Debug()) return;
+    const auto& list = CurList();
+    if (!list->g0) return;
+    auto color = PIX_COLOR_DEFAULT;
+    if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
+    if (cmd.StrType == FStrType::Str8)
+    {
+        PIXBeginEvent(list->g0.Get(), color, "%s", reinterpret_cast<const char*>(Blob.data() + cmd.StringIndex));
+    }
+    else
+    {
+        PIXBeginEvent(list->g0.Get(), color, L"%s", reinterpret_cast<const wchar_t*>(Blob.data() + cmd.StringIndex));
+    }
+}
+
+void D3d12GpuRecord::Interpret_EndScope(u32 i, const FCmdEndScope& cmd) const
+{
+    if (!m_device->Debug()) return;
+    const auto& list = CurList();
+    if (!list->g0) return;
+    PIXEndEvent(list->g0.Get());
+}
+
+void D3d12GpuRecord::Interpret_PreparePresent(const u32 i, const FCmdPreparePresent& cmd) const
+{
+    if (m_state != InterpretState::Main)
+        COPLT_THROW("Cannot use PreparePresent in sub scope");
     if (Mode != FGpuRecordMode::Direct)
         COPLT_THROW("Can only present on the direct mode");
     m_barrier_recorder->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
 }
 
-void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
+void D3d12GpuRecord::Interpret_ClearColor(const u32 i, const FCmdClearColor& cmd)
 {
+    if (m_state != InterpretState::Main)
+        COPLT_THROW("Cannot use ClearColor in sub scope");
     m_barrier_recorder->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
     m_barrier_recorder->OnCmd();
     const auto rtv = GetRtv(GetRes(cmd.Image));
@@ -169,8 +226,10 @@ void D3d12GpuRecord::Interpret_ClearColor(u32 i, const FCmdClearColor& cmd)
     );
 }
 
-void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd)
+void D3d12GpuRecord::Interpret_ClearDepthStencil(const u32 i, const FCmdClearDepthStencil& cmd)
 {
+    if (m_state != InterpretState::Main)
+        COPLT_THROW("Cannot use ClearDepthStencil in sub scope");
     m_barrier_recorder->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
     m_barrier_recorder->OnCmd();
     const auto dsv = GetDsv(GetRes(cmd.Image));
@@ -181,6 +240,14 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthSten
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
+}
+
+void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
+{
+    if (m_state != InterpretState::Main)
+        COPLT_THROW("Cannot use Render in sub scope");
+    m_state = InterpretState::Render;
+    m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)

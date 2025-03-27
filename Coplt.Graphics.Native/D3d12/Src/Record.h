@@ -26,6 +26,19 @@ namespace Coplt
 
     struct D3d12GpuRecord final : GpuObject<D3d12GpuRecord, ID3d12GpuRecord>, FGpuRecordData
     {
+        enum class InterpretState : u8
+        {
+            Main,
+            Render,
+            Compute,
+        };
+
+        struct RenderState
+        {
+            u32 StartIndex{};
+            FCmdRender Cmd{};
+        };
+
         u64 m_isolate_id{};
         u64 m_record_id{};
         Rc<D3d12GpuDevice> m_device{};
@@ -34,6 +47,8 @@ namespace Coplt
         Rc<ID3d12BarrierRecorder> m_barrier_recorder{};
         std::vector<Rc<FGpuObject>> m_resources_owner{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
+        RenderState m_cur_render{};
+        InterpretState m_state{};
 
         explicit D3d12GpuRecord(NonNull<D3d12GpuIsolate> isolate);
 
@@ -59,9 +74,14 @@ namespace Coplt
 
         void ReadyResource();
         void Interpret();
+        void Interpret_Label(u32 i, const FCmdLabel& cmd) const;
+        void Interpret_BeginScope(u32 i, const FCmdBeginScope& cmd) const;
+        void Interpret_EndScope(u32 i, const FCmdEndScope& cmd) const;
         void Interpret_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;
         void Interpret_ClearColor(u32 i, const FCmdClearColor& cmd);
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
+        void Interpret_Render(u32 i, const FCmdRender& cmd);
+
     };
 
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);

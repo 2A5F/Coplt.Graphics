@@ -146,6 +146,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
             for (var i = 0; i < records.Length; i++)
             {
                 if ((p[i] = records[i].Ptr) == null) throw new NullReferenceException();
+                records[i].AssertEndOrCanEnd();
             }
             Ptr->Submit((uint)records.Length, p, o).TryThrow();
             for (var i = 0; i < records.Length; i++)
@@ -164,6 +165,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 for (var i = 0; i < records.Length; i++)
                 {
                     if ((arr[i] = (IntPtr)records[i].Ptr) == 0) throw new NullReferenceException();
+                    records[i].AssertEndOrCanEnd();
                 }
                 fixed (IntPtr* p = arr)
                 fixed (FGpuRecordCreateResult* o = @out)

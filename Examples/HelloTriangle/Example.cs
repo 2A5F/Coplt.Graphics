@@ -32,6 +32,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     }
     protected override void Render(GpuRecord cmd, Time time)
     {
+        using var _ = cmd.Scope("Hello Triangle");
         cmd.ClearColor(Output, new Color(0.83f, 0.8f, 0.97f));
         // using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))]);
         // render.Draw(Pipeline, 3);

@@ -10,6 +10,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     internal FGpuRecordData* m_data;
     internal readonly Dictionary<object, uint> m_resources = new();
+    internal int m_debug_scope_count;
 
     #endregion
 
@@ -17,6 +18,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public new FGpuRecord* Ptr => (FGpuRecord*)m_ptr;
     internal ref FGpuRecordData Data => ref *m_data;
+    public bool DebugEnabled { get; }
 
     #endregion
 
@@ -25,6 +27,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     internal GpuRecord(FGpuRecord* ptr, FGpuRecordData* data, string? name, GpuIsolate isolate) : base((FGpuObject*)ptr, name, isolate)
     {
         m_data = data;
+        DebugEnabled = Isolate.Device.Instance.DebugEnabled;
     }
 
     #endregion
@@ -60,16 +63,29 @@ public sealed unsafe class GpuRecord : IsolateChild
     public void End()
     {
         AssertNotEnded();
+        AssertEndOrCanEnd();
         Ptr->End().TryThrow();
     }
 
     public void EnsureEnded()
     {
         if (Data.Ended) return;
+        AssertEndOrCanEnd();
         Ptr->End().TryThrow();
     }
 
+    internal void AssertEndOrCanEnd()
+    {
+        if (Data.Ended) return;
+        if (m_debug_scope_count != 0)
+            throw new InvalidOperationException(
+                "There is still Debug scope not ended, please check whether Dispose is missed."
+            );
+    }
+
     #endregion
+
+    #region Payload
 
     #region AddResource
 
@@ -97,21 +113,133 @@ public sealed unsafe class GpuRecord : IsolateChild
         var len = Data.PayloadRect.LongLength;
         if (len >= uint.MaxValue) throw new IndexOutOfRangeException("Payload >= uint32 max are not supported");
         Data.PayloadRect.EnsureCap(len + (uint)Rects.Length);
-        foreach (var rect in Rects)
-        {
-            // todo add range
-            Data.PayloadRect.Add(
-                new()
-                {
-                    Left = rect.Left,
-                    Top = rect.Top,
-                    Right = rect.Right,
-                    Bottom = rect.Bottom,
-                }
-            );
-        }
+        Data.PayloadRect.AddRange(MemoryMarshal.Cast<URect, FRect>(Rects));
         return (uint)len;
     }
+
+    #endregion
+
+    #region AddString
+
+    internal uint AddString(string str)
+    {
+        var index = Data.Blob.LongLength;
+        Data.Blob.EnsureCap((nuint)str.Length * 2 + 2);
+        Data.Blob.AddRange(MemoryMarshal.AsBytes(str.AsSpan()));
+        Data.Blob.AddRange([0, 0]);
+        return (uint)index;
+    }
+
+    internal uint AddString(ReadOnlySpan<byte> str)
+    {
+        var index = Data.Blob.LongLength;
+        Data.Blob.EnsureCap((nuint)str.Length + 1);
+        Data.Blob.AddRange(str);
+        Data.Blob.Add(0);
+        return (uint)index;
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Debug
+
+    #region Label
+
+    public void Label(string Label, Color? Color = null)
+    {
+        if (!DebugEnabled) return;
+        var cmd = new FCmdLabel
+        {
+            Base = { Type = FCmdType.Label },
+            StringIndex = AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str16,
+        };
+        if (Color is { } color)
+        {
+            var c255 = color.To255;
+            cmd.HasColor = true;
+            cmd.Color[0] = (byte)c255.R;
+            cmd.Color[1] = (byte)c255.G;
+            cmd.Color[2] = (byte)c255.B;
+        }
+        Data.Commands.Add(new() { Label = cmd });
+    }
+
+    public void Label(ReadOnlySpan<byte> Label, Color? Color = null)
+    {
+        if (!DebugEnabled) return;
+        var cmd = new FCmdLabel
+        {
+            Base = { Type = FCmdType.Label },
+            StringIndex = AddString(Label),
+            StringLength = (uint)Label.Length,
+            StrType = FStrType.Str8,
+        };
+        if (Color is { } color)
+        {
+            var c255 = color.To255;
+            cmd.HasColor = true;
+            cmd.Color[0] = (byte)c255.R;
+            cmd.Color[1] = (byte)c255.G;
+            cmd.Color[2] = (byte)c255.B;
+        }
+        Data.Commands.Add(new() { Label = cmd });
+    }
+
+    #endregion
+
+    #region Scope
+
+    public DebugScope2 Scope(string Name, Color? Color = null)
+    {
+        if (!DebugEnabled) return new(this);
+        var cmd = new FCmdBeginScope
+        {
+            Base = { Type = FCmdType.BeginScope },
+            StringIndex = AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str16,
+        };
+        if (Color is { } color)
+        {
+            var c255 = color.To255;
+            cmd.HasColor = true;
+            cmd.Color[0] = (byte)c255.R;
+            cmd.Color[1] = (byte)c255.G;
+            cmd.Color[2] = (byte)c255.B;
+        }
+        Data.Commands.Add(new() { BeginScope = cmd });
+        m_debug_scope_count++;
+        return new(this);
+    }
+
+    public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null)
+    {
+        if (!DebugEnabled) return new(this);
+        var cmd = new FCmdBeginScope
+        {
+            Base = { Type = FCmdType.BeginScope },
+            StringIndex = AddString(Name),
+            StringLength = (uint)Name.Length,
+            StrType = FStrType.Str8,
+        };
+        if (Color is { } color)
+        {
+            var c255 = color.To255;
+            cmd.HasColor = true;
+            cmd.Color[0] = (byte)c255.R;
+            cmd.Color[1] = (byte)c255.G;
+            cmd.Color[2] = (byte)c255.B;
+        }
+        Data.Commands.Add(new() { BeginScope = cmd });
+        m_debug_scope_count++;
+        return new(this);
+    }
+
+    #endregion
 
     #endregion
 
@@ -154,3 +282,24 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #endregion
 }
+
+#region DebugScope
+
+public struct DebugScope2(GpuRecord self) : IDisposable
+{
+    private bool m_disposed;
+    public void Dispose()
+    {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        m_disposed = true;
+        if (!self.DebugEnabled) return;
+        var cmd = new FCmdEndScope
+        {
+            Base = { Type = FCmdType.EndScope },
+        };
+        self.Data.Commands.Add(new() { EndScope = cmd });
+        self.m_debug_scope_count--;
+    }
+}
+
+#endregion

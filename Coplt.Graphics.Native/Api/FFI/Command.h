@@ -216,36 +216,12 @@ namespace Coplt
         FImagePlane Plane{};
     };
 
-    enum class FResolveMode : u8
-    {
-        Decompress,
-        Min,
-        Max,
-        Average,
-    };
-
     struct FResolveInfo
     {
         FResourceRef Src{};
         FResourceRef Dst{};
         FGraphicsFormat Format{};
         FResolveMode Mode{};
-    };
-
-    enum class FLoadOp : u8
-    {
-        Load,
-        Clear,
-        Discard,
-        NoAccess,
-    };
-
-    enum class FStoreOp : u8
-    {
-        Store,
-        Discard,
-        Resolve,
-        NoAccess,
     };
 
     struct FRenderInfo
