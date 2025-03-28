@@ -73,8 +73,8 @@ namespace Coplt::Enhanced
             const auto& res = resources[i];
             m_resources.push_back(ResInfo(&res));
         }
-        m_buffer_groups.push_back({.ListIndex = 0});
-        m_buffer_groups.push_back({.ListIndex = 1});
+        m_buffer_groups.push_back({});
+        m_buffer_groups.push_back({});
     }
 
     void EnhancedBarrierRecorder::EndRecord()
@@ -108,6 +108,7 @@ namespace Coplt::Enhanced
         {
             info.InfoState = InfoState::Input;
             info.State = new_state;
+            if (m_last_cmd_count > 0) Split();
             info.LastUseListIndex = 0;
             info.CurrentListIndex = m_storage->CurListIndex();
             return;
@@ -121,7 +122,7 @@ namespace Coplt::Enhanced
             }
             info.InfoState = InfoState::Used;
             m_inputs.push_back(IOResState{.ResIndex = ResIndex, .CurrentListIndex = info.CurrentListIndex, .State = info.State});
-            if (info.CurrentListIndex == m_storage->CurListIndex()) Split();
+            if (info.CurrentListIndex == m_storage->CurListIndex() || m_last_cmd_count > 0) Split();
             goto EndState;
         }
         else
@@ -132,12 +133,21 @@ namespace Coplt::Enhanced
                 goto End;
             }
         }
-        if (info.CurrentListIndex == m_storage->CurListIndex()) Split();
+        if (info.CurrentListIndex == m_storage->CurListIndex() || m_last_cmd_count > 0) Split();
         CreateBarrier(info);
     EndState:
         info.SetNewState(new_state);
         info.LastUseListIndex = info.CurrentListIndex;
     End:
+        info.CurrentListIndex = m_storage->CurListIndex();
+    }
+
+    void EnhancedBarrierRecorder::OnUse(FCmdResRef ResRef)
+    {
+        const auto ResIndex = ResRef.ResIndex();
+        auto& info = m_resources[ResIndex];
+        if (info.InfoState == InfoState::Unused)
+            COPLT_THROW("The resource is not being used and the usage location cannot be updated");
         info.CurrentListIndex = m_storage->CurListIndex();
     }
 
@@ -149,7 +159,7 @@ namespace Coplt::Enhanced
     void EnhancedBarrierRecorder::Split()
     {
         m_storage->Split();
-        m_buffer_groups.push_back({.ListIndex = m_buffer_groups.size() - 1});
+        m_buffer_groups.push_back({});
         m_last_cmd_count = 0;
     }
 
@@ -219,8 +229,9 @@ namespace Coplt::Enhanced
 
     void EnhancedBarrierRecorder::SubmitBarriers()
     {
-        for (auto& group : m_buffer_groups)
+        for (u32 i = 0; i < m_buffer_groups.size(); ++i)
         {
+            auto& group = m_buffer_groups[i];
             D3D12_BARRIER_GROUP groups[2];
             u32 group_count = 0;
             if (group.m_texture_barriers.size() > 0)
@@ -241,7 +252,7 @@ namespace Coplt::Enhanced
             }
             if (group_count > 0)
             {
-                m_storage->Lists()[group.ListIndex]->Barrier(group_count, groups);
+                m_storage->Lists()[i]->Barrier(group_count, groups);
                 group.m_texture_barriers.clear();
                 group.m_buffer_barriers.clear();
             }

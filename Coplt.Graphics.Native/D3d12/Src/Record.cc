@@ -355,7 +355,7 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
     m_state = InterpretState::Render;
     m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
-    auto num_rtv = std::min(info.NumRtv, 8u);
+    const auto num_rtv = std::min(info.NumRtv, 8u);
     if (CurList()->g4)
     {
         D3D12_RENDER_PASS_RENDER_TARGET_DESC rts[num_rtv];
@@ -444,6 +444,11 @@ void D3d12GpuRecord::Interpret_RenderEnd(u32 i, const FCmdRender& cmd)
         COPLT_THROW("Cannot use End in main scope");
     m_state = InterpretState::Main;
     const auto& list = CurList();
+    const auto& info = PayloadRenderInfo[cmd.InfoIndex];
+    const auto num_rtv = std::min(info.NumRtv, 8u);
+    if (info.Dsv) m_barrier_recorder->OnUse(info.Dsv);
+    for (u32 n = 0; n < num_rtv; ++n) m_barrier_recorder->OnUse(info.Rtv[n]);
+    m_barrier_recorder->OnCmd();
     if (list->g4)
     {
         list->g4->EndRenderPass();

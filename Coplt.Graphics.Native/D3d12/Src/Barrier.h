@@ -34,6 +34,7 @@ namespace Coplt
         virtual void EndRecord() = 0;
 
         virtual void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
+        virtual void OnUse(FCmdResRef ResRef) = 0;
         virtual void OnCmd() = 0;
 
         virtual void SubmitBarriers() = 0;
@@ -101,7 +102,6 @@ namespace Coplt
             // todo 优化内存分配
             struct BarrierGroup
             {
-                u32 ListIndex{};
                 std::vector<D3D12_BUFFER_BARRIER> m_buffer_barriers{};
                 std::vector<D3D12_TEXTURE_BARRIER> m_texture_barriers{};
 
@@ -140,6 +140,7 @@ namespace Coplt
             void StartRecord(std::span<FCmdRes> resources) override;
             void EndRecord() override;
             void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
+            void OnUse(FCmdResRef ResRef) override;
             void OnCmd() override;
 
             void Split();
