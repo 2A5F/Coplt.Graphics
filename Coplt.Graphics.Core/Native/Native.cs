@@ -1571,7 +1571,9 @@ namespace Coplt.Graphics.Native
 
         public FList<FViewport> PayloadViewport;
 
-        public FList<FRenderInfo2> RenderInfo;
+        public FList<FRenderInfo2> PayloadRenderInfo;
+
+        public FList<FResolveInfo2> PayloadResolveInfo;
 
         [NativeTypeName("FList<u8>")]
         public FList<byte> Blob;
@@ -1587,6 +1589,7 @@ namespace Coplt.Graphics.Native
     public enum FCmdType : uint
     {
         None = 0,
+        End = 1,
         Label,
         BeginScope,
         EndScope,
@@ -1613,7 +1616,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L66_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L67_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -2004,7 +2007,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L280_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L281_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2074,6 +2077,26 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.ClearDepthStencil;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdRender Render
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Render;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdCompute Compute
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Compute;
             }
         }
 
@@ -2167,6 +2190,14 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdClearDepthStencil")]
             public FCmdClearDepthStencil ClearDepthStencil;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdRender")]
+            public FCmdRender Render;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdCompute")]
+            public FCmdCompute Compute;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdSetPipeline")]

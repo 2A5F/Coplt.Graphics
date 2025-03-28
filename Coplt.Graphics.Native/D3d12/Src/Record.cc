@@ -3,8 +3,46 @@
 #include <pix3.h>
 
 #include "Output.h"
+#include "../FFI/Pipeline.h"
+#include "../Include/GraphicsFormat.h"
+#include "../Include/PipelineState.h"
 
 using namespace Coplt;
+
+void D3d12GpuRecord::PipelineContext::Reset()
+{
+    Pipeline = nullptr;
+    Layout = nullptr;
+    GPipeline = nullptr;
+    // Binding = nullptr;
+    PipelineChanged = false;
+    BindingChanged = false;
+}
+
+void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
+{
+    if (pipeline == Pipeline) return;
+    Pipeline = pipeline->QueryInterface<FD3d12PipelineState>();
+    if (!Pipeline)
+    {
+        COPLT_THROW_FMT(
+            "Pipeline({:#x}) comes from different backends at cmd {}",
+            static_cast<size_t>(pipeline), i
+        );
+    }
+    Layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
+    if (!Layout)
+        COPLT_THROW("Shader layout from different backends");
+    const auto stages = pipeline->GetStages();
+    GPipeline = nullptr;
+    if (HasFlags(stages, FShaderStageFlags::Pixel))
+    {
+        GPipeline = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
+        if (!GPipeline)
+            COPLT_THROW("Pipeline from different backends or pipeline not a graphics pipeline");
+    }
+    PipelineChanged = true;
+}
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()), m_device(isolate->m_device)
@@ -68,6 +106,7 @@ void D3d12GpuRecord::Recycle()
     m_storage->Clear();
     m_context->Recycle();
     m_resources_owner.clear();
+    m_pipeline_context.Reset();
     ClearData();
     Ended = false;
 }
@@ -129,6 +168,12 @@ void D3d12GpuRecord::Interpret()
         {
         case FCmdType::None:
             break;
+        case FCmdType::End:
+            if (m_state == InterpretState::Render)
+                Interpret_RenderEnd(i, m_cur_render.Cmd);
+            else
+                COPLT_THROW("Cannot use End in main scope");
+            break;
         case FCmdType::Label:
             Interpret_Label(i, command.Label);
             break;
@@ -148,14 +193,26 @@ void D3d12GpuRecord::Interpret()
             Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
             break;
         case FCmdType::Render:
+            Interpret_Render(i, command.Render);
+            break;
         case FCmdType::Compute:
+            COPLT_THROW("TODO");
         case FCmdType::SetPipeline:
+            Interpret_SetPipeline(i, command.SetPipeline);
+            break;
         case FCmdType::SetBinding:
+            COPLT_THROW("TODO");
         case FCmdType::SetViewportScissor:
+            Interpret_SetViewportScissor(i, command.SetViewportScissor);
+            break;
         case FCmdType::SetMeshBuffers:
+            COPLT_THROW("TODO");
         case FCmdType::Draw:
+            Interpret_Draw(i, command.Draw);
+            break;
         case FCmdType::Dispatch:
             COPLT_THROW("TODO");
+            break;
         }
     }
     m_barrier_recorder->EndRecord();
@@ -184,7 +241,7 @@ void D3d12GpuRecord::Interpret_BeginScope(u32 i, const FCmdBeginScope& cmd) cons
     if (!m_device->Debug()) return;
     const auto& list = CurList();
     if (!list->g0) return;
-    auto color = PIX_COLOR_DEFAULT;
+    u32 color = PIX_COLOR_DEFAULT;
     if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
     if (cmd.StrType == FStrType::Str8)
     {
@@ -246,8 +303,155 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
 {
     if (m_state != InterpretState::Main)
         COPLT_THROW("Cannot use Render in sub scope");
+    if (Mode != FGpuRecordMode::Direct)
+        COPLT_THROW("Render can only be used in Direct mode");
     m_state = InterpretState::Render;
     m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
+    const auto& list = CurList();
+    const auto& info = PayloadRenderInfo[cmd.InfoIndex];
+    auto num_rtv = std::min(info.NumRtv, 8u);
+    if (list->g4)
+    {
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC rts[num_rtv];
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds[info.Dsv ? 1 : 0];
+        if (info.Dsv)
+        {
+            m_barrier_recorder->OnUse(info.Dsv, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+            const auto& dsv = GetRes(info.Dsv);
+            const auto& d_load = info.DsvLoadOp[0];
+            const auto& d_store = info.DsvStoreOp[0];
+            const auto& s_load = info.DsvLoadOp[1];
+            const auto& s_store = info.DsvStoreOp[1];
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC desc{};
+            desc.cpuDescriptor = GetDsv(dsv);
+            desc.DepthBeginningAccess = ToDx(d_load, [&](D3D12_CLEAR_VALUE& cv)
+            {
+                cv.Format = ToDx(info.DsvFormat);
+                cv.DepthStencil.Depth = info.Depth;
+            });
+            desc.DepthBeginningAccess = ToDx(s_load, [&](D3D12_CLEAR_VALUE& cv)
+            {
+                cv.Format = ToDx(info.DsvFormat);
+                cv.DepthStencil.Stencil = info.Stencil;
+            });
+            desc.DepthEndingAccess = ToDx(d_store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
+            {
+                const auto& res_info = PayloadResolveInfo[info.DsvResolveInfoIndex];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(GetRes(res_info.Src));
+                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
+            desc.StencilEndingAccess = ToDx(s_store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
+            {
+                const auto& res_info = PayloadResolveInfo[info.DsvResolveInfoIndex];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(GetRes(res_info.Src));
+                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
+            ds[0] = desc;
+        }
+        for (u32 n = 0; n < num_rtv; ++n)
+        {
+            m_barrier_recorder->OnUse(info.Rtv[n], ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+            const auto& rtv = GetRes(info.Rtv[n]);
+            const auto& load = info.RtvLoadOp[n];
+            const auto& store = info.RtvStoreOp[n];
+            D3D12_RENDER_PASS_RENDER_TARGET_DESC desc{};
+            desc.cpuDescriptor = GetRtv(rtv);
+            desc.BeginningAccess = ToDx(load, [&](D3D12_CLEAR_VALUE& cv)
+            {
+                cv.Format = ToDx(info.RtvFormat[n]);
+                cv.Color[0] = info.Color[0];
+                cv.Color[1] = info.Color[1];
+                cv.Color[2] = info.Color[2];
+                cv.Color[3] = info.Color[3];
+            });
+            desc.EndingAccess = ToDx(store, [&](D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS& res)
+            {
+                const auto& res_info = PayloadResolveInfo[info.ResolveInfoIndex[n]];
+                res.Format = ToDx(res_info.Format);
+                res.pSrcResource = GetResource(GetRes(res_info.Src));
+                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.SubresourceCount = 0;
+                res.ResolveMode = ToDx(res_info.Mode);
+            });
+            rts[n] = desc;
+        }
+        D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
+        if (info.HasUavWrites) flags |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
+        m_barrier_recorder->OnCmd();
+        list->g4->BeginRenderPass(info.NumRtv, rts, info.Dsv ? ds : nullptr, flags);
+    }
+    else
+    {
+        COPLT_THROW("TODO");
+    }
+}
+
+void D3d12GpuRecord::Interpret_RenderEnd(u32 i, const FCmdRender& cmd)
+{
+    if (m_state != InterpretState::Render)
+        COPLT_THROW("Cannot use End in main scope");
+    m_state = InterpretState::Main;
+    const auto& list = CurList();
+    if (list->g4)
+    {
+        list->g4->EndRenderPass();
+    }
+}
+
+void D3d12GpuRecord::Interpret_SetPipeline(const u32 i, const FCmdSetPipeline& cmd)
+{
+    if (m_state != InterpretState::Render && m_state != InterpretState::Compute)
+        COPLT_THROW("Cannot use SetPipeline in main scope");
+    SetPipeline(cmd.Pipeline, i);
+}
+
+void D3d12GpuRecord::Interpret_SetViewportScissor(u32 i, const FCmdSetViewportScissor& cmd) const
+{
+    if (m_state != InterpretState::Render)
+        COPLT_THROW("Cannot use SetPipeline in main scope or compute scope");
+    const auto& list = CurList();
+    list->g0->RSSetViewports(cmd.ViewportCount, reinterpret_cast<const D3D12_VIEWPORT*>(PayloadViewport.data() + cmd.ViewportIndex));
+    list->g0->RSSetScissorRects(cmd.ScissorRectCount, reinterpret_cast<const D3D12_RECT*>(PayloadRect.data() + cmd.ScissorRectIndex));
+}
+
+void D3d12GpuRecord::Interpret_Draw(u32 i, const FCmdDraw& cmd) const
+{
+    if (m_state != InterpretState::Render)
+        COPLT_THROW("Cannot use SetPipeline in main scope or compute scope");
+    const auto& list = CurList();
+    if (cmd.Indexed)
+    {
+        list->g0->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
+    }
+    else
+    {
+        list->g0->DrawInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.FirstInstance);
+    }
+}
+
+void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
+{
+    if (pipeline == m_pipeline_context.Pipeline) return;
+    m_pipeline_context.SetPipeline(pipeline, i);
+    const auto stages = pipeline->GetStages();
+    const auto& list = CurList();
+    if (HasFlags(stages, FShaderStageFlags::Compute))
+    {
+        list->g0->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
+    }
+    else if (HasFlags(stages, FShaderStageFlags::Pixel))
+    {
+        const auto& states = m_pipeline_context.GPipeline->GetGraphicsState();
+        list->g0->IASetPrimitiveTopology(ToDx(states->Topology));
+        list->g0->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
+    }
+    list->g0->SetPipelineState(static_cast<ID3D12PipelineState*>(m_pipeline_context.Pipeline->GetPipelineStatePtr()));
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)

@@ -32,14 +32,16 @@ namespace Coplt
         FList<FCmdRes> Resources;
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
-        FList<FRenderInfo2> RenderInfo;
+        FList<FRenderInfo2> PayloadRenderInfo;
+        FList<FResolveInfo2> PayloadResolveInfo;
         FList<u8> Blob;
         b8 Ended{};
         FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator), RenderInfo(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator),
+              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), Blob(allocator)
         {
         }
 
@@ -49,7 +51,8 @@ namespace Coplt
             Resources.Clear();
             PayloadRect.Clear();
             PayloadViewport.Clear();
-            RenderInfo.Clear();
+            PayloadRenderInfo.Clear();
+            PayloadResolveInfo.Clear();
             Blob.Clear();
         }
         #endif

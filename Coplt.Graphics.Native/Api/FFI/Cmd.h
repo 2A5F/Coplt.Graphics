@@ -10,6 +10,7 @@ namespace Coplt
     enum class FCmdType : u32
     {
         None = 0,
+        End = 1,
 
         Label,
         BeginScope,
@@ -108,7 +109,7 @@ namespace Coplt
         u32 IndexPlusOne{};
 
         #ifdef FFI_SRC
-        operator bool() const { return IndexPlusOne == 0; }
+        operator bool() const { return IndexPlusOne != 0; }
 
         u32 ResIndex() const { return IndexPlusOne - 1; }
 
@@ -289,6 +290,9 @@ namespace Coplt
 
             FCmdClearColor ClearColor;
             FCmdClearDepthStencil ClearDepthStencil;
+
+            FCmdRender Render;
+            FCmdCompute Compute;
 
             FCmdSetPipeline SetPipeline;
             FCmdSetBinding SetBinding;

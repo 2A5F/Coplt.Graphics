@@ -39,6 +39,22 @@ namespace Coplt
             FCmdRender Cmd{};
         };
 
+        struct PipelineContext
+        {
+            Ptr<FD3d12PipelineState> Pipeline{};
+            Ptr<FD3d12ShaderLayout> Layout{};
+            // 如果不是图形管线将不会设置
+            Ptr<FD3d12GraphicsShaderPipeline> GPipeline{};
+
+            // Ptr<ID3d12ShaderBinding> Binding{};
+
+            bool PipelineChanged{};
+            bool BindingChanged{};
+
+            void Reset();
+            void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
+        };
+
         u64 m_isolate_id{};
         u64 m_record_id{};
         Rc<D3d12GpuDevice> m_device{};
@@ -48,6 +64,7 @@ namespace Coplt
         std::vector<Rc<FGpuObject>> m_resources_owner{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         RenderState m_cur_render{};
+        PipelineContext m_pipeline_context{};
         InterpretState m_state{};
 
         explicit D3d12GpuRecord(NonNull<D3d12GpuIsolate> isolate);
@@ -81,7 +98,12 @@ namespace Coplt
         void Interpret_ClearColor(u32 i, const FCmdClearColor& cmd);
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
         void Interpret_Render(u32 i, const FCmdRender& cmd);
+        void Interpret_RenderEnd(u32 i, const FCmdRender& cmd);
+        void Interpret_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
+        void Interpret_SetViewportScissor(u32 i, const FCmdSetViewportScissor& cmd) const;
+        void Interpret_Draw(u32 i, const FCmdDraw& cmd) const;
 
+        void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
     };
 
     NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
