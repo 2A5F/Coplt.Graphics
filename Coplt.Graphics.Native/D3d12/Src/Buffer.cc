@@ -80,6 +80,11 @@ NonNull<FGpuBufferData> D3d12GpuBuffer::Data()
     return this;
 }
 
+NonNull<LayoutState> D3d12GpuBuffer::State()
+{
+    return &m_layout_state;
+}
+
 void* D3d12GpuBuffer::GetRawResourcePtr() noexcept
 {
     return GetResourcePtr();

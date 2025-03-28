@@ -26,6 +26,8 @@ namespace Coplt
     // 里面的 FList<T*> 的 T* 生命周期由 c# 部分保证
     struct FGpuRecordData
     {
+        u64 Id{};
+        u64 Version{};
         FRecordContext* Context{};
         FList<FCmdItem> Commands;
         // 需要保证不重复，c# 部分需要使用 HashMap 去重
@@ -34,6 +36,7 @@ namespace Coplt
         FList<FViewport> PayloadViewport;
         FList<FRenderInfo2> PayloadRenderInfo;
         FList<FResolveInfo2> PayloadResolveInfo;
+        FList<FBufferCopyRange> PayloadBufferCopyRange;
         FList<u8> Blob;
         b8 Ended{};
         FGpuRecordMode Mode{};
@@ -41,7 +44,7 @@ namespace Coplt
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
             : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator),
-              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), Blob(allocator)
+              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator), Blob(allocator)
         {
         }
 
@@ -53,6 +56,7 @@ namespace Coplt
             PayloadViewport.Clear();
             PayloadRenderInfo.Clear();
             PayloadResolveInfo.Clear();
+            PayloadBufferCopyRange.Clear();
             Blob.Clear();
         }
         #endif

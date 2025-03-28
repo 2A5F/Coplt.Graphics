@@ -175,11 +175,6 @@ namespace Coplt
         };
     };
 
-    struct FUploadLoc
-    {
-        u32 Index{};
-    };
-
     union FBufferRef
     {
         FResourceRef Buffer;
@@ -192,28 +187,6 @@ namespace Coplt
         Buffer = 0,
         // 当前帧上下文中第几个上传缓冲区
         Upload,
-    };
-
-    struct FBufferCopyRange
-    {
-        // Size 为 u64::max 时复制整个
-        u64 Size{};
-        u64 DstOffset{};
-        u64 SrcOffset{};
-    };
-
-    struct FBufferImageCopyRange
-    {
-        u64 BufferOffset{};
-        // 必须是 256 的倍数
-        u32 BytesPerRow{};
-        u32 RowsPerImage{};
-        u32 ImageOffset[3]{};
-        u32 ImageExtent[3]{};
-        u32 ImageIndex{};
-        u32 ImageCount{};
-        u16 MipLevel{};
-        FImagePlane Plane{};
     };
 
     struct FResolveInfo

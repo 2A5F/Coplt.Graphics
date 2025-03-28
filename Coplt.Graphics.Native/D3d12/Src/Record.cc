@@ -47,7 +47,7 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()), m_device(isolate->m_device)
 {
-    m_isolate_id = isolate->m_object_id;
+    Id = m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
     m_context = new D3d12RecordContext(isolate);
     m_storage = new D3d12RecordStorage(isolate, m_context);
@@ -134,6 +134,7 @@ void D3d12GpuRecord::DoEnd()
     ReadyResource();
     Interpret();
     Ended = true;
+    Version++;
 }
 
 FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
@@ -191,6 +192,9 @@ void D3d12GpuRecord::Interpret()
             break;
         case FCmdType::ClearDepthStencil:
             Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
+            break;
+        case FCmdType::BufferCopy:
+            Interpret_BufferCopy(i, command.BufferCopy);
             break;
         case FCmdType::Render:
             Interpret_Render(i, command.Render);
@@ -299,6 +303,49 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(const u32 i, const FCmdClearDep
     );
 }
 
+void D3d12GpuRecord::Interpret_BufferCopy(u32 i, const FCmdBufferCopy& cmd)
+{
+    if (m_state != InterpretState::Main)
+        COPLT_THROW("Cannot use BufferCopy in sub scope");
+    const auto& range = PayloadBufferCopyRange[cmd.RangeIndex];
+    if (cmd.SrcType == FBufferRefType2::Buffer && cmd.DstType == FBufferRefType2::Buffer)
+    {
+        m_barrier_recorder->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_recorder->OnUse(cmd.Src.Buffer, ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
+        m_barrier_recorder->OnCmd();
+        const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
+        const auto src = GetResource(GetRes(cmd.Src.Buffer));
+        if (range.Size == std::numeric_limits<u64>::max())
+        {
+            CurList()->g0->CopyResource(dst, src);
+        }
+        else
+        {
+            CurList()->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
+        }
+    }
+    else if (cmd.SrcType == FBufferRefType2::Upload && cmd.DstType == FBufferRefType2::Buffer)
+    {
+        m_barrier_recorder->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_recorder->OnCmd();
+        const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
+        if (cmd.Src.Upload.Index >= m_context->m_upload_buffers.size())
+            COPLT_THROW_FMT("Index out of bounds at command {}", i);
+        const auto& src_obj = m_context->m_upload_buffers[cmd.Src.Upload.Index];
+        if (range.SrcOffset + range.Size >= src_obj.m_size)
+            COPLT_THROW_FMT("Size out of range at command {}", i);
+        const auto src = src_obj.m_resource.m_resource.Get();
+        CurList()->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
+    }
+    else
+    {
+        COPLT_THROW_FMT(
+            "Unsupported copy combination {{ SrcType = {} DstType = {} }} at command {}",
+            static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
+        );
+    }
+}
+
 void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
 {
     if (m_state != InterpretState::Main)
@@ -307,10 +354,9 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
         COPLT_THROW("Render can only be used in Direct mode");
     m_state = InterpretState::Render;
     m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
-    const auto& list = CurList();
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
     auto num_rtv = std::min(info.NumRtv, 8u);
-    if (list->g4)
+    if (CurList()->g4)
     {
         D3D12_RENDER_PASS_RENDER_TARGET_DESC rts[num_rtv];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds[info.Dsv ? 1 : 0];
@@ -384,7 +430,7 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
         D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
         if (info.HasUavWrites) flags |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
         m_barrier_recorder->OnCmd();
-        list->g4->BeginRenderPass(info.NumRtv, rts, info.Dsv ? ds : nullptr, flags);
+        CurList()->g4->BeginRenderPass(info.NumRtv, rts, info.Dsv ? ds : nullptr, flags);
     }
     else
     {
@@ -565,12 +611,12 @@ NonNull<LayoutState> Coplt::GetState(const FCmdRes& res)
     case FCmdResType::Image:
         {
             const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            COPLT_THROW("TODO");
+            return obj->State();
         }
     case FCmdResType::Buffer:
         {
             const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            COPLT_THROW("TODO");
+            return obj->State();
         }
     case FCmdResType::Output:
         {

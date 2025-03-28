@@ -21,6 +21,8 @@ namespace Coplt
         ClearColor,
         ClearDepthStencil,
 
+        BufferCopy,
+
         Render,
         Compute,
 
@@ -152,6 +154,20 @@ namespace Coplt
         b8 HasUavWrites{};
     };
 
+    union FBufferRef2
+    {
+        FCmdResRef Buffer;
+        FUploadLoc Upload;
+    };
+
+    enum class FBufferRefType2 : u8
+    {
+        // GpuBuffer 对象资源引用
+        Buffer = 0,
+        // 当前帧上下文中第几个上传缓冲区
+        Upload,
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCmdBase
@@ -217,7 +233,30 @@ namespace Coplt
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///
+
+    struct FCmdBufferCopy : FCmdBase
+    {
+        // 类型为 FBufferCopyRange
+        u32 RangeIndex{};
+        FBufferRef2 Dst{};
+        FBufferRef2 Src{};
+        FBufferRefType2 DstType{};
+        FBufferRefType2 SrcType{};
+    };
+
+    struct FCndBufferImageCopy : FCmdBase
+    {
+        // 类型为 FBufferImageCopyRange
+        u32 RangeIndex{};
+        FCmdResRef Image;
+        FBufferRef2 Buffer{};
+        FBufferRefType2 BufferType{};
+        // false 为 Buffer To Image
+        b8 ImageToBuffer{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCmdRender : FCmdBase
     {
         // 类型为 FRenderInfo
@@ -290,6 +329,8 @@ namespace Coplt
 
             FCmdClearColor ClearColor;
             FCmdClearDepthStencil ClearDepthStencil;
+
+            FCmdBufferCopy BufferCopy;
 
             FCmdRender Render;
             FCmdCompute Compute;

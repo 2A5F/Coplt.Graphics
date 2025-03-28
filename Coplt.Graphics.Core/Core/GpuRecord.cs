@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics.Core;
 
@@ -95,15 +96,75 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #endregion
 
+    #region Alloc Upload
+
+    /// <summary>
+    /// 返回的 Span 只能写入
+    /// </summary>
+    public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc2 loc, uint Align = 4)
+    {
+        if (Align > 1) Size += Align - 1;
+        ref var upload_buffers = ref Data.Context->m_upload_buffer;
+        for (nuint i = 0; i < upload_buffers.LongLength; i++)
+        {
+            ref var block = ref upload_buffers[i];
+            if (block.cur_offset + Size < block.size)
+            {
+                var offset = block.cur_offset.Aligned(Align);
+                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+                loc = new UploadLoc2(Data.Id, Data.Version, i, offset, Size);
+                block.cur_offset += Size;
+                return r;
+            }
+        }
+        Data.Context->GrowUploadBuffer(Size).TryThrow();
+        upload_buffers = ref Data.Context->m_upload_buffer;
+        {
+            var i = upload_buffers.LongLength - 1;
+            ref var block = ref upload_buffers[i];
+            if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
+            var offset = block.cur_offset.Aligned(Align);
+            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
+            loc = new UploadLoc2(Data.Id, Data.Version, i, offset, Size);
+            block.cur_offset += Size;
+            return r;
+        }
+    }
+
+    public UploadLoc2 WriteToUpload(ReadOnlySpan<byte> Data, uint Align = 4)
+    {
+        Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc, Align));
+        return loc;
+    }
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory2 AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length = 1) =>
+        AllocImageUploadMemory2D(PixelSize, Width, Height, Length, out _);
+
+    /// <summary>
+    /// 分配用于上传纹理的 256 对齐的内存
+    /// </summary>
+    public ImageUploadBufferMemory2 AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc2 loc)
+    {
+        if (PixelSize < 1 || Width < 1 || Height < 1 || Length < 1) throw new ArgumentOutOfRangeException();
+        var row_stride = (PixelSize * Width).Aligned(256);
+        var row_count = Height * Length;
+        var buffer_size = row_stride * row_count + 256u;
+        var slice = AllocUploadMemory(buffer_size, out loc, 256u);
+        return new ImageUploadBufferMemory2(slice, row_stride, row_count, Length, Height, loc);
+    }
+
+    #endregion
+
     #region Payload
 
     #region AddResource
 
     internal FCmdResRef AddResource(IGpuResource resource)
     {
-        if (resource.Isolate != Isolate)
-            throw new ArgumentException($"Resource {resource} does not belong to isolate {Isolate}");
-        ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(m_resources, m_resources, out var exists);
+        ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(m_resources, resource, out var exists);
         if (!exists)
         {
             var len = Data.Resources.LongLength;
@@ -181,6 +242,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public void Label(string Label, Color? Color = null)
     {
+        AssertNotEnded();
         if (!DebugEnabled) return;
         var cmd = new FCmdLabel
         {
@@ -202,6 +264,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public void Label(ReadOnlySpan<byte> Label, Color? Color = null)
     {
+        AssertNotEnded();
         if (!DebugEnabled) return;
         var cmd = new FCmdLabel
         {
@@ -227,6 +290,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public DebugScope2 Scope(string Name, Color? Color = null)
     {
+        AssertNotEnded();
         if (!DebugEnabled) return new(this);
         var cmd = new FCmdBeginScope
         {
@@ -250,6 +314,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null)
     {
+        AssertNotEnded();
         if (!DebugEnabled) return new(this);
         var cmd = new FCmdBeginScope
         {
@@ -314,6 +379,121 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #endregion
 
+    #region BufferCopy
+
+    public void Copy(
+        GpuBuffer Dst,
+        GpuBuffer Src,
+        ulong DstOffset = 0,
+        ulong SrcOffset = 0,
+        ulong Size = ulong.MaxValue
+    )
+    {
+        AssertNotEnded();
+        Dst.AssertSameIsolate(Isolate);
+        Src.AssertSameIsolate(Isolate);
+        if (Size != ulong.MaxValue)
+        {
+            if (DstOffset + Size > Dst.Size) throw new ArgumentException("The copy range exceeds the buffer range");
+            if (SrcOffset + Size > Src.Size) throw new ArgumentException("The copy range exceeds the buffer range");
+        }
+        else if (Dst == Src || Dst.Size != Src.Size) Size = Math.Min(Dst.Size, Src.Size);
+        var cmd = new FCmdBufferCopy
+        {
+            Base = { Type = FCmdType.BufferCopy },
+            RangeIndex = (uint)Data.PayloadBufferCopyRange.LongLength,
+            Dst = { Buffer = AddResource(Dst) },
+            DstType = FBufferRefType2.Buffer,
+            Src = { Buffer = AddResource(Src) },
+            SrcType = FBufferRefType2.Buffer,
+        };
+        Data.PayloadBufferCopyRange.Add(
+            new()
+            {
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = SrcOffset,
+            }
+        );
+        Data.Commands.Add(new() { BufferCopy = cmd });
+    }
+
+    #endregion
+
+    #region BufferUpload
+
+    public void Upload<T>(
+        GpuBuffer Dst,
+        ReadOnlySpan<T> Data,
+        ulong DstOffset = 0
+    ) where T : unmanaged => Upload(Dst, MemoryMarshal.AsBytes(Data), DstOffset);
+
+    public void Upload(
+        GpuBuffer Dst,
+        ReadOnlySpan<byte> Data,
+        ulong DstOffset = 0
+    )
+    {
+        AssertNotEnded();
+        // Dst.AssertSameIsolate(Isolate); // todo
+        if (Data.Length == 0) return;
+        var Size = Math.Min(Dst.Size, (uint)Data.Length);
+        var src = WriteToUpload(Data);
+        var cmd = new FCmdBufferCopy
+        {
+            Base = { Type = FCmdType.BufferCopy },
+            RangeIndex = (uint)this.Data.PayloadBufferCopyRange.LongLength,
+            Dst = { Buffer = AddResource(Dst) },
+            DstType = FBufferRefType2.Buffer,
+            Src = { Upload = src },
+            SrcType = FBufferRefType2.Upload,
+        };
+        this.Data.PayloadBufferCopyRange.Add(
+            new()
+            {
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = src.Offset,
+            }
+        );
+        this.Data.Commands.Add(new() { BufferCopy = cmd });
+    }
+
+    public void Upload(
+        GpuBuffer Dst,
+        UploadLoc2 Loc,
+        ulong DstOffset = 0
+    )
+    {
+        AssertNotEnded();
+        // Dst.AssertSameIsolate(Isolate); // todo
+        if (Loc.RecordId != Data.Id)
+            throw new ArgumentException("Cannot use UploadLoc different GpuRecord");
+        if (Loc.RecordVersion != Data.Version)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        var Size = Math.Min(Dst.Size, Loc.Size);
+        var cmd = new FCmdBufferCopy
+        {
+            Base = { Type = FCmdType.BufferCopy },
+            RangeIndex = (uint)Data.PayloadBufferCopyRange.LongLength,
+            Dst = { Buffer = AddResource(Dst) },
+            DstType = FBufferRefType2.Buffer,
+            Src = { Upload = Loc },
+            SrcType = FBufferRefType2.Upload,
+        };
+        Data.PayloadBufferCopyRange.Add(
+            new()
+            {
+                Size = Size,
+                DstOffset = DstOffset,
+                SrcOffset = Loc.Offset,
+            }
+        );
+        Data.Commands.Add(new() { BufferCopy = cmd });
+    }
+
+    #endregion
+
     #region Render
 
     public RenderScope2 Render(
@@ -332,6 +512,8 @@ public sealed unsafe class GpuRecord : IsolateChild
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
+        AssertNotEnded();
+        
         #region Check Nested
 
         if (m_in_render_or_compute_scope) throw new InvalidOperationException("Cannot nest Render or Compute scopes");

@@ -9,6 +9,7 @@
 #include "Resource.h"
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/Ptr.h"
+#include "../Include/ResState.h"
 
 namespace Coplt
 {
@@ -16,10 +17,12 @@ namespace Coplt
     {
         virtual NonNull<FGpuBufferData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
+        virtual NonNull<LayoutState> State() = 0;
     };
 
     struct D3d12GpuBuffer final : GpuObject<D3d12GpuBuffer, ID3d12GpuBuffer>, FGpuBufferData
     {
+        LayoutState m_layout_state{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<FString> m_name{};
         ComPtr<D3D12MA::Allocator> m_allocator{};
@@ -35,6 +38,7 @@ namespace Coplt
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuBufferData* GpuBufferData() noexcept override;
         NonNull<FGpuBufferData> Data() override;
+        NonNull<LayoutState> State() override;
 
         void* GetRawResourcePtr() noexcept override;
         NonNull<ID3D12Resource> GetResourcePtr() override;

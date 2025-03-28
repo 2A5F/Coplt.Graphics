@@ -128,6 +128,11 @@ NonNull<FGpuImageData> D3d12GpuImage::Data()
     return this;
 }
 
+NonNull<LayoutState> D3d12GpuImage::State()
+{
+    return &m_layout_state;
+}
+
 void* D3d12GpuImage::GetRawResourcePtr() noexcept
 {
     return GetResourcePtr();

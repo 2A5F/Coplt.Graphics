@@ -97,6 +97,7 @@ namespace Coplt
         void Interpret_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;
         void Interpret_ClearColor(u32 i, const FCmdClearColor& cmd);
         void Interpret_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd);
+        void Interpret_BufferCopy(u32 i, const FCmdBufferCopy& cmd);
         void Interpret_Render(u32 i, const FCmdRender& cmd);
         void Interpret_RenderEnd(u32 i, const FCmdRender& cmd);
         void Interpret_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
