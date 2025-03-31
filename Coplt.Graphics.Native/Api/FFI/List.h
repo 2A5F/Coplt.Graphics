@@ -75,6 +75,12 @@ namespace Coplt
             return m_ptr[index];
         }
 
+        const T& operator[](size_t index) const
+        {
+            if (index >= m_len) throw std::out_of_range("FList::operator[]");
+            return m_ptr[index];
+        }
+
         T* data() const
         {
             return m_ptr;

@@ -21,7 +21,7 @@ namespace Coplt
     };
 
     struct ID3d12GpuRecord;
-    struct ID3d12BarrierAnalyzer;
+    struct ID3d12BarrierMarshal;
     struct ID3d12BarrierCombiner;
 
     struct D3d12GpuIsolate final : GpuObject<D3d12GpuIsolate, ID3d12GpuIsolate>, FGpuIsolateData
@@ -31,7 +31,7 @@ namespace Coplt
         Rc<D3d12GpuQueue2> m_main_queue{};
         Rc<D3d12GpuQueue2> m_compute_queue{};
         Rc<D3d12GpuQueue2> m_copy_queue{};
-        Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
+        Rc<ID3d12BarrierMarshal> m_barrier_marshal{};
         Rc<ID3d12BarrierCombiner> m_barrier_combiner{};
         HANDLE m_event{};
         Box<RecordQueue> m_waiting_record{};

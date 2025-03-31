@@ -177,6 +177,7 @@ namespace Coplt
         D3d12RentedCommandAllocator(const D3d12RentedCommandAllocator&) = delete;
         D3d12RentedCommandAllocator& operator=(const D3d12RentedCommandAllocator&) = delete;
 
+        // 每个分配器在重置之前只能租用一次
         D3d12RentedCommandList RentCommandList() const;
 
         operator bool() const noexcept;

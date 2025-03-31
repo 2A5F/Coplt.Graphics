@@ -23,8 +23,8 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
 
     #pragma endregion
 
-    m_barrier_analyzer = new Enhanced::EnhancedBarrierAnalyzer(m_device);
-    m_barrier_combiner = m_barrier_analyzer->CreateCombiner();
+    m_barrier_marshal = new Enhanced::EnhancedBarrierMarshal(m_device);
+    m_barrier_combiner = m_barrier_marshal->CreateCombiner();
 
     m_cmd_alloc_pool = new D3d12CommandListPoolCluster(m_device);
 

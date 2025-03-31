@@ -50,9 +50,8 @@ D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     Id = m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
     m_context = new D3d12RecordContext(isolate);
-    m_storage = new D3d12RecordStorage(isolate, m_context);
-    m_barrier_recorder = isolate->m_barrier_analyzer->CreateRecorder(m_storage);
-    Context = m_context.get();
+    m_barrier_analyzer = isolate->m_barrier_marshal->CreateAnalyzer();
+    FGpuRecordData::Context = m_context.get();
 }
 
 FResult D3d12GpuRecord::SetName(const FStr8or16& name) noexcept
@@ -75,14 +74,14 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
-const Rc<D3d12RecordStorage>& D3d12GpuRecord::Storage()
+const Rc<D3d12RecordContext>& D3d12GpuRecord::Context() const noexcept
 {
-    return m_storage;
+    return m_context;
 }
 
-const Rc<ID3d12BarrierRecorder>& D3d12GpuRecord::BarrierRecorder()
+const Rc<ID3d12BarrierAnalyzer>& D3d12GpuRecord::BarrierAnalyzer()
 {
-    return m_barrier_recorder;
+    return m_barrier_analyzer;
 }
 
 void D3d12GpuRecord::RegisterWaitPoint(QueueWaitPoint&& wait_point)
@@ -102,8 +101,7 @@ void D3d12GpuRecord::WaitAndRecycle(const HANDLE event)
 void D3d12GpuRecord::Recycle()
 {
     m_queue_wait_points.clear();
-    m_barrier_recorder->Clear();
-    m_storage->Clear();
+    m_barrier_analyzer->Clear();
     m_context->Recycle();
     m_resources_owner.clear();
     m_pipeline_context.Reset();
@@ -132,7 +130,7 @@ void D3d12GpuRecord::DoEnd()
     if (Resources.size() >= std::numeric_limits<u32>::max())
         COPLT_THROW("Too many resources");
     ReadyResource();
-    Interpret();
+    Analyze();
     Ended = true;
     Version++;
 }
@@ -142,9 +140,11 @@ FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
     return ref.Get(Resources);
 }
 
-D3d12RentedCommandList& D3d12GpuRecord::CurList() const
+void D3d12GpuRecord::ResetState()
 {
-    return m_storage->CurList();
+    m_state = RecordState::Main;
+    m_cur_render = {};
+    m_pipeline_context.Reset();
 }
 
 void D3d12GpuRecord::ReadyResource()
@@ -157,76 +157,218 @@ void D3d12GpuRecord::ReadyResource()
     }
 }
 
-void D3d12GpuRecord::Interpret()
+void D3d12GpuRecord::Analyze()
 {
-    m_storage->StartRecord(Mode);
-    m_barrier_recorder->StartRecord(Resources.AsSpan());
     const auto commands = Commands.AsSpan();
-    for (u32 i = 0; i < commands.size(); ++i)
+    m_barrier_analyzer->StartAnalyze(Resources.AsSpan());
+    for (u32 i = 0; i < commands.size(); ++i, m_barrier_analyzer->CmdNext())
     {
         const auto& command = commands[i];
         switch (command.Type)
         {
         case FCmdType::None:
+        case FCmdType::Label:
+        case FCmdType::BeginScope:
+        case FCmdType::EndScope:
             break;
         case FCmdType::End:
-            if (m_state == InterpretState::Render)
-                Interpret_RenderEnd(i, m_cur_render.Cmd);
+            if (m_state == RecordState::Render)
+                Analyze_RenderEnd(i, m_cur_render.Cmd);
             else
                 COPLT_THROW("Cannot use End in main scope");
             break;
-        case FCmdType::Label:
-            Interpret_Label(i, command.Label);
-            break;
-        case FCmdType::BeginScope:
-            Interpret_BeginScope(i, command.BeginScope);
-            break;
-        case FCmdType::EndScope:
-            Interpret_EndScope(i, command.EndScope);
-            break;
         case FCmdType::PreparePresent:
-            Interpret_PreparePresent(i, command.PreparePresent);
+            Analyze_PreparePresent(i, command.PreparePresent);
             break;
         case FCmdType::ClearColor:
-            Interpret_ClearColor(i, command.ClearColor);
+            Analyze_ClearColor(i, command.ClearColor);
             break;
         case FCmdType::ClearDepthStencil:
-            Interpret_ClearDepthStencil(i, command.ClearDepthStencil);
+            Analyze_ClearDepthStencil(i, command.ClearDepthStencil);
             break;
         case FCmdType::BufferCopy:
-            Interpret_BufferCopy(i, command.BufferCopy);
+            Analyze_BufferCopy(i, command.BufferCopy);
             break;
         case FCmdType::Render:
-            Interpret_Render(i, command.Render);
+            Analyze_Render(i, command.Render);
             break;
         case FCmdType::Compute:
             COPLT_THROW("TODO");
         case FCmdType::SetPipeline:
-            Interpret_SetPipeline(i, command.SetPipeline);
+            Analyze_SetPipeline(i, command.SetPipeline);
+            break;
+        case FCmdType::SetBinding:
+            COPLT_THROW("TODO");
+        case FCmdType::SetMeshBuffers:
+            COPLT_THROW("TODO");
+        case FCmdType::SetViewportScissor:
+            if (Mode != FGpuRecordMode::Direct)
+                COPLT_THROW_FMT("[{}] Can only Draw on the direct mode", i);
+            break;
+        case FCmdType::Draw:
+            if (Mode != FGpuRecordMode::Direct)
+                COPLT_THROW_FMT("[{}] Can only Draw on the direct mode", i);
+        case FCmdType::Dispatch:
+            if (Mode != FGpuRecordMode::Direct && Mode != FGpuRecordMode::Compute)
+                COPLT_THROW_FMT("[{}] Can only Dispatch on the direct or compute mode", i);
+            break;
+        }
+    }
+    m_barrier_analyzer->EndAnalyze();
+}
+
+void D3d12GpuRecord::Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use PreparePresent in sub scope", i);
+    if (Mode != FGpuRecordMode::Direct)
+        COPLT_THROW_FMT("[{}] Can only present on the direct mode", i);
+    m_barrier_analyzer->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
+}
+
+void D3d12GpuRecord::Analyze_ClearColor(u32 i, const FCmdClearColor& cmd) const
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use ClearColor in sub scope", i);
+    m_barrier_analyzer->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+    m_barrier_analyzer->OnCmd();
+}
+
+void D3d12GpuRecord::Analyze_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd) const
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use ClearDepthStencil in sub scope", i);
+    m_barrier_analyzer->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+    m_barrier_analyzer->OnCmd();
+}
+
+void D3d12GpuRecord::Analyze_BufferCopy(u32 i, const FCmdBufferCopy& cmd) const
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use BufferCopy in sub scope", i);
+    if (cmd.SrcType == FBufferRefType2::Buffer && cmd.DstType == FBufferRefType2::Buffer)
+    {
+        m_barrier_analyzer->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnUse(cmd.Src.Buffer, ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnCmd();
+    }
+    else if (cmd.SrcType == FBufferRefType2::Upload && cmd.DstType == FBufferRefType2::Buffer)
+    {
+        m_barrier_analyzer->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnCmd();
+    }
+    else
+    {
+        COPLT_THROW_FMT(
+            "[{}] Unsupported copy combination {{ SrcType = {} DstType = {} }}",
+            i, static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType)
+        );
+    }
+}
+
+void D3d12GpuRecord::Analyze_Render(u32 i, const FCmdRender& cmd)
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use Render in sub scope", i);
+    if (Mode != FGpuRecordMode::Direct)
+        COPLT_THROW_FMT("[{}] Render can only be used in Direct mode", i);
+    m_state = RecordState::Render;
+    m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
+    const auto& info = PayloadRenderInfo[cmd.InfoIndex];
+    const auto num_rtv = std::min(info.NumRtv, 8u);
+    if (info.Dsv)
+    {
+        m_barrier_analyzer->OnUse(info.Dsv, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+    }
+    for (u32 n = 0; n < num_rtv; ++n)
+    {
+        m_barrier_analyzer->OnUse(info.Rtv[n], ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+    }
+    m_barrier_analyzer->OnCmd();
+}
+
+void D3d12GpuRecord::Analyze_RenderEnd(u32 i, const FCmdRender& cmd)
+{
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope", i);
+    m_state = RecordState::Main;
+    const auto& info = PayloadRenderInfo[cmd.InfoIndex];
+    const auto num_rtv = std::min(info.NumRtv, 8u);
+    if (info.Dsv) m_barrier_analyzer->OnUse(info.Dsv);
+    for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->OnUse(info.Rtv[n]);
+    m_barrier_analyzer->OnCmd();
+}
+
+void D3d12GpuRecord::Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd)
+{
+    if (m_state != RecordState::Render && m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use SetPipeline in main scope", i);
+    SetPipeline(cmd.Pipeline, i);
+}
+
+void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count)
+{
+    const auto commands = Commands.AsSpan();
+    for (u32 c = 0; c < count; ++c)
+    {
+        const auto i = offset + c;
+        const auto& command = commands[i];
+        switch (command.Type)
+        {
+        case FCmdType::None:
+        case FCmdType::PreparePresent:
+            break;
+        case FCmdType::End:
+            if (m_state == RecordState::Render)
+                Interpret_RenderEnd(list, i, m_cur_render.Cmd);
+            else
+                COPLT_THROW("Cannot use End in main scope");
+            break;
+        case FCmdType::Label:
+            Interpret_Label(list, i, command.Label);
+            break;
+        case FCmdType::BeginScope:
+            Interpret_BeginScope(list, i, command.BeginScope);
+            break;
+        case FCmdType::EndScope:
+            Interpret_EndScope(list, i, command.EndScope);
+            break;
+        case FCmdType::ClearColor:
+            Interpret_ClearColor(list, i, command.ClearColor);
+            break;
+        case FCmdType::ClearDepthStencil:
+            Interpret_ClearDepthStencil(list, i, command.ClearDepthStencil);
+            break;
+        case FCmdType::BufferCopy:
+            Interpret_BufferCopy(list, i, command.BufferCopy);
+            break;
+        case FCmdType::Render:
+            Interpret_Render(list, i, command.Render);
+            break;
+        case FCmdType::Compute:
+            COPLT_THROW("TODO");
+        case FCmdType::SetPipeline:
+            Interpret_SetPipeline(list, i, command.SetPipeline);
             break;
         case FCmdType::SetBinding:
             COPLT_THROW("TODO");
         case FCmdType::SetViewportScissor:
-            Interpret_SetViewportScissor(i, command.SetViewportScissor);
+            Interpret_SetViewportScissor(list, i, command.SetViewportScissor);
             break;
         case FCmdType::SetMeshBuffers:
             COPLT_THROW("TODO");
         case FCmdType::Draw:
-            Interpret_Draw(i, command.Draw);
+            Interpret_Draw(list, i, command.Draw);
             break;
         case FCmdType::Dispatch:
             COPLT_THROW("TODO");
-            break;
         }
     }
-    m_barrier_recorder->EndRecord();
-    m_storage->EndRecord();
 }
 
-void D3d12GpuRecord::Interpret_Label(u32 i, const FCmdLabel& cmd) const
+void D3d12GpuRecord::Interpret_Label(const CmdList& list, u32 i, const FCmdLabel& cmd) const
 {
     if (!m_device->Debug()) return;
-    const auto& list = CurList();
     if (!list->g0) return;
     auto color = PIX_COLOR_DEFAULT;
     if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
@@ -240,10 +382,9 @@ void D3d12GpuRecord::Interpret_Label(u32 i, const FCmdLabel& cmd) const
     }
 }
 
-void D3d12GpuRecord::Interpret_BeginScope(u32 i, const FCmdBeginScope& cmd) const
+void D3d12GpuRecord::Interpret_BeginScope(const CmdList& list, u32 i, const FCmdBeginScope& cmd) const
 {
     if (!m_device->Debug()) return;
-    const auto& list = CurList();
     if (!list->g0) return;
     u32 color = PIX_COLOR_DEFAULT;
     if (cmd.HasColor) color = PIX_COLOR(cmd.Color[0], cmd.Color[1], cmd.Color[2]);
@@ -257,112 +398,92 @@ void D3d12GpuRecord::Interpret_BeginScope(u32 i, const FCmdBeginScope& cmd) cons
     }
 }
 
-void D3d12GpuRecord::Interpret_EndScope(u32 i, const FCmdEndScope& cmd) const
+void D3d12GpuRecord::Interpret_EndScope(const CmdList& list, u32 i, const FCmdEndScope& cmd) const
 {
     if (!m_device->Debug()) return;
-    const auto& list = CurList();
     if (!list->g0) return;
     PIXEndEvent(list->g0.Get());
 }
 
-void D3d12GpuRecord::Interpret_PreparePresent(const u32 i, const FCmdPreparePresent& cmd) const
+void D3d12GpuRecord::Interpret_ClearColor(const CmdList& list, const u32 i, const FCmdClearColor& cmd)
 {
-    if (m_state != InterpretState::Main)
-        COPLT_THROW("Cannot use PreparePresent in sub scope");
-    if (Mode != FGpuRecordMode::Direct)
-        COPLT_THROW("Can only present on the direct mode");
-    m_barrier_recorder->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
-}
-
-void D3d12GpuRecord::Interpret_ClearColor(const u32 i, const FCmdClearColor& cmd)
-{
-    if (m_state != InterpretState::Main)
-        COPLT_THROW("Cannot use ClearColor in sub scope");
-    m_barrier_recorder->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
-    m_barrier_recorder->OnCmd();
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use ClearColor in sub scope", i);
     const auto rtv = GetRtv(GetRes(cmd.Image));
-    CurList()->g0->ClearRenderTargetView(
+    list->g0->ClearRenderTargetView(
         rtv, cmd.Color, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
 }
 
-void D3d12GpuRecord::Interpret_ClearDepthStencil(const u32 i, const FCmdClearDepthStencil& cmd)
+void D3d12GpuRecord::Interpret_ClearDepthStencil(const CmdList& list, const u32 i, const FCmdClearDepthStencil& cmd)
 {
-    if (m_state != InterpretState::Main)
-        COPLT_THROW("Cannot use ClearDepthStencil in sub scope");
-    m_barrier_recorder->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
-    m_barrier_recorder->OnCmd();
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use ClearDepthStencil in sub scope", i);
     const auto dsv = GetDsv(GetRes(cmd.Image));
     D3D12_CLEAR_FLAGS flags{};
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Depth)) flags |= D3D12_CLEAR_FLAG_DEPTH;
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Stencil)) flags |= D3D12_CLEAR_FLAG_STENCIL;
-    CurList()->g0->ClearDepthStencilView(
+    list->g0->ClearDepthStencilView(
         dsv, flags, cmd.Depth, cmd.Stencil, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
     );
 }
 
-void D3d12GpuRecord::Interpret_BufferCopy(u32 i, const FCmdBufferCopy& cmd)
+void D3d12GpuRecord::Interpret_BufferCopy(const CmdList& list, u32 i, const FCmdBufferCopy& cmd)
 {
-    if (m_state != InterpretState::Main)
-        COPLT_THROW("Cannot use BufferCopy in sub scope");
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use BufferCopy in sub scope", i);
     const auto& range = PayloadBufferCopyRange[cmd.RangeIndex];
     if (cmd.SrcType == FBufferRefType2::Buffer && cmd.DstType == FBufferRefType2::Buffer)
     {
-        m_barrier_recorder->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
-        m_barrier_recorder->OnUse(cmd.Src.Buffer, ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
-        m_barrier_recorder->OnCmd();
         const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
         const auto src = GetResource(GetRes(cmd.Src.Buffer));
         if (range.Size == std::numeric_limits<u64>::max())
         {
-            CurList()->g0->CopyResource(dst, src);
+            list->g0->CopyResource(dst, src);
         }
         else
         {
-            CurList()->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
+            list->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
         }
     }
     else if (cmd.SrcType == FBufferRefType2::Upload && cmd.DstType == FBufferRefType2::Buffer)
     {
-        m_barrier_recorder->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
-        m_barrier_recorder->OnCmd();
         const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
         if (cmd.Src.Upload.Index >= m_context->m_upload_buffers.size())
-            COPLT_THROW_FMT("Index out of bounds at command {}", i);
+            COPLT_THROW_FMT("[{}] Index out of bounds", i);
         const auto& src_obj = m_context->m_upload_buffers[cmd.Src.Upload.Index];
         if (range.SrcOffset + range.Size >= src_obj.m_size)
-            COPLT_THROW_FMT("Size out of range at command {}", i);
+            COPLT_THROW_FMT("[{}] Size out of range", i);
         const auto src = src_obj.m_resource.m_resource.Get();
-        CurList()->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
+        list->g0->CopyBufferRegion(dst, range.DstOffset, src, range.SrcOffset, range.Size);
     }
     else
     {
         COPLT_THROW_FMT(
-            "Unsupported copy combination {{ SrcType = {} DstType = {} }} at command {}",
-            static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType), i
+            "[{}] Unsupported copy combination {{ SrcType = {} DstType = {} }}",
+            i, static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType)
         );
     }
 }
 
-void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
+void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FCmdRender& cmd)
 {
-    if (m_state != InterpretState::Main)
-        COPLT_THROW("Cannot use Render in sub scope");
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use Render in sub scope", i);
     if (Mode != FGpuRecordMode::Direct)
-        COPLT_THROW("Render can only be used in Direct mode");
-    m_state = InterpretState::Render;
+        COPLT_THROW_FMT("[{}] Render can only be used in Direct mode", i);
+    m_state = RecordState::Render;
     m_cur_render = RenderState{.StartIndex = i, .Cmd = cmd};
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
     const auto num_rtv = std::min(info.NumRtv, 8u);
-    if (CurList()->g4)
+    if (list->g4)
     {
         D3D12_RENDER_PASS_RENDER_TARGET_DESC rts[num_rtv];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds[info.Dsv ? 1 : 0];
         if (info.Dsv)
         {
-            m_barrier_recorder->OnUse(info.Dsv, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
             const auto& dsv = GetRes(info.Dsv);
             const auto& d_load = info.DsvLoadOp[0];
             const auto& d_store = info.DsvStoreOp[0];
@@ -402,7 +523,6 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
         }
         for (u32 n = 0; n < num_rtv; ++n)
         {
-            m_barrier_recorder->OnUse(info.Rtv[n], ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
             const auto& rtv = GetRes(info.Rtv[n]);
             const auto& load = info.RtvLoadOp[n];
             const auto& store = info.RtvStoreOp[n];
@@ -429,53 +549,48 @@ void D3d12GpuRecord::Interpret_Render(const u32 i, const FCmdRender& cmd)
         }
         D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
         if (info.HasUavWrites) flags |= D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
-        m_barrier_recorder->OnCmd();
-        CurList()->g4->BeginRenderPass(info.NumRtv, rts, info.Dsv ? ds : nullptr, flags);
+        list->g4->BeginRenderPass(info.NumRtv, rts, info.Dsv ? ds : nullptr, flags);
     }
     else
     {
-        COPLT_THROW("TODO");
+        COPLT_THROW_FMT("[{}] Render pass is not supported, please check the agility sdk version", i);
     }
 }
 
-void D3d12GpuRecord::Interpret_RenderEnd(u32 i, const FCmdRender& cmd)
+void D3d12GpuRecord::Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdRender& cmd)
 {
-    if (m_state != InterpretState::Render)
-        COPLT_THROW("Cannot use End in main scope");
-    m_state = InterpretState::Main;
-    const auto& list = CurList();
-    const auto& info = PayloadRenderInfo[cmd.InfoIndex];
-    const auto num_rtv = std::min(info.NumRtv, 8u);
-    if (info.Dsv) m_barrier_recorder->OnUse(info.Dsv);
-    for (u32 n = 0; n < num_rtv; ++n) m_barrier_recorder->OnUse(info.Rtv[n]);
-    m_barrier_recorder->OnCmd();
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope", i);
+    m_state = RecordState::Main;
     if (list->g4)
     {
         list->g4->EndRenderPass();
     }
+    else
+    {
+        COPLT_THROW_FMT("[{}] Render pass is not supported, please check the agility sdk version", i);
+    }
 }
 
-void D3d12GpuRecord::Interpret_SetPipeline(const u32 i, const FCmdSetPipeline& cmd)
+void D3d12GpuRecord::Interpret_SetPipeline(const CmdList& list, const u32 i, const FCmdSetPipeline& cmd)
 {
-    if (m_state != InterpretState::Render && m_state != InterpretState::Compute)
-        COPLT_THROW("Cannot use SetPipeline in main scope");
-    SetPipeline(cmd.Pipeline, i);
+    if (m_state != RecordState::Render && m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use SetPipeline in main scope", i);
+    SetPipeline(list, cmd.Pipeline, i);
 }
 
-void D3d12GpuRecord::Interpret_SetViewportScissor(u32 i, const FCmdSetViewportScissor& cmd) const
+void D3d12GpuRecord::Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const
 {
-    if (m_state != InterpretState::Render)
-        COPLT_THROW("Cannot use SetPipeline in main scope or compute scope");
-    const auto& list = CurList();
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Can only use SetViewportScissor in render scope", i);
     list->g0->RSSetViewports(cmd.ViewportCount, reinterpret_cast<const D3D12_VIEWPORT*>(PayloadViewport.data() + cmd.ViewportIndex));
     list->g0->RSSetScissorRects(cmd.ScissorRectCount, reinterpret_cast<const D3D12_RECT*>(PayloadRect.data() + cmd.ScissorRectIndex));
 }
 
-void D3d12GpuRecord::Interpret_Draw(u32 i, const FCmdDraw& cmd) const
+void D3d12GpuRecord::Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const
 {
-    if (m_state != InterpretState::Render)
-        COPLT_THROW("Cannot use SetPipeline in main scope or compute scope");
-    const auto& list = CurList();
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Can only use _Draw in render scope", i);
     if (cmd.Indexed)
     {
         list->g0->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
@@ -490,8 +605,13 @@ void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
 {
     if (pipeline == m_pipeline_context.Pipeline) return;
     m_pipeline_context.SetPipeline(pipeline, i);
+}
+
+void D3d12GpuRecord::SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i)
+{
+    if (pipeline == m_pipeline_context.Pipeline) return;
+    m_pipeline_context.SetPipeline(pipeline, i);
     const auto stages = pipeline->GetStages();
-    const auto& list = CurList();
     if (HasFlags(stages, FShaderStageFlags::Compute))
     {
         list->g0->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
@@ -503,6 +623,20 @@ void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
         list->g0->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
     }
     list->g0->SetPipelineState(static_cast<ID3D12PipelineState*>(m_pipeline_context.Pipeline->GetPipelineStatePtr()));
+}
+
+D3D12_COMMAND_LIST_TYPE Coplt::GetType(const FGpuRecordMode Mode)
+{
+    switch (Mode)
+    {
+    case FGpuRecordMode::Direct:
+        return D3D12_COMMAND_LIST_TYPE_DIRECT;
+    case FGpuRecordMode::Compute:
+        return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+    case FGpuRecordMode::Copy:
+        return D3D12_COMMAND_LIST_TYPE_COPY;
+    }
+    return D3D12_COMMAND_LIST_TYPE_DIRECT;
 }
 
 NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
