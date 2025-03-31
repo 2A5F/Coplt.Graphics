@@ -15,6 +15,9 @@ namespace Coplt
 
         virtual const Rc<D3d12RecordContext>& Context() const noexcept = 0;
 
+        // 可空
+        virtual const D3d12RentedCommandList& ResultList() const noexcept = 0;
+
         virtual void RegisterWaitPoint(QueueWaitPoint&& wait_point) = 0;
         virtual void WaitAndRecycle(HANDLE event) = 0;
         virtual void Recycle() = 0;
@@ -24,6 +27,8 @@ namespace Coplt
         virtual const Rc<ID3d12BarrierAnalyzer>& BarrierAnalyzer() = 0;
 
         virtual void Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count) = 0;
+
+        virtual void AfterSubmit() = 0;
     };
 
     struct D3d12GpuRecord final : GpuObject<D3d12GpuRecord, ID3d12GpuRecord>, FGpuRecordData
@@ -61,6 +66,7 @@ namespace Coplt
 
         u64 m_isolate_id{};
         u64 m_record_id{};
+        SRc<FGpuIsolateConfig> m_isolate_config{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<D3d12RecordContext> m_context{};
         Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
@@ -69,6 +75,7 @@ namespace Coplt
         RenderState m_cur_render{};
         PipelineContext m_pipeline_context{};
         RecordState m_state{};
+        D3d12RentedCommandList m_result_list{};
 
         explicit D3d12GpuRecord(NonNull<D3d12GpuIsolate> isolate);
 
@@ -77,6 +84,7 @@ namespace Coplt
         FGpuRecordData* Data() noexcept override;
         const FGpuRecordData* Data() const noexcept override;
         const Rc<D3d12RecordContext>& Context() const noexcept override;
+        const D3d12RentedCommandList& ResultList() const noexcept override;
 
         const Rc<ID3d12BarrierAnalyzer>& BarrierAnalyzer() override;
 
@@ -87,6 +95,8 @@ namespace Coplt
         FResult End() noexcept override;
         void EnsureEnd() override;
         void DoEnd();
+
+        void AfterSubmit() override;
 
         FCmdRes& GetRes(const FCmdResRef& ref);
 

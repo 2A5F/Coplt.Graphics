@@ -20,6 +20,11 @@ void ID3d12EnhancedBarrierAnalyzer::Group::Clear()
     m_texture_barriers.clear();
 }
 
+bool ID3d12EnhancedBarrierAnalyzer::Group::IsEmpty() const
+{
+    return m_buffer_barriers.empty() && m_texture_barriers.empty();
+}
+
 ID3d12EnhancedBarrierAnalyzer::ResInfo::ResInfo(const NonNull<const FCmdRes> Res) : Res(Res)
 {
 }
@@ -32,14 +37,14 @@ void ID3d12EnhancedBarrierAnalyzer::ResInfo::SetNewState(const ResState state)
 
 namespace Coplt::Enhanced
 {
-    EnhancedBarrierMarshal::EnhancedBarrierMarshal(const Rc<D3d12GpuDevice>& device)
-        : m_device(device)
+    EnhancedBarrierMarshal::EnhancedBarrierMarshal(const D3d12GpuIsolate& isolate)
+        : m_isolate_config(isolate.m_config), m_device(isolate.m_device)
     {
     }
 
     Rc<ID3d12BarrierAnalyzer> EnhancedBarrierMarshal::CreateAnalyzer()
     {
-        return new EnhancedBarrierAnalyzer(m_device);
+        return new EnhancedBarrierAnalyzer(*this);
     }
 
     Rc<ID3d12BarrierCombiner> EnhancedBarrierMarshal::CreateCombiner()
@@ -47,8 +52,8 @@ namespace Coplt::Enhanced
         return new EnhancedBarrierCombiner(m_device);
     }
 
-    EnhancedBarrierAnalyzer::EnhancedBarrierAnalyzer(const Rc<D3d12GpuDevice>& device)
-        : m_device(device)
+    EnhancedBarrierAnalyzer::EnhancedBarrierAnalyzer(const EnhancedBarrierMarshal& marshal)
+        : m_isolate_config(marshal.m_isolate_config), m_device(marshal.m_device)
     {
     }
 
@@ -208,13 +213,18 @@ namespace Coplt::Enhanced
                 barrier.SyncAfter = SyncAfter;
                 m_groups[AfterListIndex].Push(barrier);
             }
-            else
+            else if (m_isolate_config->UseSplitBarrier)
             {
                 m_groups[BeforeListIndex].Push(barrier);
 
                 barrier.SyncBefore = D3D12_BARRIER_SYNC_SPLIT;
                 barrier.SyncAfter = SyncAfter;
                 m_groups[AfterListIndex].Push(barrier);
+            }
+            else
+            {
+                barrier.SyncAfter = SyncAfter;
+                m_groups[BeforeListIndex].Push(barrier);
             }
         };
         if (res.IsImage())
@@ -300,6 +310,7 @@ namespace Coplt::Enhanced
     void EnhancedBarrierCombiner::EndSubmit()
     {
         Base::EndSubmit();
+        m_tmp_group.Clear();
     }
 
     void EnhancedBarrierCombiner::Process(NonNull<D3d12GpuIsolate> isolate, std::span<Rc<ID3d12GpuRecord>> records)
@@ -309,6 +320,8 @@ namespace Coplt::Enhanced
             const NonNull data = record->Data();
             const NonNull barrier_analyzer = record->BarrierAnalyzer()->QueryInterface<ID3d12EnhancedBarrierAnalyzer>();
             const auto& context = record->Context();
+
+            const auto& result_list = record->ResultList();
 
             #pragma region 生成输入屏障
 
@@ -325,7 +338,7 @@ namespace Coplt::Enhanced
                 });
                 if (!exist)
                 {
-                    const auto AfterIndex = input.LstGroup;
+                    auto& group = result_list ? m_tmp_group : barrier_analyzer->Groups()[0];
                     if (res.IsImage())
                     {
                         const auto img_data = GetImageData(res);
@@ -348,7 +361,7 @@ namespace Coplt::Enhanced
                             },
                             .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
                         };
-                        barrier_analyzer->Groups()[0].Push(barrier);
+                        group.Push(barrier);
                     }
                     else
                     {
@@ -364,19 +377,7 @@ namespace Coplt::Enhanced
                             .Size = buffer_data->m_size,
                         };
                         barrier.SyncAfter = SyncAfter;
-                        barrier_analyzer->Groups()[0].Push(barrier);
-                        // if (AfterIndex == 0)
-                        // {
-                        //     barrier.SyncAfter = SyncAfter;
-                        //     barrier_recorder->BarrierGroups()[0].Push(barrier);
-                        // }
-                        // else
-                        // {
-                        //     barrier_recorder->BarrierGroups()[0].Push(barrier);
-                        //     barrier.SyncBefore = D3D12_BARRIER_SYNC_SPLIT;
-                        //     barrier.SyncAfter = SyncAfter;
-                        //     barrier_recorder->BarrierGroups()[AfterIndex].Push(barrier);
-                        // }
+                        group.Push(barrier);
                     }
                 }
                 // todo
@@ -384,22 +385,43 @@ namespace Coplt::Enhanced
 
             #pragma endregion
 
-            #pragma region 完成录制 记录 list 范围
+            #pragma region 完成录制 记录 list 节点
 
             {
-                auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(data->Mode));
-                auto list = allocator.RentCommandList();
-
-                barrier_analyzer->Interpret(list, *record);
-
                 ListNode node{};
                 // todo fence
-                node.List = list->ToCommandList();
                 node.Queue = FGpuQueueType::Direct; // todo 选择队列
-                m_list_node.push_back(node);
+                node.ListIndex = m_lists.size();
+                node.ListCount++;
 
-                list.Close();
-                context->m_recycled_command_allocators.push_back(std::move(allocator));
+                if (!m_tmp_group.IsEmpty())
+                {
+                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(data->Mode));
+                    auto list = allocator.RentCommandList();
+                    EnhancedBarrierAnalyzer::SubmitBarrier(list, m_tmp_group);
+                    list.Close();
+                    m_lists.push_back(list->ToCommandList());
+                    node.ListCount++;
+                    m_rented_lists.push_back(std::move(list));
+                    context->m_recycled_command_allocators.push_back(std::move(allocator));
+                }
+
+                if (result_list)
+                {
+                    m_lists.push_back(result_list->ToCommandList());
+                }
+                else
+                {
+                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(data->Mode));
+                    auto list = allocator.RentCommandList();
+                    barrier_analyzer->Interpret(list, *record);
+                    list.Close();
+                    m_lists.push_back(list->ToCommandList());
+                    m_rented_lists.push_back(std::move(list));
+                    context->m_recycled_command_allocators.push_back(std::move(allocator));
+                }
+
+                m_list_node.push_back(node);
             }
 
             #pragma endregion
@@ -431,6 +453,8 @@ void AD3d12BarrierCombiner::StartSubmit()
 void AD3d12BarrierCombiner::EndSubmit()
 {
     m_list_node.clear();
+    m_lists.clear();
+    m_rented_lists.clear();
     m_queue_deps.clear();
     m_submit_resources.Clear();
     m_used_queues = FGpuQueueFlags::None;
@@ -456,7 +480,7 @@ bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<R
                 const auto& dep_queue = isolate->GetQueue(dep);
                 queue->Wait(*dep_queue, dep_queue->Signal());
             }
-            queue->m_queue->ExecuteCommandLists(1, &node.List);
+            queue->m_queue->ExecuteCommandLists(node.ListCount, m_lists.data() + node.ListIndex);
         }
 
         #pragma endregion
@@ -489,5 +513,9 @@ bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<R
         #pragma endregion
     }
     EndSubmit();
+    for (const auto& record : records)
+    {
+        record->AfterSubmit();
+    }
     return has_submit;
 }

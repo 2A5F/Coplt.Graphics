@@ -72,6 +72,12 @@
 #endif
 #endif
 
+#ifndef COPLT_NULL_CHECK
+#ifdef _DEBUG
+#define COPLT_NULL_CHECK
+#endif
+#endif
+
 #if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__)
 #define COPLT_X64
 #elif defined(__aarch64__) || defined(_M_ARM64)

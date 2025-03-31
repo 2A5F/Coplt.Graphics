@@ -24,9 +24,19 @@ namespace Coplt
         FStr8or16 Name{};
     };
 
+    struct FGpuIsolateConfig
+    {
+        // 提示可能会使用多线程命令录制，将在命令录制的 End 中完成转义操作，以分摊提交开销，
+        // 但是这会导致 gpu 屏障处于非最优状态，可能导致提交批次开始时的 gpu 管线停转，建议只在具有大量命令时使用多线程录制
+        b8 MultiThreadRecord{};
+        // 仅 d3d12，提示尽可能使用拆分屏障
+        b8 UseSplitBarrier{};
+    };
+
     struct FGpuIsolateData
     {
         u64 FrameId{};
+        FGpuIsolateConfig* Config{};
     };
 
     COPLT_INTERFACE_DEFINE(FGpuIsolate, "777c5774-8eb8-4550-a977-62cccd7bdda6", FGpuObject)

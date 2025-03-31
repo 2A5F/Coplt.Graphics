@@ -1462,10 +1462,22 @@ namespace Coplt.Graphics.Native
         public FStr8or16 Name;
     }
 
-    public partial struct FGpuIsolateData
+    public partial struct FGpuIsolateConfig
+    {
+        [NativeTypeName("Coplt::b8")]
+        public B8 MultiThreadRecord;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 UseSplitBarrier;
+    }
+
+    public unsafe partial struct FGpuIsolateData
     {
         [NativeTypeName("Coplt::u64")]
         public ulong FrameId;
+
+        [NativeTypeName("Coplt::FGpuIsolateConfig *")]
+        public FGpuIsolateConfig* Config;
     }
 
     [Guid("777C5774-8EB8-4550-A977-62CCCD7BDDA6")]

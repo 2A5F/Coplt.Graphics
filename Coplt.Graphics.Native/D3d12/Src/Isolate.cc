@@ -11,6 +11,8 @@ using namespace Coplt;
 D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCreateOptions& options)
     : FGpuIsolateData()
 {
+    m_config = src<FGpuIsolateConfig>();
+    this->Config = m_config.get();
     m_waiting_record = box<RecordQueue>();
     m_record_pool = box<RecordQueue>();
     m_device = std::move(device);
@@ -23,7 +25,7 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
 
     #pragma endregion
 
-    m_barrier_marshal = new Enhanced::EnhancedBarrierMarshal(m_device);
+    m_barrier_marshal = new Enhanced::EnhancedBarrierMarshal(*this);
     m_barrier_combiner = m_barrier_marshal->CreateCombiner();
 
     m_cmd_alloc_pool = new D3d12CommandListPoolCluster(m_device);

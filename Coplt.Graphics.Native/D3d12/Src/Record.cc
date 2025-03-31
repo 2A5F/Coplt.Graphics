@@ -45,7 +45,8 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
 }
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
-    : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()), m_device(isolate->m_device)
+    : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()),
+      m_isolate_config(isolate->m_config), m_device(isolate->m_device)
 {
     Id = m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
@@ -77,6 +78,11 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
 const Rc<D3d12RecordContext>& D3d12GpuRecord::Context() const noexcept
 {
     return m_context;
+}
+
+const D3d12RentedCommandList& D3d12GpuRecord::ResultList() const noexcept
+{
+    return m_result_list;
 }
 
 const Rc<ID3d12BarrierAnalyzer>& D3d12GpuRecord::BarrierAnalyzer()
@@ -131,8 +137,22 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("Too many resources");
     ReadyResource();
     Analyze();
+    if (m_isolate_config->MultiThreadRecord)
+    {
+        auto allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(GetType(Mode));
+        auto list = allocator.RentCommandList();
+        m_barrier_analyzer->Interpret(list, *this);
+        list.Close();
+        m_result_list = std::move(list);
+        m_context->m_recycled_command_allocators.push_back(std::move(allocator));
+    }
     Ended = true;
     Version++;
+}
+
+void D3d12GpuRecord::AfterSubmit()
+{
+    m_result_list = {};
 }
 
 FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)

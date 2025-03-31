@@ -39,6 +39,8 @@ namespace Coplt
         virtual void OnCmd() = 0;
         // 每个命令都需要调用一次
         virtual void CmdNext() = 0;
+
+        virtual void Interpret(const D3d12RentedCommandList& list, ID3d12GpuRecord& record) = 0;
     };
 
     COPLT_INTERFACE_DEFINE(ID3d12BarrierCombiner, "e1e15444-6369-4d8a-90b3-153672abca39", FUnknown)
@@ -59,11 +61,14 @@ namespace Coplt
         {
             u32 DepIndex{};
             u32 DepCount{};
-            ID3D12CommandList* List;
+            u32 ListIndex{};
+            u32 ListCount{};
             FGpuQueueType Queue{};
         };
 
         Rc<D3d12GpuDevice> m_device{};
+        std::vector<ID3D12CommandList*> m_lists{};
+        std::vector<D3d12RentedCommandList> m_rented_lists{};
         std::vector<ListNode> m_list_node{};
         std::vector<FGpuQueueType> m_queue_deps{};
         FGpuQueueFlags m_used_queues{};
@@ -98,6 +103,7 @@ namespace Coplt
             void Push(D3D12_TEXTURE_BARRIER barrier);
 
             void Clear();
+            bool IsEmpty() const;
         };
 
         struct ResInfo
@@ -116,17 +122,16 @@ namespace Coplt
         };
 
         virtual std::span<Group> Groups() = 0;
-
-        virtual void Interpret(const D3d12RentedCommandList& list, ID3d12GpuRecord& record) = 0;
     };
 
     namespace Enhanced
     {
         struct EnhancedBarrierMarshal final : Object<EnhancedBarrierMarshal, ID3d12BarrierMarshal>
         {
+            SRc<FGpuIsolateConfig> m_isolate_config{};
             Rc<D3d12GpuDevice> m_device;
 
-            explicit EnhancedBarrierMarshal(const Rc<D3d12GpuDevice>& device);
+            explicit EnhancedBarrierMarshal(const D3d12GpuIsolate& isolate);
 
             Rc<ID3d12BarrierAnalyzer> CreateAnalyzer() override;
             Rc<ID3d12BarrierCombiner> CreateCombiner() override;
@@ -134,6 +139,7 @@ namespace Coplt
 
         struct EnhancedBarrierAnalyzer final : Object<EnhancedBarrierAnalyzer, ID3d12EnhancedBarrierAnalyzer>
         {
+            SRc<FGpuIsolateConfig> m_isolate_config{};
             Rc<D3d12GpuDevice> m_device{};
             std::vector<ResInfo> m_resources{};
             std::vector<IOResState> m_inputs{};
@@ -141,7 +147,7 @@ namespace Coplt
             std::vector<Group> m_groups{};
             u32 m_last_cmd_count{};
 
-            explicit EnhancedBarrierAnalyzer(const Rc<D3d12GpuDevice>& device);
+            explicit EnhancedBarrierAnalyzer(const EnhancedBarrierMarshal& marshal);
 
             std::span<const IOResState> Inputs() const override;
             std::span<const IOResState> Outputs() const override;
@@ -170,8 +176,7 @@ namespace Coplt
         {
             explicit EnhancedBarrierCombiner(const Rc<D3d12GpuDevice>& device);
 
-            // std::vector<D3D12_BUFFER_BARRIER> m_buffer_barriers{};
-            // std::vector<D3D12_TEXTURE_BARRIER> m_texture_barriers{};
+            ID3d12EnhancedBarrierAnalyzer::Group m_tmp_group{};
 
             void EndSubmit() override;
 

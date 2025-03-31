@@ -6,6 +6,13 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
+public ref struct GpuIsolateConfig(ref FGpuIsolateConfig @ref)
+{
+    internal ref FGpuIsolateConfig m_ref = ref @ref;
+    public ref bool MultiThreadRecord => ref Unsafe.As<B8, bool>(ref m_ref.MultiThreadRecord);
+    public ref bool UseSplitBarrier => ref Unsafe.As<B8, bool>(ref m_ref.UseSplitBarrier);
+}
+
 [Dropping(Unmanaged = true)]
 public sealed unsafe partial class GpuIsolate : DeviceChild
 {
@@ -19,6 +26,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
 
     public new FGpuIsolate* Ptr => (FGpuIsolate*)m_ptr;
     internal ref readonly FGpuIsolateData Data => ref *m_data;
+    public GpuIsolateConfig Config => new(ref *Data.Config);
     public FrameId FrameId => new(Data.FrameId);
 
     #endregion
