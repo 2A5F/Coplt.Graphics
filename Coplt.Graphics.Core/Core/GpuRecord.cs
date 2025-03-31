@@ -513,7 +513,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     )
     {
         AssertNotEnded();
-        
+
         #region Check Nested
 
         if (m_in_render_or_compute_scope) throw new InvalidOperationException("Cannot nest Render or Compute scopes");
@@ -825,105 +825,77 @@ public unsafe struct RenderScope2(
 
     #endregion
 
-    // #region SetMeshBuffers
-    //
-    // public void SetMeshBuffers(
-    //     MeshLayout MeshLayout,
-    //     uint VertexStartSlot,
-    //     ReadOnlySpan<VertexBufferRange> VertexBuffers
-    // ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, VertexStartSlot, VertexBuffers);
-    //
-    // public void SetMeshBuffers(
-    //     MeshLayout MeshLayout,
-    //     ReadOnlySpan<VertexBufferRange> VertexBuffers
-    // ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, 0, VertexBuffers);
-    //
-    // public void SetMeshBuffers(
-    //     MeshLayout MeshLayout,
-    //     FGraphicsFormat IndexFormat,
-    //     BufferRange<IIbv>? IndexBuffer,
-    //     uint VertexStartSlot,
-    //     ReadOnlySpan<VertexBufferRange> VertexBuffers
-    // )
-    // {
-    //     self.AddObject(MeshLayout);
-    //     var cmd = new FCommandSetMeshBuffers
-    //     {
-    //         Base = { Type = FCommandType.SetMeshBuffers },
-    //         IndexFormat = IndexFormat,
-    //         VertexStartSlot = VertexStartSlot,
-    //         PayloadIndex = (uint)self.m_mesh_buffers.Count,
-    //     };
-    //     var buf = new FMeshBuffers
-    //     {
-    //         MeshLayout = MeshLayout.m_ptr,
-    //         VertexBufferCount = (uint)VertexBuffers.Length,
-    //     };
-    //     if (IndexBuffer is { } index_buffer)
-    //     {
-    //         buf.IndexBuffer = new()
-    //         {
-    //             Buffer = self.AddResource(index_buffer.Buffer.Resource),
-    //             Offset = index_buffer.Offset,
-    //             Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.Size : index_buffer.Size,
-    //         };
-    //         if (self.AutoBarrierEnabled)
-    //         {
-    //             ref var old_state = ref self.RecordScopedResState(
-    //                 buf.IndexBuffer.Buffer, new(
-    //                     ScopedStateUsage.Vertex, ResLayout.None, ResAccess.IndexBuffer, LegacyState.IndexBuffer
-    //                 ), out var compatible
-    //             );
-    //             if (!compatible)
-    //                 throw self.Incompatible(
-    //                     "Index buffer", old_state, LegacyState.IndexBuffer,
-    //                     ResAccess.IndexBuffer, ResLayout.None
-    //                 );
-    //         }
-    //     }
-    //     if (VertexBuffers.Length > 0)
-    //     {
-    //         var index = self.m_vertex_buffer_ranges.Count;
-    //         buf.VertexBuffersIndex = (uint)index;
-    //         CollectionsMarshal.SetCount(
-    //             self.m_vertex_buffer_ranges, self.m_vertex_buffer_ranges.Count + VertexBuffers.Length
-    //         );
-    //         var vbs = CollectionsMarshal.AsSpan(self.m_vertex_buffer_ranges).Slice(index, VertexBuffers.Length);
-    //         for (var i = 0; i < VertexBuffers.Length; i++)
-    //         {
-    //             var buffer = VertexBuffers[i];
-    //             buffer.Buffer.AssertSameQueue(self.Queue);
-    //             ref var dst = ref vbs[i];
-    //             dst = new()
-    //             {
-    //                 Base =
-    //                 {
-    //                     Buffer = self.AddResource(buffer.Buffer.Resource),
-    //                     Offset = buffer.Offset,
-    //                     Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.Size : buffer.Size,
-    //                 },
-    //                 Index = buffer.Index,
-    //             };
-    //             if (self.AutoBarrierEnabled)
-    //             {
-    //                 ref var old_state = ref self.RecordScopedResState(
-    //                     dst.Base.Buffer, new(
-    //                         ScopedStateUsage.Vertex, ResLayout.None, ResAccess.VertexBuffer, LegacyState.VertexBuffer
-    //                     ), out var compatible
-    //                 );
-    //                 if (!compatible)
-    //                     throw self.Incompatible(
-    //                         "Vertex buffer", old_state, LegacyState.VertexBuffer,
-    //                         ResAccess.IndexBuffer, ResLayout.None
-    //                     );
-    //             }
-    //         }
-    //     }
-    //     self.m_mesh_buffers.Add(buf);
-    //     m_commands.Add(new() { SetMeshBuffers = cmd });
-    // }
-    //
-    // #endregion
+    #region SetMeshBuffers
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, VertexStartSlot, VertexBuffers);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    ) => SetMeshBuffers(MeshLayout, FGraphicsFormat.Unknown, null, 0, VertexBuffers);
+
+    public void SetMeshBuffers(
+        MeshLayout MeshLayout,
+        FGraphicsFormat IndexFormat,
+        BufferRange<IIbv>? IndexBuffer,
+        uint VertexStartSlot,
+        ReadOnlySpan<VertexBufferRange> VertexBuffers
+    )
+    {
+        self.AddObject(MeshLayout);
+        var cmd = new FCmdSetMeshBuffers
+        {
+            Base = { Type = FCmdType.SetMeshBuffers },
+            IndexFormat = IndexFormat,
+            VertexStartSlot = VertexStartSlot,
+            PayloadIndex = (uint)self.Data.PayloadMeshBuffers.LongLength,
+        };
+        var buf = new FMeshBuffers2
+        {
+            MeshLayout = MeshLayout.m_ptr,
+            VertexBufferCount = (uint)VertexBuffers.Length,
+        };
+        if (IndexBuffer is { } index_buffer)
+        {
+            // index_buffer.Buffer.AssertSameIsolate(self.Isolate); // todo
+            buf.IndexBuffer = new()
+            {
+                Buffer = self.AddResource(index_buffer.Buffer.Resource),
+                Offset = index_buffer.Offset,
+                Size = index_buffer.Size == uint.MaxValue ? (uint)index_buffer.Buffer.Size : index_buffer.Size,
+            };
+        }
+        if (VertexBuffers.Length > 0)
+        {
+            var index = self.Data.PayloadVertexBufferRange.LongLength;
+            buf.VertexBuffersIndex = (uint)index;
+            var vbs = self.Data.PayloadVertexBufferRange.UnsafeAddRange(VertexBuffers.Length);
+            for (var i = 0; i < VertexBuffers.Length; i++)
+            {
+                var buffer = VertexBuffers[i];
+                // buffer.Buffer.AssertSameIsolate(self.Isolate); // todo
+                ref var dst = ref vbs[i];
+                dst = new()
+                {
+                    Base =
+                    {
+                        Buffer = self.AddResource(buffer.Buffer.Resource),
+                        Offset = buffer.Offset,
+                        Size = buffer.Size == uint.MaxValue ? (uint)buffer.Buffer.Size : buffer.Size,
+                    },
+                    Index = buffer.Index,
+                };
+            }
+        }
+        self.Data.PayloadMeshBuffers.Add(buf);
+        self.Data.Commands.Add(new() { SetMeshBuffers = cmd });
+    }
+
+    #endregion
 
     #region Draw
 

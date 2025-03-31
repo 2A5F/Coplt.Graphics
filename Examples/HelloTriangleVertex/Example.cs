@@ -84,12 +84,12 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     protected override void Render(GpuRecord cmd, Time time)
     {
         using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))], Name: Name);
-        // render.SetMeshBuffers(
-        //     MeshLayout, [
-        //         new(0, PositionColorBuffer),
-        //         new(1, UvBuffer),
-        //     ]
-        // );
-        // render.Draw(Pipeline, 3);
+        render.SetMeshBuffers(
+            MeshLayout, [
+                new(0, PositionColorBuffer),
+                new(1, UvBuffer),
+            ]
+        );
+        render.Draw(Pipeline, 3);
     }
 }

@@ -122,6 +122,14 @@ namespace Coplt
                 COPLT_THROW("Index out of range");
             return list[index];
         }
+
+        const FCmdRes& Get(const FList<FCmdRes>& list) const
+        {
+            const auto index = ResIndex();
+            if (index > list.m_len)
+                COPLT_THROW("Index out of range");
+            return list[index];
+        }
         #endif
     };
 
@@ -293,12 +301,35 @@ namespace Coplt
         u32 ScissorRectIndex{};
     };
 
+    struct FBufferRange2
+    {
+        FCmdResRef Buffer{};
+        u32 Offset{};
+        u32 Size{};
+    };
+
+    struct FVertexBufferRange2 : FBufferRange2
+    {
+        u32 Index{};
+    };
+
+    struct FMeshBuffers2
+    {
+        FMeshLayout* MeshLayout{};
+        // 可选
+        FBufferRange2 IndexBuffer{};
+        // 0 .. 31
+        u32 VertexBufferCount{};
+        // Payload 内的索引，类型为 FVertexBufferRange2
+        u32 VertexBuffersIndex{};
+    };
+
     struct FCmdSetMeshBuffers : FCmdBase
     {
         FGraphicsFormat IndexFormat{};
         // 0 .. 31
         u32 VertexStartSlot{};
-        // 类型为 FMeshBuffers
+        // 类型为 FMeshBuffers2
         u32 PayloadIndex{};
     };
 

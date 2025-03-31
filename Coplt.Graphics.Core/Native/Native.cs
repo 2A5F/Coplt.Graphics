@@ -1655,6 +1655,10 @@ namespace Coplt.Graphics.Native
 
         public FList<FBufferCopyRange> PayloadBufferCopyRange;
 
+        public FList<FMeshBuffers2> PayloadMeshBuffers;
+
+        public FList<FVertexBufferRange2> PayloadVertexBufferRange;
+
         [NativeTypeName("FList<u8>")]
         public FList<byte> Blob;
 
@@ -2108,6 +2112,42 @@ namespace Coplt.Graphics.Native
         public uint ScissorRectIndex;
     }
 
+    public partial struct FBufferRange2
+    {
+        [NativeTypeName("Coplt::FCmdResRef")]
+        public FCmdResRef Buffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Offset;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+    }
+
+    [NativeTypeName("struct FVertexBufferRange2 : Coplt::FBufferRange2")]
+    public partial struct FVertexBufferRange2
+    {
+        public FBufferRange2 Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
+    public unsafe partial struct FMeshBuffers2
+    {
+        [NativeTypeName("Coplt::FMeshLayout *")]
+        public FMeshLayout* MeshLayout;
+
+        [NativeTypeName("Coplt::FBufferRange2")]
+        public FBufferRange2 IndexBuffer;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBufferCount;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint VertexBuffersIndex;
+    }
+
     [NativeTypeName("struct FCmdSetMeshBuffers : Coplt::FCmdBase")]
     public partial struct FCmdSetMeshBuffers
     {
@@ -2149,7 +2189,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L320_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L343_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

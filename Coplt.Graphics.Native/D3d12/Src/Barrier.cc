@@ -97,6 +97,7 @@ namespace Coplt::Enhanced
 
     void EnhancedBarrierAnalyzer::StartAnalyze(const std::span<FCmdRes> resources)
     {
+        m_use_split_barrier = m_isolate_config->UseSplitBarrier;
         Clear();
         m_resources.reserve(resources.size());
         for (usize i = 0; i < resources.size(); ++i)
@@ -130,11 +131,12 @@ namespace Coplt::Enhanced
         const auto ResIndex = ResRef.ResIndex();
         auto& info = m_resources[ResIndex];
         const auto new_state = ResState(Access, Usage, Layout);
+        const auto need_split = m_use_split_barrier && m_last_cmd_count > 0;
         if (info.InfoState == InfoState::Unused)
         {
             info.InfoState = InfoState::Input;
             info.State = new_state;
-            if (m_last_cmd_count > 0) Split();
+            if (need_split) Split();
             info.PreGroup = 0;
             info.LstGroup = info.CurGroup = CurGroupIndex();
             return;
@@ -148,7 +150,7 @@ namespace Coplt::Enhanced
             }
             info.InfoState = InfoState::Used;
             m_inputs.push_back(IOResState{.ResIndex = ResIndex, .LstGroup = info.LstGroup, .State = info.State});
-            if (info.CurGroup == CurGroupIndex() || m_last_cmd_count > 0) Split();
+            if (info.CurGroup == CurGroupIndex() || need_split) Split();
             goto EndState;
         }
         else
@@ -159,7 +161,7 @@ namespace Coplt::Enhanced
                 goto End;
             }
         }
-        if (info.CurGroup == CurGroupIndex() || m_last_cmd_count > 0) Split();
+        if (info.CurGroup == CurGroupIndex() || need_split) Split();
         CreateBarrier(info);
     EndState:
         info.SetNewState(new_state);
@@ -213,7 +215,7 @@ namespace Coplt::Enhanced
                 barrier.SyncAfter = SyncAfter;
                 m_groups[AfterListIndex].Push(barrier);
             }
-            else if (m_isolate_config->UseSplitBarrier)
+            else if (m_use_split_barrier)
             {
                 m_groups[BeforeListIndex].Push(barrier);
 

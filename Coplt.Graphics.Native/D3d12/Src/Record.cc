@@ -160,6 +160,11 @@ FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
     return ref.Get(Resources);
 }
 
+const FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref) const
+{
+    return ref.Get(Resources);
+}
+
 void D3d12GpuRecord::ResetState()
 {
     m_state = RecordState::Main;
@@ -220,7 +225,8 @@ void D3d12GpuRecord::Analyze()
         case FCmdType::SetBinding:
             COPLT_THROW("TODO");
         case FCmdType::SetMeshBuffers:
-            COPLT_THROW("TODO");
+            Analyze_SetMeshBuffers(i, command.SetMeshBuffers);
+            break;
         case FCmdType::SetViewportScissor:
             if (Mode != FGpuRecordMode::Direct)
                 COPLT_THROW_FMT("[{}] Can only Draw on the direct mode", i);
@@ -326,6 +332,23 @@ void D3d12GpuRecord::Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd)
     SetPipeline(cmd.Pipeline, i);
 }
 
+void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd)
+{
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Can only use SetMeshBuffers in render scope", i);
+    const auto& buf = PayloadMeshBuffers[cmd.PayloadIndex];
+    if (buf.IndexBuffer.Buffer)
+    {
+        m_barrier_analyzer->OnUse(buf.IndexBuffer.Buffer, ResAccess::IndexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
+    }
+    for (u32 c = 0; c < buf.VertexBufferCount; ++c)
+    {
+        const auto& item = PayloadVertexBufferRange[c];
+        m_barrier_analyzer->OnUse(item.Buffer, ResAccess::VertexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
+    }
+    m_barrier_analyzer->OnCmd();
+}
+
 void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count)
 {
     const auto commands = Commands.AsSpan();
@@ -376,7 +399,8 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u
             Interpret_SetViewportScissor(list, i, command.SetViewportScissor);
             break;
         case FCmdType::SetMeshBuffers:
-            COPLT_THROW("TODO");
+            Interpret_SetMeshBuffers(list, i, command.SetMeshBuffers);
+            break;
         case FCmdType::Draw:
             Interpret_Draw(list, i, command.Draw);
             break;
@@ -605,6 +629,37 @@ void D3d12GpuRecord::Interpret_SetViewportScissor(const CmdList& list, u32 i, co
         COPLT_THROW_FMT("[{}] Can only use SetViewportScissor in render scope", i);
     list->g0->RSSetViewports(cmd.ViewportCount, reinterpret_cast<const D3D12_VIEWPORT*>(PayloadViewport.data() + cmd.ViewportIndex));
     list->g0->RSSetScissorRects(cmd.ScissorRectCount, reinterpret_cast<const D3D12_RECT*>(PayloadRect.data() + cmd.ScissorRectIndex));
+}
+
+void D3d12GpuRecord::Interpret_SetMeshBuffers(const CmdList& list, u32 i, const FCmdSetMeshBuffers& cmd) const
+{
+    if (m_state != RecordState::Render)
+        COPLT_THROW_FMT("[{}] Can only use SetViewportScissor in render scope", i);
+    const auto& buffers = PayloadMeshBuffers[cmd.PayloadIndex];
+    const auto defs = buffers.MeshLayout->GetBuffers();
+    const auto vbs = std::span(PayloadVertexBufferRange.data() + buffers.VertexBuffersIndex, buffers.VertexBufferCount);
+    if (buffers.IndexBuffer.Buffer)
+    {
+        const auto resource = GetResource(GetRes(buffers.IndexBuffer.Buffer));
+        D3D12_INDEX_BUFFER_VIEW view{};
+        view.BufferLocation = resource->GetGPUVirtualAddress() + buffers.IndexBuffer.Offset;
+        view.SizeInBytes = buffers.IndexBuffer.Size;
+        view.Format = ToDx(cmd.IndexFormat);
+        list->g0->IASetIndexBuffer(&view);
+    }
+    D3D12_VERTEX_BUFFER_VIEW views[vbs.size()];
+    for (u32 j = 0; j < vbs.size(); j++)
+    {
+        const auto& range = vbs[j];
+        const auto& def = defs[range.Index];
+        const auto resource = GetResource(GetRes(range.Buffer));
+        D3D12_VERTEX_BUFFER_VIEW view{};
+        view.BufferLocation = resource->GetGPUVirtualAddress() + range.Offset;
+        view.SizeInBytes = range.Size;
+        view.StrideInBytes = def.Stride;
+        views[j] = view;
+    }
+    list->g0->IASetVertexBuffers(cmd.VertexStartSlot, buffers.VertexBufferCount, views);
 }
 
 void D3d12GpuRecord::Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const

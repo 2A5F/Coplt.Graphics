@@ -148,13 +148,16 @@ public unsafe partial struct FList<T> where T : unmanaged
 
     #region AddRange
 
-    public void AddRange(ReadOnlySpan<T> span)
+    public Span<T> UnsafeAddRange(int size)
     {
-        var new_len = m_len + (nuint)span.Length;
+        var new_len = m_len + (nuint)size;
         if (new_len >= m_cap) EnsureCap(new_len);
-        span.CopyTo(new Span<T>(m_ptr + m_len, span.Length));
+        var span = new Span<T>(m_ptr + m_len, size);
         m_len = new_len;
+        return span;
     }
+
+    public void AddRange(ReadOnlySpan<T> span) => span.CopyTo(UnsafeAddRange(span.Length));
 
     #endregion
 

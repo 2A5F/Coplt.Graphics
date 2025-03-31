@@ -146,6 +146,7 @@ namespace Coplt
             std::vector<IOResState> m_outputs{};
             std::vector<Group> m_groups{};
             u32 m_last_cmd_count{};
+            b8 m_use_split_barrier{};
 
             explicit EnhancedBarrierAnalyzer(const EnhancedBarrierMarshal& marshal);
 

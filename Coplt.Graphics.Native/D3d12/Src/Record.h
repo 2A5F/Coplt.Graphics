@@ -99,6 +99,7 @@ namespace Coplt
         void AfterSubmit() override;
 
         FCmdRes& GetRes(const FCmdResRef& ref);
+        const FCmdRes& GetRes(const FCmdResRef& ref) const;
 
         void ResetState();
 
@@ -112,6 +113,7 @@ namespace Coplt
         void Analyze_Render(u32 i, const FCmdRender& cmd);
         void Analyze_RenderEnd(u32 i, const FCmdRender& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
+        void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
 
         void Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count) override;
         void Interpret_Label(const CmdList& list, u32 i, const FCmdLabel& cmd) const;
@@ -124,6 +126,7 @@ namespace Coplt
         void Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdRender& cmd);
         void Interpret_SetPipeline(const CmdList& list, u32 i, const FCmdSetPipeline& cmd);
         void Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const;
+        void Interpret_SetMeshBuffers(const CmdList& list, u32 i, const FCmdSetMeshBuffers& cmd) const;
         void Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const;
 
         void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);

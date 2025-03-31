@@ -37,6 +37,8 @@ namespace Coplt
         FList<FRenderInfo2> PayloadRenderInfo;
         FList<FResolveInfo2> PayloadResolveInfo;
         FList<FBufferCopyRange> PayloadBufferCopyRange;
+        FList<FMeshBuffers2> PayloadMeshBuffers;
+        FList<FVertexBufferRange2> PayloadVertexBufferRange;
         FList<u8> Blob;
         b8 Ended{};
         FGpuRecordMode Mode{};
@@ -44,7 +46,8 @@ namespace Coplt
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
             : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator),
-              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator), Blob(allocator)
+              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
+              PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
         {
         }
 
@@ -57,6 +60,8 @@ namespace Coplt
             PayloadRenderInfo.Clear();
             PayloadResolveInfo.Clear();
             PayloadBufferCopyRange.Clear();
+            PayloadMeshBuffers.Clear();
+            PayloadVertexBufferRange.Clear();
             Blob.Clear();
         }
         #endif
