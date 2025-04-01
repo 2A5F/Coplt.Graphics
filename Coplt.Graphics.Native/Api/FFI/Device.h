@@ -80,8 +80,8 @@ namespace Coplt
         virtual FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept = 0;
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept = 0;
-        virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
-        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out) noexcept = 0;
+        virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
+        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
         virtual FResult CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept = 0;
         virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;

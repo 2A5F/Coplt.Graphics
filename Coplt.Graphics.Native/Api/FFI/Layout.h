@@ -212,10 +212,14 @@ namespace Coplt
         FShaderLayoutFlags Flags{};
     };
 
-    COPLT_INTERFACE_DEFINE(FShaderLayout, "552a498e-8f3a-47ff-a335-7af2de0901e8", FGpuObject)
+    struct FShaderLayoutData
     {
         FShaderLayoutFlags Flags{};
+    };
 
+    COPLT_INTERFACE_DEFINE(FShaderLayout, "552a498e-8f3a-47ff-a335-7af2de0901e8", FGpuObject)
+    {
+        virtual FShaderLayoutData* ShaderLayoutData() noexcept = 0;
         virtual const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
         virtual const FShaderLayoutItemInfo* GetItemInfos(u32* out_count) noexcept = 0;
         virtual const FShaderLayoutGroupClass* GetGroupClasses(u32* out_count) noexcept = 0;
@@ -239,6 +243,12 @@ namespace Coplt
             return std::span{GetGroupClasses(&count), static_cast<usize>(count)};
         }
         #endif
+    };
+
+    struct FShaderLayoutCreateResult
+    {
+        FShaderLayout* Layout{};
+        FShaderLayoutData* Data{};
     };
 
     struct FShaderInputLayoutCreateOptions

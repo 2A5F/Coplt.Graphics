@@ -181,25 +181,28 @@ FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& opt
     });
 }
 
-FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept
+FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept
 {
     return feb([&]
     {
-        *out = new D3d12ShaderLayout(this->CloneThis(), options);
+        const auto ptr = new D3d12ShaderLayout(this->CloneThis(), options);
+        out->Layout = ptr;
+        out->Data = ptr;
     });
 }
 
-FResult D3d12GpuDevice::GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out) noexcept
+FResult D3d12GpuDevice::GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayoutCreateResult* out) noexcept
 {
     return feb([&]
     {
         Rc r = GetEmptyLayout(options.Flags);
-        *out = r.leak();
+        const auto ptr = r.leak();
+        out->Layout = ptr;
+        out->Data = ptr;
     });
 }
 
-FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options,
-                                                FShaderInputLayout** out) noexcept
+FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept
 {
     return feb([&]
     {
@@ -233,9 +236,7 @@ FResult D3d12GpuDevice::CreateMeshLayout(const FMeshLayoutCreateOptions& options
     });
 }
 
-FResult D3d12GpuDevice::CreateGraphicsPipeline(
-    const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
-) noexcept
+FResult D3d12GpuDevice::CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept
 {
     return feb([&]
     {

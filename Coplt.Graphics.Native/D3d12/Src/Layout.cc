@@ -297,6 +297,11 @@ FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
     });
 }
 
+FShaderLayoutData* D3d12ShaderLayout::ShaderLayoutData() noexcept
+{
+    return this;
+}
+
 void* D3d12ShaderLayout::GetRootSignaturePtr() noexcept
 {
     return m_root_signature.Get();

@@ -43,7 +43,7 @@ namespace Coplt
         virtual std::span<TableGroup> GetTableGroups() noexcept = 0;
     };
 
-    struct D3d12ShaderLayout final : GpuObject<D3d12ShaderLayout, ID3d12ShaderLayout>
+    struct D3d12ShaderLayout final : GpuObject<D3d12ShaderLayout, ID3d12ShaderLayout>, FShaderLayoutData
     {
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12Device2> m_dx_device{};
@@ -57,6 +57,8 @@ namespace Coplt
         explicit D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
+
+        FShaderLayoutData* ShaderLayoutData() noexcept override;
 
         void* GetRootSignaturePtr() noexcept override;
 

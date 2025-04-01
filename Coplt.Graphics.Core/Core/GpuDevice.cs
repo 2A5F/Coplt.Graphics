@@ -131,9 +131,9 @@ public sealed unsafe partial class GpuDevice : GpuObject
                     Items = (FShaderLayoutItemDefine*)p_define,
                     Flags = (FShaderLayoutFlags)Flags,
                 };
-                FShaderLayout* ptr;
-                Ptr->CreateShaderLayout(&f_options, &ptr).TryThrow();
-                return new(ptr, Name, this);
+                FShaderLayoutCreateResult result;
+                Ptr->CreateShaderLayout(&f_options, &result).TryThrow();
+                return new(result, Name, this);
             }
         }
     }
@@ -148,9 +148,9 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 {
                     Flags = (FShaderLayoutFlags)flags,
                 };
-                FShaderLayout* ptr;
-                self.Ptr->GetEmptyShaderLayout(&f_options, &ptr).TryThrow();
-                return new(ptr, $"Empty Shader Layout ({flags})", self);
+                FShaderLayoutCreateResult result;
+                self.Ptr->GetEmptyShaderLayout(&f_options, &result).TryThrow();
+                return new(result, $"Empty Shader Layout ({flags})", self);
             }, this
         );
 

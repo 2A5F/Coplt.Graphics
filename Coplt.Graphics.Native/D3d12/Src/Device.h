@@ -50,21 +50,15 @@ namespace Coplt
         FGpuIsolateCreateResult CreateIsolate(const FGpuIsolateCreateOptions& options);
 
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept override;
-        FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept override;
-        FResult GetEmptyShaderLayout(
-            const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out
-        ) noexcept override;
-        FResult CreateShaderInputLayout(
-            const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
-        ) noexcept override;
+        FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept override;
+        FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayoutCreateResult* out) noexcept override;
+        FResult CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept override;
         FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
 
         FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept override;
 
-        FResult CreateGraphicsPipeline(
-            const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out
-        ) noexcept override;
+        FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept override;
 
         FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;
         FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept override;

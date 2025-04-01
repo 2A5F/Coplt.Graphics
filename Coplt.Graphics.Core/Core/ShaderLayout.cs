@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
@@ -104,10 +105,12 @@ public enum ShaderLayoutFlags : byte
     StreamOutput = 1 << 2,
 }
 
-public sealed unsafe class ShaderLayout : DeviceChild
+[Dropping(Unmanaged = true)]
+public sealed unsafe partial class ShaderLayout : DeviceChild
 {
     #region Fields
 
+    internal FShaderLayoutData* m_data;
     internal readonly FRoSlice<FShaderLayoutItemDefine> m_native_defines;
     internal readonly FRoSlice<FShaderLayoutItemInfo> m_native_item_infos;
     internal readonly FRoSlice<FShaderLayoutGroupClass> m_native_group_classes;
@@ -117,6 +120,7 @@ public sealed unsafe class ShaderLayout : DeviceChild
     #region Props
 
     public new FShaderLayout* Ptr => (FShaderLayout*)m_ptr;
+    public ref readonly FShaderLayoutData Data => ref *m_data;
     public ReadOnlySpan<FShaderLayoutItemDefine> NativeDefines => m_native_defines.Span;
     public ReadOnlySpan<FShaderLayoutItemInfo> NativeItemInfos => m_native_item_infos.Span;
     public ReadOnlySpan<FShaderLayoutGroupClass> NativeGroupClasses => m_native_group_classes.Span;
@@ -125,26 +129,35 @@ public sealed unsafe class ShaderLayout : DeviceChild
 
     #region Ctor
 
-    internal ShaderLayout(FShaderLayout* ptr, string? name, GpuDevice device) : base((FGpuObject*)ptr, name, device)
+    internal ShaderLayout(FShaderLayoutCreateResult result, string? name, GpuDevice device) : base((FGpuObject*)result.Layout, name, device)
     {
-        if (ptr != null)
+        if (Ptr == null) return;
+        m_data = result.Data;
         {
-            {
-                uint count = 0;
-                var defines = ptr->GetItemDefines(&count);
-                m_native_defines = new(defines, count);
-            }
-            {
-                uint count = 0;
-                var defines = ptr->GetItemInfos(&count);
-                m_native_item_infos = new(defines, count);
-            }
-            {
-                uint count = 0;
-                var defines = ptr->GetGroupClasses(&count);
-                m_native_group_classes = new(defines, count);
-            }
+            uint count = 0;
+            var defines = Ptr->GetItemDefines(&count);
+            m_native_defines = new(defines, count);
         }
+        {
+            uint count = 0;
+            var defines = Ptr->GetItemInfos(&count);
+            m_native_item_infos = new(defines, count);
+        }
+        {
+            uint count = 0;
+            var defines = Ptr->GetGroupClasses(&count);
+            m_native_group_classes = new(defines, count);
+        }
+    }
+
+    #endregion
+
+    #region Drop
+
+    [Drop]
+    private void Drop()
+    {
+        m_data = null;
     }
 
     #endregion
