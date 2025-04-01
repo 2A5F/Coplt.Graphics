@@ -48,6 +48,12 @@ namespace Coplt
             FCmdRender Cmd{};
         };
 
+        struct ComputeState
+        {
+            u32 StartIndex{};
+            FCmdCompute Cmd{};
+        };
+
         struct PipelineContext
         {
             Ptr<FD3d12PipelineState> Pipeline{};
@@ -73,6 +79,7 @@ namespace Coplt
         std::vector<Rc<FGpuObject>> m_resources_owner{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         RenderState m_cur_render{};
+        ComputeState m_cur_compute{};
         PipelineContext m_pipeline_context{};
         RecordState m_state{};
         D3d12RentedCommandList m_result_list{};
@@ -112,6 +119,8 @@ namespace Coplt
         void Analyze_BufferCopy(u32 i, const FCmdBufferCopy& cmd) const;
         void Analyze_Render(u32 i, const FCmdRender& cmd);
         void Analyze_RenderEnd(u32 i, const FCmdRender& cmd);
+        void Analyze_Compute(u32 i, const FCmdCompute& cmd);
+        void Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
         void Analyze_Dispatch( u32 i, const FCmdDispatch& cmd) const;
@@ -125,6 +134,8 @@ namespace Coplt
         void Interpret_BufferCopy(const CmdList& list, u32 i, const FCmdBufferCopy& cmd);
         void Interpret_Render(const CmdList& list, u32 i, const FCmdRender& cmd);
         void Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdRender& cmd);
+        void Interpret_Compute(const CmdList& list, u32 i, const FCmdCompute& cmd);
+        void Interpret_ComputeEnd(const CmdList& list, u32 i, const FCmdCompute& cmd);
         void Interpret_SetPipeline(const CmdList& list, u32 i, const FCmdSetPipeline& cmd);
         void Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const;
         void Interpret_SetMeshBuffers(const CmdList& list, u32 i, const FCmdSetMeshBuffers& cmd) const;

@@ -691,6 +691,62 @@ public sealed unsafe class GpuRecord : IsolateChild
     }
 
     #endregion
+
+    #region Compute
+
+    public ComputeScope2 Compute(string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    {
+        AssertNotEnded();
+
+        #region Check Nested
+
+        if (m_in_render_or_compute_scope) throw new InvalidOperationException("Cannot nest Render or Compute scopes");
+        m_in_render_or_compute_scope = true;
+
+        #endregion
+
+        #region Cmd
+
+        var cmd = new FCmdCompute
+        {
+            Base = { Type = FCmdType.Compute },
+        };
+
+        #endregion
+
+        #region DebugScope
+
+        var debug_scope = false;
+        if (Name != null)
+        {
+            debug_scope = true;
+            Scope(Name);
+        }
+        else if (Name8.Length > 0)
+        {
+            debug_scope = true;
+            Scope(Name8);
+        }
+
+        #endregion
+
+        #region EndCmd
+
+        var cmd_index = (uint)Data.Commands.LongLength;
+        Data.Commands.Add(new() { Compute = cmd });
+
+        #endregion
+
+        #region Scope
+
+        ComputeScope2 scope = new(this, cmd_index, debug_scope, m_debug_scope_count);
+
+        #endregion
+
+        return scope;
+    }
+
+    #endregion
 }
 
 #region DebugScope
@@ -700,7 +756,7 @@ public struct DebugScope2(GpuRecord self) : IDisposable
     private bool m_disposed;
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        if (m_disposed) throw new ObjectDisposedException(nameof(DebugScope2));
         m_disposed = true;
         if (!self.DebugEnabled) return;
         var cmd = new FCmdEndScope
@@ -728,10 +784,6 @@ public unsafe struct RenderScope2(
 
     internal ShaderPipeline? m_current_pipeline;
     internal bool m_disposed;
-    internal bool m_has_pixel_shader;
-    internal bool m_has_vertex_shader;
-    internal bool m_has_mesh_shader;
-    internal bool m_has_task_shader;
     internal bool m_has_uav_writes;
 
     #endregion
@@ -747,7 +799,7 @@ public unsafe struct RenderScope2(
 
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
+        if (m_disposed) throw new ObjectDisposedException(nameof(RenderScope));
         m_disposed = true;
         if (self.m_debug_scope_count > debug_scope_count)
             throw new InvalidOperationException(
@@ -787,9 +839,10 @@ public unsafe struct RenderScope2(
 
     public void SetPipeline(ShaderPipeline Pipeline)
     {
+        self.AssertNotEnded();
         if (m_current_pipeline == Pipeline) return;
         if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Pixel))
-            throw new ArgumentException("Only shaders with a pixel stage can be used for rendering");
+            throw new ArgumentException("Only shaders with a Pixel stage can be used for rendering");
         m_current_pipeline = Pipeline;
         self.AddObject(m_current_pipeline);
         var cmd = new FCmdSetPipeline
@@ -809,6 +862,7 @@ public unsafe struct RenderScope2(
         ReadOnlySpan<URect> Scissors
     )
     {
+        self.AssertNotEnded();
         var cmd = new FCmdSetViewportScissor
         {
             Base = { Type = FCmdType.SetViewportScissor },
@@ -849,6 +903,7 @@ public unsafe struct RenderScope2(
         ReadOnlySpan<VertexBufferRange> VertexBuffers
     )
     {
+        self.AssertNotEnded();
         self.AddObject(MeshLayout);
         var cmd = new FCmdSetMeshBuffers
         {
@@ -935,6 +990,7 @@ public unsafe struct RenderScope2(
         ShaderBinding? Binding = null
     )
     {
+        self.AssertNotEnded();
         if (Pipeline != null)
         {
             if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
@@ -959,8 +1015,6 @@ public unsafe struct RenderScope2(
             Indexed = Indexed,
         };
         self.Data.Commands.Add(new() { Draw = cmd });
-        m_has_pixel_shader = true;
-        m_has_vertex_shader = true;
     }
 
     #endregion
@@ -978,6 +1032,7 @@ public unsafe struct RenderScope2(
         ShaderBinding? Binding = null
     )
     {
+        self.AssertNotEnded();
         if (Pipeline != null)
         {
             if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
@@ -1001,9 +1056,130 @@ public unsafe struct RenderScope2(
             Type = FDispatchType.Mesh,
         };
         self.Data.Commands.Add(new() { Dispatch = cmd });
-        m_has_pixel_shader = true;
-        m_has_mesh_shader = true;
-        m_has_task_shader = m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
+    }
+
+    #endregion
+}
+
+#endregion
+
+#region ComputeScope
+
+public unsafe struct ComputeScope2(
+    GpuRecord self,
+    uint cmd_index,
+    bool debug_scope,
+    uint debug_scope_count
+) : IDisposable
+{
+    #region Fields
+
+    internal ShaderPipeline? m_current_pipeline;
+    internal bool m_disposed;
+
+    #endregion
+
+    #region Props
+
+    internal ref FCmdCompute Cmd => ref self.Data.Commands[cmd_index].Compute;
+
+    #endregion
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope2));
+        m_disposed = true;
+        if (self.m_debug_scope_count > debug_scope_count)
+            throw new InvalidOperationException(
+                "There is still Debug scope not ended, please check whether Dispose is missed."
+            );
+        Cmd.CommandCount = (uint)self.m_data->Commands.LongLength - cmd_index;
+        self.m_in_render_or_compute_scope = false;
+        self.Data.Commands.Add(new() { Type = FCmdType.End });
+        if (debug_scope) new DebugScope2(self).Dispose();
+    }
+
+    #endregion
+
+    #region Debug
+
+    #region Label
+
+    public void Label(string Label, Color? Color = null) => self.Label(Label, Color);
+
+    public void Label(ReadOnlySpan<byte> Label, Color? Color = null) => self.Label(Label, Color);
+
+    #endregion
+
+    #region Scope
+
+    public DebugScope2 Scope(string Name, Color? Color = null) => self.Scope(Name, Color);
+
+    public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null) => self.Scope(Name, Color);
+
+    #endregion
+
+    #endregion
+
+    #region SetPipeline
+
+    public void SetPipeline(ShaderPipeline Pipeline)
+    {
+        self.AssertNotEnded();
+        if (m_current_pipeline == Pipeline) return;
+        if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute))
+            throw new ArgumentException("Only shaders with a Compute stage can be used for computing");
+        m_current_pipeline = Pipeline;
+        self.AddObject(m_current_pipeline);
+        var cmd = new FCmdSetPipeline
+        {
+            Base = { Type = FCmdType.SetPipeline },
+            Pipeline = Pipeline.m_ptr,
+        };
+        self.Data.Commands.Add(new() { SetPipeline = cmd });
+    }
+
+    #endregion
+
+    #region Dispatch
+
+    public void Dispatch(
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
+        ShaderBinding? Binding = null
+    ) => Dispatch(null, GroupCountX, GroupCountY, GroupCountZ, Binding);
+
+    public void Dispatch(
+        ShaderPipeline? Pipeline,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
+        ShaderBinding? Binding = null
+    )
+    {
+        self.AssertNotEnded();
+        if (Pipeline != null)
+        {
+            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+                throw new ArgumentException("Only Compute shaders can use Dispatch");
+            SetPipeline(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+                throw new ArgumentException("Only shaders with a Compute stage can use Dispatch");
+        }
+        // if (Binding != null) SetBinding(Binding);
+        // self.SyncBinding(ref m_context, this);
+        var cmd = new FCmdDispatch
+        {
+            Base = { Type = FCmdType.Dispatch },
+            GroupCountX = GroupCountX,
+            GroupCountY = GroupCountY,
+            GroupCountZ = GroupCountZ,
+            Type = FDispatchType.Compute,
+        };
+        self.Data.Commands.Add(new() { Dispatch = cmd });
     }
 
     #endregion

@@ -316,13 +316,32 @@ void D3d12GpuRecord::Analyze_Render(u32 i, const FCmdRender& cmd)
 void D3d12GpuRecord::Analyze_RenderEnd(u32 i, const FCmdRender& cmd)
 {
     if (m_state != RecordState::Render)
-        COPLT_THROW_FMT("[{}] Cannot use End in main scope", i);
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope or some end is missing", i);
     m_state = RecordState::Main;
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
     const auto num_rtv = std::min(info.NumRtv, 8u);
     if (info.Dsv) m_barrier_analyzer->OnUse(info.Dsv);
     for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->OnUse(info.Rtv[n]);
     m_barrier_analyzer->OnCmd();
+    m_pipeline_context.Reset();
+}
+
+void D3d12GpuRecord::Analyze_Compute(u32 i, const FCmdCompute& cmd)
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use Compute in sub scope", i);
+    if (Mode != FGpuRecordMode::Direct && Mode != FGpuRecordMode::Compute)
+        COPLT_THROW_FMT("[{}] Compute can only be used in Direct or Compute mode", i);
+    m_state = RecordState::Compute;
+    m_cur_compute = ComputeState{.StartIndex = i, .Cmd = cmd};
+}
+
+void D3d12GpuRecord::Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd)
+{
+    if (m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope or some end is missing", i);
+    m_state = RecordState::Main;
+    m_pipeline_context.Reset();
 }
 
 void D3d12GpuRecord::Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd)
@@ -620,7 +639,7 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
 void D3d12GpuRecord::Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdRender& cmd)
 {
     if (m_state != RecordState::Render)
-        COPLT_THROW_FMT("[{}] Cannot use End in main scope", i);
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope or some end is missing", i);
     m_state = RecordState::Main;
     if (list->g4)
     {
@@ -630,6 +649,25 @@ void D3d12GpuRecord::Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdR
     {
         COPLT_THROW_FMT("[{}] Render pass is not supported, please check the agility sdk version", i);
     }
+    m_pipeline_context.Reset();
+}
+
+void D3d12GpuRecord::Interpret_Compute(const CmdList& list, u32 i, const FCmdCompute& cmd)
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use Compute in sub scope", i);
+    if (Mode != FGpuRecordMode::Direct && Mode != FGpuRecordMode::Compute)
+        COPLT_THROW_FMT("[{}] Compute can only be used in Direct or Compute mode", i);
+    m_state = RecordState::Compute;
+    m_cur_compute = ComputeState{.StartIndex = i, .Cmd = cmd};
+}
+
+void D3d12GpuRecord::Interpret_ComputeEnd(const CmdList& list, u32 i, const FCmdCompute& cmd)
+{
+    if (m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use End in main scope or some end is missing", i);
+    m_state = RecordState::Main;
+    m_pipeline_context.Reset();
 }
 
 void D3d12GpuRecord::Interpret_SetPipeline(const CmdList& list, const u32 i, const FCmdSetPipeline& cmd)
