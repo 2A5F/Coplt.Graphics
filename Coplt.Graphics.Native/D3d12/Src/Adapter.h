@@ -19,7 +19,7 @@ namespace Coplt
 
         explicit D3d12GpuAdapter(Rc<D3d12Instance>&& instance, ComPtr<IDXGIAdapter1>&& adapter);
 
-        FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept override;
+        FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDeviceCreateResult* out) noexcept override;
 
         b8 IsSupport(const FDeviceRequires& Requires) noexcept override;
     };

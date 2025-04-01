@@ -29,7 +29,7 @@ namespace Coplt
         Rc<D3d12MeshLayout> m_empty_mesh_layout{};
         DWORD m_callback_cookie{};
 
-        explicit D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options);
+        explicit D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options, FGpuDeviceCreateResult& out);
 
         ~D3d12GpuDevice() override;
 
@@ -46,9 +46,10 @@ namespace Coplt
         const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
         const Rc<D3d12MeshLayout>& GetEmptyMeshLayout();
 
-        FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept override;
+        FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept override;
+        FGpuIsolateCreateResult CreateIsolate(const FGpuIsolateCreateOptions& options);
 
-        FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept override;
+        FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept override;
         FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept override;
         FResult GetEmptyShaderLayout(
             const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out
@@ -56,7 +57,7 @@ namespace Coplt
         FResult CreateShaderInputLayout(
             const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out
         ) noexcept override;
-        FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept override;
+        FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept override;
         FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
 
         FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept override;

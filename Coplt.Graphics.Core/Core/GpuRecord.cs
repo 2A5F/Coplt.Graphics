@@ -436,7 +436,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     )
     {
         AssertNotEnded();
-        // Dst.AssertSameIsolate(Isolate); // todo
+        Dst.AssertSameIsolate(Isolate);
         if (Data.Length == 0) return;
         var Size = Math.Min(Dst.Size, (uint)Data.Length);
         var src = WriteToUpload(Data);
@@ -467,7 +467,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     )
     {
         AssertNotEnded();
-        // Dst.AssertSameIsolate(Isolate); // todo
+        Dst.AssertSameIsolate(Isolate);
         if (Loc.RecordId != Data.Id)
             throw new ArgumentException("Cannot use UploadLoc different GpuRecord");
         if (Loc.RecordVersion != Data.Version)
@@ -849,7 +849,7 @@ public unsafe struct RenderScope2(
         var cmd = new FCmdSetPipeline
         {
             Base = { Type = FCmdType.SetPipeline },
-            Pipeline = Pipeline.m_ptr,
+            Pipeline = Pipeline.Ptr,
         };
         self.Data.Commands.Add(new() { SetPipeline = cmd });
     }
@@ -915,12 +915,12 @@ public unsafe struct RenderScope2(
         };
         var buf = new FMeshBuffers2
         {
-            MeshLayout = MeshLayout.m_ptr,
+            MeshLayout = MeshLayout.Ptr,
             VertexBufferCount = (uint)VertexBuffers.Length,
         };
         if (IndexBuffer is { } index_buffer)
         {
-            // index_buffer.Buffer.AssertSameIsolate(self.Isolate); // todo
+            index_buffer.Buffer.AssertSameIsolate(self.Isolate);
             buf.IndexBuffer = new()
             {
                 Buffer = self.AddResource(index_buffer.Buffer.Resource),
@@ -936,7 +936,7 @@ public unsafe struct RenderScope2(
             for (var i = 0; i < VertexBuffers.Length; i++)
             {
                 var buffer = VertexBuffers[i];
-                // buffer.Buffer.AssertSameIsolate(self.Isolate); // todo
+                buffer.Buffer.AssertSameIsolate(self.Isolate);
                 ref var dst = ref vbs[i];
                 dst = new()
                 {
@@ -1137,7 +1137,7 @@ public unsafe struct ComputeScope2(
         var cmd = new FCmdSetPipeline
         {
             Base = { Type = FCmdType.SetPipeline },
-            Pipeline = Pipeline.m_ptr,
+            Pipeline = Pipeline.Ptr,
         };
         self.Data.Commands.Add(new() { SetPipeline = cmd });
     }

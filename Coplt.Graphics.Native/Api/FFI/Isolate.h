@@ -11,11 +11,11 @@ namespace Coplt
 
     enum class FGpuIsolateType
     {
-        // 包含 direct compute copy 队列，最多同时具有这3个队列
-        // 可以提交异步任务自动调度到队列上，同时如果不支持多队列将回退到主 direct 队列
+        // 包含 Direct Compute Copy 队列，最多同时具有这3个队列
+        // 可以提交异步任务自动调度到队列上，同时如果不支持多队列将回退到主 Direct 队列
         Main,
-        // 仅包含 copy 队列，不一定有
-        BackgroundCopy,
+        // 仅包含 Copy 队列，不一定有
+        Copy,
         // todo video
     };
 
@@ -23,6 +23,7 @@ namespace Coplt
     {
         // 可选
         FStr8or16 Name{};
+        FGpuIsolateType Type{};
     };
 
     struct FGpuIsolateConfig
@@ -58,7 +59,7 @@ namespace Coplt
         virtual FResult CreateSwapChainForHwnd(const FGpuSwapChainCreateOptions& options, void* hwnd, FGpuSwapChainCreateResult& out) noexcept = 0;
     };
 
-    struct FMainQueueCreateResult
+    struct FGpuIsolateCreateResult
     {
         FGpuIsolate* Isolate{};
         FGpuIsolateData* Data{};

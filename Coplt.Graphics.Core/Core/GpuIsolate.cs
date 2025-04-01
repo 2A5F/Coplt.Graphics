@@ -25,7 +25,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
     #region Props
 
     public new FGpuIsolate* Ptr => (FGpuIsolate*)m_ptr;
-    internal ref readonly FGpuIsolateData Data => ref *m_data;
+    public ref readonly FGpuIsolateData Data => ref *m_data;
     public GpuIsolateConfig Config => new(ref *Data.Config);
     public FrameId FrameId => new(Data.FrameId);
 
@@ -33,7 +33,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
 
     #region Ctor
 
-    internal GpuIsolate(FGpuIsolate* ptr, string? name, GpuDevice device, FGpuIsolateData* data)
+    internal GpuIsolate(FGpuIsolate* ptr, FGpuIsolateData* data, string? name, GpuDevice device)
         : base((FGpuObject*)ptr, name, device)
     {
         m_data = data;

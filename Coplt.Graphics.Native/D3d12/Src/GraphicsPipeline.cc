@@ -135,7 +135,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     if (options.Shader == nullptr)
         COPLT_THROW("Shader is null");
     m_shader = Rc<FShader>::UnsafeClone(options.Shader);
-    if (!HasFlags(m_shader->Stages, FShaderStageFlags::Pixel))
+    if (!HasFlags(m_shader->Stages(), FShaderStageFlags::Pixel))
         COPLT_THROW("The shader is not graphics");
 
     if (auto layout = m_shader->Layout())
@@ -162,14 +162,14 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     std::vector<u32> input_slots{};
     CD3DX12_PIPELINE_STATE_STREAM2 stream{};
 
-    if (HasFlags(m_shader->Stages, FShaderStageFlags::Vertex))
+    if (HasFlags(m_shader->Stages(), FShaderStageFlags::Vertex))
     {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
         desc.pRootSignature = root_signature;
-        auto ps = m_shader->Pixel();
-        auto vs = m_shader->Vertex();
-        desc.PS = D3D12_SHADER_BYTECODE{ps->Data, ps->Size};
-        desc.VS = D3D12_SHADER_BYTECODE{vs->Data, vs->Size};
+        NonNull ps = m_shader->Pixel();
+        NonNull vs = m_shader->Vertex();
+        desc.PS = D3D12_SHADER_BYTECODE{ps->Data().Data, ps->Data().Size};
+        desc.VS = D3D12_SHADER_BYTECODE{vs->Data().Data, vs->Data().Size};
         SetGraphicsState(desc, options);
         desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS |
@@ -195,17 +195,17 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         }
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
     }
-    else if (HasFlags(m_shader->Stages, FShaderStageFlags::Mesh))
+    else if (HasFlags(m_shader->Stages(), FShaderStageFlags::Mesh))
     {
         D3DX12_MESH_SHADER_PIPELINE_STATE_DESC desc{};
         desc.pRootSignature = root_signature;
-        auto ps = m_shader->Pixel();
-        auto ms = m_shader->Mesh();
+        NonNull ps = m_shader->Pixel();
+        NonNull ms = m_shader->Mesh();
         auto ts = m_shader->Task();
-        desc.PS = D3D12_SHADER_BYTECODE{ps->Data, ps->Size};
-        desc.MS = D3D12_SHADER_BYTECODE{ms->Data, ms->Size};
+        desc.PS = D3D12_SHADER_BYTECODE{ps->Data().Data, ps->Data().Size};
+        desc.MS = D3D12_SHADER_BYTECODE{ms->Data().Data, ms->Data().Size};
         if (ts != nullptr)
-            desc.AS = D3D12_SHADER_BYTECODE{ts->Data, ts->Size};
+            desc.AS = D3D12_SHADER_BYTECODE{ts->Data().Data, ts->Data().Size};
         SetGraphicsState(desc, options);
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS;
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
@@ -252,7 +252,7 @@ FShaderLayout* D3d12GraphicsShaderPipeline::GetLayout() noexcept
 
 FShaderStageFlags D3d12GraphicsShaderPipeline::GetStages() noexcept
 {
-    return m_shader->Stages;
+    return m_shader->Stages();
 }
 
 const FGraphicsPipelineState* D3d12GraphicsShaderPipeline::GetGraphicsState() noexcept

@@ -46,7 +46,7 @@ namespace
     }
 }
 
-D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options):
+D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCreateOptions& options, FGpuDeviceCreateResult& out):
     m_adapter(std::move(adapter))
 {
     m_instance = m_adapter->m_instance;
@@ -80,6 +80,14 @@ D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCr
     }
 
     chr | m_device->QueryInterface(IID_PPV_ARGS(&m_device0));
+
+    FGpuIsolateCreateOptions isolate_options{};
+    isolate_options.Type = FGpuIsolateType::Main;
+    out.MainIsolate = CreateIsolate(isolate_options);
+    Rc main_isolate = out.MainIsolate.Isolate;
+    isolate_options.Type = FGpuIsolateType::Copy;
+    out.CopyIsolate = CreateIsolate(isolate_options);
+    main_isolate.leak();
 }
 
 D3d12GpuDevice::~D3d12GpuDevice()
@@ -146,21 +154,30 @@ const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
     return m_empty_mesh_layout;
 }
 
-FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept
+FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept
 {
     return feb([&]
     {
-        const auto ptr = new D3d12GpuIsolate(this->CloneThis(), options);
-        out.Isolate = ptr;
-        out.Data = ptr;
+        out = CreateIsolate(options);
     });
 }
 
-FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept
+FGpuIsolateCreateResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options)
+{
+    FGpuIsolateCreateResult out;
+    const auto ptr = new D3d12GpuIsolate(this->CloneThis(), options);
+    out.Isolate = ptr;
+    out.Data = ptr;
+    return out;
+}
+
+FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept
 {
     return feb([&]
     {
-        *out = ShaderModule::Create(options);
+        const auto ptr = ShaderModule::Create(options);
+        out->ShaderModule = ptr;
+        out->Data = ptr;
     });
 }
 
@@ -190,11 +207,13 @@ FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOp
     });
 }
 
-FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept
+FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept
 {
     return feb([&]
     {
-        *out = new Shader(this->CloneThis(), options);
+        const auto ptr = new Shader(this->CloneThis(), options);
+        out->Shader = ptr;
+        out->Data = ptr;
     });
 }
 

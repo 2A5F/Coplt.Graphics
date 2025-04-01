@@ -43,7 +43,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                     Adapter.Features.ShaderModelLevel
                 }
             );
-            Isolate = Device.CreateIsolate(Name: "Main Isolate");
+            Isolate = Device.MainIsolate;
             Output = Isolate.CreateSwapChainForHwnd(
                 Handle, new()
                 {

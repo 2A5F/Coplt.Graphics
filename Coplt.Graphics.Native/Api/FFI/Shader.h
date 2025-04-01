@@ -35,7 +35,7 @@ namespace Coplt
         FShaderStage Stage{};
     };
 
-    COPLT_INTERFACE_DEFINE(FShaderModule, "5c0e1fdb-2acd-4fce-b985-09e12a7a1aad", FGpuObject)
+    struct FShaderModuleData
     {
         // 外部只读
         u8* Data{};
@@ -43,9 +43,28 @@ namespace Coplt
         usize Size{};
         // 外部只读
         FShaderStage Stage{};
+    };
 
+    COPLT_INTERFACE_DEFINE(FShaderModule, "5c0e1fdb-2acd-4fce-b985-09e12a7a1aad", FGpuObject)
+    {
+        virtual FShaderModuleData* ShaderModuleData() noexcept = 0;
         // 可空
         virtual FString8* GetEntryPoint() noexcept = 0;
+
+        #ifdef FFI_SRC
+
+        FShaderModuleData& Data() noexcept
+        {
+            return *ShaderModuleData();
+        }
+
+        #endif
+    };
+
+    struct FShaderModuleCreateResult
+    {
+        FShaderModule* ShaderModule{};
+        FShaderModuleData* Data{};
     };
 
     struct FShaderLayout;
@@ -63,11 +82,16 @@ namespace Coplt
         u8 Count{};
     };
 
+    struct FShaderData
+    {
+        FShaderStageFlags Stages{};
+    };
+
     COPLT_INTERFACE_DEFINE(FShader, "de1352d5-023d-42b0-beac-122b3b296c9c", FGpuObject)
     {
         constexpr static u32 MaxShaderModuleCount = 3;
 
-        FShaderStageFlags Stages{};
+        virtual FShaderData* ShaderData() noexcept = 0;
 
         virtual FShaderLayout* Layout() noexcept = 0;
 
@@ -83,5 +107,25 @@ namespace Coplt
         virtual FShaderModule* Mesh() noexcept = 0;
         // 没有返回 null
         virtual FShaderModule* Task() noexcept = 0;
+
+        #ifdef FFI_SRC
+
+        FShaderData& Data() noexcept
+        {
+            return *ShaderData();
+        }
+
+        FShaderStageFlags& Stages() noexcept
+        {
+            return Data().Stages;
+        }
+
+        #endif
+    };
+
+    struct FShaderCreateResult
+    {
+        FShader* Shader{};
+        FShaderData* Data{};
     };
 }

@@ -1,5 +1,4 @@
-﻿using Coplt.Dropping;
-using Coplt.Graphics.Native;
+﻿using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
@@ -59,13 +58,10 @@ public enum MeshBufferElementRate : byte
     Instance,
 }
 
-[Dropping(Unmanaged = true)]
-public sealed unsafe partial class MeshLayout
+public sealed unsafe class MeshLayout : DeviceChild
 {
     #region Fields
 
-    internal FMeshLayout* m_ptr;
-    internal string? m_name;
     internal readonly FMeshBufferDefine* m_native_buffers;
     internal readonly FMeshBufferElement* m_native_elements;
     internal readonly uint m_native_buffers_count;
@@ -75,7 +71,7 @@ public sealed unsafe partial class MeshLayout
 
     #region Props
 
-    public FMeshLayout* Ptr => m_ptr;
+    public new FMeshLayout* Ptr => (FMeshLayout*)m_ptr;
     public ReadOnlySpan<MeshBufferDefine> Buffers => new(m_native_buffers, (int)m_native_buffers_count);
     public ReadOnlySpan<MeshBufferElement> Elements => new(m_native_elements, (int)m_native_elements_count);
 
@@ -83,68 +79,22 @@ public sealed unsafe partial class MeshLayout
 
     #region Ctor
 
-    internal MeshLayout(FMeshLayout* ptr, string? name)
+    internal MeshLayout(FMeshLayout* ptr, string? name, GpuDevice device) : base((FGpuObject*)ptr, name, device)
     {
-        m_ptr = ptr;
-        m_name = name;
         if (m_ptr != null)
         {
             {
                 uint count;
-                m_native_buffers = m_ptr->GetBuffers(&count);
+                m_native_buffers = ptr->GetBuffers(&count);
                 m_native_buffers_count = count;
             }
             {
                 uint count;
-                m_native_elements = m_ptr->GetElements(&count);
+                m_native_elements = ptr->GetElements(&count);
                 m_native_elements_count = count;
             }
         }
     }
-
-    #endregion
-
-    #region Drop
-
-    [Drop]
-    private void Drop()
-    {
-        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
-        ptr->Release();
-    }
-
-    #endregion
-
-    #region SetName
-
-    public void SetName(string name)
-    {
-        m_name = name;
-        fixed (char* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    public void SetName(ReadOnlySpan<byte> name)
-    {
-        m_name = null;
-        fixed (byte* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    #endregion
-
-    #region ToString
-
-    public override string ToString() =>
-        m_name is null
-            ? $"{nameof(MeshLayout)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(MeshLayout)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

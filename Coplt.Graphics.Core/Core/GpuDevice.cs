@@ -17,6 +17,10 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     internal readonly GraphicsInstance m_instance;
     internal readonly GpuAdapter m_adapter;
+    [Drop]
+    internal readonly GpuIsolate? m_main_isolate;
+    [Drop]
+    internal readonly GpuIsolate? m_copy_isolate;
 
     #endregion
 
@@ -25,16 +29,23 @@ public sealed unsafe partial class GpuDevice : GpuObject
     public new FGpuDevice* Ptr => (FGpuDevice*)m_ptr;
     public GraphicsInstance Instance => m_instance;
     public GpuAdapter Adapter => m_adapter;
+    public GpuIsolate MainIsolate => m_main_isolate!;
+    public GpuIsolate? CopyIsolate => m_copy_isolate;
 
     #endregion
 
     #region Ctor
 
-    internal GpuDevice(FGpuDevice* ptr, GraphicsInstance instance, GpuAdapter? adapter, string? name) : base((FGpuObject*)ptr, name)
+    internal GpuDevice(FGpuDeviceCreateResult result, GraphicsInstance instance, GpuAdapter? adapter, string? name) : base((FGpuObject*)result.Device, name)
     {
         m_instance = instance;
         m_name = name;
         m_adapter = adapter ?? m_instance.m_ptr_to_adapters[(nuint)Ptr->GetAdapter()];
+        m_main_isolate = new GpuIsolate(result.MainIsolate.Isolate, result.MainIsolate.Data, null, this);
+        if (result.CopyIsolate.Isolate != null)
+        {
+            m_copy_isolate = new GpuIsolate(result.CopyIsolate.Isolate, result.CopyIsolate.Data, null, this);
+        }
     }
 
     #endregion
@@ -56,10 +67,17 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     public GpuIsolate CreateIsolate(string? Name = null, ReadOnlySpan<byte> Name8 = default)
     {
-        FGpuIsolateCreateOptions f_options = new();
-        FMainQueueCreateResult f_result;
-        Ptr->CreateIsolate(&f_options, &f_result).TryThrow();
-        return new GpuIsolate(f_result.Isolate, null, this, f_result.Data);
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FGpuIsolateCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+            };
+            FGpuIsolateCreateResult f_result;
+            Ptr->CreateIsolate(&f_options, &f_result).TryThrow();
+            return new GpuIsolate(f_result.Isolate, f_result.Data, null, this);
+        }
     }
 
     #endregion
@@ -84,9 +102,9 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 Size = (nuint)Blob.Length,
                 Stage = Stage.ToFFI(),
             };
-            FShaderModule* ptr;
-            Ptr->CreateShaderModule(&f_options, &ptr).TryThrow();
-            return new(ptr, Name, EntryPoint);
+            FShaderModuleCreateResult result;
+            Ptr->CreateShaderModule(&f_options, &result).TryThrow();
+            return new(result, EntryPoint, Name, this);
         }
     }
 
@@ -115,7 +133,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 };
                 FShaderLayout* ptr;
                 Ptr->CreateShaderLayout(&f_options, &ptr).TryThrow();
-                return new(ptr, Name);
+                return new(ptr, Name, this);
             }
         }
     }
@@ -132,7 +150,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 };
                 FShaderLayout* ptr;
                 self.Ptr->GetEmptyShaderLayout(&f_options, &ptr).TryThrow();
-                return new(ptr, $"Empty Shader Layout ({flags})");
+                return new(ptr, $"Empty Shader Layout ({flags})", self);
             }, this
         );
 
@@ -186,7 +204,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
             };
             FShaderInputLayout* ptr;
             Ptr->CreateShaderInputLayout(&f_options, &ptr).TryThrow();
-            return new(ptr, meta, Name);
+            return new(ptr, meta, Name, this);
         }
     }
 
@@ -214,7 +232,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
         {
             var module = Modules[i];
             arr[i] = module;
-            p_modules[i] = module.m_ptr;
+            p_modules[i] = module.Ptr;
         }
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
@@ -222,14 +240,14 @@ public sealed unsafe partial class GpuDevice : GpuObject
             FShaderCreateOptions f_options = new()
             {
                 Name = new(Name, Name8, p_name, p_name8),
-                Layout = Layout == null ? null : Layout.m_ptr,
-                InputLayout = InputLayout == null ? null : InputLayout.m_ptr,
+                Layout = Layout == null ? null : Layout.Ptr,
+                InputLayout = InputLayout == null ? null : InputLayout.Ptr,
                 Modules = p_modules,
                 Count = (byte)Modules.Length,
             };
-            FShader* ptr;
-            Ptr->CreateShader(&f_options, &ptr).TryThrow();
-            return new(ptr, arr, Layout, InputLayout, Name);
+            FShaderCreateResult result;
+            Ptr->CreateShader(&f_options, &result).TryThrow();
+            return new(result, arr, Layout, InputLayout, Name, this);
         }
     }
 
@@ -258,7 +276,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
             };
             FMeshLayout* ptr;
             Ptr->CreateMeshLayout(&f_options, &ptr).TryThrow();
-            return new(ptr, Name);
+            return new(ptr, Name, this);
         }
     }
 
@@ -279,36 +297,36 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 Base = new()
                 {
                     Name = new(Name, Name8, p_name, p_name8),
-                    Shader = Shader.m_ptr,
+                    Shader = Shader.Ptr,
                 },
-                MeshLayout = MeshLayout == null ? null : MeshLayout.m_ptr,
+                MeshLayout = MeshLayout == null ? null : MeshLayout.Ptr,
                 GraphicsState = PipelineState.ToFFI(),
             };
             FGraphicsShaderPipeline* ptr;
             Ptr->CreateGraphicsPipeline(&f_options, &ptr).TryThrow();
             return new(ptr, Name, Shader, PipelineState, MeshLayout);
         }
-    }
+    } 
 
     #endregion
 
-    // #region CreateBuffer
-    //
-    // public GpuBuffer CreateBuffer(
-    //     in GpuBufferCreateOptions options,
-    //     string? Name = null, ReadOnlySpan<byte> Name8 = default
-    // ) => MainQueue.CreateBuffer(in options, Name, Name8);
-    //
-    // #endregion
-    //
-    // #region CreateImage
-    //
-    // public GpuImage CreateImage(
-    //     in GpuImageCreateOptions options,
-    //     string? Name = null, ReadOnlySpan<byte> Name8 = default
-    // ) => MainQueue.CreateImage(in options, Name, Name8);
-    //
-    // #endregion
+    #region CreateBuffer
+
+    public GpuBuffer CreateBuffer(
+        in GpuBufferCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainIsolate.CreateBuffer(in options, Name, Name8);
+
+    #endregion
+
+    #region CreateImage
+
+    public GpuImage CreateImage(
+        in GpuImageCreateOptions options,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainIsolate.CreateImage(in options, Name, Name8);
+
+    #endregion
 
     #region CreateSampler
 

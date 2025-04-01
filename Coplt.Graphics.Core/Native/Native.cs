@@ -864,10 +864,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out)
+        public FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, [NativeTypeName("Coplt::FGpuDeviceCreateResult *")] FGpuDeviceCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuAdapter*, FResult*, FGpuDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[5]))((FGpuAdapter*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuAdapter*, FResult*, FGpuDeviceCreateOptions*, FGpuDeviceCreateResult*, FResult*>)(lpVtbl[5]))((FGpuAdapter*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FUnknown.Interface
@@ -876,7 +876,7 @@ namespace Coplt.Graphics.Native
             B8 IsSupport([NativeTypeName("const FDeviceRequires &")] FDeviceRequires* Requires);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, FGpuDevice** @out);
+            FResult CreateDevice([NativeTypeName("const FGpuDeviceCreateOptions &")] FGpuDeviceCreateOptions* options, [NativeTypeName("Coplt::FGpuDeviceCreateResult *")] FGpuDeviceCreateResult* @out);
         }
     }
 
@@ -897,211 +897,20 @@ namespace Coplt.Graphics.Native
         public FDeviceRequires Requires;
     }
 
-    public partial struct FGpuDevice
+    public partial struct FGpuDeviceCreateResult
     {
     }
 
-    [Guid("557F032D-ED50-403A-ADC5-214FDDBE6C6B")]
-    [NativeTypeName("struct FGpuDevice : Coplt::FGpuObject")]
-    public unsafe partial struct FGpuDevice : FGpuDevice.Interface, INativeGuid
+    public unsafe partial struct FGpuDeviceCreateResult
     {
-        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuDevice));
+        [NativeTypeName("Coplt::FGpuDevice *")]
+        public FGpuDevice* Device;
 
-        public void** lpVtbl;
+        [NativeTypeName("Coplt::FGpuIsolateCreateResult")]
+        public FGpuIsolateCreateResult MainIsolate;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<FGpuDevice*, void>)(lpVtbl[0]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[1]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[2]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, Guid*, void*>)(lpVtbl[3]))((FGpuDevice*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::u64")]
-        public ulong ObjectId()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, ulong>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FGpuAdapter *")]
-        public FGpuAdapter* GetAdapter()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, FGpuAdapter*>)(lpVtbl[6]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void* GetRawDevice()
-        {
-            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, void*>)(lpVtbl[7]))((FGpuDevice*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateIsolate([NativeTypeName("const FGpuIsolateCreateOptions &")] FGpuIsolateCreateOptions* options, [NativeTypeName("Coplt::FMainQueueCreateResult &")] FMainQueueCreateResult* @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuIsolateCreateOptions*, FMainQueueCreateResult*, FResult*>)(lpVtbl[8]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, FShaderModule** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderModuleCreateOptions*, FShaderModule**, FResult*>)(lpVtbl[9]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShaderLayout([NativeTypeName("const FShaderLayoutCreateOptions &")] FShaderLayoutCreateOptions* options, FShaderLayout** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderLayoutCreateOptions*, FShaderLayout**, FResult*>)(lpVtbl[10]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGetEmptyShaderLayoutOptions*, FShaderLayout**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[12]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderCreateOptions*, FShader**, FResult*>)(lpVtbl[13]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[14]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[15]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[16]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[17]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuImageCreateOptions*, FGpuImage**, FResult*>)(lpVtbl[18]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateSampler([NativeTypeName("const FGpuSamplerCreateOptions &")] FGpuSamplerCreateOptions* options, FGpuSampler** @out)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuSamplerCreateOptions*, FGpuSampler**, FResult*>)(lpVtbl[19]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
-        }
-
-        public interface Interface : FGpuObject.Interface
-        {
-            [return: NativeTypeName("Coplt::FGpuAdapter *")]
-            FGpuAdapter* GetAdapter();
-
-            void* GetRawDevice();
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateIsolate([NativeTypeName("const FGpuIsolateCreateOptions &")] FGpuIsolateCreateOptions* options, [NativeTypeName("Coplt::FMainQueueCreateResult &")] FMainQueueCreateResult* @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, FShaderModule** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShaderLayout([NativeTypeName("const FShaderLayoutCreateOptions &")] FShaderLayoutCreateOptions* options, FShaderLayout** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, FShader** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out);
-
-            [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateSampler([NativeTypeName("const FGpuSamplerCreateOptions &")] FGpuSamplerCreateOptions* options, FGpuSampler** @out);
-        }
+        [NativeTypeName("Coplt::FGpuIsolateCreateResult")]
+        public FGpuIsolateCreateResult CopyIsolate;
     }
 
     public partial struct FInstanceCreateOptions
@@ -1197,10 +1006,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, FGpuDevice** @out)
+        public FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, [NativeTypeName("Coplt::FGpuDeviceCreateResult *")] FGpuDeviceCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuAutoSelectDeviceCreateOptions*, FGpuDevice**, FResult*>)(lpVtbl[9]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FInstance*, FResult*, FGpuAutoSelectDeviceCreateOptions*, FGpuDeviceCreateResult*, FResult*>)(lpVtbl[9]))((FInstance*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FUnknown.Interface
@@ -1221,7 +1030,7 @@ namespace Coplt.Graphics.Native
             FGpuAdapter** GetAdapters([NativeTypeName("Coplt::u32 *")] uint* out_count);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, FGpuDevice** @out);
+            FResult CreateDevice([NativeTypeName("const FGpuAutoSelectDeviceCreateOptions &")] FGpuAutoSelectDeviceCreateOptions* options, [NativeTypeName("Coplt::FGpuDeviceCreateResult *")] FGpuDeviceCreateResult* @out);
         }
     }
 
@@ -1294,6 +1103,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 DynBindlessOnly;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 ExtraIsolate;
     }
 
     [NativeTypeName("Coplt::i32")]
@@ -1353,6 +1165,209 @@ namespace Coplt.Graphics.Native
     {
         [NativeTypeName("Coplt::FStr8or16")]
         public FStr8or16 Name;
+    }
+
+    [Guid("557F032D-ED50-403A-ADC5-214FDDBE6C6B")]
+    [NativeTypeName("struct FGpuDevice : Coplt::FGpuObject")]
+    public unsafe partial struct FGpuDevice : FGpuDevice.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FGpuDevice));
+
+        public void** lpVtbl;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            ((delegate* unmanaged[Thiscall]<FGpuDevice*, void>)(lpVtbl[0]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint Release()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[1]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("size_t")]
+        public nuint AddRef()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, nuint>)(lpVtbl[2]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, Guid*, void*>)(lpVtbl[3]))((FGpuDevice*)Unsafe.AsPointer(ref this), id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::u64")]
+        public ulong ObjectId()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, ulong>)(lpVtbl[4]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, name);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FGpuAdapter *")]
+        public FGpuAdapter* GetAdapter()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, FGpuAdapter*>)(lpVtbl[6]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void* GetRawDevice()
+        {
+            return ((delegate* unmanaged[Thiscall]<FGpuDevice*, void*>)(lpVtbl[7]))((FGpuDevice*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateIsolate([NativeTypeName("const FGpuIsolateCreateOptions &")] FGpuIsolateCreateOptions* options, [NativeTypeName("Coplt::FGpuIsolateCreateResult &")] FGpuIsolateCreateResult* @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuIsolateCreateOptions*, FGpuIsolateCreateResult*, FResult*>)(lpVtbl[8]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, [NativeTypeName("Coplt::FShaderModuleCreateResult *")] FShaderModuleCreateResult* @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderModuleCreateOptions*, FShaderModuleCreateResult*, FResult*>)(lpVtbl[9]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderLayout([NativeTypeName("const FShaderLayoutCreateOptions &")] FShaderLayoutCreateOptions* options, FShaderLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderLayoutCreateOptions*, FShaderLayout**, FResult*>)(lpVtbl[10]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGetEmptyShaderLayoutOptions*, FShaderLayout**, FResult*>)(lpVtbl[11]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderInputLayoutCreateOptions*, FShaderInputLayout**, FResult*>)(lpVtbl[12]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, [NativeTypeName("Coplt::FShaderCreateResult *")] FShaderCreateResult* @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderCreateOptions*, FShaderCreateResult*, FResult*>)(lpVtbl[13]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[14]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FMeshLayoutCreateOptions*, FMeshLayout**, FResult*>)(lpVtbl[15]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGraphicsShaderPipelineCreateOptions*, FGraphicsShaderPipeline**, FResult*>)(lpVtbl[16]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[17]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuImageCreateOptions*, FGpuImage**, FResult*>)(lpVtbl[18]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateSampler([NativeTypeName("const FGpuSamplerCreateOptions &")] FGpuSamplerCreateOptions* options, FGpuSampler** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuSamplerCreateOptions*, FGpuSampler**, FResult*>)(lpVtbl[19]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        public interface Interface : FGpuObject.Interface
+        {
+            [return: NativeTypeName("Coplt::FGpuAdapter *")]
+            FGpuAdapter* GetAdapter();
+
+            void* GetRawDevice();
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateIsolate([NativeTypeName("const FGpuIsolateCreateOptions &")] FGpuIsolateCreateOptions* options, [NativeTypeName("Coplt::FGpuIsolateCreateResult &")] FGpuIsolateCreateResult* @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShaderModule([NativeTypeName("const FShaderModuleCreateOptions &")] FShaderModuleCreateOptions* options, [NativeTypeName("Coplt::FShaderModuleCreateResult *")] FShaderModuleCreateResult* @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShaderLayout([NativeTypeName("const FShaderLayoutCreateOptions &")] FShaderLayoutCreateOptions* options, FShaderLayout** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult GetEmptyShaderLayout([NativeTypeName("const FGetEmptyShaderLayoutOptions &")] FGetEmptyShaderLayoutOptions* options, FShaderLayout** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShaderInputLayout([NativeTypeName("const FShaderInputLayoutCreateOptions &")] FShaderInputLayoutCreateOptions* options, FShaderInputLayout** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, [NativeTypeName("Coplt::FShaderCreateResult *")] FShaderCreateResult* @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateMeshLayout([NativeTypeName("const FMeshLayoutCreateOptions &")] FMeshLayoutCreateOptions* options, FMeshLayout** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateSampler([NativeTypeName("const FGpuSamplerCreateOptions &")] FGpuSamplerCreateOptions* options, FGpuSampler** @out);
+        }
     }
 
     public partial struct FGpuRecord
@@ -1449,13 +1464,16 @@ namespace Coplt.Graphics.Native
     public enum FGpuIsolateType
     {
         Main,
-        BackgroundCopy,
+        Copy,
     }
 
     public partial struct FGpuIsolateCreateOptions
     {
         [NativeTypeName("Coplt::FStr8or16")]
         public FStr8or16 Name;
+
+        [NativeTypeName("Coplt::FGpuIsolateType")]
+        public FGpuIsolateType Type;
     }
 
     public partial struct FGpuIsolateConfig
@@ -1609,7 +1627,7 @@ namespace Coplt.Graphics.Native
     {
     }
 
-    public unsafe partial struct FMainQueueCreateResult
+    public unsafe partial struct FGpuIsolateCreateResult
     {
         [NativeTypeName("Coplt::FGpuIsolate *")]
         public FGpuIsolate* Isolate;
@@ -2493,14 +2511,8 @@ namespace Coplt.Graphics.Native
         public FShaderStage Stage;
     }
 
-    [Guid("5C0E1FDB-2ACD-4FCE-B985-09E12A7A1AAD")]
-    [NativeTypeName("struct FShaderModule : Coplt::FGpuObject")]
-    public unsafe partial struct FShaderModule : FShaderModule.Interface, INativeGuid
+    public unsafe partial struct FShaderModuleData
     {
-        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShaderModule));
-
-        public void** lpVtbl;
-
         [NativeTypeName("Coplt::u8 *")]
         public byte* Data;
 
@@ -2509,6 +2521,15 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FShaderStage")]
         public FShaderStage Stage;
+    }
+
+    [Guid("5C0E1FDB-2ACD-4FCE-B985-09E12A7A1AAD")]
+    [NativeTypeName("struct FShaderModule : Coplt::FGpuObject")]
+    public unsafe partial struct FShaderModule : FShaderModule.Interface, INativeGuid
+    {
+        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShaderModule));
+
+        public void** lpVtbl;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -2552,17 +2573,36 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderModuleData *")]
+        public FShaderModuleData* ShaderModuleData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, FShaderModuleData*>)(lpVtbl[6]))((FShaderModule*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FString8 *")]
         public FString8* GetEntryPoint()
         {
-            return ((delegate* unmanaged[Thiscall]<FShaderModule*, FString8*>)(lpVtbl[6]))((FShaderModule*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShaderModule*, FString8*>)(lpVtbl[7]))((FShaderModule*)Unsafe.AsPointer(ref this));
         }
 
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FShaderModuleData *")]
+            FShaderModuleData* ShaderModuleData();
+
             [return: NativeTypeName("Coplt::FString8 *")]
             FString8* GetEntryPoint();
         }
+    }
+
+    public unsafe partial struct FShaderModuleCreateResult
+    {
+        [NativeTypeName("Coplt::FShaderModule *")]
+        public FShaderModule* ShaderModule;
+
+        [NativeTypeName("Coplt::FShaderModuleData *")]
+        public FShaderModuleData* Data;
     }
 
     public partial struct FShaderLayout
@@ -2739,6 +2779,12 @@ namespace Coplt.Graphics.Native
         public byte Count;
     }
 
+    public partial struct FShaderData
+    {
+        [NativeTypeName("Coplt::FShaderStageFlags")]
+        public FShaderStageFlags Stages;
+    }
+
     [Guid("DE1352D5-023D-42B0-BEAC-122B3B296C9C")]
     [NativeTypeName("struct FShader : Coplt::FGpuObject")]
     public unsafe partial struct FShader : FShader.Interface, INativeGuid
@@ -2746,9 +2792,6 @@ namespace Coplt.Graphics.Native
         static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FShader));
 
         public void** lpVtbl;
-
-        [NativeTypeName("Coplt::FShaderStageFlags")]
-        public FShaderStageFlags Stages;
 
         [NativeTypeName("const u32")]
         public const uint MaxShaderModuleCount = 3;
@@ -2795,56 +2838,66 @@ namespace Coplt.Graphics.Native
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderData *")]
+        public FShaderData* ShaderData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderData*>)(lpVtbl[6]))((FShader*)Unsafe.AsPointer(ref this));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderLayout *")]
         public FShaderLayout* Layout()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderLayout*>)(lpVtbl[6]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderLayout*>)(lpVtbl[7]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderInputLayout *")]
         public FShaderInputLayout* InputLayout()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderInputLayout*>)(lpVtbl[7]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderInputLayout*>)(lpVtbl[8]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderModule *")]
         public FShaderModule* Compute()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[8]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[9]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderModule *")]
         public FShaderModule* Pixel()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[9]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[10]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderModule *")]
         public FShaderModule* Vertex()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[10]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[11]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderModule *")]
         public FShaderModule* Mesh()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[11]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[12]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FShaderModule *")]
         public FShaderModule* Task()
         {
-            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[12]))((FShader*)Unsafe.AsPointer(ref this));
+            return ((delegate* unmanaged[Thiscall]<FShader*, FShaderModule*>)(lpVtbl[13]))((FShader*)Unsafe.AsPointer(ref this));
         }
 
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FShaderData *")]
+            FShaderData* ShaderData();
+
             [return: NativeTypeName("Coplt::FShaderLayout *")]
             FShaderLayout* Layout();
 
@@ -2866,6 +2919,15 @@ namespace Coplt.Graphics.Native
             [return: NativeTypeName("Coplt::FShaderModule *")]
             FShaderModule* Task();
         }
+    }
+
+    public unsafe partial struct FShaderCreateResult
+    {
+        [NativeTypeName("Coplt::FShader *")]
+        public FShader* Shader;
+
+        [NativeTypeName("Coplt::FShaderData *")]
+        public FShaderData* Data;
     }
 
     public unsafe partial struct FShaderBindingCreateOptions
@@ -2950,60 +3012,6 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u64")]
         public ulong size;
-    }
-
-    [Guid("FA9C7561-AB0B-4311-BB4C-C6BEF93F86FE")]
-    [NativeTypeName("struct FFrameContext2 : Coplt::FGpuObject")]
-    public unsafe partial struct FFrameContext2 : FFrameContext2.Interface, INativeGuid
-    {
-        static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_FFrameContext2));
-
-        public void** lpVtbl;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            ((delegate* unmanaged[Thiscall]<FFrameContext2*, void>)(lpVtbl[0]))((FFrameContext2*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("size_t")]
-        public nuint Release()
-        {
-            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, nuint>)(lpVtbl[1]))((FFrameContext2*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("size_t")]
-        public nuint AddRef()
-        {
-            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, nuint>)(lpVtbl[2]))((FFrameContext2*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void* QueryInterface([NativeTypeName("const Guid &")] Guid* id)
-        {
-            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, Guid*, void*>)(lpVtbl[3]))((FFrameContext2*)Unsafe.AsPointer(ref this), id);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::u64")]
-        public ulong ObjectId()
-        {
-            return ((delegate* unmanaged[Thiscall]<FFrameContext2*, ulong>)(lpVtbl[4]))((FFrameContext2*)Unsafe.AsPointer(ref this));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NativeTypeName("Coplt::FResult")]
-        public FResult SetName([NativeTypeName("const FStr8or16 &")] FStr8or16* name)
-        {
-            FResult result;
-            return *((delegate* unmanaged[Thiscall]<FFrameContext2*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FFrameContext2*)Unsafe.AsPointer(ref this), &result, name);
-        }
-
-        public interface Interface : FGpuObject.Interface
-        {
-        }
     }
 
     [Guid("15B4821D-0648-4B78-9C21-C6A5B6A5ED75")]
@@ -5627,8 +5635,6 @@ namespace Coplt.Graphics.Native
         public static readonly Guid IID_FShader = new Guid(0xDE1352D5, 0x023D, 0x42B0, 0xBE, 0xAC, 0x12, 0x2B, 0x3B, 0x29, 0x6C, 0x9C);
 
         public static readonly Guid IID_FShaderBinding = new Guid(0xA3CA644A, 0x0E02, 0x4D25, 0x9A, 0x18, 0x88, 0x35, 0xD6, 0x66, 0x00, 0xF7);
-
-        public static readonly Guid IID_FFrameContext2 = new Guid(0xFA9C7561, 0xAB0B, 0x4311, 0xBB, 0x4C, 0xC6, 0xBE, 0xF9, 0x3F, 0x86, 0xFE);
 
         public static readonly Guid IID_FRecordContext = new Guid(0x15B4821D, 0x0648, 0x4B78, 0x9C, 0x21, 0xC6, 0xA5, 0xB6, 0xA5, 0xED, 0x75);
 

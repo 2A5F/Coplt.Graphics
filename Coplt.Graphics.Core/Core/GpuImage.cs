@@ -144,6 +144,4 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
     public bool TrySrv() => Purpose.HasFlags(ResourcePurpose.ShaderResource);
 
     #endregion
-
-    public GpuIsolate Isolate => throw new NotImplementedException();
 }

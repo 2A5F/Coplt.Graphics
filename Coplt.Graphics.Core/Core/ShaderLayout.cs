@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Coplt.Dropping;
 using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
@@ -105,13 +104,10 @@ public enum ShaderLayoutFlags : byte
     StreamOutput = 1 << 2,
 }
 
-[Dropping(Unmanaged = true)]
-public sealed unsafe partial class ShaderLayout
+public sealed unsafe class ShaderLayout : DeviceChild
 {
     #region Fields
 
-    internal FShaderLayout* m_ptr;
-    internal string? m_name;
     internal readonly FRoSlice<FShaderLayoutItemDefine> m_native_defines;
     internal readonly FRoSlice<FShaderLayoutItemInfo> m_native_item_infos;
     internal readonly FRoSlice<FShaderLayoutGroupClass> m_native_group_classes;
@@ -120,7 +116,7 @@ public sealed unsafe partial class ShaderLayout
 
     #region Props
 
-    public FShaderLayout* Ptr => m_ptr;
+    public new FShaderLayout* Ptr => (FShaderLayout*)m_ptr;
     public ReadOnlySpan<FShaderLayoutItemDefine> NativeDefines => m_native_defines.Span;
     public ReadOnlySpan<FShaderLayoutItemInfo> NativeItemInfos => m_native_item_infos.Span;
     public ReadOnlySpan<FShaderLayoutGroupClass> NativeGroupClasses => m_native_group_classes.Span;
@@ -129,73 +125,27 @@ public sealed unsafe partial class ShaderLayout
 
     #region Ctor
 
-    internal ShaderLayout(FShaderLayout* ptr, string? name)
+    internal ShaderLayout(FShaderLayout* ptr, string? name, GpuDevice device) : base((FGpuObject*)ptr, name, device)
     {
-        m_ptr = ptr;
-        m_name = name;
-        if (m_ptr != null)
+        if (ptr != null)
         {
             {
                 uint count = 0;
-                var defines = m_ptr->GetItemDefines(&count);
+                var defines = ptr->GetItemDefines(&count);
                 m_native_defines = new(defines, count);
             }
             {
                 uint count = 0;
-                var defines = m_ptr->GetItemInfos(&count);
+                var defines = ptr->GetItemInfos(&count);
                 m_native_item_infos = new(defines, count);
             }
             {
                 uint count = 0;
-                var defines = m_ptr->GetGroupClasses(&count);
+                var defines = ptr->GetGroupClasses(&count);
                 m_native_group_classes = new(defines, count);
             }
         }
     }
-
-    #endregion
-
-    #region Drop
-
-    [Drop]
-    private void Drop()
-    {
-        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
-        ptr->Release();
-    }
-
-    #endregion
-
-    #region SetName
-
-    public void SetName(string name)
-    {
-        m_name = name;
-        fixed (char* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    public void SetName(ReadOnlySpan<byte> name)
-    {
-        m_name = null;
-        fixed (byte* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    #endregion
-
-    #region ToString
-
-    public override string ToString() =>
-        m_name is null
-            ? $"{nameof(ShaderLayout)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(ShaderLayout)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

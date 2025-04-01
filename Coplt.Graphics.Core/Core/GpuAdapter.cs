@@ -77,9 +77,9 @@ public sealed unsafe partial class GpuAdapter
             {
                 Name = new(Name, Name8, p_name, p_name8),
             };
-            FGpuDevice* ptr;
-            m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-            return new(ptr, Instance, this, Name);
+            FGpuDeviceCreateResult result;
+            m_ptr->CreateDevice(&f_options, &result).TryThrow();
+            return new(result, Instance, this, Name);
         }
     }
 

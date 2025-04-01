@@ -1,15 +1,12 @@
-﻿using Coplt.Dropping;
-using Coplt.Graphics.Native;
+﻿using Coplt.Graphics.Native;
 using Coplt.Graphics.States;
 
 namespace Coplt.Graphics.Core;
 
-[Dropping(Unmanaged = true)]
-public sealed unsafe partial class GraphicsShaderPipeline : ShaderPipeline
+public sealed unsafe class GraphicsShaderPipeline : ShaderPipeline
 {
     #region Fields
 
-    internal new FGraphicsShaderPipeline* m_ptr;
     internal readonly MeshLayout? m_mesh_layout;
     internal readonly GraphicsPipelineState m_pipeline_state;
 
@@ -17,7 +14,7 @@ public sealed unsafe partial class GraphicsShaderPipeline : ShaderPipeline
 
     #region Props
 
-    public new FGraphicsShaderPipeline* Ptr => m_ptr;
+    public new FGraphicsShaderPipeline* Ptr => (FGraphicsShaderPipeline*)m_ptr;
     public MeshLayout? MeshLayout => m_mesh_layout;
     public ref readonly GraphicsPipelineState PipelineState => ref m_pipeline_state;
 
@@ -28,28 +25,11 @@ public sealed unsafe partial class GraphicsShaderPipeline : ShaderPipeline
     internal GraphicsShaderPipeline(
         FGraphicsShaderPipeline* ptr, string? name,
         Shader shader, GraphicsPipelineState pipeline_state, MeshLayout? mesh_layout
-    ) : base(ptr == null ? null : (FShaderPipeline*)ptr, name, shader)
+    ) : base((FShaderPipeline*)ptr, name, shader)
     {
-        m_ptr = ptr;
         m_mesh_layout = mesh_layout;
         m_pipeline_state = pipeline_state;
     }
-
-    #endregion
-
-    #region Drop
-
-    [Drop]
-    private void Drop() => m_ptr = null;
-
-    #endregion
-
-    #region ToString
-
-    public override string ToString() =>
-        m_name is null
-            ? $"{nameof(GraphicsShaderPipeline)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(GraphicsShaderPipeline)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

@@ -337,9 +337,9 @@ public unsafe partial class GraphicsInstance
                     },
                 },
             };
-            FGpuDevice* ptr;
-            m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-            return new(ptr, this, null, Name);
+            FGpuDeviceCreateResult result;
+            m_ptr->CreateDevice(&f_options, &result).TryThrow();
+            return new(result, this, null, Name);
         }
     }
 
