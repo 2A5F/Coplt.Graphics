@@ -25,7 +25,6 @@ add_library(${target_name} STATIC
     Src/Allocator.cc
     Src/Allocator.h
     FFI/List.h
-    FFI/Command.h
     FFI/Resource.h
     FFI/Shader.h
     Src/Shader.h

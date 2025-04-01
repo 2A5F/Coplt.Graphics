@@ -5,9 +5,12 @@
 #include "Isolate.h"
 #include "../../Api/FFI/Record.h"
 #include "../../Api/Include/GpuObject.h"
+#include "../FFI/Pipeline.h"
+#include "../FFI/Layout.h"
 
 namespace Coplt
 {
+    struct FD3d12PipelineState;
     COPLT_INTERFACE_DEFINE(ID3d12GpuRecord, "57a9c7f9-1ec0-4d78-89b9-e547667c50b3", FGpuRecord)
     {
         virtual FGpuRecordData* Data() noexcept = 0;

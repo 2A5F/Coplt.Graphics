@@ -314,9 +314,6 @@ public unsafe partial class GraphicsInstance
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
-        var QueueName = !DebugEnabled || Name is null ? null : $"{Name} Main Queue";
-        var QueueName8 = !DebugEnabled || Name8.Length == 0 ? Name8 : Utils.JoinUtf8String(Name8, " Main Queue"u8);
-
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
         {
@@ -342,7 +339,7 @@ public unsafe partial class GraphicsInstance
             };
             FGpuDevice* ptr;
             m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-            return new(ptr, this, null, Name, QueueName: QueueName, QueueName8: QueueName8);
+            return new(ptr, this, null, Name);
         }
     }
 

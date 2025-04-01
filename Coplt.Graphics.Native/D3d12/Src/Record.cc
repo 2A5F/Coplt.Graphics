@@ -2,10 +2,13 @@
 
 #include <pix3.h>
 
-#include "Output.h"
 #include "../FFI/Pipeline.h"
 #include "../Include/GraphicsFormat.h"
 #include "../Include/PipelineState.h"
+#include "../Include/States.h"
+#include "Output.h"
+#include "Image.h"
+#include "Buffer.h"
 
 using namespace Coplt;
 

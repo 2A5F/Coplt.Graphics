@@ -17,8 +17,6 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     internal readonly GraphicsInstance m_instance;
     internal readonly GpuAdapter m_adapter;
-    [Drop]
-    internal readonly GpuQueue m_main_queue;
 
     #endregion
 
@@ -27,22 +25,16 @@ public sealed unsafe partial class GpuDevice : GpuObject
     public new FGpuDevice* Ptr => (FGpuDevice*)m_ptr;
     public GraphicsInstance Instance => m_instance;
     public GpuAdapter Adapter => m_adapter;
-    public GpuQueue MainQueue => m_main_queue;
-    public CommandList MainCommandList => MainQueue.CommandList;
 
     #endregion
 
     #region Ctor
 
-    internal GpuDevice(
-        FGpuDevice* ptr, GraphicsInstance instance, GpuAdapter? adapter,
-        string? name, string? QueueName = null, ReadOnlySpan<byte> QueueName8 = default
-    ) : base((FGpuObject*)ptr, name)
+    internal GpuDevice(FGpuDevice* ptr, GraphicsInstance instance, GpuAdapter? adapter, string? name) : base((FGpuObject*)ptr, name)
     {
         m_instance = instance;
         m_name = name;
         m_adapter = adapter ?? m_instance.m_ptr_to_adapters[(nuint)Ptr->GetAdapter()];
-        m_main_queue = CreateMainQueue(Name: QueueName, Name8: QueueName8);
     }
 
     #endregion
@@ -68,25 +60,6 @@ public sealed unsafe partial class GpuDevice : GpuObject
         FMainQueueCreateResult f_result;
         Ptr->CreateIsolate(&f_options, &f_result).TryThrow();
         return new GpuIsolate(f_result.Isolate, null, this, f_result.Data);
-    }
-
-    #endregion
-
-    #region CreateMainQueue
-
-    public GpuQueue CreateMainQueue(string? Name = null, ReadOnlySpan<byte> Name8 = default)
-    {
-        fixed (char* p_name = Name)
-        fixed (byte* p_name8 = Name8)
-        {
-            FMainQueueCreateOptions f_options = new()
-            {
-                Name = new(Name, Name8, p_name, p_name8),
-            };
-            FGpuQueue* ptr;
-            Ptr->CreateMainQueue(&f_options, &ptr).TryThrow();
-            return new(ptr, Name, this);
-        }
     }
 
     #endregion
@@ -262,15 +235,6 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
-    #region CreateShaderBinding
-
-    public ShaderBinding CreateShaderBinding(
-        ShaderLayout Layout,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainQueue.CreateShaderBinding(Layout, Name, Name8);
-
-    #endregion
-
     #region CreateMeshLayout
 
     public MeshLayout CreateMeshLayout(
@@ -328,23 +292,23 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
-    #region CreateBuffer
-
-    public GpuBuffer CreateBuffer(
-        in GpuBufferCreateOptions options,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainQueue.CreateBuffer(in options, Name, Name8);
-
-    #endregion
-
-    #region CreateImage
-
-    public GpuImage CreateImage(
-        in GpuImageCreateOptions options,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainQueue.CreateImage(in options, Name, Name8);
-
-    #endregion
+    // #region CreateBuffer
+    //
+    // public GpuBuffer CreateBuffer(
+    //     in GpuBufferCreateOptions options,
+    //     string? Name = null, ReadOnlySpan<byte> Name8 = default
+    // ) => MainQueue.CreateBuffer(in options, Name, Name8);
+    //
+    // #endregion
+    //
+    // #region CreateImage
+    //
+    // public GpuImage CreateImage(
+    //     in GpuImageCreateOptions options,
+    //     string? Name = null, ReadOnlySpan<byte> Name8 = default
+    // ) => MainQueue.CreateImage(in options, Name, Name8);
+    //
+    // #endregion
 
     #region CreateSampler
 

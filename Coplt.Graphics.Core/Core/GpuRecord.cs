@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Coplt.Graphics.Native;
 using Coplt.Graphics.Utilities;
+using Coplt.Union;
 
 namespace Coplt.Graphics.Core;
 
@@ -799,7 +800,7 @@ public unsafe struct RenderScope2(
 
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(RenderScope));
+        if (m_disposed) throw new ObjectDisposedException(nameof(RenderScope2));
         m_disposed = true;
         if (self.m_debug_scope_count > debug_scope_count)
             throw new InvalidOperationException(
@@ -1183,6 +1184,110 @@ public unsafe struct ComputeScope2(
     }
 
     #endregion
+}
+
+#endregion
+
+#region RenderInfo
+
+[Union]
+public partial struct LoadOp
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Load();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly LoadOp Load = MakeLoad();
+    public static LoadOp<T> Clear<T>(T Clear) => LoadOp<T>.MakeClear(Clear);
+    public static readonly LoadOp Discard = MakeDiscard();
+    public static readonly LoadOp NoAccess = MakeNoAccess();
+}
+
+[Union]
+public partial struct LoadOp<T>
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Load();
+        T Clear();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly LoadOp<T> Load = MakeLoad();
+    public static implicit operator LoadOp<T>(T Clear) => MakeClear(Clear);
+    public static readonly LoadOp<T> Discard = MakeDiscard();
+    public static readonly LoadOp<T> NoAccess = MakeNoAccess();
+
+    public static implicit operator LoadOp<T>(LoadOp op) => op.Tag switch
+    {
+        LoadOp.Tags.Load     => Load,
+        LoadOp.Tags.Discard  => Discard,
+        LoadOp.Tags.NoAccess => NoAccess,
+        _                    => throw new ArgumentOutOfRangeException()
+    };
+}
+
+[Union]
+public partial struct StoreOp
+{
+    [UnionTemplate]
+    private interface Template
+    {
+        void Store();
+        void Discard();
+        void NoAccess();
+    }
+
+    public static readonly StoreOp Store = MakeStore();
+    public static readonly StoreOp Discard = MakeDiscard();
+    public static readonly StoreOp NoAccess = MakeNoAccess();
+}
+
+public ref struct RenderInfo(ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.DsvInfo? Dsv = null)
+{
+    public DsvInfo? Dsv = Dsv;
+    public ReadOnlySpan<RtvInfo> Rtvs = Rtvs;
+
+    public RenderInfo() : this([]) { }
+    public RenderInfo(DsvInfo Dsv, ReadOnlySpan<RtvInfo> Rtvs = default) : this(Rtvs, Dsv) { }
+
+    public struct DsvInfo(
+        IDsv View,
+        LoadOp<float> DepthLoad,
+        LoadOp<uint> StencilLoad,
+        StoreOp DepthStore,
+        StoreOp StencilStore
+    )
+    {
+        public IDsv View = View;
+        public LoadOp<float> DepthLoad = DepthLoad;
+        public LoadOp<uint> StencilLoad = StencilLoad;
+        public StoreOp DepthStore = DepthStore;
+        public StoreOp StencilStore = StencilStore;
+
+        public DsvInfo(IDsv View) : this(View, LoadOp.Load, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
+        public DsvInfo(IDsv View, LoadOp<float> DepthLoad, LoadOp<uint> StencilLoad)
+            : this(View, DepthLoad, StencilLoad, StoreOp.Store, StoreOp.Store) { }
+        public DsvInfo(IDsv View, LoadOp<float> DepthLoad)
+            : this(View, DepthLoad, LoadOp.Load, StoreOp.Store, StoreOp.Store) { }
+    }
+
+    public struct RtvInfo(IRtv View, LoadOp<Color> Load, StoreOp Store)
+    {
+        public IRtv View = View;
+        public LoadOp<Color> Load = Load;
+        public StoreOp Store = Store;
+
+        public RtvInfo(IRtv View) : this(View, LoadOp.Load, StoreOp.Store) { }
+
+        public RtvInfo(IRtv View, LoadOp<Color> Load) : this(View, Load, StoreOp.Store) { }
+    }
 }
 
 #endregion

@@ -2,7 +2,6 @@
 
 #include <directx/dxgiformat.h>
 
-#include "../../Api/FFI/Command.h"
 #include "../../Api/FFI/GraphicsFormat.h"
 
 namespace Coplt

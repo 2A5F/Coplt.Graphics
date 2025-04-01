@@ -10,21 +10,15 @@ public abstract unsafe partial class GpuResource : GpuViewable
     #region Props
 
     public new FGpuResource* Ptr => (FGpuResource*)m_ptr;
-    public new FGpuResourceData* Data => (FGpuResourceData*)m_data;
-    public ResState State
-    {
-        get => NativeState.FromFFI();
-        set => NativeState = value.ToFFI();
-    }
-    public ref FResState NativeState => ref Data->m_state;
-    public CpuAccess CpuAccess => (CpuAccess)Data->m_cpu_access;
+    internal new ref readonly FGpuResourceData Data => ref *(FGpuResourceData*)m_data;
+    public CpuAccess CpuAccess => (CpuAccess)Data.m_cpu_access;
 
     #endregion
 
     #region Ctor
 
-    internal GpuResource(FGpuResource* ptr, FGpuResourceData* data, string? name, GpuQueue queue)
-        : base((FGpuViewable*)ptr, (FGpuViewableData*)data, name, queue) { }
+    internal GpuResource(FGpuResource* ptr, FGpuResourceData* data, string? name, GpuIsolate isolate)
+        : base((FGpuViewable*)ptr, (FGpuViewableData*)data, name, isolate) { }
 
     #endregion
 

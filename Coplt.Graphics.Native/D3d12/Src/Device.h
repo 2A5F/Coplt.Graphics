@@ -46,7 +46,6 @@ namespace Coplt
         const Rc<D3d12ShaderLayout>& GetEmptyLayout(FShaderLayoutFlags flags);
         const Rc<D3d12MeshLayout>& GetEmptyMeshLayout();
 
-        FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept override;
         FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept override;
 
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept override;

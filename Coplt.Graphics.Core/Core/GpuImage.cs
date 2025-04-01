@@ -106,19 +106,14 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
     uint IGpuView.Stride => 0;
     GpuResourceType IGpuResource.Type => GpuResourceType.Image;
     IGpuResource IGpuView.Resource => this;
-    FResourceMeta IGpuResource.GetMeta() => new()
-    {
-        Type = FResourceRefType.Image,
-        Image = Ptr,
-    };
 
     #endregion
 
     #region Ctor
 
-    internal GpuImage(FGpuImage* ptr, string? name, GpuQueue queue) : this(ptr, ptr->GpuImageData(), name, queue) { }
-    private GpuImage(FGpuImage* ptr, FGpuImageData* data, string? name, GpuQueue queue)
-        : base((FGpuResource*)ptr, (FGpuResourceData*)data, name, queue) { }
+    internal GpuImage(FGpuImage* ptr, string? name, GpuIsolate isolate) : this(ptr, ptr->GpuImageData(), name, isolate) { }
+    private GpuImage(FGpuImage* ptr, FGpuImageData* data, string? name, GpuIsolate isolate)
+        : base((FGpuResource*)ptr, (FGpuResourceData*)data, name, isolate) { }
 
     #endregion
 

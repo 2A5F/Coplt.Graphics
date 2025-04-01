@@ -77,7 +77,6 @@ namespace Coplt
         // d3d12 返回 ID3D12Device*
         virtual void* GetRawDevice() noexcept = 0;
 
-        virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
         virtual FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept = 0;
 
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;

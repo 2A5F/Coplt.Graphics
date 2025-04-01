@@ -1,10 +1,7 @@
 #pragma once
 
 #include "Executor.h"
-#include "GpuObject.h"
-#include "States.h"
 #include "GraphicsFormat.h"
-#include "Resource.h"
 
 namespace Coplt
 {
@@ -27,46 +24,6 @@ namespace Coplt
         None,
         UNorm10,
         Float16,
-    };
-
-    struct FGpuOutputFromSwapChainCreateOptions
-    {
-        b8 VSync{};
-    };
-
-    struct FGpuOutputCreateOptions
-    {
-        FStr8or16 Name{};
-        u32 Width{};
-        u32 Height{};
-        // 是否使用 srgb，实现可以选择忽略
-        b8 Srgb{};
-        // 是否使用 hdr，实现可以选择忽略
-        FHdrType Hdr{};
-        // 呈现模式，实现可以选择忽略
-        FPresentMode PresentMode{};
-        FOutputAlphaMode AlphaMode{};
-        b8 VSync{};
-    };
-
-    using WhenDoneFn = void COPLT_CDECL(void* obj);
-
-    struct FCommandSubmit;
-
-    COPLT_INTERFACE_DEFINE(FGpuOutput, "f1c59cb4-7ee6-4ee2-80f4-07cc568920d2", FGpuExecutor)
-    {
-        FResState m_state{};
-        // 外部不允许修改
-        FGraphicsFormat m_format{};
-        // 外部不允许修改
-        u32 m_width{};
-        // 外部不允许修改
-        u32 m_height{};
-
-        // 设置垂直同步，实现可以选择忽略
-        virtual FResult SetVSync(b8 Enable) noexcept = 0;
-
-        virtual FResult Resize(u32 Width, u32 Height) noexcept = 0;
     };
 
     struct FGpuOutputData

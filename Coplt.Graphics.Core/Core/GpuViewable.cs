@@ -5,35 +5,27 @@ using Coplt.Graphics.Native;
 namespace Coplt.Graphics.Core;
 
 [Dropping(Unmanaged = true)]
-public abstract unsafe partial class GpuViewable : IQueueOwned
+public abstract unsafe partial class GpuViewable : IsolateChild
 {
     #region Fields
 
-    internal FGpuViewable* m_ptr;
-    internal readonly FGpuViewableData* m_data;
-    internal string? m_name;
-    internal readonly GpuQueue m_queue;
+    internal FGpuViewableData* m_data;
 
     #endregion
 
     #region Props
 
-    public FGpuViewable* Ptr => m_ptr;
-    public FGpuViewableData* Data => m_data;
-    public GpuDevice Device => m_queue.m_device;
-    public GpuQueue Queue => m_queue;
-    public ResourcePurpose Purpose => (ResourcePurpose)Data->m_purpose;
+    public new FGpuViewable* Ptr => (FGpuViewable*)m_ptr;
+    internal ref readonly FGpuViewableData Data => ref *m_data;
+    public ResourcePurpose Purpose => (ResourcePurpose)Data.m_purpose;
 
     #endregion
 
     #region Ctor
 
-    internal GpuViewable(FGpuViewable* ptr, FGpuViewableData* data, string? name, GpuQueue queue)
+    internal GpuViewable(FGpuViewable* ptr, FGpuViewableData* data, string? name, GpuIsolate isolate) : base((FGpuObject*)ptr, name, isolate)
     {
-        m_ptr = ptr;
         m_data = data;
-        m_name = name;
-        m_queue = queue;
     }
 
     #endregion
@@ -43,42 +35,8 @@ public abstract unsafe partial class GpuViewable : IQueueOwned
     [Drop]
     private void Drop()
     {
-        if (ExchangeUtils.ExchangePtr(ref m_ptr, null, out var ptr) is null) return;
-        ptr->Release();
+        m_data = null;
     }
-
-    #endregion
-
-    #region SetName
-
-    public void SetName(string name)
-    {
-        m_name = name;
-        fixed (char* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    public void SetName(ReadOnlySpan<byte> name)
-    {
-        m_name = null;
-        fixed (byte* ptr = name)
-        {
-            FStr8or16 str = new(ptr, name.Length);
-            m_ptr->SetName(&str).TryThrow();
-        }
-    }
-
-    #endregion
-
-    #region ToString
-
-    public override string ToString() =>
-        m_name is null
-            ? $"{nameof(GpuViewable)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(GpuViewable)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
 
     #endregion
 }

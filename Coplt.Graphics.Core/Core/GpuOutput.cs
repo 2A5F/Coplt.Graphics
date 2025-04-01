@@ -51,96 +51,6 @@ public record struct GpuOutputOptions()
 #endregion
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class GpuOutput : GpuExecutor, IGpuResource, IRtv, ISrv
-{
-    #region Fields
-
-    internal new FGpuOutput* m_ptr;
-
-    #endregion
-
-    #region Props
-
-    public new FGpuOutput* Ptr => m_ptr;
-    public GraphicsFormat Format => m_ptr->m_format.FromFFI();
-    public ResState State
-    {
-        get => NativeState.FromFFI();
-        set => NativeState = value.ToFFI();
-    }
-    public ref FResState NativeState => ref m_ptr->m_state;
-    public USize2d Size2d => new(m_ptr->m_width, m_ptr->m_height);
-    public USize3d Size3d => new(m_ptr->m_width, m_ptr->m_height, 1);
-    ulong IGpuView.Size => m_ptr->m_width;
-    public uint Width => m_ptr->m_width;
-    public uint Height => m_ptr->m_height;
-    public uint DepthOrLength => 1;
-    public uint MipLevels => 1;
-    public uint Planes => 1;
-    uint IGpuView.Count => 0;
-    uint IGpuView.Stride => 0;
-    GpuResourceType IGpuResource.Type => GpuResourceType.Image;
-    IGpuResource IGpuView.Resource => this;
-    FResourceMeta IGpuResource.GetMeta() => new()
-    {
-        Type = FResourceRefType.Output,
-        Output = m_ptr,
-    };
-    public FCmdRes IntoCmd() => throw new NotImplementedException();
-
-    #endregion
-
-    #region Ctor
-
-    internal GpuOutput(FGpuOutput* ptr, string? name, GpuQueue queue) : base((FGpuExecutor*)ptr, name, queue)
-    {
-        m_ptr = ptr;
-    }
-
-    #endregion
-
-    #region Drop
-
-    [Drop]
-    private void Drop()
-    {
-        m_ptr = null;
-    }
-
-    #endregion
-
-    #region ToString
-
-    public override string ToString() =>
-        m_name is null
-            ? $"{nameof(GpuOutput)}(0x{(nuint)m_ptr:X})"
-            : $"{nameof(GpuOutput)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
-
-    #endregion
-
-    #region Present
-
-    public void Present(bool NoWait = false) => Queue.Submit(this, NoWait);
-
-    #endregion
-
-    #region Views
-
-    public bool TrySrv() => true;
-    public bool TryRtv() => true;
-
-    #endregion
-
-    #region Resize
-
-    public void Resize(uint width, uint height) => m_ptr->Resize(width, height).TryThrow();
-
-    #endregion
-
-    public GpuIsolate Isolate => throw new NotImplementedException();
-}
-
-[Dropping(Unmanaged = true)]
 public abstract unsafe partial class GpuOutput2 : IsolateChild, IGpuResource, IRtv, ISrv
 {
     #region Fields
@@ -213,15 +123,6 @@ public abstract unsafe partial class GpuOutput2 : IsolateChild, IGpuResource, IR
     public void Wait() => Ptr->Wait().TryThrow();
 
     #endregion
-
-    public FResourceMeta GetMeta() => throw new NotSupportedException();
-    public ResState State
-    {
-        get => throw new NotSupportedException();
-        set => throw new NotSupportedException();
-    }
-    public ref FResState NativeState => throw new NotSupportedException();
-    public GpuQueue Queue => throw new NotSupportedException();
 }
 
 public record struct GpuSwapChainCreateOptions()

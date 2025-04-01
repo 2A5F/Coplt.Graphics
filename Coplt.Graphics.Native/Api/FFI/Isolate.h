@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuObject.h"
+#include "Output.h"
 #include "Queue.h"
 
 namespace Coplt

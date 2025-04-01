@@ -146,14 +146,6 @@ const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
     return m_empty_mesh_layout;
 }
 
-FResult D3d12GpuDevice::CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept
-{
-    return feb([&]
-    {
-        *out = new D3d12GpuQueue(this->CloneThis(), options);
-    });
-}
-
 FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, FMainQueueCreateResult& out) noexcept
 {
     return feb([&]
