@@ -234,9 +234,9 @@ void D3d12GpuRecord::Analyze()
         case FCmdType::Draw:
             if (Mode != FGpuRecordMode::Direct)
                 COPLT_THROW_FMT("[{}] Can only Draw on the direct mode", i);
+            break;
         case FCmdType::Dispatch:
-            if (Mode != FGpuRecordMode::Direct && Mode != FGpuRecordMode::Compute)
-                COPLT_THROW_FMT("[{}] Can only Dispatch on the direct or compute mode", i);
+            Analyze_Dispatch(i, command.Dispatch);
             break;
         }
     }
@@ -349,6 +349,21 @@ void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd
     m_barrier_analyzer->OnCmd();
 }
 
+void D3d12GpuRecord::Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const
+{
+    switch (cmd.Type)
+    {
+    case FDispatchType::Compute:
+        if (m_state != RecordState::Compute)
+            COPLT_THROW_FMT("[{}] Can only use Dispatch (Compute) in compute scope", i);
+        break;
+    case FDispatchType::Mesh:
+        if (m_state != RecordState::Render)
+            COPLT_THROW_FMT("[{}] Can only use Dispatch (Mesh) in render scope", i);
+        break;
+    }
+}
+
 void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count)
 {
     const auto commands = Commands.AsSpan();
@@ -405,7 +420,8 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u
             Interpret_Draw(list, i, command.Draw);
             break;
         case FCmdType::Dispatch:
-            COPLT_THROW("TODO");
+            Interpret_Dispatch(list, i, command.Dispatch);
+            break;
         }
     }
 }
@@ -665,7 +681,7 @@ void D3d12GpuRecord::Interpret_SetMeshBuffers(const CmdList& list, u32 i, const 
 void D3d12GpuRecord::Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const
 {
     if (m_state != RecordState::Render)
-        COPLT_THROW_FMT("[{}] Can only use _Draw in render scope", i);
+        COPLT_THROW_FMT("[{}] Can only use Draw in render scope", i);
     if (cmd.Indexed)
     {
         list->g0->DrawIndexedInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.VertexOffset, cmd.FirstInstance);
@@ -673,6 +689,25 @@ void D3d12GpuRecord::Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& 
     else
     {
         list->g0->DrawInstanced(cmd.VertexOrIndexCount, cmd.InstanceCount, cmd.FirstVertexOrIndex, cmd.FirstInstance);
+    }
+}
+
+void D3d12GpuRecord::Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDispatch& cmd) const
+{
+    switch (cmd.Type)
+    {
+    case FDispatchType::Compute:
+        if (m_state != RecordState::Compute)
+            COPLT_THROW_FMT("[{}] Can only use Dispatch (Compute) in compute scope", i);
+        list->g0->Dispatch(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
+        break;
+    case FDispatchType::Mesh:
+        if (m_state != RecordState::Render)
+            COPLT_THROW_FMT("[{}] Can only use Dispatch (Mesh) in render scope", i);
+        if (!list->g6)
+            COPLT_THROW_FMT("[{}] The device does not support mesh shaders", i);
+        list->g6->DispatchMesh(cmd.GroupCountX, cmd.GroupCountY, cmd.GroupCountZ);
+        break;
     }
 }
 

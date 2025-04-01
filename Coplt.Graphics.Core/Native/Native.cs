@@ -149,6 +149,13 @@ namespace Coplt.Graphics.Native
         public uint Index;
     }
 
+    [NativeTypeName("Coplt::u8")]
+    public enum FDispatchType : byte
+    {
+        Compute,
+        Mesh,
+    }
+
     public unsafe partial struct FObject : FObject.Interface
     {
         public void** lpVtbl;
@@ -2187,9 +2194,27 @@ namespace Coplt.Graphics.Native
         public B8 Indexed;
     }
 
+    [NativeTypeName("struct FCmdDispatch : Coplt::FCmdBase")]
+    public partial struct FCmdDispatch
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountX;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountY;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupCountZ;
+
+        [NativeTypeName("Coplt::FDispatchType")]
+        public FDispatchType Type;
+    }
+
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L351_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L361_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2343,6 +2368,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCmdDispatch Dispatch
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.Dispatch;
+            }
+        }
+
+        [UnscopedRef]
         public Span<byte> _pad
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2414,6 +2449,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdDraw")]
             public FCmdDraw Draw;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdDispatch")]
+            public FCmdDispatch Dispatch;
 
             [FieldOffset(0)]
             [NativeTypeName("u8[32]")]
@@ -5350,13 +5389,6 @@ namespace Coplt.Graphics.Native
         public uint VertexBuffersIndex;
     }
 
-    [NativeTypeName("Coplt::u8")]
-    public enum FDispatchType : byte
-    {
-        Compute,
-        Mesh,
-    }
-
     public partial struct FCommandBase
     {
         [NativeTypeName("Coplt::FCommandType")]
@@ -5693,7 +5725,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L452_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L446_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5919,7 +5951,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FRenderCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L483_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L477_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -6103,7 +6135,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FComputeCommandItem
     {
-        [NativeTypeName("__AnonymousRecord_Command_L508_C9")]
+        [NativeTypeName("__AnonymousRecord_Command_L502_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

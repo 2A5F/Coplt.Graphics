@@ -245,12 +245,6 @@ namespace Coplt
         u32 VertexBuffersIndex{};
     };
 
-    enum class FDispatchType : u8
-    {
-        Compute,
-        Mesh,
-    };
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCommandBase

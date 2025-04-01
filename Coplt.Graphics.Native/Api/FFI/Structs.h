@@ -86,4 +86,10 @@ namespace Coplt
     {
         u32 Index{};
     };
+
+    enum class FDispatchType : u8
+    {
+        Compute,
+        Mesh,
+    };
 }

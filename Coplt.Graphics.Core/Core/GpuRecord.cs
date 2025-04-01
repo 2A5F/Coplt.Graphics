@@ -726,6 +726,7 @@ public unsafe struct RenderScope2(
 {
     #region Fields
 
+    internal ShaderPipeline? m_current_pipeline;
     internal bool m_disposed;
     internal bool m_has_pixel_shader;
     internal bool m_has_vertex_shader;
@@ -786,9 +787,11 @@ public unsafe struct RenderScope2(
 
     public void SetPipeline(ShaderPipeline Pipeline)
     {
+        if (m_current_pipeline == Pipeline) return;
         if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Pixel))
             throw new ArgumentException("Only shaders with a pixel stage can be used for rendering");
-        // if (!m_context.SetPipeline(self, Pipeline)) return;
+        m_current_pipeline = Pipeline;
+        self.AddObject(m_current_pipeline);
         var cmd = new FCmdSetPipeline
         {
             Base = { Type = FCmdType.SetPipeline },
@@ -940,9 +943,9 @@ public unsafe struct RenderScope2(
         }
         else
         {
-            // if (m_context.CurrentPipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            // if (!m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
-            //     throw new ArgumentException("Only shaders with a vertex stage can use Draw");
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+                throw new ArgumentException("Only shaders with a vertex stage can use Draw");
         }
         // if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDraw
@@ -962,48 +965,48 @@ public unsafe struct RenderScope2(
 
     #endregion
 
-    // #region DispatchMesh
-    //
-    // public void DispatchMesh(
-    //     uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-    //     ShaderBinding? Binding = null
-    // ) => DispatchMesh(null, GroupCountX, GroupCountY, GroupCountZ, Binding);
-    //
-    // public void DispatchMesh(
-    //     ShaderPipeline? Pipeline,
-    //     uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
-    //     ShaderBinding? Binding = null
-    // )
-    // {
-    //     if (Pipeline != null)
-    //     {
-    //         if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
-    //             throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
-    //         SetPipeline(Pipeline);
-    //     }
-    //     else
-    //     {
-    //         // if (m_context.CurrentPipeline == null) throw new InvalidOperationException("Pipeline is not set");
-    //         // if (!m_context.CurrentPipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
-    //         //     throw new ArgumentException("Only shaders with a mesh stage can use DispatchMesh");
-    //     }
-    //     // if (Binding != null) SetBinding(Binding);
-    //     // self.SyncBinding(ref m_context, this);
-    //     var cmd = new FCmdDispatch
-    //     {
-    //         Base = { Type = FCmdType.Dispatch },
-    //         GroupCountX = GroupCountX,
-    //         GroupCountY = GroupCountY,
-    //         GroupCountZ = GroupCountZ,
-    //         Type = FDispatchType.Mesh,
-    //     };
-    //     m_commands.Add(new() { Dispatch = cmd });
-    //     m_has_pixel_shader = true;
-    //     m_has_mesh_shader = true;
-    //     m_has_task_shader = m_context.CurrentPipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
-    // }
-    //
-    // #endregion
+    #region DispatchMesh
+
+    public void DispatchMesh(
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
+        ShaderBinding? Binding = null
+    ) => DispatchMesh(null, GroupCountX, GroupCountY, GroupCountZ, Binding);
+
+    public void DispatchMesh(
+        ShaderPipeline? Pipeline,
+        uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
+        ShaderBinding? Binding = null
+    )
+    {
+        if (Pipeline != null)
+        {
+            if (!Pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only Mesh shaders can use DispatchMesh");
+            SetPipeline(Pipeline);
+        }
+        else
+        {
+            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+                throw new ArgumentException("Only shaders with a mesh stage can use DispatchMesh");
+        }
+        // if (Binding != null) SetBinding(Binding);
+        // self.SyncBinding(ref m_context, this);
+        var cmd = new FCmdDispatch
+        {
+            Base = { Type = FCmdType.Dispatch },
+            GroupCountX = GroupCountX,
+            GroupCountY = GroupCountY,
+            GroupCountZ = GroupCountZ,
+            Type = FDispatchType.Mesh,
+        };
+        self.Data.Commands.Add(new() { Dispatch = cmd });
+        m_has_pixel_shader = true;
+        m_has_mesh_shader = true;
+        m_has_task_shader = m_current_pipeline!.Shader.Stages.HasFlags(ShaderStageFlags.Task);
+    }
+
+    #endregion
 }
 
 #endregion

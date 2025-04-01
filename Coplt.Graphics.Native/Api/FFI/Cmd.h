@@ -346,6 +346,16 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    struct FCmdDispatch : FCmdBase
+    {
+        u32 GroupCountX{};
+        u32 GroupCountY{};
+        u32 GroupCountZ{};
+        FDispatchType Type{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FCmdItem
     {
         union
@@ -372,6 +382,8 @@ namespace Coplt
             FCmdSetViewportScissor SetViewportScissor;
             FCmdSetMeshBuffers SetMeshBuffers;
             FCmdDraw Draw;
+
+            FCmdDispatch Dispatch;
 
             u8 _pad[32];
         };
