@@ -33,7 +33,7 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
             static_cast<size_t>(pipeline), i
         );
     }
-    Layout = pipeline->GetLayout()->QueryInterface<FD3d12ShaderLayout>();
+    Layout = pipeline->GetLayout()->QueryInterface<ID3d12BindingLayout>();
     if (!Layout)
         COPLT_THROW("Shader layout from different backends");
     const auto stages = pipeline->GetStages();
@@ -765,13 +765,13 @@ void D3d12GpuRecord::SetPipeline(const CmdList& list, NonNull<FShaderPipeline> p
     const auto stages = pipeline->GetStages();
     if (HasFlags(stages, FShaderStageFlags::Compute))
     {
-        list->g0->SetComputeRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
+        list->g0->SetComputeRootSignature(m_pipeline_context.Layout->RootSignature().Get());
     }
     else if (HasFlags(stages, FShaderStageFlags::Pixel))
     {
         const auto& states = m_pipeline_context.GPipeline->GetGraphicsState();
         list->g0->IASetPrimitiveTopology(ToDx(states->Topology));
-        list->g0->SetGraphicsRootSignature(static_cast<ID3D12RootSignature*>(m_pipeline_context.Layout->GetRootSignaturePtr()));
+        list->g0->SetGraphicsRootSignature(m_pipeline_context.Layout->RootSignature().Get());
     }
     list->g0->SetPipelineState(static_cast<ID3D12PipelineState*>(m_pipeline_context.Pipeline->GetPipelineStatePtr()));
 }

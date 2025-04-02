@@ -4,89 +4,168 @@
 
 #include "../../Api/Include/AllocObjectId.h"
 #include "../Include/ShaderVisibility.h"
+#include "../Include/Sampler.h"
 
 using namespace Coplt;
+using namespace Coplt::Layout;
 
-namespace
+D3D12_DESCRIPTOR_RANGE_TYPE Layout::ToTableType(const FShaderLayoutItemView view)
 {
-    struct TableKey
+    switch (view)
     {
-        FShaderStage Stage{};
-        FShaderLayoutGroupView View{};
-
-        TableKey() = default;
-
-        explicit TableKey(const FShaderStage Stage, const FShaderLayoutGroupView View) : Stage(Stage), View(View)
-        {
-        }
-
-        usize GetHashCode() const
-        {
-            return std::hash<u16>{}(static_cast<u16>(Stage) | (static_cast<u16>(View) << 8));
-        }
-
-        bool operator==(const TableKey& other) const
-        {
-            return Stage == other.Stage && View == other.View;
-        }
-    };
-
-    using TableMeta = ID3d12ShaderLayout::TableMeta;
-
-    struct TableGroupKey
-    {
-        FShaderLayoutGroupScope Scope{};
-        bool Sampler{};
-
-        TableGroupKey() = default;
-
-        explicit TableGroupKey(const FShaderLayoutGroupScope Scope, const bool Sampler) : Scope(Scope), Sampler(Sampler)
-        {
-        }
-
-        struct Hasher
-        {
-            size_t operator()(const TableGroupKey& value) const
-            {
-                return std::hash<u16>{}(static_cast<u16>(value.Scope) | (static_cast<u16>(value.Sampler) << 8));
-            }
-        };
-
-        struct Eq
-        {
-            bool operator()(const TableGroupKey& lhs, const TableGroupKey& rhs) const
-            {
-                return lhs.Scope == rhs.Scope && lhs.Sampler == rhs.Sampler;
-            }
-        };
-    };
-
-    struct TableDefine
-    {
-        u8 Index{};
-        u32 IndexInc{};
-        HashMap<TableKey, TableMeta> Map{};
-    };
+    case FShaderLayoutItemView::Cbv:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+    case FShaderLayoutItemView::Srv:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    case FShaderLayoutItemView::Uav:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    case FShaderLayoutItemView::Sampler:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    case FShaderLayoutItemView::Constants:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+    case FShaderLayoutItemView::StaticSampler:
+        return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    }
+    return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 }
 
-D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options)
-    : m_device(std::move(device))
+D3d12ShaderLayout::D3d12ShaderLayout(const FShaderLayoutCreateOptions& options)
 {
-    m_dx_device = m_device->m_device;
-
     Flags = options.Flags;
+    m_items = std::vector(options.Items, options.Items + options.NumItems);
+    Items = m_items.data();
+    NumItems = m_items.size();
+    for (u32 i = 0; i < m_items.size(); ++i)
+    {
+        const auto& item = m_items[i];
+        if (item.Count < 1)
+        {
+            COPLT_THROW_FMT(
+                "Invalid binding define {{ Id = {}, Scope = {}, Stage = {} }} at [{}]; Count must >= 1",
+                item.Id, item.Scope, static_cast<u32>(item.Stage), i
+            );
+        }
+        if (item.View == FShaderLayoutItemView::StaticSampler && item.Count > 1)
+        {
+            COPLT_THROW_FMT(
+                "Invalid binding define {{ Id = {}, Scope = {}, Stage = {} }} at [{}]; Count when StaticSampler must == 1",
+                item.Id, item.Scope, static_cast<u32>(item.Stage), i
+            );
+        }
+    }
+}
 
-    m_layout_item_defines = std::vector(options.Items, options.Items + options.Count);
-    m_item_infos = std::vector<FShaderLayoutItemInfo>(options.Count, {});
+FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
+{
+    return FResult::None();
+}
+
+FShaderLayoutData* D3d12ShaderLayout::ShaderLayoutData() noexcept
+{
+    return this;
+}
+
+D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& options)
+{
+    m_items = std::vector(options.Items, options.Items + options.NumItems);
+    m_static_samplers = std::vector(options.StaticSamplers, options.StaticSamplers + options.NumStaticSamplers);
+    Items = m_items.data();
+    StaticSamplers = m_static_samplers.data();
+    NumItems = m_items.size();
+    NumStaticSamplers = m_static_samplers.size();
+    Usage = options.Usage;
+}
+
+FResult D3d12BindGroupLayout::SetName(const FStr8or16& name) noexcept
+{
+    return FResult::None();
+}
+
+FBindGroupLayoutData* D3d12BindGroupLayout::BindGroupLayoutData() noexcept
+{
+    return this;
+}
+
+D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindingLayoutCreateOptions& options)
+    : m_device(device)
+{
+    m_shader_layout = Rc<FShaderLayout>::UnsafeClone(options.ShaderLayout);
+    m_groups.reserve(options.NumGroups);
+    for (u32 i = 0; i < options.NumGroups; i++)
+    {
+        m_groups.push_back(Rc<FBindGroupLayout>::UnsafeClone(options.Groups[i]));
+    }
+
+    const auto defines = m_shader_layout->GetItems();
+    for (u32 i = 0; i < defines.size(); ++i)
+    {
+        const auto& item = defines[i];
+        BindSlot slot(item);
+        const auto is_new = m_slot_to_info.TryAdd(slot, [&](auto& p)
+        {
+            p.put(m_slot_infos.size());
+            m_slot_infos.push_back(SlotInfo(i));
+        });
+        if (!is_new)
+        {
+            COPLT_THROW_FMT(
+                "Duplicate binding slot {{ Id = {}, Scope = {}, Stage = {} }} at [{}]",
+                slot.Id, slot.Scope, static_cast<u32>(slot.Stage), i
+            );
+        }
+    }
+    for (u32 g = 0; g < options.NumGroups; g++)
+    {
+        const auto& group = m_groups[g];
+        const auto items = group->GetItems();
+        for (u32 i = 0; i < items.size(); ++i)
+        {
+            for (const auto& item = items[i]; const auto stage : IterStage(item.Stages))
+            {
+                BindSlot slot(item, stage);
+                const auto info_index = m_slot_to_info.TryGet(slot);
+                if (!info_index) continue;
+                auto& info = m_slot_infos[*info_index];
+                if (info.Group != COPLT_U32_MAX)
+                {
+                    COPLT_THROW_FMT(
+                        "Duplicate binding slot {{ Id = {}, Scope = {}, Stage = {} }} at Group {} [{}]",
+                        slot.Id, slot.Scope, static_cast<u32>(slot.Stage), g, i
+                    );
+                }
+                const auto& def = defines[info.Index];
+                if (
+                    def.View != item.View || (item.View == FShaderLayoutItemView::StaticSampler ? false : def.Count != item.Count)
+                    || def.Type != item.Type || def.Format != item.Format
+                )
+                {
+                    COPLT_THROW_FMT(
+                        "Incompatible binding slot {{ Id = {}, Scope = {}, Stage = {} }} at Group {} [{}]",
+                        slot.Id, slot.Scope, static_cast<u32>(slot.Stage), g, i
+                    );
+                }
+                if (item.Count < def.Count)
+                {
+                    COPLT_THROW_FMT(
+                        "Incompatible binding slot {{ Id = {}, Scope = {}, Stage = {} }} at Group {} [{}]; The group provides fewer bindings than the shader requires",
+                        slot.Id, slot.Scope, static_cast<u32>(slot.Stage), g, i
+                    );
+                }
+                info.Group = g;
+                info.IndexInGroup = i;
+            }
+        }
+    }
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
+    std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers{};
+    std::vector<HashMap<TableKey, TableDefine>> tables{};
+    tables.reserve(m_groups.size());
+    for (u32 i = 0; i < m_groups.size(); i++) tables.push_back({});
 
-    HashMap<TableGroupKey, TableDefine> tables{};
-    u8 TableGroupIndexInc{};
-
-    for (u32 i = 0; i < m_layout_item_defines.size(); i++)
+    for (auto& info : m_slot_infos)
     {
-        const auto& item = m_layout_item_defines[i];
+        const auto& item = defines[info.Index];
 
         if (item.View == FShaderLayoutItemView::Constants)
         {
@@ -97,31 +176,30 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             param.Constants.ShaderRegister = item.Slot;
             param.Constants.RegisterSpace = item.Space;
-            param.Constants.Num32BitValues = std::max(1u, item.CountOrIndex);
+            param.Constants.Num32BitValues = std::max(1u, item.Count);
             param.ShaderVisibility = ToDxVisibility(item.Stage);
-            m_item_infos[i] = FShaderLayoutItemInfo{
-                .Index = static_cast<u32>(root_parameters.size()),
-                .Place = FShaderLayoutItemPlace::Const,
-            };
+            info.SigIndex = static_cast<u32>(root_parameters.size());
+            info.SigPlace = SigPlace::Const;
             root_parameters.push_back(param);
             continue;
         }
 
-        D3D12_ROOT_PARAMETER_TYPE type;
-        FShaderLayoutGroupScope table_scope;
+        // 组未提供绑定，使用隐藏组创建描述符，并且永远保持默认值
+        if (info.Group == COPLT_U32_MAX)
+            COPLT_THROW("TODO");
 
-        switch (item.Usage)
+        D3D12_ROOT_PARAMETER_TYPE type;
+        const auto& group = m_groups[info.Group];
+
+        if (item.View == FShaderLayoutItemView::StaticSampler)
+            goto DefineStaticSampler;
+        if (item.View == FShaderLayoutItemView::Sampler)
+            goto DefineDescriptorTable;
+
+        if (group->Data().Usage == FBindGroupUsage::Dynamic)
         {
-        case FShaderLayoutItemUsage::Dynamic:
-            table_scope = FShaderLayoutGroupScope::Dynamic;
-            goto DefineDescriptorTable;
-        case FShaderLayoutItemUsage::Persist:
-            table_scope = FShaderLayoutGroupScope::Persist;
-            goto DefineDescriptorTable;
-        case FShaderLayoutItemUsage::Instant:
-            if (item.CountOrIndex > 1 || !IsBuffer(item.Type))
+            if (item.Count > 1 || !IsBuffer(item.Type))
             {
-                table_scope = FShaderLayoutGroupScope::Dynamic;
                 goto DefineDescriptorTable;
             }
             switch (item.View)
@@ -135,17 +213,41 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             case FShaderLayoutItemView::Uav:
                 type = D3D12_ROOT_PARAMETER_TYPE_UAV;
                 goto DefineDescriptor;
+            case FShaderLayoutItemView::StaticSampler:
             case FShaderLayoutItemView::Sampler:
-                COPLT_THROW("TODO"); // 静态采样器
+            case FShaderLayoutItemView::Constants:
             default:
                 COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
             }
-        default:
-            COPLT_THROW_FMT("Unknown shader layout item usage {}", static_cast<u32>(item.Usage));
         }
 
-        continue;
-
+    DefineDescriptorTable:
+        {
+            const auto group_items = group->GetItems();
+            const auto& group_item = group_items[info.IndexInGroup];
+            D3D12_DESCRIPTOR_RANGE1 range{};
+            const auto range_type = ToTableType(item.View);
+            range.RangeType = range_type;
+            auto& table = tables[info.Group].GetOrAdd(TableKey(item.Stage, range_type), [&](auto& p)
+            {
+                p.put(TableDefine{
+                    .Info = TableInfo{
+                        .Group = info.Group,
+                        .Stage = item.Stage,
+                        .Type = range_type,
+                    }
+                });
+            });
+            range.NumDescriptors = std::max(1u, item.Count);
+            range.BaseShaderRegister = item.Slot;
+            range.RegisterSpace = item.Space;
+            range.OffsetInDescriptorsFromTableStart = table.Info.Size;
+            info.SigIndex = static_cast<u32>(table.Ranges.size());
+            info.SigPlace = SigPlace::Grouped;
+            table.Ranges.push_back(range);
+            table.Info.Size += group_item.Count;
+            continue;
+        }
     DefineDescriptor:
         {
             D3D12_ROOT_PARAMETER1 param{};
@@ -154,100 +256,47 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
             param.Descriptor.RegisterSpace = item.Space;
             param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
             param.ShaderVisibility = ToDxVisibility(item.Stage);
-            m_item_infos[i] = FShaderLayoutItemInfo{
-                .Index = static_cast<u32>(root_parameters.size()),
-                .Place = FShaderLayoutItemPlace::Direct,
-            };
+            info.SigIndex = static_cast<u32>(root_parameters.size());
+            info.SigPlace = SigPlace::Direct;
             root_parameters.push_back(param);
             continue;
         }
-    DefineDescriptorTable:
+    DefineStaticSampler:
         {
-            auto& table = tables.GetOrAdd(TableGroupKey(table_scope, item.View == FShaderLayoutItemView::Sampler), [&](auto& p)
-            {
-                p = TableDefine{.Index = TableGroupIndexInc++};
-            });
-            FShaderLayoutGroupView group_view{};
-            D3D12_DESCRIPTOR_RANGE1 range{};
-            switch (item.View)
-            {
-            case FShaderLayoutItemView::Cbv:
-                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-                group_view = FShaderLayoutGroupView::Cbv;
-                break;
-            case FShaderLayoutItemView::Srv:
-                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                group_view = FShaderLayoutGroupView::Srv;
-                break;
-            case FShaderLayoutItemView::Uav:
-                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                group_view = FShaderLayoutGroupView::Uav;
-                break;
-            case FShaderLayoutItemView::Sampler:
-                range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-                group_view = FShaderLayoutGroupView::Sampler;
-                break;
-            default:
-                COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
-            }
-            auto& meta = table.Map.GetOrAdd(TableKey(item.Stage, group_view), [&](auto& p)
-            {
-                p = TableMeta(table.IndexInc++, item.Stage, group_view);
-            });
-            range.NumDescriptors = std::max(1u, item.CountOrIndex);
-            range.BaseShaderRegister = item.Slot;
-            range.RegisterSpace = item.Space;
-            range.OffsetInDescriptorsFromTableStart = meta.Size;
-            // range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-            m_item_infos[i] = FShaderLayoutItemInfo{
-                .Index = static_cast<u32>(meta.Ranges.size()),
-                .Class = table.Index,
-                .Group = meta.Index,
-                .Place = FShaderLayoutItemPlace::Grouped,
-            };
-            meta.Ranges.push_back(range);
-            meta.Size += range.NumDescriptors;
+            const auto group_items = group->GetItems();
+            const auto samplers = group->GetStaticSamplers();
+            const auto& group_item = group_items[info.IndexInGroup];
+            const auto& sampler = samplers[group_item.StaticSamplerIndex];
+            D3D12_STATIC_SAMPLER_DESC desc{};
+            desc.ShaderRegister = item.Slot;
+            desc.RegisterSpace = item.Space;
+            desc.ShaderVisibility = ToDxVisibility(item.Stage);
+            SetDesc(sampler, desc);
+            info.SigIndex = static_cast<u32>(static_samplers.size());
+            info.SigPlace = SigPlace::StaticSampler;
+            static_samplers.push_back(desc);
             continue;
         }
     }
 
-    m_table_groups = std::vector<TableGroup>(tables.Count(), {});
-    m_group_classes = std::vector<FShaderLayoutGroupClass>(tables.Count(), {});
-    for (auto& [key, table] : tables)
+    m_tables.reserve(tables.size());
+    for (usize i = 0; i < tables.size(); ++i)
     {
-        auto& table_groups = m_table_groups[table.Index];
-        auto& group_class = m_group_classes[table.Index];
-        table_groups = TableGroup{
-            .Metas = std::vector<TableMeta>(table.Map.Count(), {}),
-            .Infos = std::vector<FShaderLayoutGroupInfo>(table.Map.Count(), {}),
-            .Scope = key.Scope, .Sampler = key.Sampler
-        };
-        group_class = FShaderLayoutGroupClass{
-            .Infos = table_groups.Infos.data(),
-            .Size = static_cast<u32>(table_groups.Metas.size()),
-            .Scope = key.Scope,
-            .Sampler = key.Sampler
-        };
-        for (auto& item : table.Map | std::views::values)
+        auto& table = tables[i];
+        std::vector<TableInfo> infos{};
+        infos.reserve(table.Count());
+        for (auto& [Ranges, Info] : table | std::views::values)
         {
+            Info.RootIndex = static_cast<u32>(root_parameters.size());
             D3D12_ROOT_PARAMETER1 param{};
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-
-            auto& meta = table_groups.Metas[item.Index];
-            auto& info = table_groups.Infos[item.Index];
-            meta = std::move(item);
-            meta.RootIndex = root_parameters.size();
-            info.Index = meta.RootIndex;
-            info.Size = meta.Ranges.size();
-            info.Stage = meta.Stage;
-            info.View = meta.View;
-
-            param.ShaderVisibility = ToDxVisibility(meta.Stage);
-            param.DescriptorTable.NumDescriptorRanges = meta.Ranges.size();
-            param.DescriptorTable.pDescriptorRanges = meta.Ranges.data();
-
+            param.ShaderVisibility = ToDxVisibility(Info.Stage);
+            param.DescriptorTable.NumDescriptorRanges = Ranges.size();
+            param.DescriptorTable.pDescriptorRanges = Ranges.data();
             root_parameters.push_back(param);
+            infos.push_back(Info);
         }
+        m_tables.push_back(std::move(infos));
     }
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
@@ -258,11 +307,12 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     desc.Desc_1_1.pStaticSamplers = nullptr;
     desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-    if (HasFlags(options.Flags, FShaderLayoutFlags::InputAssembler))
+    const auto layout = *NonNull(m_shader_layout->ShaderLayoutData());
+    if (HasFlags(layout.Flags, FShaderLayoutFlags::InputAssembler))
         desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-    if (HasFlags(options.Flags, FShaderLayoutFlags::StreamOutput))
+    if (HasFlags(layout.Flags, FShaderLayoutFlags::StreamOutput))
         desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
-    if (HasFlags(options.Flags, FShaderLayoutFlags::BindLess))
+    if (HasFlags(layout.Flags, FShaderLayoutFlags::DynBindLess))
         desc.Desc_1_1.Flags |=
             D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
             D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
@@ -278,7 +328,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
         chr | r;
     }
 
-    chr | m_dx_device->CreateRootSignature(
+    chr | m_device->m_device->CreateRootSignature(
         0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&m_root_signature)
     );
 
@@ -288,7 +338,7 @@ D3d12ShaderLayout::D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderL
     }
 }
 
-FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
+FResult D3d12BindingLayout::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {
@@ -297,37 +347,24 @@ FResult D3d12ShaderLayout::SetName(const FStr8or16& name) noexcept
     });
 }
 
-FShaderLayoutData* D3d12ShaderLayout::ShaderLayoutData() noexcept
+const Rc<FShaderLayout>& D3d12BindingLayout::ShaderLayout() const noexcept
 {
-    return this;
+    return m_shader_layout;
 }
 
-void* D3d12ShaderLayout::GetRootSignaturePtr() noexcept
+std::span<const Rc<FBindGroupLayout>> D3d12BindingLayout::Groups() const noexcept
 {
-    return m_root_signature.Get();
+    return m_groups;
 }
 
-const FShaderLayoutItemDefine* D3d12ShaderLayout::GetItemDefines(u32* out_count) noexcept
+const ComPtr<ID3D12RootSignature>& D3d12BindingLayout::RootSignature() const noexcept
 {
-    *out_count = static_cast<u32>(m_layout_item_defines.size());
-    return m_layout_item_defines.data();
+    return m_root_signature;
 }
 
-const FShaderLayoutItemInfo* D3d12ShaderLayout::GetItemInfos(u32* out_count) noexcept
+std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() const noexcept
 {
-    *out_count = static_cast<u32>(m_item_infos.size());
-    return m_item_infos.data();
-}
-
-const FShaderLayoutGroupClass* D3d12ShaderLayout::GetGroupClasses(u32* out_count) noexcept
-{
-    *out_count = static_cast<u32>(m_group_classes.size());
-    return m_group_classes.data();
-}
-
-std::span<ID3d12ShaderLayout::TableGroup> D3d12ShaderLayout::GetTableGroups() noexcept
-{
-    return m_table_groups;
+    return m_slot_infos;
 }
 
 D3d12ShaderInputLayout::D3d12ShaderInputLayout(

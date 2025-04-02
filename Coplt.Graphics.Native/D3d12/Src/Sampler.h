@@ -4,6 +4,7 @@
 
 #include "../../Api/Include/GpuObject.h"
 #include "../FFI/Sampler.h"
+#include "../Include/Sampler.h"
 
 namespace Coplt
 {

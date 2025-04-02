@@ -3,10 +3,10 @@
 #include "Barrier.h"
 #include "Context.h"
 #include "Isolate.h"
+#include "Layout.h"
 #include "../../Api/FFI/Record.h"
 #include "../../Api/Include/GpuObject.h"
 #include "../FFI/Pipeline.h"
-#include "../FFI/Layout.h"
 
 namespace Coplt
 {
@@ -60,7 +60,7 @@ namespace Coplt
         struct PipelineContext
         {
             Ptr<FD3d12PipelineState> Pipeline{};
-            Ptr<FD3d12ShaderLayout> Layout{};
+            Ptr<ID3d12BindingLayout> Layout{};
             // 如果不是图形管线将不会设置
             Ptr<FD3d12GraphicsShaderPipeline> GPipeline{};
 

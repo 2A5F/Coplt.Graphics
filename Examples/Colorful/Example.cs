@@ -6,7 +6,8 @@ namespace Examples;
 
 public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handle, Width, Height)
 {
-    private ShaderLayout Layout = null!;
+    private ShaderLayout ShaderLayout = null!;
+    private BindingLayout BindingLayout = null!;
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
     private ShaderBinding ShaderBinding = null!;
@@ -16,20 +17,34 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     protected override async Task LoadResources(GpuRecord cmd)
     {
         var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
-        Layout = Device.CreateShaderLayout(
+        ShaderLayout = Device.CreateShaderLayout(
             [
                 new()
                 {
+                    Id = 0,
                     Slot = 0,
                     Stage = ShaderStage.Pixel,
                     View = ShaderLayoutItemView.Cbv,
                     Type = ShaderLayoutItemType.ConstantBuffer,
-                    Usage = ShaderLayoutItemUsage.Persist,
                 }
-            ],
-            Name: Name
+            ]
         );
-        Shader = Device.CreateShader(modules, Layout);
+        BindingLayout = Device.CreateBindingLayout(
+            ShaderLayout, [
+                Device.CreateBindGroupLayout(
+                    [
+                        new()
+                        {
+                            Id = 0,
+                            Stages = ShaderStageFlags.Pixel,
+                            View = ShaderLayoutItemView.Cbv,
+                            Type = ShaderLayoutItemType.ConstantBuffer,
+                        }
+                    ]
+                )
+            ], Name: Name
+        );
+        Shader = Device.CreateShader(modules, ShaderLayout);
         // ShaderBinding = Device.CreateShaderBinding(Layout, Name: Name);
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()

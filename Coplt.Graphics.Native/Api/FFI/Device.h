@@ -79,15 +79,19 @@ namespace Coplt
 
         virtual FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept = 0;
 
-        virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept = 0;
         virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
+        virtual FResult CreateBindGroupLayout(const FBindGroupLayoutCreateOptions& options, FBindGroupLayoutCreateResult* out) noexcept = 0;
+        virtual FResult CreateBindingLayout(const FBindingLayoutCreateOptions& options, FBindingLayout** out) noexcept = 0;
         virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
+        virtual FResult GetEmptyBindGroupLayout(FBindGroupLayoutCreateResult* out) noexcept = 0;
+        virtual FResult GetEmptyBindingLayout(const FGetEmptyBindingLayoutOptions& options, FBindingLayout** out) noexcept = 0;
         virtual FResult CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept = 0;
-        virtual FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept = 0;
-        virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;
-
         virtual FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept = 0;
 
+        virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept = 0;
+        virtual FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept = 0;
+
+        virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;
         virtual FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept = 0;
 
         virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;

@@ -7,6 +7,7 @@ public abstract unsafe class ShaderPipeline : DeviceChild
     #region Fields
 
     internal readonly Shader m_shader;
+    internal readonly BindingLayout m_binding_layout;
 
     #endregion
 
@@ -14,14 +15,16 @@ public abstract unsafe class ShaderPipeline : DeviceChild
 
     public new FShaderPipeline* Ptr => (FShaderPipeline*)m_ptr;
     public Shader Shader => m_shader;
+    public BindingLayout BindingLayout => m_binding_layout;
 
     #endregion
 
     #region Ctor
 
-    internal ShaderPipeline(FShaderPipeline* ptr, string? name, Shader shader) : base((FGpuObject*)ptr, name, shader.Device)
+    internal ShaderPipeline(FShaderPipeline* ptr, string? name, Shader shader, BindingLayout binding_layout) : base((FGpuObject*)ptr, name, shader.Device)
     {
         m_shader = shader;
+        m_binding_layout = binding_layout;
     }
 
     #endregion

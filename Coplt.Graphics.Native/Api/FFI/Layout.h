@@ -2,6 +2,7 @@
 
 #include "Object.h"
 #include "Shader.h"
+#include "Sampler.h"
 
 #if FFI_SRC
 #include <span>
@@ -26,14 +27,8 @@ namespace Coplt
         Sampler,
         // 将使用 Push Const / Root Const, 忽略 Usage，Type 必须是 ConstantBuffer
         Constants,
-    };
-
-    enum class FShaderLayoutGroupView : u8
-    {
-        Cbv,
-        Srv,
-        Uav,
-        Sampler,
+        // 静态采样器, Type 必须是 Sampler
+        StaticSampler,
     };
 
     enum class FShaderLayoutItemType : u8
@@ -74,34 +69,22 @@ namespace Coplt
     }
     #endif
 
-    enum class FShaderLayoutItemUsage : u8
+    struct FShaderLayoutItem
     {
-        // 动态变量，每帧都可能会改变
-        Dynamic,
-        // 持久变量，例如材质参数，一般很少改变，可以进行一定的静态优化，建议将所有材质绑定放到单独的 space 中区分
-        Persist,
-        // 即时变量，例如每次绘制调用都会改变, dx 后端将直接在根签名内，类型是 Sampler 时表示是静态采样器，不支持纹理
-        Instant,
-    };
-
-    enum class FShaderLayoutGroupScope : u8
-    {
-        Dynamic,
-        Persist,
-    };
-
-    struct FShaderLayoutItemDefine
-    {
+        // 绑定点的 Id，建议从名称缓存自增 id, 不同 stage 不同 scope 的 id 可以重复
+        u64 Id{};
+        // 绑定点所属范围，和 Id 共同组成唯一定位
+        u64 Scope{};
         // dx 后端无论什么时候都是 register, vk 后端一般情况是 binding，类型为 Constants 时是 push const 的 offset，为字节偏移
         u32 Slot{};
+        // dx 的 space，vk 的 set，vk 建议尽可能多的拆分 set，dx 的 space 写不写都一样 // todo 引入 spv 修改器运行时修改 vk 的 set
         u32 Space{};
-        // 类型是 Sampler并且 Usage 是 Static 时是静态采样器描述的索引；其他类型表示数量
-        u32 CountOrIndex{};
+        // 数量，View 是 StaticSampler 时必须是 1，其他必须最少是 1, View 是 Constants 是 32 位值的数量，而不是 byte 的数量
+        u32 Count{};
         FGraphicsFormat Format{};
         FShaderStage Stage{};
         FShaderLayoutItemView View{};
         FShaderLayoutItemType Type{};
-        FShaderLayoutItemUsage Usage{};
         FResourceAccess UavAccess{};
 
         #ifdef FFI_SRC
@@ -140,69 +123,24 @@ namespace Coplt
         #endif
     };
 
-    enum class FShaderLayoutItemPlace : u8
-    {
-        None,
-        Const,
-        Direct,
-        Grouped,
-        StaticSampler,
-    };
-
-    struct FShaderLayoutItemInfo
-    {
-        // Const | Direct 时是 Root Index，Grouped 时是 Group 内的 Index
-        u32 Index{};
-        // 所属哪个绑定组类
-        u32 Class{};
-        // 所属哪个绑定组
-        u32 Group{};
-        // 绑定放在哪
-        FShaderLayoutItemPlace Place{};
-    };
-
-    struct FShaderLayoutGroupInfo
-    {
-        // Root Index
-        u32 Index{};
-        // 包含多少个绑定
-        u32 Size{};
-        FShaderStage Stage{};
-        FShaderLayoutGroupView View{};
-    };
-
-    struct FShaderLayoutGroupClass
-    {
-        FShaderLayoutGroupInfo* Infos{};
-        u32 Size{};
-        FShaderLayoutGroupScope Scope{};
-        b8 Sampler{};
-
-        #if FFI_SRC
-        std::span<const FShaderLayoutGroupInfo> AsSpan() const noexcept
-        {
-            return std::span{Infos, static_cast<usize>(Size)};
-        }
-        #endif
-    };
-
     COPLT_ENUM_FLAGS(FShaderLayoutFlags, u8)
     {
         None = 0,
-        // 是否启用无绑定
-        BindLess = 1 << 0,
+        // 是否启用动态无绑定
+        DynBindLess = 1 << 0,
         // 是否启用输入组装
         InputAssembler = 1 << 1,
         // 是否启用流输出
         StreamOutput = 1 << 2,
     };
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
     struct FShaderLayoutCreateOptions
     {
         FStr8or16 Name{};
-        u32 Count{};
-        FShaderLayoutItemDefine* Items{};
-        // todo 静态采样器
+        FShaderLayoutItem* Items{};
+        u32 NumItems{};
 
         FShaderLayoutFlags Flags{};
     };
@@ -214,33 +152,20 @@ namespace Coplt
 
     struct FShaderLayoutData
     {
+        const FShaderLayoutItem* Items{};
+        u32 NumItems{};
         FShaderLayoutFlags Flags{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderLayout, "552a498e-8f3a-47ff-a335-7af2de0901e8", FGpuObject)
     {
         virtual FShaderLayoutData* ShaderLayoutData() noexcept = 0;
-        virtual const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept = 0;
-        virtual const FShaderLayoutItemInfo* GetItemInfos(u32* out_count) noexcept = 0;
-        virtual const FShaderLayoutGroupClass* GetGroupClasses(u32* out_count) noexcept = 0;
 
         #if FFI_SRC
-        std::span<const FShaderLayoutItemDefine> GetItemDefines() noexcept
+        std::span<const FShaderLayoutItem> GetItems() noexcept
         {
-            u32 count{};
-            return std::span{GetItemDefines(&count), static_cast<usize>(count)};
-        }
-
-        std::span<const FShaderLayoutItemInfo> GetItemInfos() noexcept
-        {
-            u32 count{};
-            return std::span{GetItemInfos(&count), static_cast<usize>(count)};
-        }
-
-        std::span<const FShaderLayoutGroupClass> GetGroupClasses() noexcept
-        {
-            u32 count{};
-            return std::span{GetGroupClasses(&count), static_cast<usize>(count)};
+            const auto data = ShaderLayoutData();
+            return std::span{data->Items, static_cast<usize>(data->NumItems)};
         }
         #endif
     };
@@ -250,6 +175,103 @@ namespace Coplt
         FShaderLayout* Layout{};
         FShaderLayoutData* Data{};
     };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FBindGroupItem
+    {
+        // 绑定点的 Id，建议从名称缓存自增 id, 不同 stage 不同 scope 的 id 可以重复
+        u64 Id{};
+        // 绑定点所属范围，和 Id 共同组成唯一定位
+        u64 Scope{};
+        // 数量
+        u32 Count{};
+        // StaticSamplers 中的 Index
+        u32 StaticSamplerIndex{};
+        FGraphicsFormat Format{};
+        FShaderStageFlags Stages{};
+        FShaderLayoutItemView View{};
+        FShaderLayoutItemType Type{};
+        FResourceAccess UavAccess{};
+    };
+
+    enum class FBindGroupUsage : u8
+    {
+        // 一般组
+        Common = 0,
+        // 提示组的使用是频繁更改的，d3d12 将会尽可能使用根描述符
+        Dynamic = 1,
+    };
+
+    struct FBindGroupLayoutCreateOptions
+    {
+        FStr8or16 Name{};
+        FBindGroupItem* Items{};
+        FStaticSamplerInfo* StaticSamplers{};
+        u32 NumItems{};
+        u32 NumStaticSamplers{};
+        FBindGroupUsage Usage{};
+    };
+
+    struct FBindGroupLayoutData
+    {
+        const FBindGroupItem* Items{};
+        const FStaticSamplerInfo* StaticSamplers{};
+        u32 NumItems{};
+        u32 NumStaticSamplers{};
+        FBindGroupUsage Usage{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FBindGroupLayout, "312c75eb-30f5-40b3-b79e-acb5498ca9dc", FGpuObject)
+    {
+        virtual FBindGroupLayoutData* BindGroupLayoutData() noexcept = 0;
+
+        #if FFI_SRC
+        std::span<const FBindGroupItem> GetItems() noexcept
+        {
+            const auto data = BindGroupLayoutData();
+            return std::span{data->Items, static_cast<usize>(data->NumItems)};
+        }
+
+        std::span<const FStaticSamplerInfo> GetStaticSamplers() noexcept
+        {
+            const auto data = BindGroupLayoutData();
+            return std::span{data->StaticSamplers, static_cast<usize>(data->NumStaticSamplers)};
+        }
+
+        FBindGroupLayoutData& Data() noexcept
+        {
+            return *BindGroupLayoutData();
+        }
+        #endif
+    };
+
+    struct FBindGroupLayoutCreateResult
+    {
+        FBindGroupLayout* Layout{};
+        FBindGroupLayoutData* Data{};
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    struct FBindingLayoutCreateOptions
+    {
+        FStr8or16 Name{};
+        FShaderLayout* ShaderLayout{};
+        FBindGroupLayout** Groups{};
+        u32 NumGroups{};
+    };
+
+    struct FGetEmptyBindingLayoutOptions
+    {
+        FShaderLayoutFlags Flags{};
+    };
+
+    COPLT_INTERFACE_DEFINE(FBindingLayout, "bc0b662e-2918-4769-9d0c-1fee25b32c5d", FGpuObject)
+    {
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FShaderInputLayoutCreateOptions
     {
@@ -270,6 +292,8 @@ namespace Coplt
         }
         #endif
     };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FMeshLayoutCreateOptions
     {

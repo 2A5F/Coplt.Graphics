@@ -3,8 +3,8 @@
 #include <directx/d3d12.h>
 
 #include "Device.h"
+#include "Layout.h"
 #include "../../Api/Include/Object.h"
-#include "../FFI/Layout.h"
 #include "../Include/Utils.h"
 #include "../FFI/Pipeline.h"
 
@@ -14,11 +14,11 @@ namespace Coplt
     {
         Rc<D3d12GpuDevice> m_device{};
         Rc<FShader> m_shader{};
-        Rc<FD3d12ShaderLayout> m_layout{};
+        Rc<ID3d12BindingLayout> m_layout{};
         // 可选
-        Rc<FD3d12ShaderInputLayout> m_input_layout{};
+        Rc<FShaderInputLayout> m_input_layout{};
         // 可选
-        Rc<FD3d12MeshLayout> m_mesh_layout{};
+        Rc<FMeshLayout> m_mesh_layout{};
         ComPtr<ID3D12Device2> m_dx_device{};
         ComPtr<ID3D12PipelineState> m_pipeline{};
         std::vector<u32> m_input_slots{};
@@ -33,7 +33,7 @@ namespace Coplt
         void* GetPipelineStatePtr() noexcept override;
 
         FShader* GetShader() noexcept override;
-        FShaderLayout* GetLayout() noexcept override;
+        FBindingLayout* GetLayout() noexcept override;
         FShaderStageFlags GetStages() noexcept override;
 
         const FGraphicsPipelineState* GetGraphicsState() noexcept override;

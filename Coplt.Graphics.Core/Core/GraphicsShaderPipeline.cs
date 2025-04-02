@@ -24,8 +24,8 @@ public sealed unsafe class GraphicsShaderPipeline : ShaderPipeline
 
     internal GraphicsShaderPipeline(
         FGraphicsShaderPipeline* ptr, string? name,
-        Shader shader, GraphicsPipelineState pipeline_state, MeshLayout? mesh_layout
-    ) : base((FShaderPipeline*)ptr, name, shader)
+        Shader shader, GraphicsPipelineState pipeline_state, BindingLayout binding_layout, MeshLayout? mesh_layout
+    ) : base((FShaderPipeline*)ptr, name, shader, binding_layout)
     {
         m_mesh_layout = mesh_layout;
         m_pipeline_state = pipeline_state;

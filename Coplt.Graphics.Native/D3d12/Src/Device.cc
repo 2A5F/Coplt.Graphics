@@ -128,19 +128,26 @@ void* D3d12GpuDevice::GetRawDevice() noexcept
     return m_device0.Get();
 }
 
-
-const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyLayout(FShaderLayoutFlags flags)
+const Rc<D3d12ShaderLayout>& D3d12GpuDevice::GetEmptyShaderLayout(FShaderLayoutFlags flags)
 {
     if (!m_empty_layouts)
-        m_empty_layouts = std::make_unique<EmptyLayouts>();
+        m_empty_layouts = std::make_unique<EmptyShaderLayouts>();
     return m_empty_layouts->GetOrAdd(flags, [&](auto& p)
     {
-        const auto name = fmt::format(L"Empty Layout {}", static_cast<u32>(flags));
         FShaderLayoutCreateOptions options{};
-        options.Name = FStr8or16(name);
         options.Flags = flags;
-        p = Rc(new D3d12ShaderLayout(this->CloneThis(), options));
+        p = Rc(new D3d12ShaderLayout(options));
     });
+}
+
+const Rc<D3d12BindGroupLayout>& D3d12GpuDevice::GetEmptyBindGroupLayout()
+{
+    if (m_empty_bind_group_layout == nullptr)
+    {
+        constexpr FBindGroupLayoutCreateOptions options{};
+        m_empty_bind_group_layout = Rc(new D3d12BindGroupLayout(options));
+    }
+    return m_empty_bind_group_layout;
 }
 
 const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
@@ -152,6 +159,25 @@ const Rc<D3d12MeshLayout>& D3d12GpuDevice::GetEmptyMeshLayout()
         m_empty_mesh_layout = Rc(new D3d12MeshLayout(this->CloneThis(), options));
     }
     return m_empty_mesh_layout;
+}
+
+const Rc<D3d12BindingLayout>& D3d12GpuDevice::GetEmptyBindingLayout(FShaderLayoutFlags flags)
+{
+    if (!m_empty_binding_layout)
+        m_empty_binding_layout = std::make_unique<EmptyBindingLayouts>();
+    return m_empty_binding_layout->GetOrAdd(flags, [&](auto& p)
+    {
+        const Rc shader_layout = GetEmptyShaderLayout(flags);
+        std::wstring name{};
+        FBindingLayoutCreateOptions options{};
+        if (Debug())
+        {
+            name = fmt::format(L"Empty Binding Layout {}", static_cast<u32>(flags));
+            options.Name = FStr8or16(name);
+        }
+        options.ShaderLayout = shader_layout.get();
+        p = Rc(new D3d12BindingLayout(this->CloneThis(), options));
+    });
 }
 
 FResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept
@@ -171,23 +197,31 @@ FGpuIsolateCreateResult D3d12GpuDevice::CreateIsolate(const FGpuIsolateCreateOpt
     return out;
 }
 
-FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept
-{
-    return feb([&]
-    {
-        const auto ptr = ShaderModule::Create(options);
-        out->ShaderModule = ptr;
-        out->Data = ptr;
-    });
-}
-
 FResult D3d12GpuDevice::CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept
 {
     return feb([&]
     {
-        const auto ptr = new D3d12ShaderLayout(this->CloneThis(), options);
+        const auto ptr = new D3d12ShaderLayout(options);
         out->Layout = ptr;
         out->Data = ptr;
+    });
+}
+
+FResult D3d12GpuDevice::CreateBindGroupLayout(const FBindGroupLayoutCreateOptions& options, FBindGroupLayoutCreateResult* out) noexcept
+{
+    return feb([&]
+    {
+        const auto ptr = new D3d12BindGroupLayout(options);
+        out->Layout = ptr;
+        out->Data = ptr;
+    });
+}
+
+FResult D3d12GpuDevice::CreateBindingLayout(const FBindingLayoutCreateOptions& options, FBindingLayout** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12BindingLayout(this->CloneThis(), options);
     });
 }
 
@@ -195,10 +229,30 @@ FResult D3d12GpuDevice::GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions&
 {
     return feb([&]
     {
-        Rc r = GetEmptyLayout(options.Flags);
+        Rc r = GetEmptyShaderLayout(options.Flags);
         const auto ptr = r.leak();
         out->Layout = ptr;
         out->Data = ptr;
+    });
+}
+
+FResult D3d12GpuDevice::GetEmptyBindGroupLayout(FBindGroupLayoutCreateResult* out) noexcept
+{
+    return feb([&]
+    {
+        Rc r = GetEmptyBindGroupLayout();
+        const auto ptr = r.leak();
+        out->Layout = ptr;
+        out->Data = ptr;
+    });
+}
+
+FResult D3d12GpuDevice::GetEmptyBindingLayout(const FGetEmptyBindingLayoutOptions& options, FBindingLayout** out) noexcept
+{
+    return feb([&]
+    {
+        Rc r = GetEmptyBindingLayout(options.Flags);
+        *out = r.leak();
     });
 }
 
@@ -207,6 +261,24 @@ FResult D3d12GpuDevice::CreateShaderInputLayout(const FShaderInputLayoutCreateOp
     return feb([&]
     {
         *out = new D3d12ShaderInputLayout(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12MeshLayout(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept
+{
+    return feb([&]
+    {
+        const auto ptr = ShaderModule::Create(options);
+        out->ShaderModule = ptr;
+        out->Data = ptr;
     });
 }
 
@@ -225,14 +297,6 @@ FResult D3d12GpuDevice::CreateShaderBinding(const FShaderBindingCreateOptions& o
     return feb([&]
     {
         *out = new D3d12ShaderBinding(this->CloneThis(), options);
-    });
-}
-
-FResult D3d12GpuDevice::CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept
-{
-    return feb([&]
-    {
-        *out = new D3d12MeshLayout(this->CloneThis(), options);
     });
 }
 

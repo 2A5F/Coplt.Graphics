@@ -61,20 +61,20 @@ namespace Coplt
         View& operator=(const Rc<ID3d12GpuImage>& image);
         View& operator=(Rc<ID3d12GpuImage>&& image);
 
-        void CreateDescriptor(
-            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        ) const;
-        static void CreateNullDescriptor(
-            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView view
-        );
-        void CreateBufferDescriptor(
-            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-            ) const;
-        void CreateImageDescriptor(
-            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-            ) const;
-        void CreateSamplerDescriptor(
-            NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        ) const;
+        // void CreateDescriptor(
+        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+        // ) const;
+        // static void CreateNullDescriptor(
+        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView view
+        // );
+        // void CreateBufferDescriptor(
+        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+        //     ) const;
+        // void CreateImageDescriptor(
+        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+        //     ) const;
+        // void CreateSamplerDescriptor(
+        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
+        // ) const;
     };
 }

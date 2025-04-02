@@ -47,4 +47,29 @@ namespace Coplt
     {
         virtual const FSamplerInfo* Info() const noexcept = 0;
     };
+
+    enum class FStaticSamplerBorderColor : u8
+    {
+        Transparent,
+        Black,
+        White,
+        BlackUInt,
+        WhiteUInt,
+    };
+
+    struct FStaticSamplerInfo
+    {
+        u32 MaxAnisotropy{0};
+        f32 MipLodBias{};
+        f32 MinLod{};
+        f32 MaxLod{3.402823466E38};
+        FCmpFunc Cmp{};
+        FFilter Mag{};
+        FFilter Min{};
+        FFilter Mipmap{};
+        FAddressMode U{};
+        FAddressMode V{};
+        FAddressMode W{};
+        FStaticSamplerBorderColor BorderColor{};
+    };
 }

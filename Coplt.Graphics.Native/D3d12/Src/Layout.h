@@ -7,69 +7,164 @@
 
 #include "Device.h"
 #include "../../Api/Include/Object.h"
-#include "../FFI/Layout.h"
 
 namespace Coplt
 {
-    COPLT_INTERFACE_DEFINE(ID3d12ShaderLayout, "d8cea40e-7b0c-4a5f-98a9-88fd3abf9ddc", FD3d12ShaderLayout)
+    namespace Layout
     {
-        struct TableMeta
+        D3D12_DESCRIPTOR_RANGE_TYPE ToTableType(FShaderLayoutItemView view);
+
+        struct TableInfo final
         {
-            std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
             u32 Size{};
-            u32 Index{};
+            u32 Group{};
             u32 RootIndex{};
             FShaderStage Stage{};
-            FShaderLayoutGroupView View{};
+            D3D12_DESCRIPTOR_RANGE_TYPE Type{};
+        };
 
-            TableMeta() = default;
+        struct TableDefine final
+        {
+            std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
+            TableInfo Info{};
+        };
 
-            explicit TableMeta(const u32 index, const FShaderStage stage, const FShaderLayoutGroupView view)
+        struct TableKey final
+        {
+            FShaderStage Stage{};
+            D3D12_DESCRIPTOR_RANGE_TYPE Type{};
+
+            TableKey() = default;
+
+            TableKey(const FShaderStage Stage, const D3D12_DESCRIPTOR_RANGE_TYPE Type) : Stage(Stage), Type(Type)
             {
-                Index = index;
-                Stage = stage;
-                View = view;
+            }
+
+            usize GetHashCode() const
+            {
+                return hash_multi(static_cast<u8>(Stage), static_cast<u32>(Type));
+            }
+
+            bool operator==(const TableKey& other) const
+            {
+                return Stage == other.Stage && Type == other.Type;
             }
         };
 
-        struct TableGroup
+        struct BindSlot final
         {
-            std::vector<TableMeta> Metas{};
-            std::vector<FShaderLayoutGroupInfo> Infos{};
-            FShaderLayoutGroupScope Scope{};
-            bool Sampler{};
+            u64 Id{};
+            u64 Scope{};
+            FShaderStage Stage{};
+
+            BindSlot() = default;
+
+            BindSlot(const u64 Id, const u64 Scope, const FShaderStage Stage) : Id(Id), Scope(Scope), Stage(Stage)
+            {
+            }
+
+            explicit BindSlot(const FShaderLayoutItem& item) : BindSlot(item.Id, item.Scope, item.Stage)
+            {
+            }
+
+            explicit BindSlot(const FBindGroupItem& item, const FShaderStage Stage) : BindSlot(item.Id, item.Scope, Stage)
+            {
+            }
+
+            usize GetHashCode() const
+            {
+                return hash_multi(Id, Scope, static_cast<u8>(Stage));
+            }
+
+            bool operator==(const BindSlot& other) const
+            {
+                return Id == other.Id && Scope == other.Scope && Stage == other.Stage;
+            }
         };
 
-        virtual std::span<TableGroup> GetTableGroups() noexcept = 0;
-    };
+        enum class SigPlace : u8
+        {
+            None,
+            Const,
+            Direct,
+            Grouped,
+            StaticSampler,
+        };
 
-    struct D3d12ShaderLayout final : GpuObject<D3d12ShaderLayout, ID3d12ShaderLayout>, FShaderLayoutData
+        struct SlotInfo final
+        {
+            u32 Index{};
+            u32 Group{COPLT_U32_MAX};
+            u32 IndexInGroup{COPLT_U32_MAX};
+            // Place 为 Grouped 时是组内的 Index，StaticSampler 时是 StaticSampler 的 Index， 其他是 Root 的 Index
+            u32 SigIndex{};
+            SigPlace SigPlace{};
+
+            SlotInfo() = default;
+
+            explicit SlotInfo(const u32 index) : Index(index)
+            {
+            }
+        };
+    }
+
+    struct D3d12ShaderLayout final : GpuObject<D3d12ShaderLayout, FShaderLayout>, FShaderLayoutData
     {
-        Rc<D3d12GpuDevice> m_device{};
-        ComPtr<ID3D12Device2> m_dx_device{};
-        ComPtr<ID3D12RootSignature> m_root_signature{};
-        std::vector<FShaderLayoutItemDefine> m_layout_item_defines{};
-        // 长度和 m_layout_item_defines 相同
-        std::vector<FShaderLayoutItemInfo> m_item_infos{};
-        std::vector<FShaderLayoutGroupClass> m_group_classes{};
-        std::vector<TableGroup> m_table_groups{};
+        std::vector<FShaderLayoutItem> m_items{};
 
-        explicit D3d12ShaderLayout(Rc<D3d12GpuDevice>&& device, const FShaderLayoutCreateOptions& options);
+        explicit D3d12ShaderLayout(const FShaderLayoutCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FShaderLayoutData* ShaderLayoutData() noexcept override;
-
-        void* GetRootSignaturePtr() noexcept override;
-
-        const FShaderLayoutItemDefine* GetItemDefines(u32* out_count) noexcept override;
-        const FShaderLayoutItemInfo* GetItemInfos(u32* out_count) noexcept override;
-        const FShaderLayoutGroupClass* GetGroupClasses(u32* out_count) noexcept override;
-
-        std::span<TableGroup> GetTableGroups() noexcept override;
     };
 
-    struct D3d12ShaderInputLayout final : GpuObject<D3d12ShaderInputLayout, FD3d12ShaderInputLayout>
+    struct D3d12BindGroupLayout final : GpuObject<D3d12BindGroupLayout, FBindGroupLayout>, FBindGroupLayoutData
+    {
+        std::vector<FBindGroupItem> m_items{};
+        std::vector<FStaticSamplerInfo> m_static_samplers{};
+
+        explicit D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& options);
+
+        FResult SetName(const FStr8or16& name) noexcept override;
+
+        FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
+    };
+
+    COPLT_INTERFACE_DEFINE(ID3d12BindingLayout, "dcebfaa2-44d9-4c3c-95e7-28189ce7d5c4", FBindingLayout)
+    {
+        using SlotInfo = Layout::SlotInfo;
+
+        virtual const Rc<FShaderLayout>& ShaderLayout() const noexcept = 0;
+        virtual std::span<const Rc<FBindGroupLayout>> Groups() const noexcept = 0;
+        virtual const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept = 0;
+        virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
+    };
+
+    struct D3d12BindingLayout final : GpuObject<D3d12BindingLayout, ID3d12BindingLayout>
+    {
+        using BindSlot = Layout::BindSlot;
+        using TableInfo = Layout::TableInfo;
+
+        Rc<D3d12GpuDevice> m_device{};
+        ComPtr<ID3D12RootSignature> m_root_signature{};
+        Rc<FShaderLayout> m_shader_layout{};
+        std::vector<Rc<FBindGroupLayout>> m_groups{};
+        std::vector<SlotInfo> m_slot_infos{};
+        HashMap<BindSlot, usize> m_slot_to_info{};
+        std::vector<std::vector<TableInfo>> m_tables{};
+
+        explicit D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindingLayoutCreateOptions& options);
+
+        FResult SetName(const FStr8or16& name) noexcept override;
+
+        const Rc<FShaderLayout>& ShaderLayout() const noexcept override;
+        std::span<const Rc<FBindGroupLayout>> Groups() const noexcept override;
+        const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
+        std::span<const SlotInfo> SlotInfos() const noexcept override;
+    };
+
+    struct D3d12ShaderInputLayout final : GpuObject<D3d12ShaderInputLayout, FShaderInputLayout>
     {
         Rc<D3d12GpuDevice> m_device{};
         std::vector<Rc<FString8>> m_slot_names{};
@@ -82,7 +177,7 @@ namespace Coplt
         const FShaderInputLayoutElement* GetElements(u32* out_count) noexcept override;
     };
 
-    struct D3d12MeshLayout final : GpuObject<D3d12MeshLayout, FD3d12MeshLayout>
+    struct D3d12MeshLayout final : GpuObject<D3d12MeshLayout, FMeshLayout>
     {
         Rc<D3d12GpuDevice> m_device{};
         std::vector<FMeshBufferDefine> m_buffers{};

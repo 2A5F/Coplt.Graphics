@@ -82,59 +82,28 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
-    #region CreateShaderModule
-
-    public ShaderModule CreateShaderModule(
-        ShaderStage Stage, ReadOnlySpan<byte> Blob,
-        String8? EntryPoint = null,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    )
-    {
-        fixed (char* p_name = Name)
-        fixed (byte* p_name8 = Name8)
-        fixed (byte* data = Blob)
-        {
-            FShaderModuleCreateOptions f_options = new()
-            {
-                Name = new(Name, Name8, p_name, p_name8),
-                EntryPoint = EntryPoint == null ? null : EntryPoint.m_ptr,
-                Data = data,
-                Size = (nuint)Blob.Length,
-                Stage = Stage.ToFFI(),
-            };
-            FShaderModuleCreateResult result;
-            Ptr->CreateShaderModule(&f_options, &result).TryThrow();
-            return new(result, EntryPoint, Name, this);
-        }
-    }
-
-    #endregion
-
     #region CreateShaderLayout
 
     public ShaderLayout CreateShaderLayout(
-        ReadOnlySpan<ShaderLayoutItemDefine> Defines,
-        ReadOnlySpan<byte> Samplers = default, // todo
+        ReadOnlySpan<ShaderLayoutItem> Items,
         ShaderLayoutFlags Flags = ShaderLayoutFlags.None,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
+        fixed (ShaderLayoutItem* p_items = Items)
         {
-            fixed (ShaderLayoutItemDefine* p_define = Defines)
+            FShaderLayoutCreateOptions f_options = new()
             {
-                FShaderLayoutCreateOptions f_options = new()
-                {
-                    Name = new(Name, Name8, p_name, p_name8),
-                    Count = (uint)Defines.Length,
-                    Items = (FShaderLayoutItemDefine*)p_define,
-                    Flags = (FShaderLayoutFlags)Flags,
-                };
-                FShaderLayoutCreateResult result;
-                Ptr->CreateShaderLayout(&f_options, &result).TryThrow();
-                return new(result, Name, this);
-            }
+                Name = new(Name, Name8, p_name, p_name8),
+                NumItems = (uint)Items.Length,
+                Items = (FShaderLayoutItem*)p_items,
+                Flags = (FShaderLayoutFlags)Flags,
+            };
+            FShaderLayoutCreateResult result;
+            Ptr->CreateShaderLayout(&f_options, &result).TryThrow();
+            return new(result, Name, this);
         }
     }
 
@@ -153,6 +122,76 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 return new(result, $"Empty Shader Layout ({flags})", self);
             }, this
         );
+
+    #endregion
+
+    #region CreateBindGroupLayout
+
+    public BindGroupLayout CreateBindGroupLayout(
+        ReadOnlySpan<BindGroupItem> Items,
+        ReadOnlySpan<StaticSamplerInfo> StaticSamplers = default,
+        BindGroupUsage Usage = BindGroupUsage.Common,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        fixed (BindGroupItem* p_items = Items)
+        fixed (StaticSamplerInfo* p_static_samplers = StaticSamplers)
+        {
+            FBindGroupLayoutCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                NumItems = (uint)Items.Length,
+                Items = (FBindGroupItem*)p_items,
+                NumStaticSamplers = (uint)StaticSamplers.Length,
+                StaticSamplers = (FStaticSamplerInfo*)p_static_samplers,
+                Usage = (FBindGroupUsage)Usage,
+            };
+            FBindGroupLayoutCreateResult result;
+            Ptr->CreateBindGroupLayout(&f_options, &result).TryThrow();
+            return new(result, Name, this);
+        }
+    }
+
+    #endregion
+
+    #region CreateBindingLayout
+
+    public BindingLayout CreateBindingLayout(
+        ShaderLayout ShaderLayout,
+        ReadOnlySpan<BindGroupLayout> GroupLayouts,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        var groups = ArrayPool<UIntPtr>.Shared.Rent(GroupLayouts.Length);
+        try
+        {
+            for (var i = 0; i < GroupLayouts.Length; i++)
+            {
+                groups[i] = (nuint)GroupLayouts[i].Ptr;
+            }
+            fixed (char* p_name = Name)
+            fixed (byte* p_name8 = Name8)
+            fixed (UIntPtr* p_groups = groups)
+            {
+                FBindingLayoutCreateOptions f_options = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    ShaderLayout = ShaderLayout.Ptr,
+                    Groups = (FBindGroupLayout**)p_groups,
+                    NumGroups = (uint)GroupLayouts.Length,
+                };
+                FBindingLayout* ptr;
+                Ptr->CreateBindingLayout(&f_options, &ptr).TryThrow();
+                return new(ptr, Name, this, ShaderLayout, GroupLayouts.ToArray());
+            }
+        }
+        finally
+        {
+            ArrayPool<UIntPtr>.Shared.Return(groups);
+        }
+    }
 
     #endregion
 
@@ -214,45 +253,6 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
-    #region CreateShader
-
-    public Shader CreateShader(
-        ReadOnlySpan<ShaderModule> Modules, ShaderLayout? Layout, ShaderInputLayout? InputLayout = null,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    )
-    {
-        if (Modules.Length == 0) throw new ArgumentException("No modules provided");
-        if (Modules.Length > FShader.MaxShaderModuleCount)
-            throw new ArgumentException(
-                $"Too many shader modules, there can be a maximum of {FShader.MaxShaderModuleCount}"
-            );
-        Shader.ShaderModuleArray arr = new();
-        var p_modules = stackalloc FShaderModule*[Modules.Length];
-        for (var i = 0; i < Modules.Length; i++)
-        {
-            var module = Modules[i];
-            arr[i] = module;
-            p_modules[i] = module.Ptr;
-        }
-        fixed (char* p_name = Name)
-        fixed (byte* p_name8 = Name8)
-        {
-            FShaderCreateOptions f_options = new()
-            {
-                Name = new(Name, Name8, p_name, p_name8),
-                Layout = Layout == null ? null : Layout.Ptr,
-                InputLayout = InputLayout == null ? null : InputLayout.Ptr,
-                Modules = p_modules,
-                Count = (byte)Modules.Length,
-            };
-            FShaderCreateResult result;
-            Ptr->CreateShader(&f_options, &result).TryThrow();
-            return new(result, arr, Layout, InputLayout, Name, this);
-        }
-    }
-
-    #endregion
-
     #region CreateMeshLayout
 
     public MeshLayout CreateMeshLayout(
@@ -282,10 +282,83 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
+    #region CreateShaderModule
+
+    public ShaderModule CreateShaderModule(
+        ShaderStage Stage, ReadOnlySpan<byte> Blob,
+        String8? EntryPoint = null,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        fixed (byte* data = Blob)
+        {
+            FShaderModuleCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                EntryPoint = EntryPoint == null ? null : EntryPoint.m_ptr,
+                Data = data,
+                Size = (nuint)Blob.Length,
+                Stage = Stage.ToFFI(),
+            };
+            FShaderModuleCreateResult result;
+            Ptr->CreateShaderModule(&f_options, &result).TryThrow();
+            return new(result, EntryPoint, Name, this);
+        }
+    }
+
+    #endregion
+
+    #region CreateShader
+
+    public Shader CreateShader(
+        ReadOnlySpan<ShaderModule> Modules, ShaderLayout? Layout, ShaderInputLayout? InputLayout = null,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        if (Modules.Length == 0) throw new ArgumentException("No modules provided");
+        if (Modules.Length > FShader.MaxShaderModuleCount)
+            throw new ArgumentException(
+                $"Too many shader modules, there can be a maximum of {FShader.MaxShaderModuleCount}"
+            );
+        Layout ??= GetEmptyShaderLayout(InputLayout == null ? ShaderLayoutFlags.None : ShaderLayoutFlags.InputAssembler);
+        Shader.ShaderModuleArray arr = new();
+        var p_modules = stackalloc FShaderModule*[Modules.Length];
+        for (var i = 0; i < Modules.Length; i++)
+        {
+            var module = Modules[i];
+            arr[i] = module;
+            p_modules[i] = module.Ptr;
+        }
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FShaderCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Layout = Layout.Ptr,
+                InputLayout = InputLayout == null ? null : InputLayout.Ptr,
+                Modules = p_modules,
+                Count = (byte)Modules.Length,
+            };
+            FShaderCreateResult result;
+            Ptr->CreateShader(&f_options, &result).TryThrow();
+            return new(result, arr, Layout, InputLayout, Name, this);
+        }
+    }
+
+    #endregion
+
     #region CreateGraphicsShaderPipeline
 
     public GraphicsShaderPipeline CreateGraphicsShaderPipeline(
         Shader Shader, GraphicsPipelineState PipelineState, MeshLayout? MeshLayout = null,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => CreateGraphicsShaderPipeline(Shader, PipelineState, Shader.Layout.GetEmptyBindingLayout(), MeshLayout, Name, Name8);
+
+    public GraphicsShaderPipeline CreateGraphicsShaderPipeline(
+        Shader Shader, GraphicsPipelineState PipelineState, BindingLayout BindingLayout, MeshLayout? MeshLayout = null,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
@@ -298,15 +371,16 @@ public sealed unsafe partial class GpuDevice : GpuObject
                 {
                     Name = new(Name, Name8, p_name, p_name8),
                     Shader = Shader.Ptr,
+                    Layout = BindingLayout.Ptr,
                 },
                 MeshLayout = MeshLayout == null ? null : MeshLayout.Ptr,
                 GraphicsState = PipelineState.ToFFI(),
             };
             FGraphicsShaderPipeline* ptr;
             Ptr->CreateGraphicsPipeline(&f_options, &ptr).TryThrow();
-            return new(ptr, Name, Shader, PipelineState, MeshLayout);
+            return new(ptr, Name, Shader, PipelineState, BindingLayout, MeshLayout);
         }
-    } 
+    }
 
     #endregion
 

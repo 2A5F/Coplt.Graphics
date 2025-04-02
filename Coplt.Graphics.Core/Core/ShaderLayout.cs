@@ -47,43 +47,37 @@ public enum ShaderLayoutItemType : byte
     RayTracingAccelerationStructure,
 }
 
-public enum ShaderLayoutItemUsage : byte
+public unsafe record struct ShaderLayoutItem()
 {
     /// <summary>
-    /// 动态变量，每帧都可能会改变
+    /// 绑定点的 Id，建议从名称缓存自增 id, 不同 stage 不同 scope 的 id 可以重复
     /// </summary>
-    Dynamic,
+    public required ulong Id;
     /// <summary>
-    /// 持久变量，例如材质参数，一般很少改变，可以进行一定的静态优化，建议将所有材质绑定放到单独的 space 中区分
+    /// 绑定点所属范围，和 Id 共同组成唯一定位
     /// </summary>
-    Persist,
-    /// <summary>
-    /// 即时变量，例如每次绘制调用都会改变, dx 后端将直接在根签名内，类型是 Sampler 时表示是静态采样器，不支持纹理
-    /// </summary>
-    Instant,
-}
-
-public unsafe record struct ShaderLayoutItemDefine
-{
+    public ulong Scope;
     /// <summary>
     /// dx 后端无论什么时候都是 register, vk 后端一般情况是 binding，类型为 Constants 时是 push const 的 offset，为字节偏移
     /// </summary>
-    public uint Slot;
+    public required uint Slot;
+    /// <summary>
+    /// dx 的 space，vk 的 set，vk 建议尽可能多的拆分 set，dx 的 space 写不写都一样
+    /// </summary>
     public uint Space;
     /// <summary>
-    /// 类型是 Sampler并且 Usage 是 Static 时是静态采样器描述的索引；其他类型表示数量
+    /// 数量，View 是 StaticSampler 时必须是 1，其他必须最少是 1, View 是 Constants 是 32 位值的数量，而不是 byte 的数量
     /// </summary>
-    public uint CountOrIndex;
+    public uint Count = 1;
     public GraphicsFormat Format;
-    public ShaderStage Stage;
-    public ShaderLayoutItemView View;
-    public ShaderLayoutItemType Type;
-    public ShaderLayoutItemUsage Usage;
-    public ResourceAccess UavAccess;
+    public required ShaderStage Stage;
+    public required ShaderLayoutItemView View;
+    public required ShaderLayoutItemType Type;
+    public ResourceAccess UavAccess = ResourceAccess.Unknown;
 
-    static ShaderLayoutItemDefine()
+    static ShaderLayoutItem()
     {
-        Debug.Assert(sizeof(FShaderLayoutItemDefine) == sizeof(ShaderLayoutItemDefine));
+        Debug.Assert(sizeof(FShaderLayoutItem) == sizeof(ShaderLayoutItem));
     }
 }
 
@@ -111,9 +105,7 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
     #region Fields
 
     internal FShaderLayoutData* m_data;
-    internal readonly FRoSlice<FShaderLayoutItemDefine> m_native_defines;
-    internal readonly FRoSlice<FShaderLayoutItemInfo> m_native_item_infos;
-    internal readonly FRoSlice<FShaderLayoutGroupClass> m_native_group_classes;
+    internal BindingLayout? m_empty_binding_layout;
 
     #endregion
 
@@ -121,9 +113,8 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
 
     public new FShaderLayout* Ptr => (FShaderLayout*)m_ptr;
     public ref readonly FShaderLayoutData Data => ref *m_data;
-    public ReadOnlySpan<FShaderLayoutItemDefine> NativeDefines => m_native_defines.Span;
-    public ReadOnlySpan<FShaderLayoutItemInfo> NativeItemInfos => m_native_item_infos.Span;
-    public ReadOnlySpan<FShaderLayoutGroupClass> NativeGroupClasses => m_native_group_classes.Span;
+    public ReadOnlySpan<ShaderLayoutItem> NativeItems => new(Data.Items, (int)Data.NumItems);
+    public ShaderLayoutFlags Flags => (ShaderLayoutFlags)Data.Flags;
 
     #endregion
 
@@ -133,21 +124,6 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
     {
         if (Ptr == null) return;
         m_data = result.Data;
-        {
-            uint count = 0;
-            var defines = Ptr->GetItemDefines(&count);
-            m_native_defines = new(defines, count);
-        }
-        {
-            uint count = 0;
-            var defines = Ptr->GetItemInfos(&count);
-            m_native_item_infos = new(defines, count);
-        }
-        {
-            uint count = 0;
-            var defines = Ptr->GetGroupClasses(&count);
-            m_native_group_classes = new(defines, count);
-        }
     }
 
     #endregion
@@ -159,6 +135,12 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
     {
         m_data = null;
     }
+
+    #endregion
+
+    #region GetEmptyBindingLayout
+
+    public BindingLayout GetEmptyBindingLayout() => m_empty_binding_layout ??= Device.CreateBindingLayout(this, [], $"Empty Binding Layout of [{this}]");
 
     #endregion
 }

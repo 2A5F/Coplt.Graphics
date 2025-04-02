@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef FFI_SRC
+#include <bit>
+#endif
+
 #include "GpuObject.h"
 #include "PipelineState.h"
 
@@ -128,4 +132,54 @@ namespace Coplt
         FShader* Shader{};
         FShaderData* Data{};
     };
+
+    #ifdef FFI_SRC
+    struct StageIterator final
+    {
+        FShaderStageFlags m_flags{};
+
+        StageIterator() = default;
+
+        explicit StageIterator(const FShaderStageFlags flags) noexcept : m_flags(flags)
+        {
+        }
+
+        bool operator!=(const StageIterator& rhs) const noexcept
+        {
+            return m_flags != rhs.m_flags;
+        }
+
+        StageIterator& operator++() noexcept
+        {
+            m_flags &= static_cast<FShaderStageFlags>(static_cast<u32>(m_flags) - 1);
+            return *this;
+        }
+
+        FShaderStage operator*() const noexcept
+        {
+            return static_cast<FShaderStage>(std::countr_zero(static_cast<u32>(m_flags)));
+        }
+    };
+
+    struct IterStage final
+    {
+        FShaderStageFlags const m_flags{};
+
+        IterStage() = default;
+
+        explicit IterStage(const FShaderStageFlags flags) noexcept : m_flags(flags)
+        {
+        }
+
+        StageIterator begin() const noexcept
+        {
+            return StageIterator(m_flags);
+        }
+
+        StageIterator end() const noexcept
+        {
+            return StageIterator(FShaderStageFlags::None);
+        }
+    };
+    #endif
 }

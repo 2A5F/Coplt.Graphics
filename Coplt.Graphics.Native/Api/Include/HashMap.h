@@ -423,7 +423,7 @@ namespace Coplt
         Value* TryGet(const Key& key) const
         {
             auto entry = FindEntry(key);
-            if (entry) return std::addressof(entry->value);
+            if (entry) return std::addressof(entry->second);
             return nullptr;
         }
 
@@ -567,7 +567,7 @@ namespace Coplt
         }
 
         // 返回是否添加
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         bool TryAdd(const Key& key, CreateValue create_value)
         {
             return TryInsert(

@@ -10,7 +10,7 @@ public sealed unsafe partial class Shader : DeviceChild
     #region Fields
 
     internal FShaderData* m_data;
-    internal readonly ShaderLayout? m_layout;
+    internal readonly ShaderLayout m_layout;
     internal readonly ShaderInputLayout? m_input_layout;
     internal ShaderModuleArray m_modules;
 
@@ -26,7 +26,7 @@ public sealed unsafe partial class Shader : DeviceChild
 
     public new FShader* Ptr => (FShader*)m_ptr;
     public ref readonly FShaderData Data => ref *m_data;
-    public ShaderLayout? Layout => m_layout;
+    public ShaderLayout Layout => m_layout;
     public ShaderInputLayout? InputLayout => m_input_layout;
     public ReadOnlySpan<ShaderModule> Modules => m_modules;
     public ShaderStageFlags Stages => Data.Stages.FromFFI();
@@ -42,7 +42,7 @@ public sealed unsafe partial class Shader : DeviceChild
     #region Ctor
 
     internal Shader(
-        FShaderCreateResult result, ShaderModuleArray modules, ShaderLayout? layout, ShaderInputLayout? input_layout, string? name, GpuDevice device
+        FShaderCreateResult result, ShaderModuleArray modules, ShaderLayout layout, ShaderInputLayout? input_layout, string? name, GpuDevice device
     ) : base((FGpuObject*)result.Shader, name, device)
     {
         m_data = result.Data;

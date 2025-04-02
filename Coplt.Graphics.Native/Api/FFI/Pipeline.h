@@ -10,12 +10,13 @@ namespace Coplt
     {
         FStr8or16 Name{};
         FShader* Shader{};
+        FBindingLayout* Layout{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderPipeline, "356a2610-34e3-4c01-9904-22e3c5ce2f4e", FGpuObject)
     {
         virtual FShader* GetShader() noexcept = 0;
-        virtual FShaderLayout* GetLayout() noexcept = 0;
+        virtual FBindingLayout* GetLayout() noexcept = 0;
         virtual FShaderStageFlags GetStages() noexcept = 0;
     };
 

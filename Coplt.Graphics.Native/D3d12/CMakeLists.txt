@@ -20,7 +20,6 @@ add_library(${target_name} SHARED
     FFI/Pipeline.h
     Src/GraphicsPipeline.h
     Src/GraphicsPipeline.cc
-    FFI/Layout.h
     Src/Layout.h
     Src/Layout.cc
     Include/ShaderVisibility.h
