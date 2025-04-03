@@ -33,14 +33,17 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 (level, _) => Log.IsEnabled(level.ToLogEventLevel()),
                 (level, scope, msg) => Log.Write(level.ToLogEventLevel(), "[{Scope}] {Msg}", scope, msg)
             );
-            Device = Graphics.CreateDevice(Name: "Main Device");
+            Device = Graphics.CreateDevice(new()
+            {
+                // DeviceType = DeviceTypeRequire.IntegratedGpu,
+            }, Name: "Main Device");
             var Adapter = Device.Adapter;
             Log.Information(
                 "Selected device: {@Info}",
                 new
                 {
                     Adapter.Name, Adapter.VendorId, Adapter.DeviceId, Adapter.Driver, Adapter.Backend,
-                    Adapter.Features.ShaderModelLevel
+                    Adapter.Features.ShaderModelLevel, Adapter.Features.UMA, Adapter.Features.CacheCoherentUMA
                 }
             );
             Isolate = Device.MainIsolate;

@@ -63,12 +63,12 @@ D3d12GpuDevice::D3d12GpuDevice(Rc<D3d12GpuAdapter>&& adapter, const FGpuDeviceCr
     allocator_desc.pAllocationCallbacks = &allocation_callbacks;
     chr | CreateAllocator(&allocator_desc, &m_gpu_allocator);
 
-    if (m_adapter->m_feature_support.CacheCoherentUMA())
+    if (m_adapter->m_feature_support.UMA())
     {
         D3D12MA::POOL_DESC pool_desc{};
         pool_desc.Flags = D3D12MA::POOL_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
         pool_desc.HeapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
-        pool_desc.HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        pool_desc.HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
         pool_desc.HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
         chr | m_gpu_allocator->CreatePool(&pool_desc, &m_uma_pool);
     }

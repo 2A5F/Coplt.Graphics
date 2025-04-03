@@ -60,5 +60,9 @@ namespace Coplt
         b8 DynBindlessOnly{};
         // 可以任意创建隔离，dx12 永远为 true，vk 永远为 false
         b8 ExtraIsolate{};
+        // 是否是缓存一致的 UMA 架构
+        b8 UMA{};
+        // 是否是缓存一致的 UMA 架构
+        b8 CacheCoherentUMA{};
     };
 }

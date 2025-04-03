@@ -12,26 +12,21 @@ ResourcePack::ResourcePack(
 {
     D3D12MA::ALLOCATION_DESC alloc_desc{};
     alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
-    if (device->m_uma_pool)
+    switch (cpu_access)
     {
-        alloc_desc.CustomPool = device->m_uma_pool.Get();
-    }
-    else
-    {
-        switch (cpu_access)
-        {
-        case FCpuAccess::Write:
-            alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-            break;
-        case FCpuAccess::Read:
-            alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
-            break;
-        case FCpuAccess::ReadWrite:
+    case FCpuAccess::Write:
+        alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+        break;
+    case FCpuAccess::Read:
+        alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
+        break;
+    case FCpuAccess::ReadWrite:
+        if (device->m_uma_pool) alloc_desc.CustomPool = device->m_uma_pool.Get();
+        else
             COPLT_THROW("Non-UMA devices cannot create read write resources");
-        default:
-            alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-            break;
-        }
+    default:
+        alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        break;
     }
 
     D3D12_BARRIER_LAYOUT init_layout = D3D12_BARRIER_LAYOUT_UNDEFINED;

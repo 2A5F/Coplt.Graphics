@@ -31,7 +31,6 @@ public sealed unsafe partial class GpuAdapter
     public DeviceType DeviceType => (DeviceType)m_ptr->m_device_type;
     public Backend Backend => (Backend)m_ptr->m_backend;
     public DeviceFeatures Features => new(m_ptr->m_features);
-    public bool UseLegacyState => !m_ptr->m_features.EnhancedBarriers;
 
     #endregion
 

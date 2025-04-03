@@ -1106,6 +1106,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::b8")]
         public B8 ExtraIsolate;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 UMA;
+
+        [NativeTypeName("Coplt::b8")]
+        public B8 CacheCoherentUMA;
     }
 
     [NativeTypeName("Coplt::i32")]
