@@ -1,5 +1,8 @@
 #pragma once
+#include <memory>
 #include <utility>
+
+#include "../../Api/FFI/Common.h"
 
 namespace Coplt
 {

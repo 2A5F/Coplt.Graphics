@@ -104,3 +104,9 @@ FResult D3d12GpuBuffer::Unmap(const b8 Discard) noexcept
         m_resource->m_resource->Unmap(0, Discard ? &range : nullptr);
     });
 }
+
+bool D3d12GpuBuffer::IsCompatible(const FBindGroupItem& def) const
+{
+    // todo
+    return true;
+}

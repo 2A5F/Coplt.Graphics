@@ -11,10 +11,11 @@
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/Ptr.h"
 #include "../Include/ResState.h"
+#include "../Include/View.h"
 
 namespace Coplt
 {
-    COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage)
+    COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage, ID3d12GpuViewable)
     {
         virtual NonNull<FGpuImageData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
@@ -40,5 +41,7 @@ namespace Coplt
 
         void* GetRawResourcePtr() noexcept override;
         NonNull<ID3D12Resource> GetResourcePtr() override;
+
+        bool IsCompatible(const FBindGroupItem& def) const override;
     };
 }

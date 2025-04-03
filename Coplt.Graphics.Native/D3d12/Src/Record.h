@@ -1,6 +1,9 @@
 #pragma once
 
+#include <directx/d3dx12.h>
+
 #include "Barrier.h"
+#include "Binding.h"
 #include "Context.h"
 #include "Isolate.h"
 #include "Layout.h"
@@ -64,7 +67,7 @@ namespace Coplt
             // 如果不是图形管线将不会设置
             Ptr<FD3d12GraphicsShaderPipeline> GPipeline{};
 
-            // Ptr<ID3d12ShaderBinding> Binding{};
+            Ptr<ID3d12ShaderBinding> Binding{};
 
             bool PipelineChanged{};
             bool BindingChanged{};
@@ -126,7 +129,7 @@ namespace Coplt
         void Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
-        void Analyze_Dispatch( u32 i, const FCmdDispatch& cmd) const;
+        void Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const;
 
         void Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count) override;
         void Interpret_Label(const CmdList& list, u32 i, const FCmdLabel& cmd) const;

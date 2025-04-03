@@ -17,7 +17,7 @@ void D3d12GpuRecord::PipelineContext::Reset()
     Pipeline = nullptr;
     Layout = nullptr;
     GPipeline = nullptr;
-    // Binding = nullptr;
+    Binding = nullptr;
     PipelineChanged = false;
     BindingChanged = false;
 }

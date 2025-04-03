@@ -10,10 +10,11 @@
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/Ptr.h"
 #include "../Include/ResState.h"
+#include "../Include/View.h"
 
 namespace Coplt
 {
-    COPLT_INTERFACE_DEFINE(ID3d12GpuBuffer, "6edf3bc5-dfc7-461a-ab6b-0e5f5a9d71e7", FD3d12GpuBuffer)
+    COPLT_INTERFACE_DEFINE(ID3d12GpuBuffer, "6edf3bc5-dfc7-461a-ab6b-0e5f5a9d71e7", FD3d12GpuBuffer, ID3d12GpuViewable)
     {
         virtual NonNull<FGpuBufferData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
@@ -43,5 +44,7 @@ namespace Coplt
 
         FResult Map(void** ptr, b8 Discard) noexcept override;
         FResult Unmap(b8 Discard) noexcept override;
+
+        bool IsCompatible(const FBindGroupItem& def) const override;
     };
 }

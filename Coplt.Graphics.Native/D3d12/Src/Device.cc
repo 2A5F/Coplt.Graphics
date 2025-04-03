@@ -4,7 +4,6 @@
 
 #include "../../Api/Src/Shader.h"
 #include "Adapter.h"
-#include "DescriptorManager.h"
 #include "Buffer.h"
 #include "GraphicsPipeline.h"
 #include "Image.h"
@@ -12,7 +11,6 @@
 #include "Layout.h"
 #include "Queue.h"
 #include "Sampler.h"
-#include "../../Api/Include/AllocObjectId.h"
 
 using namespace Coplt;
 

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <directx/d3d12.h>
-
 #include "D3D12MemAlloc.h"
+
 #include "Instance.h"
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/HashMap.h"
 #include "../../Api/Include/Object.h"
 #include "../FFI/Device.h"
+#include "DescriptorManager.h"
 
 namespace Coplt
 {

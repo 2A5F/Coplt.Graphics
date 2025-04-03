@@ -133,3 +133,9 @@ NonNull<ID3D12Resource> D3d12GpuImage::GetResourcePtr()
 {
     return m_resource->m_resource.Get();
 }
+
+bool D3d12GpuImage::IsCompatible(const FBindGroupItem& def) const
+{
+    // todo
+    return true;
+}

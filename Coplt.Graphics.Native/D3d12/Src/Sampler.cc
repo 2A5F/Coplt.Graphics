@@ -24,3 +24,12 @@ NonNull<const D3D12_SAMPLER_DESC> D3d12GpuSampler::Desc() const noexcept
 {
     return &m_desc;
 }
+
+bool D3d12GpuSampler::IsCompatible(const FBindGroupItem& def) const
+{
+    if (def.View != FShaderLayoutItemView::Sampler)
+        return false;
+    if (def.Type != FShaderLayoutItemType::Sampler)
+        return false;
+    return true;
+}

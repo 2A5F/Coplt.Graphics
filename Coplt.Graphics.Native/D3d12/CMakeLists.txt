@@ -34,8 +34,6 @@ add_library(${target_name} SHARED
     Include/States.h
     Src/Binding.h
     Src/Binding.cc
-    Src/DescriptorManager.h
-    Src/DescriptorManager.cc
     Include/View.h
     FFI/Adapter.h
     Src/Adapter.h
@@ -58,6 +56,8 @@ add_library(${target_name} SHARED
     Src/Barrier.cc
     Include/ResState.h
     Src/ResState.cc
+    Src/DescriptorManager.h
+    Src/DescriptorManager.cc
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

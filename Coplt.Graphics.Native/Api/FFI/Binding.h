@@ -8,7 +8,11 @@ namespace Coplt
 {
     struct FBindItem
     {
+        // 绑定内容
         FView View{};
+        // 绑定槽的索引
+        u32 Slot{};
+        // 如果绑定是数组的话，数组中的索引
         u32 Index{};
     };
 
@@ -16,6 +20,8 @@ namespace Coplt
     {
         FStr8or16 Name{};
         FBindGroupLayout* Layout{};
+        FBindItem* InitBindings{};
+        u32 NumInitBindings{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBindGroup, "ae54efe5-c372-4291-b995-55298758d2b2", FGpuObject)
@@ -26,6 +32,8 @@ namespace Coplt
     {
         FStr8or16 Name{};
         FBindingLayout* Layout{};
+        FShaderBindGroup** InitBindGroups{};
+        u32 NumInitBindGroups{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBinding, "a3ca644a-0e02-4d25-9a18-8835d66600f7", FGpuObject)

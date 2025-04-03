@@ -3,6 +3,13 @@
 
 using namespace Coplt;
 
+View& View::swap(View& other) noexcept
+{
+    std::swap(m_viewable, other.m_viewable);
+    std::swap(m_type, other.m_type);
+    return *this;
+}
+
 View::View(const FView& view)
 {
     if (view.Type != FViewType::None && view.Viewable)
@@ -15,9 +22,28 @@ View::View(const FView& view)
     }
 }
 
+View& View::operator=(const FView& view)
+{
+    return View(view).swap(*this);
+}
+
 View::operator bool() const
 {
     return m_viewable && m_type != FViewType::None;
+}
+
+bool View::IsCompatible(const FBindGroupItem& def) const
+{
+    switch (m_type)
+    {
+    case FViewType::None:
+        break;
+    case FViewType::Buffer:
+    case FViewType::Image:
+    case FViewType::Sampler:
+        return m_viewable->IsCompatible(def);
+    }
+    return true;
 }
 
 // void View::CreateDescriptor(
