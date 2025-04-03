@@ -33,8 +33,6 @@ namespace Coplt
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
-        ResourceType GetResourceType() noexcept override;
-        FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuBufferData* GpuBufferData() noexcept override;
         NonNull<FGpuBufferData> Data() override;

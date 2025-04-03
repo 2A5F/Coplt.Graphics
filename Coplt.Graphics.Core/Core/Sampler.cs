@@ -90,7 +90,7 @@ namespace Coplt.Graphics.States
 namespace Coplt.Graphics.Core
 {
     [Dropping(Unmanaged = true)]
-    public sealed unsafe partial class Sampler : DeviceChild
+    public sealed unsafe partial class Sampler : GpuViewable
     {
         #region Fields
 
@@ -107,7 +107,7 @@ namespace Coplt.Graphics.Core
 
         #region Ctor
 
-        internal Sampler(FGpuSampler* ptr, string? name, GpuDevice device) : base((FGpuObject*)ptr, name, device)
+        internal Sampler(FGpuSampler* ptr, string? name, GpuDevice device) : base((FGpuViewable*)ptr, name, device)
         {
             m_info = ptr->Info();
         }

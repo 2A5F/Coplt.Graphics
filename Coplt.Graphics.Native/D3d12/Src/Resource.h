@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../Api/Include/Object.h"
 #include "../FFI/Resource.h"
+#include "../Include/ResState.h"
 #include "Device.h"
 
 namespace Coplt
@@ -14,9 +14,8 @@ namespace Coplt
         ResourcePack() = default;
 
         explicit ResourcePack(
-            D3d12GpuDevice* device, D3D12MA::Allocator* allocator, FCpuAccess cpu_access,
-            FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value,
-            bool image
+            D3d12GpuDevice* device, D3D12MA::Allocator* allocator, FCpuAccess cpu_access, ResLayout& layout,
+            const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value, bool image
         );
     };
 
@@ -24,7 +23,6 @@ namespace Coplt
     {
         ResourcePack m_resource{};
         u64 m_size{};
-        FResState m_state{};
 
         BufferPack() = default;
 

@@ -60,7 +60,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                     }
                 },
                 Topology = PrimitiveTopologyType.TriangleStrip,
-            }, Name: Name
+            }, BindingLayout, Name: Name
         );
         ArgBuffer = Device.CreateBuffer(
             new()
@@ -75,7 +75,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     protected override void Render(GpuRecord cmd, Time time)
     {
         cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
-        // using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))]);
+        using var render = cmd.Render([new(Output, LoadOp.Discard)]);
         // render.Draw(Pipeline, 4, Binding: ShaderBinding);
+        render.Draw(Pipeline, 4);
     }
 }

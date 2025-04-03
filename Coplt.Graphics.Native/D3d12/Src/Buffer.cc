@@ -9,7 +9,7 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
 {
     m_allocator = m_device->m_gpu_allocator;
 
-    m_state = FResState::BufferCommon();
+    m_resource_type = ResourceType::Buffer;
     m_purpose = options.Purpose;
     m_cpu_access = options.CpuAccess;
     m_size = options.Size;
@@ -38,12 +38,14 @@ D3d12GpuBuffer::D3d12GpuBuffer(Rc<D3d12GpuDevice>&& device, const FGpuBufferCrea
             m_desc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
     }
 
-    m_resource = box<ResourcePack>(m_device.get(), m_allocator.Get(), m_cpu_access, m_state, &m_desc, nullptr, false);
+    m_resource = box<ResourcePack>(m_device.get(), m_allocator.Get(), m_cpu_access, m_layout_state.Layout, &m_desc, nullptr, false);
+    m_raw_resource_ptr = GetRawResourcePtr();
 
     if (m_device->Debug())
     {
         chr | m_resource->m_resource >> SetNameEx(options.Name);
     }
+
 }
 
 FResult D3d12GpuBuffer::SetName(const FStr8or16& name) noexcept
@@ -53,16 +55,6 @@ FResult D3d12GpuBuffer::SetName(const FStr8or16& name) noexcept
         if (!m_device->Debug()) return;
         chr | m_resource->m_resource >> SetNameEx(name);
     });
-}
-
-ResourceType D3d12GpuBuffer::GetResourceType() noexcept
-{
-    return ResourceType::Buffer;
-}
-
-FGpuViewableData* D3d12GpuBuffer::GpuViewableData() noexcept
-{
-    return this;
 }
 
 FGpuResourceData* D3d12GpuBuffer::GpuResourceData() noexcept

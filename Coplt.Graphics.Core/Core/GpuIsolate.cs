@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
+using Coplt.Graphics.States;
 
 namespace Coplt.Graphics.Core;
 
@@ -292,11 +293,8 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
             {
                 Base =
                 {
-                    Base =
-                    {
-                        Name = new(Name, Name8, p_name, p_name8),
-                        Purpose = options.Purpose.ToFFI(),
-                    },
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Purpose = options.Purpose.ToFFI(),
                     CpuAccess = options.CpuAccess.ToFFI(),
                 },
                 Size = options.Size,
@@ -330,11 +328,8 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
             {
                 Base =
                 {
-                    Base =
-                    {
-                        Name = new(Name, Name8, p_name, p_name8),
-                        Purpose = options.Purpose.ToFFI(),
-                    },
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Purpose = options.Purpose.ToFFI(),
                     CpuAccess = options.CpuAccess.ToFFI(),
                 },
                 Format = options.Format.ToFFI(),

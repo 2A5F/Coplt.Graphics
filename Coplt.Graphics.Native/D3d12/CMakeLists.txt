@@ -32,7 +32,6 @@ add_library(${target_name} SHARED
     Src/Context.h
     Src/Context.cc
     Include/States.h
-    FFI/Binding.h
     Src/Binding.h
     Src/Binding.cc
     Src/DescriptorManager.h

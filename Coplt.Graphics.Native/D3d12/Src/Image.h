@@ -33,8 +33,6 @@ namespace Coplt
         explicit D3d12GpuImage(Rc<D3d12GpuDevice>&& device, const FGpuImageCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
-        ResourceType GetResourceType() noexcept override;
-        FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuImageData* GpuImageData() noexcept override;
         NonNull<FGpuImageData> Data() override;

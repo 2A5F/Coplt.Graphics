@@ -3,224 +3,23 @@
 
 using namespace Coplt;
 
-enum View::Type View::Type() const
-{
-    return m_type;
-}
-
-Rc<ID3d12GpuBuffer>& View::Buffer()
-{
-    if (m_type != Type::Buffer)
-        COPLT_THROW("null");
-    return m_buffer;
-}
-
-const Rc<ID3d12GpuBuffer>& View::Buffer() const
-{
-    if (m_type != Type::Buffer)
-        COPLT_THROW("null");
-    return m_buffer;
-}
-
-Rc<ID3d12GpuImage>& View::Image()
-{
-    if (m_type != Type::Image)
-        COPLT_THROW("null");
-    return m_image;
-}
-
-const Rc<ID3d12GpuImage>& View::Image() const
-{
-    if (m_type != Type::Image)
-        COPLT_THROW("null");
-    return m_image;
-}
-
-Rc<ID3d12GpuSampler>& View::Sampler()
-{
-    if (m_type != Type::Sampler)
-        COPLT_THROW("null");
-    return m_sampler;
-}
-
-const Rc<ID3d12GpuSampler>& View::Sampler() const
-{
-    if (m_type != Type::Sampler)
-        COPLT_THROW("null");
-    return m_sampler;
-}
-
-View::~View()
-{
-    // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-    switch (m_type)
-    {
-    case Type::None:
-        return;
-    case Type::Buffer:
-        m_buffer.~Rc();
-        return;
-    case Type::Image:
-        m_image.~Rc();
-        return;
-    case Type::Sampler:
-        m_sampler.~Rc();
-        break;
-    }
-    std::unreachable();
-}
-
-// ReSharper disable once CppPossiblyUninitializedMember
-View::View() : m_type(Type::None)
-{
-}
-
-View::View(const View& other) : m_type(other.m_type)
-{
-    switch (m_type)
-    {
-    case Type::None:
-        break;
-    case Type::Buffer:
-        new(std::addressof(m_buffer)) Rc(other.m_buffer);
-        break;
-    case Type::Image:
-        new(std::addressof(m_image)) Rc(other.m_image);
-        break;
-    case Type::Sampler:
-        new(std::addressof(m_sampler)) Rc(other.m_sampler);
-        break;
-    }
-}
-
-View::View(View&& other) noexcept : m_type(std::exchange(other.m_type, Type::None))
-{
-    switch (m_type)
-    {
-    case Type::None:
-        break;
-    case Type::Buffer:
-        new(std::addressof(m_buffer)) Rc(std::move(other.m_buffer));
-        break;
-    case Type::Image:
-        new(std::addressof(m_image)) Rc(std::move(other.m_image));
-        break;
-    case Type::Sampler:
-        new(std::addressof(m_sampler)) Rc(std::move(other.m_sampler));
-        break;
-    }
-}
-
-View& View::operator=(const View& view) noexcept
-{
-    this->~View();
-    new(this) View(view);
-    return *this;
-}
-
-View& View::operator=(View&& view) noexcept
-{
-    this->~View();
-    new(this) View(std::forward<View>(view));
-    return *this;
-}
-
 View::View(const FView& view)
 {
-    switch (view.Type)
+    if (view.Type != FViewType::None && view.Viewable)
     {
-    case FViewType::None:
-        m_type = Type::None;
-        break;
-    case FViewType::Buffer:
-        {
-            m_type = Type::Buffer;
-            if (view.Buffer == nullptr) new(std::addressof(m_buffer)) Rc<ID3d12GpuBuffer>();
-            const auto db = view.Buffer->QueryInterface<ID3d12GpuBuffer>();
-            if (db == nullptr)
-                COPLT_THROW("GpuBuffer from different backends.");
-            new(std::addressof(m_buffer)) Rc(Rc<ID3d12GpuBuffer>::UnsafeClone(db));
-            break;
-        }
-    case FViewType::Image:
-        {
-            m_type = Type::Image;
-            if (view.Image == nullptr) new(std::addressof(m_image)) Rc<ID3d12GpuImage>();
-            const auto db = view.Image->QueryInterface<ID3d12GpuImage>();
-            if (db == nullptr)
-                COPLT_THROW("GpuImage from different backends.");
-            new(std::addressof(m_image)) Rc(Rc<ID3d12GpuImage>::UnsafeClone(db));
-            break;
-        }
-    case FViewType::Sampler:
-        {
-            m_type = Type::Sampler;
-            if (view.Sampler == nullptr) new(std::addressof(m_sampler)) Rc<ID3d12GpuSampler>();
-            const auto db = view.Sampler->QueryInterface<ID3d12GpuSampler>();
-            if (db == nullptr)
-                COPLT_THROW("GpuSampler from different backends.");
-            new(std::addressof(m_sampler)) Rc(Rc<ID3d12GpuSampler>::UnsafeClone(db));
-            break;
-        }
-        break;
+        const auto viewable = view.Viewable->QueryInterface<ID3d12GpuViewable>();
+        if (!viewable)
+            COPLT_THROW("Viewable from different backends");
+        m_viewable = Rc<ID3d12GpuViewable>::UnsafeClone(viewable);
+        m_type = view.Type;
     }
 }
 
-View& View::operator=(const FView& view)
+View::operator bool() const
 {
-    this->~View();
-    new(this) View(view);
-    return *this;
+    return m_viewable && m_type != FViewType::None;
 }
 
-View::View(const Rc<ID3d12GpuBuffer>& buffer) : m_type(Type::Buffer)
-{
-    new(std::addressof(m_buffer)) Rc(buffer);
-}
-
-View::View(Rc<ID3d12GpuBuffer>&& buffer) : m_type(Type::Buffer)
-{
-    new(std::addressof(m_buffer)) Rc(std::move(buffer));
-}
-
-View& View::operator=(const Rc<ID3d12GpuBuffer>& buffer)
-{
-    this->~View();
-    new(this) View(buffer);
-    return *this;
-}
-
-View& View::operator=(Rc<ID3d12GpuBuffer>&& buffer)
-{
-    this->~View();
-    new(this) View(std::forward<Rc<ID3d12GpuBuffer>>(buffer));
-    return *this;
-}
-
-View::View(const Rc<ID3d12GpuImage>& image) : m_type(Type::Image)
-{
-    new(std::addressof(m_image)) Rc(image);
-}
-
-View::View(Rc<ID3d12GpuImage>&& image) : m_type(Type::Image)
-{
-    new(std::addressof(m_image)) Rc(std::move(image));
-}
-
-View& View::operator=(const Rc<ID3d12GpuImage>& image)
-{
-    this->~View();
-    new(this) View(image);
-    return *this;
-}
-
-View& View::operator=(Rc<ID3d12GpuImage>&& image)
-{
-    this->~View();
-    new(this) View(std::forward<Rc<ID3d12GpuImage>>(image));
-    return *this;
-}
-//
 // void View::CreateDescriptor(
 //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, const CD3DX12_CPU_DESCRIPTOR_HANDLE handle, const FShaderLayoutGroupView type
 // ) const

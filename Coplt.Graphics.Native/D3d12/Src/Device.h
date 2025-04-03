@@ -28,6 +28,7 @@ namespace Coplt
         ComPtr<ID3D12Device> m_device0{};
         ComPtr<ID3D12InfoQueue1> m_info_queue{};
         ComPtr<D3D12MA::Allocator> m_gpu_allocator{};
+        ComPtr<D3D12MA::Pool> m_uma_pool{};
         Box<EmptyShaderLayouts> m_empty_layouts{};
         Rc<D3d12BindGroupLayout> m_empty_bind_group_layout{};
         Box<EmptyBindingLayouts> m_empty_binding_layout{};
@@ -68,7 +69,9 @@ namespace Coplt
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept override;
 
-        FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
+        FResult CreateBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroup** out) noexcept override;
+        FResult CreateBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
+
         FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept override;
 
         FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;

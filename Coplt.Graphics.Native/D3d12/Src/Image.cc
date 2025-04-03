@@ -10,7 +10,7 @@ D3d12GpuImage::D3d12GpuImage(Rc<D3d12GpuDevice>&& device, const FGpuImageCreateO
 {
     m_allocator = m_device->m_gpu_allocator;
 
-    m_state = FResState::BufferCommon();
+    m_resource_type = ResourceType::Image;
     m_purpose = options.Purpose;
     m_cpu_access = options.CpuAccess;
     m_format = options.Format;
@@ -84,9 +84,10 @@ D3d12GpuImage::D3d12GpuImage(Rc<D3d12GpuDevice>&& device, const FGpuImageCreateO
     }
 
     m_resource = box<ResourcePack>(
-        m_device.get(), m_allocator.Get(), m_cpu_access, m_state, &m_desc,
+        m_device.get(), m_allocator.Get(), m_cpu_access, m_layout_state.Layout, &m_desc,
         options.HasOptimizedClearValue ? &clear_value : nullptr, true
     );
+    m_raw_resource_ptr = GetRawResourcePtr();
 
     if (m_device->Debug())
     {
@@ -101,16 +102,6 @@ FResult D3d12GpuImage::SetName(const FStr8or16& name) noexcept
         if (!m_device->Debug()) return;
         chr | m_resource->m_resource >> SetNameEx(name);
     });
-}
-
-ResourceType D3d12GpuImage::GetResourceType() noexcept
-{
-    return ResourceType::Image;
-}
-
-FGpuViewableData* D3d12GpuImage::GpuViewableData() noexcept
-{
-    return this;
 }
 
 FGpuResourceData* D3d12GpuImage::GpuResourceData() noexcept

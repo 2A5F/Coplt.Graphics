@@ -10,56 +10,18 @@
 
 namespace Coplt
 {
+    COPLT_INTERFACE_DEFINE(ID3d12GpuViewable, "78155a99-1110-42f8-a1ef-c70fc23dbc52", FGpuViewable)
+    {
+    };
+
     struct View final
     {
-        enum class Type : u8
-        {
-            None,
-            Buffer,
-            Image,
-            Sampler,
-        };
-
-    private:
-        union
-        {
-            Rc<ID3d12GpuBuffer> m_buffer;
-            Rc<ID3d12GpuImage> m_image;
-            Rc<ID3d12GpuSampler> m_sampler;
-        };
-
-        Type m_type;
-
-    public:
-        Type Type() const;
-        Rc<ID3d12GpuBuffer>& Buffer();
-        const Rc<ID3d12GpuBuffer>& Buffer() const;
-        Rc<ID3d12GpuImage>& Image();
-        const Rc<ID3d12GpuImage>& Image() const;
-        Rc<ID3d12GpuSampler>& Sampler();
-        const Rc<ID3d12GpuSampler>& Sampler() const;
-
-        ~View();
-
-        View();
-
-        View(const View& other);
-        View(View&& other) noexcept;
-        View& operator=(const View& view) noexcept;
-        View& operator=(View&& view) noexcept;
+        Rc<ID3d12GpuViewable> m_viewable{};
+        FViewType m_type{};
 
         View(const FView& view);
-        View& operator=(const FView& view);
 
-        View(const Rc<ID3d12GpuBuffer>& buffer);
-        View(Rc<ID3d12GpuBuffer>&& buffer);
-        View& operator=(const Rc<ID3d12GpuBuffer>& buffer);
-        View& operator=(Rc<ID3d12GpuBuffer>&& buffer);
-
-        View(const Rc<ID3d12GpuImage>& image);
-        View(Rc<ID3d12GpuImage>&& image);
-        View& operator=(const Rc<ID3d12GpuImage>& image);
-        View& operator=(Rc<ID3d12GpuImage>&& image);
+        operator bool() const;
 
         // void CreateDescriptor(
         //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
