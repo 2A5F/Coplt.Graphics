@@ -39,7 +39,12 @@ FResult D3d12ShaderBindGroup::SetName(const FStr8or16& name) noexcept
     });
 }
 
-void D3d12ShaderBindGroup::Set(const std::span<const FBindItem> items)
+const Rc<FBindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
+{
+    return m_layout;
+}
+
+void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
 {
     const auto defs = m_layout->GetItems();
     for (const auto& item : items)
@@ -78,10 +83,43 @@ void D3d12ShaderBindGroup::Set(const std::span<const FBindItem> items)
 
 D3d12ShaderBinding::D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options) : m_device(std::move(device))
 {
-    // todo
+    const auto layout = NonNull(options.Layout)->QueryInterface<ID3d12BindingLayout>();
+    if (layout == nullptr)
+        COPLT_THROW("Layout from different backends");
+    m_layout = Rc<ID3d12BindingLayout>::UnsafeClone(layout);
+    const auto groups = m_layout->Groups();
+    m_groups = std::vector(groups.size(), Rc<ID3d12ShaderBindGroup>{});
+    Set(std::span(options.InitBindGroups, options.InitBindGroups + options.NumInitBindGroups));
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
+}
+
+const Rc<ID3d12BindingLayout>& D3d12ShaderBinding::Layout() const noexcept
+{
+    return m_layout;
+}
+
+void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)
+{
+    const auto groups = m_layout->Groups();
+    for (const auto& item : items)
+    {
+        if (item.Index >= groups.size())
+            COPLT_THROW("Index out of range");
+        if (item.BindGroup)
+        {
+            const auto bind_group = item.BindGroup->QueryInterface<ID3d12ShaderBindGroup>();
+            if (bind_group == nullptr)
+                COPLT_THROW("BindGroup from different backends");
+            m_groups[item.Index] = Rc<ID3d12ShaderBindGroup>::UnsafeClone(bind_group);
+        }
+        else
+        {
+            m_groups[item.Index] = nullptr;
+        }
+        m_changed_groups.Add(item.Index);
+    }
 }

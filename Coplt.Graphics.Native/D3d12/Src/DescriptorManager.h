@@ -13,7 +13,7 @@ namespace Coplt
     struct D3d12GpuDevice;
     struct DescriptorHeap;
 
-    struct DescriptorAllocation final : Object<DescriptorHeap, FUnknown>
+    struct DescriptorAllocation
     {
         Rc<DescriptorHeap> m_heap{};
         u64 m_version{};
@@ -21,7 +21,7 @@ namespace Coplt
         u64 m_offset{};
 
         explicit DescriptorAllocation(DescriptorHeap& heap, D3D12MA::VirtualAllocation allocation, u64 offset);
-        ~DescriptorAllocation() override;
+        ~DescriptorAllocation();
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const;
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const;
@@ -38,13 +38,13 @@ namespace Coplt
 
         explicit DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_size);
 
-        Rc<DescriptorAllocation> Allocate(u32 size);
+        DescriptorAllocation Allocate(u32 size);
     };
 
     struct DescriptorManager final
     {
-        constexpr static u32 InitResHeapSize = 65536;
-        constexpr static u32 InitSmpHeapSize = 1024;
+        constexpr static u32 InitResHeapSize = 1024;
+        constexpr static u32 InitSmpHeapSize = 128;
 
         Rc<DescriptorHeap> m_res{};
         Rc<DescriptorHeap> m_smp{};

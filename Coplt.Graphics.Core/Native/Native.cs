@@ -1325,7 +1325,7 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateBindGroup([NativeTypeName("const FShaderBindGroupCreateOptions &")] FShaderBindGroupCreateOptions* options, FShaderBindGroup** @out)
+        public FResult CreateShaderBindGroup([NativeTypeName("const FShaderBindGroupCreateOptions &")] FShaderBindGroupCreateOptions* options, FShaderBindGroup** @out)
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindGroupCreateOptions*, FShaderBindGroup**, FResult*>)(lpVtbl[19]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
@@ -1333,7 +1333,7 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
+        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
         {
             FResult result;
             return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[20]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
@@ -1412,10 +1412,10 @@ namespace Coplt.Graphics.Native
             FResult CreateShader([NativeTypeName("const FShaderCreateOptions &")] FShaderCreateOptions* options, [NativeTypeName("Coplt::FShaderCreateResult *")] FShaderCreateResult* @out);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateBindGroup([NativeTypeName("const FShaderBindGroupCreateOptions &")] FShaderBindGroupCreateOptions* options, FShaderBindGroup** @out);
+            FResult CreateShaderBindGroup([NativeTypeName("const FShaderBindGroupCreateOptions &")] FShaderBindGroupCreateOptions* options, FShaderBindGroup** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out);
+            FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
@@ -2968,10 +2968,13 @@ namespace Coplt.Graphics.Native
         public FShaderData* Data;
     }
 
-    public partial struct FBindItem
+    public partial struct FSetBindItem
     {
         [NativeTypeName("Coplt::FView")]
         public FView View;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Slot;
 
         [NativeTypeName("Coplt::u32")]
         public uint Index;
@@ -2984,6 +2987,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FBindGroupLayout *")]
         public FBindGroupLayout* Layout;
+
+        [NativeTypeName("Coplt::FSetBindItem *")]
+        public FSetBindItem* InitBindings;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumInitBindings;
     }
 
     [Guid("AE54EFE5-C372-4291-B995-55298758D2B2")]
@@ -3040,6 +3049,15 @@ namespace Coplt.Graphics.Native
         }
     }
 
+    public unsafe partial struct FSetBindGroupItem
+    {
+        [NativeTypeName("Coplt::FShaderBindGroup *")]
+        public FShaderBindGroup* BindGroup;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
     public unsafe partial struct FShaderBindingCreateOptions
     {
         [NativeTypeName("Coplt::FStr8or16")]
@@ -3047,6 +3065,12 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::FBindingLayout *")]
         public FBindingLayout* Layout;
+
+        [NativeTypeName("Coplt::FSetBindGroupItem *")]
+        public FSetBindGroupItem* InitBindGroups;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumInitBindGroups;
     }
 
     [Guid("A3CA644A-0E02-4D25-9A18-8835D66600F7")]

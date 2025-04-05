@@ -127,7 +127,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #region CreateBindGroupLayout
 
-    public BindGroupLayout CreateBindGroupLayout(
+    public ShaderBindGroupLayout CreateBindGroupLayout(
         ReadOnlySpan<BindGroupItem> Items,
         ReadOnlySpan<StaticSamplerInfo> StaticSamplers = default,
         BindGroupUsage Usage = BindGroupUsage.Common,
@@ -158,9 +158,9 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #region CreateBindingLayout
 
-    public BindingLayout CreateBindingLayout(
+    public ShaderBindingLayout CreateBindingLayout(
         ShaderLayout ShaderLayout,
-        ReadOnlySpan<BindGroupLayout> GroupLayouts,
+        ReadOnlySpan<ShaderBindGroupLayout> GroupLayouts,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
@@ -358,7 +358,7 @@ public sealed unsafe partial class GpuDevice : GpuObject
     ) => CreateGraphicsShaderPipeline(Shader, PipelineState, Shader.Layout.GetEmptyBindingLayout(), MeshLayout, Name, Name8);
 
     public GraphicsShaderPipeline CreateGraphicsShaderPipeline(
-        Shader Shader, GraphicsPipelineState PipelineState, BindingLayout BindingLayout, MeshLayout? MeshLayout = null,
+        Shader Shader, GraphicsPipelineState PipelineState, ShaderBindingLayout BindingLayout, MeshLayout? MeshLayout = null,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
@@ -381,6 +381,24 @@ public sealed unsafe partial class GpuDevice : GpuObject
             return new(ptr, Name, Shader, PipelineState, BindingLayout, MeshLayout);
         }
     }
+
+    #endregion
+
+    #region CreateBindGroup
+
+    public ShaderBindGroup CreateBindGroup(
+        ShaderBindGroupLayout layout, ReadOnlySpan<SetShaderBindItem> items,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainIsolate.CreateBindGroup(layout, items, Name, Name8);
+
+    #endregion
+
+    #region CreateBinding
+
+    public ShaderBinding CreateBinding(
+        ShaderBindingLayout layout, ReadOnlySpan<SetShaderBindGroupItem> items,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => MainIsolate.CreateBinding(layout, items, Name, Name8);
 
     #endregion
 

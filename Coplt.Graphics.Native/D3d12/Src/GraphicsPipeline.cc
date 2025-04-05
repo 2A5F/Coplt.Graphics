@@ -231,9 +231,14 @@ FResult D3d12GraphicsShaderPipeline::SetName(const FStr8or16& name) noexcept
     });
 }
 
-void* D3d12GraphicsShaderPipeline::GetPipelineStatePtr() noexcept
+const Rc<ID3d12BindingLayout>& D3d12GraphicsShaderPipeline::Layout() const noexcept
 {
-    return m_pipeline.Get();
+    return m_layout;
+}
+
+const ComPtr<ID3D12PipelineState>& D3d12GraphicsShaderPipeline::GetPipelineState() const noexcept
+{
+    return m_pipeline;
 }
 
 FShader* D3d12GraphicsShaderPipeline::GetShader() noexcept

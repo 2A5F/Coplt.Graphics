@@ -771,6 +771,56 @@ public struct DebugScope2(GpuRecord self) : IDisposable
 
 #endregion
 
+#region PipelineContext
+
+internal unsafe struct PipelineContext
+{
+    internal ShaderPipeline? m_current_pipeline;
+    internal ShaderBinding? m_current_binding;
+
+    #region SetPipeline
+
+    public void SetPipeline(GpuRecord self, ShaderPipeline Pipeline)
+    {
+        m_current_pipeline = Pipeline;
+        self.AddObject(m_current_pipeline);
+        var cmd = new FCmdSetPipeline
+        {
+            Base = { Type = FCmdType.SetPipeline },
+            Pipeline = Pipeline.Ptr,
+        };
+        self.Data.Commands.Add(new() { SetPipeline = cmd });
+        if (m_current_binding != null && m_current_binding.Layout != Pipeline.BindingLayout) m_current_binding = null;
+    }
+
+    #endregion
+
+    #region SetBinding
+
+    public void SetBinding(GpuRecord self, ShaderBinding Binding)
+    {
+        Binding.AssertSameIsolate(self.Isolate);
+        if (m_current_binding == Binding) return;
+        if (m_current_pipeline != null)
+        {
+            if (Binding.Layout != m_current_pipeline.BindingLayout)
+                throw new InvalidOperationException("The binding layout is not compatible with the currently set pipeline");
+        }
+        m_current_binding = Binding;
+        self.AddObject(m_current_binding);
+        var cmd = new FCmdSetBinding
+        {
+            Base = { Type = FCmdType.SetBinding },
+            Binding = Binding.Ptr,
+        };
+        self.Data.Commands.Add(new() { SetBinding = cmd });
+    }
+
+    #endregion
+}
+
+#endregion
+
 #region RenderScope
 
 public unsafe struct RenderScope2(
@@ -783,9 +833,8 @@ public unsafe struct RenderScope2(
 {
     #region Fields
 
-    internal ShaderPipeline? m_current_pipeline;
+    PipelineContext m_pipeline_context;
     internal bool m_disposed;
-    internal bool m_has_uav_writes;
 
     #endregion
 
@@ -806,8 +855,6 @@ public unsafe struct RenderScope2(
             throw new InvalidOperationException(
                 "There is still Debug scope not ended, please check whether Dispose is missed."
             );
-        ref var info = ref Info;
-        info.HasUavWrites = m_has_uav_writes;
         Cmd.CommandCount = (uint)self.m_data->Commands.LongLength - cmd_index;
         self.m_in_render_or_compute_scope = false;
         self.Data.Commands.Add(new() { Type = FCmdType.End });
@@ -841,17 +888,20 @@ public unsafe struct RenderScope2(
     public void SetPipeline(ShaderPipeline Pipeline)
     {
         self.AssertNotEnded();
-        if (m_current_pipeline == Pipeline) return;
+        if (m_pipeline_context.m_current_pipeline == Pipeline) return;
         if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Pixel))
             throw new ArgumentException("Only shaders with a Pixel stage can be used for rendering");
-        m_current_pipeline = Pipeline;
-        self.AddObject(m_current_pipeline);
-        var cmd = new FCmdSetPipeline
-        {
-            Base = { Type = FCmdType.SetPipeline },
-            Pipeline = Pipeline.Ptr,
-        };
-        self.Data.Commands.Add(new() { SetPipeline = cmd });
+        m_pipeline_context.SetPipeline(self, Pipeline);
+    }
+
+    #endregion
+
+    #region SetBinding
+
+    public void SetBinding(ShaderBinding Binding)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetBinding(self, Binding);
     }
 
     #endregion
@@ -1000,11 +1050,11 @@ public unsafe struct RenderScope2(
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
+            if (m_pipeline_context.m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_pipeline_context.m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Vertex))
                 throw new ArgumentException("Only shaders with a vertex stage can use Draw");
         }
-        // if (Binding != null) SetBinding(Binding);
+        if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDraw
         {
             Base = { Type = FCmdType.Draw },
@@ -1042,12 +1092,11 @@ public unsafe struct RenderScope2(
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
+            if (m_pipeline_context.m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_pipeline_context.m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Mesh))
                 throw new ArgumentException("Only shaders with a mesh stage can use DispatchMesh");
         }
-        // if (Binding != null) SetBinding(Binding);
-        // self.SyncBinding(ref m_context, this);
+        if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
             Base = { Type = FCmdType.Dispatch },
@@ -1075,7 +1124,7 @@ public unsafe struct ComputeScope2(
 {
     #region Fields
 
-    internal ShaderPipeline? m_current_pipeline;
+    PipelineContext m_pipeline_context;
     internal bool m_disposed;
 
     #endregion
@@ -1129,17 +1178,20 @@ public unsafe struct ComputeScope2(
     public void SetPipeline(ShaderPipeline Pipeline)
     {
         self.AssertNotEnded();
-        if (m_current_pipeline == Pipeline) return;
+        if (m_pipeline_context.m_current_pipeline == Pipeline) return;
         if (!Pipeline.Shader.Stages.HasAnyFlags(ShaderStageFlags.Compute))
             throw new ArgumentException("Only shaders with a Compute stage can be used for computing");
-        m_current_pipeline = Pipeline;
-        self.AddObject(m_current_pipeline);
-        var cmd = new FCmdSetPipeline
-        {
-            Base = { Type = FCmdType.SetPipeline },
-            Pipeline = Pipeline.Ptr,
-        };
-        self.Data.Commands.Add(new() { SetPipeline = cmd });
+        m_pipeline_context.SetPipeline(self, Pipeline);
+    }
+
+    #endregion
+
+    #region SetBinding
+
+    public void SetBinding(ShaderBinding Binding)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetBinding(self, Binding);
     }
 
     #endregion
@@ -1166,12 +1218,11 @@ public unsafe struct ComputeScope2(
         }
         else
         {
-            if (m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
-            if (!m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
+            if (m_pipeline_context.m_current_pipeline == null) throw new InvalidOperationException("Pipeline is not set");
+            if (!m_pipeline_context.m_current_pipeline.Shader.Stages.HasFlags(ShaderStageFlags.Compute))
                 throw new ArgumentException("Only shaders with a Compute stage can use Dispatch");
         }
-        // if (Binding != null) SetBinding(Binding);
-        // self.SyncBinding(ref m_context, this);
+        if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
             Base = { Type = FCmdType.Dispatch },

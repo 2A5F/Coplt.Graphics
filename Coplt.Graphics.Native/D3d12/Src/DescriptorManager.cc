@@ -55,17 +55,15 @@ DescriptorHeap::DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_
     }
 }
 
-Rc<DescriptorAllocation> DescriptorHeap::Allocate(const u32 size)
+DescriptorAllocation DescriptorHeap::Allocate(const u32 size)
 {
     D3D12MA::VIRTUAL_ALLOCATION_DESC desc{};
     desc.Alignment = 1;
     desc.Size = size;
     D3D12MA::VirtualAllocation allocation{};
     u64 offset{};
-    const auto hr = m_virtual_block->Allocate(&desc, &allocation, &offset);
-    // todo 处理不够的情况
-    chr | hr;
-    return new DescriptorAllocation(*this, allocation, offset);
+    chr | m_virtual_block->Allocate(&desc, &allocation, &offset);
+    return DescriptorAllocation(*this, allocation, offset);
 }
 
 DescriptorManager::DescriptorManager(NonNull<D3d12GpuDevice> device)

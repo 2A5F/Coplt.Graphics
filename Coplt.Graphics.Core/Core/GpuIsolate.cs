@@ -278,7 +278,94 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
     }
 
     #endregion
-    
+
+    #region CreateBindGroup
+
+    public ShaderBindGroup CreateBindGroup(
+        ShaderBindGroupLayout layout, ReadOnlySpan<SetShaderBindItem> items,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        var f_items = ArrayPool<FSetBindItem>.Shared.Rent(items.Length);
+        try
+        {
+            for (var i = 0; i < items.Length; i++)
+            {
+                ref readonly var item = ref items[i];
+                f_items[i] = new()
+                {
+                    View = item.View.ToFFI(),
+                    Slot = item.Slot,
+                    Index = item.Index,
+                };
+            }
+            fixed (char* p_name = Name)
+            fixed (byte* p_name8 = Name8)
+            fixed (FSetBindItem* p_items = f_items)
+            {
+                FShaderBindGroupCreateOptions f_options = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Layout = layout.Ptr,
+                    InitBindings = p_items,
+                    NumInitBindings = (uint)items.Length,
+                };
+                FShaderBindGroup* ptr;
+                Device.Ptr->CreateShaderBindGroup(&f_options, &ptr).TryThrow();
+                return new(ptr, Name, this, layout);
+            }
+        }
+        finally
+        {
+            ArrayPool<FSetBindItem>.Shared.Return(f_items);
+        }
+    }
+
+    #endregion
+
+    #region CreateBinding
+
+    public ShaderBinding CreateBinding(
+        ShaderBindingLayout layout, ReadOnlySpan<SetShaderBindGroupItem> items,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        var f_items = ArrayPool<FSetBindGroupItem>.Shared.Rent(items.Length);
+        try
+        {
+            for (var i = 0; i < items.Length; i++)
+            {
+                ref readonly var item = ref items[i];
+                f_items[i] = new()
+                {
+                    BindGroup = item.Group.Ptr,
+                    Index = item.Index,
+                };
+            }
+            fixed (char* p_name = Name)
+            fixed (byte* p_name8 = Name8)
+            fixed (FSetBindGroupItem* p_items = f_items)
+            {
+                FShaderBindingCreateOptions f_options = new()
+                {
+                    Name = new(Name, Name8, p_name, p_name8),
+                    Layout = layout.Ptr,
+                    InitBindGroups = p_items,
+                    NumInitBindGroups = (uint)items.Length,
+                };
+                FShaderBinding* ptr;
+                Device.Ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
+                return new(ptr, Name, this, layout);
+            }
+        }
+        finally
+        {
+            ArrayPool<FSetBindGroupItem>.Shared.Return(f_items);
+        }
+    }
+
+    #endregion
+
     #region CreateBuffer
 
     public GpuBuffer CreateBuffer(

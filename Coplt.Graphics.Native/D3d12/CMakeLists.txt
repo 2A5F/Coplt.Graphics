@@ -17,7 +17,6 @@ add_library(${target_name} SHARED
     Src/Output.cc
     Src/Output.h
     Include/GraphicsFormat.h
-    FFI/Pipeline.h
     Src/GraphicsPipeline.h
     Src/GraphicsPipeline.cc
     Src/Layout.h
@@ -58,6 +57,7 @@ add_library(${target_name} SHARED
     Src/ResState.cc
     Src/DescriptorManager.h
     Src/DescriptorManager.cc
+    Src/Pipeline.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "Coplt.Graphics.Native.D3d12")

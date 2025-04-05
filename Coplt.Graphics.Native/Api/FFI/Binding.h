@@ -6,7 +6,7 @@
 
 namespace Coplt
 {
-    struct FBindItem
+    struct FSetBindItem
     {
         // 绑定内容
         FView View{};
@@ -20,7 +20,7 @@ namespace Coplt
     {
         FStr8or16 Name{};
         FBindGroupLayout* Layout{};
-        FBindItem* InitBindings{};
+        FSetBindItem* InitBindings{};
         u32 NumInitBindings{};
     };
 
@@ -28,11 +28,17 @@ namespace Coplt
     {
     };
 
+    struct FSetBindGroupItem
+    {
+        FShaderBindGroup* BindGroup{};
+        u32 Index{};
+    };
+
     struct FShaderBindingCreateOptions
     {
         FStr8or16 Name{};
         FBindingLayout* Layout{};
-        FShaderBindGroup** InitBindGroups{};
+        FSetBindGroupItem* InitBindGroups{};
         u32 NumInitBindGroups{};
     };
 

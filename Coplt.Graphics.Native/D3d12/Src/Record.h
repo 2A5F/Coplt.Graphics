@@ -2,18 +2,16 @@
 
 #include <directx/d3dx12.h>
 
+#include "../../Api/Include/GpuObject.h"
+#include "../../Api/FFI/Record.h"
 #include "Barrier.h"
 #include "Binding.h"
 #include "Context.h"
 #include "Isolate.h"
 #include "Layout.h"
-#include "../../Api/FFI/Record.h"
-#include "../../Api/Include/GpuObject.h"
-#include "../FFI/Pipeline.h"
 
 namespace Coplt
 {
-    struct FD3d12PipelineState;
     COPLT_INTERFACE_DEFINE(ID3d12GpuRecord, "57a9c7f9-1ec0-4d78-89b9-e547667c50b3", FGpuRecord)
     {
         virtual FGpuRecordData* Data() noexcept = 0;
@@ -36,6 +34,9 @@ namespace Coplt
 
         virtual void AfterSubmit() = 0;
     };
+
+    struct ID3d12ShaderPipeline;
+    struct ID3d12GraphicsShaderPipeline;
 
     struct D3d12GpuRecord final : GpuObject<D3d12GpuRecord, ID3d12GpuRecord>, FGpuRecordData
     {
@@ -62,10 +63,10 @@ namespace Coplt
 
         struct PipelineContext
         {
-            Ptr<FD3d12PipelineState> Pipeline{};
+            Ptr<ID3d12ShaderPipeline> Pipeline{};
             Ptr<ID3d12BindingLayout> Layout{};
             // 如果不是图形管线将不会设置
-            Ptr<FD3d12GraphicsShaderPipeline> GPipeline{};
+            Ptr<ID3d12GraphicsShaderPipeline> GPipeline{};
 
             Ptr<ID3d12ShaderBinding> Binding{};
 
@@ -74,6 +75,7 @@ namespace Coplt
 
             void Reset();
             void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
+            void SetBinding(NonNull<FShaderBinding> binding, u32 i);
         };
 
         u64 m_isolate_id{};
@@ -128,6 +130,7 @@ namespace Coplt
         void Analyze_Compute(u32 i, const FCmdCompute& cmd);
         void Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
+        void Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
         void Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const;
 
@@ -143,12 +146,14 @@ namespace Coplt
         void Interpret_Compute(const CmdList& list, u32 i, const FCmdCompute& cmd);
         void Interpret_ComputeEnd(const CmdList& list, u32 i, const FCmdCompute& cmd);
         void Interpret_SetPipeline(const CmdList& list, u32 i, const FCmdSetPipeline& cmd);
+        void Interpret_SetBinding(const CmdList& list, u32 i, const FCmdSetBinding& cmd);
         void Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const;
         void Interpret_SetMeshBuffers(const CmdList& list, u32 i, const FCmdSetMeshBuffers& cmd) const;
         void Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const;
         void Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDispatch& cmd) const;
 
         void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
+        void SetBinding(NonNull<FShaderBinding> binding, u32 i);
         void SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i);
     };
 

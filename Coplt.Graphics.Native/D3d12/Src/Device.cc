@@ -300,7 +300,7 @@ FResult D3d12GpuDevice::CreateShader(const FShaderCreateOptions& options, FShade
     });
 }
 
-FResult D3d12GpuDevice::CreateBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroup** out) noexcept
+FResult D3d12GpuDevice::CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroup** out) noexcept
 {
     return feb([&]
     {
@@ -308,7 +308,7 @@ FResult D3d12GpuDevice::CreateBindGroup(const FShaderBindGroupCreateOptions& opt
     });
 }
 
-FResult D3d12GpuDevice::CreateBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept
+FResult D3d12GpuDevice::CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept
 {
     return feb([&]
     {

@@ -2,13 +2,14 @@
 
 #include <pix3.h>
 
-#include "../FFI/Pipeline.h"
 #include "../Include/GraphicsFormat.h"
 #include "../Include/PipelineState.h"
 #include "../Include/States.h"
 #include "Output.h"
 #include "Image.h"
 #include "Buffer.h"
+#include "Pipeline.h"
+#include "GraphicsPipeline.h"
 
 using namespace Coplt;
 
@@ -24,27 +25,51 @@ void D3d12GpuRecord::PipelineContext::Reset()
 
 void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
 {
-    if (pipeline == Pipeline) return;
-    Pipeline = pipeline->QueryInterface<FD3d12PipelineState>();
-    if (!Pipeline)
+    if (Pipeline && pipeline->ObjectId() == Pipeline->ObjectId()) return;
+    const auto dx_pipeline = pipeline->QueryInterface<ID3d12ShaderPipeline>();
+    if (!dx_pipeline)
     {
         COPLT_THROW_FMT(
-            "Pipeline({:#x}) comes from different backends at cmd {}",
-            static_cast<size_t>(pipeline), i
+            "[{}] Pipeline({:#x}) from different backends",
+            i, static_cast<size_t>(pipeline)
         );
     }
-    Layout = pipeline->GetLayout()->QueryInterface<ID3d12BindingLayout>();
-    if (!Layout)
-        COPLT_THROW("Shader layout from different backends");
+    Pipeline = Rc<ID3d12ShaderPipeline>::UnsafeClone(dx_pipeline);
+    Layout = Pipeline->Layout();
     const auto stages = pipeline->GetStages();
     GPipeline = nullptr;
     if (HasFlags(stages, FShaderStageFlags::Pixel))
     {
-        GPipeline = pipeline->QueryInterface<FD3d12GraphicsShaderPipeline>();
-        if (!GPipeline)
-            COPLT_THROW("Pipeline from different backends or pipeline not a graphics pipeline");
+        const auto g_pipeline = pipeline->QueryInterface<ID3d12GraphicsShaderPipeline>();
+        if (!g_pipeline)
+        {
+            COPLT_THROW_FMT("[{}] Invalid pipeline: pipeline is not a graphics pipeline, but there is a pixel shader in the stages.", i);
+        }
+        GPipeline = Rc<ID3d12GraphicsShaderPipeline>::UnsafeClone(g_pipeline);
     }
     PipelineChanged = true;
+    if (Binding && Binding->Layout()->ObjectId() != Layout->ObjectId())
+    {
+        Binding = nullptr;
+    }
+}
+
+void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+{
+    if (Binding && binding->ObjectId() == Binding->ObjectId()) return;
+    const auto dx_binding = binding->QueryInterface<ID3d12ShaderBinding>();
+    if (!dx_binding)
+    {
+        COPLT_THROW_FMT(
+            "[{}] Binding({:#x}) from different backends",
+            i, static_cast<size_t>(binding)
+        );
+    }
+    if (Layout && dx_binding->Layout()->ObjectId() != Layout->ObjectId())
+    {
+        COPLT_THROW_FMT("[{}] The binding layout is not compatible with the currently set pipeline", i);
+    }
+    Binding = Rc<ID3d12ShaderBinding>::UnsafeClone(dx_binding);
 }
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
@@ -226,7 +251,8 @@ void D3d12GpuRecord::Analyze()
             Analyze_SetPipeline(i, command.SetPipeline);
             break;
         case FCmdType::SetBinding:
-            COPLT_THROW("TODO");
+            Analyze_SetBinding(i, command.SetBinding);
+            break;
         case FCmdType::SetMeshBuffers:
             Analyze_SetMeshBuffers(i, command.SetMeshBuffers);
             break;
@@ -354,6 +380,14 @@ void D3d12GpuRecord::Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd)
     SetPipeline(cmd.Pipeline, i);
 }
 
+void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
+{
+    if (m_state != RecordState::Render && m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
+    // todo
+    SetBinding(cmd.Binding, i);
+}
+
 void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd)
 {
     if (m_state != RecordState::Render)
@@ -431,7 +465,8 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u
             Interpret_SetPipeline(list, i, command.SetPipeline);
             break;
         case FCmdType::SetBinding:
-            COPLT_THROW("TODO");
+            Interpret_SetBinding(list, i, command.SetBinding);
+            break;
         case FCmdType::SetViewportScissor:
             Interpret_SetViewportScissor(list, i, command.SetViewportScissor);
             break;
@@ -680,6 +715,11 @@ void D3d12GpuRecord::Interpret_SetPipeline(const CmdList& list, const u32 i, con
     SetPipeline(list, cmd.Pipeline, i);
 }
 
+void D3d12GpuRecord::Interpret_SetBinding(const CmdList& list, u32 i, const FCmdSetBinding& cmd)
+{
+    // todo
+}
+
 void D3d12GpuRecord::Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const
 {
     if (m_state != RecordState::Render)
@@ -754,8 +794,14 @@ void D3d12GpuRecord::Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDi
 
 void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
 {
-    if (pipeline == m_pipeline_context.Pipeline) return;
+    if (m_pipeline_context.Pipeline && pipeline->ObjectId() == m_pipeline_context.Pipeline->ObjectId()) return;
     m_pipeline_context.SetPipeline(pipeline, i);
+}
+
+void D3d12GpuRecord::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+{
+    if (m_pipeline_context.Binding && binding->ObjectId() == m_pipeline_context.Binding->ObjectId()) return;
+    m_pipeline_context.SetBinding(binding, i);
 }
 
 void D3d12GpuRecord::SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i)
@@ -773,7 +819,7 @@ void D3d12GpuRecord::SetPipeline(const CmdList& list, NonNull<FShaderPipeline> p
         list->g0->IASetPrimitiveTopology(ToDx(states->Topology));
         list->g0->SetGraphicsRootSignature(m_pipeline_context.Layout->RootSignature().Get());
     }
-    list->g0->SetPipelineState(static_cast<ID3D12PipelineState*>(m_pipeline_context.Pipeline->GetPipelineStatePtr()));
+    list->g0->SetPipelineState(m_pipeline_context.Pipeline->GetPipelineState().Get());
 }
 
 D3D12_COMMAND_LIST_TYPE Coplt::GetType(const FGpuRecordMode Mode)

@@ -120,7 +120,7 @@ public unsafe record struct BindGroupItem()
 }
 
 [Dropping(Unmanaged = true)]
-public sealed unsafe partial class BindGroupLayout : DeviceChild
+public sealed unsafe partial class ShaderBindGroupLayout : DeviceChild
 {
     #region Fields
 
@@ -140,7 +140,7 @@ public sealed unsafe partial class BindGroupLayout : DeviceChild
 
     #region Ctor
 
-    internal BindGroupLayout(FBindGroupLayoutCreateResult result, string? name, GpuDevice device) : base((FGpuObject*)result.Layout, name, device)
+    internal ShaderBindGroupLayout(FBindGroupLayoutCreateResult result, string? name, GpuDevice device) : base((FGpuObject*)result.Layout, name, device)
     {
         if (Ptr == null) return;
         m_data = result.Data;

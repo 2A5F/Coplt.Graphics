@@ -105,7 +105,7 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
     #region Fields
 
     internal FShaderLayoutData* m_data;
-    internal BindingLayout? m_empty_binding_layout;
+    internal ShaderBindingLayout? m_empty_binding_layout;
 
     #endregion
 
@@ -140,7 +140,7 @@ public sealed unsafe partial class ShaderLayout : DeviceChild
 
     #region GetEmptyBindingLayout
 
-    public BindingLayout GetEmptyBindingLayout() => m_empty_binding_layout ??= Device.CreateBindingLayout(this, [], $"Empty Binding Layout of [{this}]");
+    public ShaderBindingLayout GetEmptyBindingLayout() => m_empty_binding_layout ??= Device.CreateBindingLayout(this, [], $"Empty Binding Layout of [{this}]");
 
     #endregion
 }

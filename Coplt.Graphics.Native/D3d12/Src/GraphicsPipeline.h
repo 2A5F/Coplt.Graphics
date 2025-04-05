@@ -2,15 +2,14 @@
 
 #include <directx/d3d12.h>
 
+#include "../../Api/Include/Object.h"
 #include "Device.h"
 #include "Layout.h"
-#include "../../Api/Include/Object.h"
-#include "../Include/Utils.h"
-#include "../FFI/Pipeline.h"
+#include "Pipeline.h"
 
 namespace Coplt
 {
-    struct D3d12GraphicsShaderPipeline final : GpuObject<D3d12GraphicsShaderPipeline, FD3d12GraphicsShaderPipeline, FD3d12PipelineState>
+    struct D3d12GraphicsShaderPipeline final : GpuObject<D3d12GraphicsShaderPipeline, ID3d12GraphicsShaderPipeline, ID3d12ShaderPipeline>
     {
         Rc<D3d12GpuDevice> m_device{};
         Rc<FShader> m_shader{};
@@ -24,13 +23,12 @@ namespace Coplt
         std::vector<u32> m_input_slots{};
         FGraphicsPipelineState m_graphics_state{};
 
-        explicit D3d12GraphicsShaderPipeline(
-            Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
-        );
+        explicit D3d12GraphicsShaderPipeline(Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
-        void* GetPipelineStatePtr() noexcept override;
+        const Rc<ID3d12BindingLayout>& Layout() const noexcept override;
+        const ComPtr<ID3D12PipelineState>& GetPipelineState() const noexcept override;
 
         FShader* GetShader() noexcept override;
         FBindingLayout* GetLayout() noexcept override;

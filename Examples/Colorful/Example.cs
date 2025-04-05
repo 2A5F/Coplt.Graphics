@@ -7,11 +7,13 @@ namespace Examples;
 public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handle, Width, Height)
 {
     private ShaderLayout ShaderLayout = null!;
-    private BindingLayout BindingLayout = null!;
+    private ShaderBindGroupLayout BindGroupLayout = null!;
+    private ShaderBindingLayout BindingLayout = null!;
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
-    private ShaderBinding ShaderBinding = null!;
     private GpuBuffer ArgBuffer = null!;
+    private ShaderBindGroup BindGroup = null!;
+    private ShaderBinding Binding = null!;
 
     public override string Name => "Colorful";
     protected override async Task LoadResources(GpuRecord cmd)
@@ -31,7 +33,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         );
         BindingLayout = Device.CreateBindingLayout(
             ShaderLayout, [
-                Device.CreateBindGroupLayout(
+                BindGroupLayout = Device.CreateBindGroupLayout(
                     [
                         new()
                         {
@@ -45,7 +47,6 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             ], Name: Name
         );
         Shader = Device.CreateShader(modules, ShaderLayout);
-        // ShaderBinding = Device.CreateShaderBinding(Layout, Name: Name);
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {
@@ -70,13 +71,13 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             },
             Name: "Args"
         );
-        // cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
+        BindGroup = Device.CreateBindGroup(BindGroupLayout, [new(0, ArgBuffer)]);
+        Binding = Device.CreateBinding(BindingLayout, [new(0, BindGroup)]);
     }
     protected override void Render(GpuRecord cmd, Time time)
     {
         cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
         using var render = cmd.Render([new(Output, LoadOp.Discard)]);
-        // render.Draw(Pipeline, 4, Binding: ShaderBinding);
-        render.Draw(Pipeline, 4);
+        render.Draw(Pipeline, 4, Binding: Binding);
     }
 }
