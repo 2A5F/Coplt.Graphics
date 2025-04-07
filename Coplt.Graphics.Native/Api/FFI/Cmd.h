@@ -268,7 +268,7 @@ namespace Coplt
 
     struct FCmdRender : FCmdBase
     {
-        // 类型为 FRenderInfo
+        // 类型为 FRenderInfo2
         u32 InfoIndex{};
         u32 CommandCount{};
     };
@@ -283,9 +283,17 @@ namespace Coplt
         FShaderPipeline* Pipeline{};
     };
 
-    struct FCmdSetBinding : FCmdBase
+    struct FCmdBinding
     {
         FShaderBinding* Binding{};
+    };
+
+    struct FCmdSetBinding : FCmdBase
+    {
+        // Payload 中的索引，类型为 FCmdBinding
+        u32 Binding{};
+        // 第几个 Set
+        u32 Index{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

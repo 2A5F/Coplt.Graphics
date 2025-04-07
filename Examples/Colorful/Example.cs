@@ -63,7 +63,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 Topology = PrimitiveTopologyType.TriangleStrip,
             }, BindingLayout, Name: Name
         );
-        ArgBuffer = Device.CreateBuffer(
+        ArgBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.ConstantBuffer,
@@ -71,8 +71,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             },
             Name: "Args"
         );
-        BindGroup = Device.CreateBindGroup(BindGroupLayout, [new(0, ArgBuffer)]);
-        Binding = Device.CreateBinding(BindingLayout, [new(0, BindGroup)]);
+        BindGroup = Isolate.CreateBindGroup(BindGroupLayout, [new(0, ArgBuffer)]);
+        Binding = Isolate.CreateBinding(BindingLayout, [new(0, BindGroup)]);
     }
     protected override void Render(GpuRecord cmd, Time time)
     {

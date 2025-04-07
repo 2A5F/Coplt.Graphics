@@ -29,7 +29,6 @@ namespace Coplt
         using RecordQueue = moodycamel::ConcurrentQueue<Rc<ID3d12GpuRecord>>;
 
         SRc<FGpuIsolateConfig> m_config{};
-        DescriptorManager m_descriptor_manager{};
         Rc<D3d12GpuQueue2> m_main_queue{};
         Rc<D3d12GpuQueue2> m_compute_queue{};
         Rc<D3d12GpuQueue2> m_copy_queue{};

@@ -20,26 +20,33 @@ namespace Coplt
     {
         FStr8or16 Name{};
         FBindGroupLayout* Layout{};
-        FSetBindItem* InitBindings{};
-        u32 NumInitBindings{};
+        FSetBindItem* Bindings{};
+        u32 NumBindings{};
+    };
+
+    struct FShaderBindGroupData
+    {
+        u32* ItemIndexes{};
+        u32 NumItemIndexes{};
+        u32 CountSlots{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBindGroup, "ae54efe5-c372-4291-b995-55298758d2b2", FGpuObject)
     {
+        virtual FShaderBindGroupData* ShaderBindGroupData() noexcept = 0;
     };
 
-    struct FSetBindGroupItem
+    struct FShaderBindGroupCreateResult
     {
         FShaderBindGroup* BindGroup{};
-        u32 Index{};
+        FShaderBindGroupData* Data{};
     };
 
     struct FShaderBindingCreateOptions
     {
         FStr8or16 Name{};
         FBindingLayout* Layout{};
-        FSetBindGroupItem* InitBindGroups{};
-        u32 NumInitBindGroups{};
+        FShaderBindGroup** BindGroups{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBinding, "a3ca644a-0e02-4d25-9a18-8835d66600f7", FGpuObject)

@@ -811,8 +811,15 @@ internal unsafe struct PipelineContext
         var cmd = new FCmdSetBinding
         {
             Base = { Type = FCmdType.SetBinding },
-            Binding = Binding.Ptr,
+            Binding = (uint)self.Data.Bindings.LongLength,
+            Index = self.Data.NumSetBindings++,
         };
+        self.Data.Bindings.Add(
+            new()
+            {
+                Binding = Binding.Ptr
+            }
+        );
         self.Data.Commands.Add(new() { SetBinding = cmd });
     }
 

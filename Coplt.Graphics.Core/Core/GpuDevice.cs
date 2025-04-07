@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using Coplt.Dropping;
 using Coplt.Graphics.Native;
 using Coplt.Graphics.States;
@@ -381,42 +379,6 @@ public sealed unsafe partial class GpuDevice : GpuObject
             return new(ptr, Name, Shader, PipelineState, BindingLayout, MeshLayout);
         }
     }
-
-    #endregion
-
-    #region CreateBindGroup
-
-    public ShaderBindGroup CreateBindGroup(
-        ShaderBindGroupLayout layout, ReadOnlySpan<SetShaderBindItem> items,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainIsolate.CreateBindGroup(layout, items, Name, Name8);
-
-    #endregion
-
-    #region CreateBinding
-
-    public ShaderBinding CreateBinding(
-        ShaderBindingLayout layout, ReadOnlySpan<SetShaderBindGroupItem> items,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainIsolate.CreateBinding(layout, items, Name, Name8);
-
-    #endregion
-
-    #region CreateBuffer
-
-    public GpuBuffer CreateBuffer(
-        in GpuBufferCreateOptions options,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainIsolate.CreateBuffer(in options, Name, Name8);
-
-    #endregion
-
-    #region CreateImage
-
-    public GpuImage CreateImage(
-        in GpuImageCreateOptions options,
-        string? Name = null, ReadOnlySpan<byte> Name8 = default
-    ) => MainIsolate.CreateImage(in options, Name, Name8);
 
     #endregion
 

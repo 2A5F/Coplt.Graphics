@@ -20,6 +20,7 @@ namespace Coplt
         constexpr static u64 InitUploadBufferSize = 1024 * 1024;
 
         Rc<D3d12GpuDevice> m_device{};
+        DescriptorManager m_descriptor_manager{};
         Rc<D3d12CommandListPoolCluster> m_cmd_alloc_pool{};
         std::vector<D3d12RentedCommandAllocator> m_recycled_command_allocators{};
         std::vector<BufferPack> m_upload_buffers{};

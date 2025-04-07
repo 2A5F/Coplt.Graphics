@@ -5,6 +5,7 @@ using namespace Coplt;
 D3d12RecordContext::D3d12RecordContext(NonNull<D3d12GpuIsolate> isolate)
 {
     m_device = isolate->m_device;
+    m_descriptor_manager = DescriptorManager(m_device.get());
     m_cmd_alloc_pool = isolate->m_cmd_alloc_pool;
     m_upload_buffer = FList<FUploadBufferBlock>(m_device->m_instance->m_allocator.get());
 }

@@ -57,14 +57,14 @@ Pipeline = Device.CreateGraphicsShaderPipeline(
 );
 
 // Creating vertex buffers
-PositionColorBuffer = Device.CreateBuffer(
+PositionColorBuffer = Isolate.CreateBuffer(
     new()
     {
         Purpose = ResourcePurpose.VertexBuffer,
         Size = sizeof(float) * 4 * 6,
     }, "Position and Color"
 );
-UvBuffer = Device.CreateBuffer(
+UvBuffer = Isolate.CreateBuffer(
     new()
     {
         Purpose = ResourcePurpose.VertexBuffer,

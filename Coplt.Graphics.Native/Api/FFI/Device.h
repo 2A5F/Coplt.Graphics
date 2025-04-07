@@ -91,7 +91,7 @@ namespace Coplt
         virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept = 0;
         virtual FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept = 0;
 
-        virtual FResult CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroup** out) noexcept = 0;
+        virtual FResult CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroupCreateResult* out) noexcept = 0;
         virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;
 
         virtual FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept = 0;

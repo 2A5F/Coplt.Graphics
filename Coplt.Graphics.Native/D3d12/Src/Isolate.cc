@@ -17,8 +17,6 @@ D3d12GpuIsolate::D3d12GpuIsolate(Rc<D3d12GpuDevice> device, const FGpuIsolateCre
     m_record_pool = box<RecordQueue>();
     m_device = std::move(device);
 
-    m_descriptor_manager = DescriptorManager(m_device.get());
-
     #pragma region 创建队列
 
     m_main_queue = new D3d12GpuQueue2(this, FGpuQueueType::Direct);

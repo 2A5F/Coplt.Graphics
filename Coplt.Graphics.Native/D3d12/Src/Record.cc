@@ -26,7 +26,7 @@ void D3d12GpuRecord::PipelineContext::Reset()
 void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
 {
     if (Pipeline && pipeline->ObjectId() == Pipeline->ObjectId()) return;
-    const auto dx_pipeline = pipeline->QueryInterface<ID3d12ShaderPipeline>();
+    const Ptr dx_pipeline = pipeline->QueryInterface<ID3d12ShaderPipeline>();
     if (!dx_pipeline)
     {
         COPLT_THROW_FMT(
@@ -34,18 +34,18 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
             i, static_cast<size_t>(pipeline)
         );
     }
-    Pipeline = Rc<ID3d12ShaderPipeline>::UnsafeClone(dx_pipeline);
+    Pipeline = dx_pipeline;
     Layout = Pipeline->Layout();
     const auto stages = pipeline->GetStages();
     GPipeline = nullptr;
     if (HasFlags(stages, FShaderStageFlags::Pixel))
     {
-        const auto g_pipeline = pipeline->QueryInterface<ID3d12GraphicsShaderPipeline>();
+        const Ptr g_pipeline = pipeline->QueryInterface<ID3d12GraphicsShaderPipeline>();
         if (!g_pipeline)
         {
             COPLT_THROW_FMT("[{}] Invalid pipeline: pipeline is not a graphics pipeline, but there is a pixel shader in the stages.", i);
         }
-        GPipeline = Rc<ID3d12GraphicsShaderPipeline>::UnsafeClone(g_pipeline);
+        GPipeline = g_pipeline;
     }
     PipelineChanged = true;
     if (Binding && Binding->Layout()->ObjectId() != Layout->ObjectId())
@@ -57,7 +57,7 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
 void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding, u32 i)
 {
     if (Binding && binding->ObjectId() == Binding->ObjectId()) return;
-    const auto dx_binding = binding->QueryInterface<ID3d12ShaderBinding>();
+    const Ptr dx_binding = binding->QueryInterface<ID3d12ShaderBinding>();
     if (!dx_binding)
     {
         COPLT_THROW_FMT(
@@ -69,7 +69,7 @@ void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding
     {
         COPLT_THROW_FMT("[{}] The binding layout is not compatible with the currently set pipeline", i);
     }
-    Binding = Rc<ID3d12ShaderBinding>::UnsafeClone(dx_binding);
+    Binding = dx_binding;
 }
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
@@ -138,6 +138,7 @@ void D3d12GpuRecord::Recycle()
     m_barrier_analyzer->Clear();
     m_context->Recycle();
     m_resources_owner.clear();
+    m_set_binding_info.clear();
     m_pipeline_context.Reset();
     ClearData();
     Ended = false;
@@ -349,8 +350,8 @@ void D3d12GpuRecord::Analyze_RenderEnd(u32 i, const FCmdRender& cmd)
     m_state = RecordState::Main;
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
     const auto num_rtv = std::min(info.NumRtv, 8u);
-    if (info.Dsv) m_barrier_analyzer->OnUse(info.Dsv);
-    for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->OnUse(info.Rtv[n]);
+    if (info.Dsv) m_barrier_analyzer->UpdateUse(info.Dsv);
+    for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->UpdateUse(info.Rtv[n]);
     m_barrier_analyzer->OnCmd();
     m_pipeline_context.Reset();
 }
@@ -384,8 +385,18 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
 {
     if (m_state != RecordState::Render && m_state != RecordState::Compute)
         COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
-    // todo
-    SetBinding(cmd.Binding, i);
+    if (!SetBinding(Bindings[cmd.Binding].Binding, i)) return;
+    const NonNull binding = m_pipeline_context.Binding;
+    const auto groups = binding->Groups();
+    for (const auto& group : groups)
+    {
+        const auto views = group->Views();
+        for (const auto& view : views)
+        {
+            // m_barrier_analyzer->OnUse(view);
+        }
+    }
+    m_barrier_analyzer->OnCmd();
 }
 
 void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd)
@@ -798,10 +809,11 @@ void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
     m_pipeline_context.SetPipeline(pipeline, i);
 }
 
-void D3d12GpuRecord::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+bool D3d12GpuRecord::SetBinding(NonNull<FShaderBinding> binding, u32 i)
 {
-    if (m_pipeline_context.Binding && binding->ObjectId() == m_pipeline_context.Binding->ObjectId()) return;
+    if (m_pipeline_context.Binding && binding->ObjectId() == m_pipeline_context.Binding->ObjectId()) return false;
     m_pipeline_context.SetBinding(binding, i);
+    return true;
 }
 
 void D3d12GpuRecord::SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i)

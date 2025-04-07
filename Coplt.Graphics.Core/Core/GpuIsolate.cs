@@ -157,12 +157,19 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 if ((p[i] = records[i].Ptr) == null) throw new NullReferenceException();
                 records[i].AssertEndOrCanEnd();
             }
-            Ptr->Submit((uint)records.Length, p, o).TryThrow();
-            for (var i = 0; i < records.Length; i++)
+            try
             {
-                records[i].m_ptr = (FUnknown*)o[i].Record;
-                records[i].m_data = o[i].Data;
-                records[i].Reset();
+                Ptr->Submit((uint)records.Length, p, o).TryThrow();
+                for (var i = 0; i < records.Length; i++)
+                {
+                    records[i].m_ptr = (FUnknown*)o[i].Record;
+                    records[i].m_data = o[i].Data;
+                    records[i].Reset();
+                }
+            }
+            catch (Exception e)
+            {
+                throw new UnrecoverableException(e);
             }
         }
         else
@@ -179,12 +186,24 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 fixed (IntPtr* p = arr)
                 fixed (FGpuRecordCreateResult* o = @out)
                 {
-                    Ptr->Submit((uint)records.Length, (FGpuRecord**)p, o).TryThrow();
                     for (var i = 0; i < records.Length; i++)
                     {
-                        records[i].m_ptr = (FUnknown*)o[i].Record;
-                        records[i].m_data = o[i].Data;
-                        records[i].Reset();
+                        if ((p[i] = (IntPtr)records[i].Ptr) == 0) throw new NullReferenceException();
+                        records[i].AssertEndOrCanEnd();
+                    }
+                    try
+                    {
+                        Ptr->Submit((uint)records.Length, (FGpuRecord**)p, o).TryThrow();
+                        for (var i = 0; i < records.Length; i++)
+                        {
+                            records[i].m_ptr = (FUnknown*)o[i].Record;
+                            records[i].m_data = o[i].Data;
+                            records[i].Reset();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        throw new UnrecoverableException(e);
                     }
                 }
             }
@@ -209,13 +228,21 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
             for (var i = 0; i < records.Length; i++)
             {
                 if ((p[i] = records[i].Ptr) == null) throw new NullReferenceException();
+                records[i].AssertEndOrCanEnd();
             }
-            Ptr->SubmitReturn((uint)records.Length, p).TryThrow();
-            foreach (var a in records)
+            try
             {
-                a.m_ptr = null;
-                a.m_data = null;
-                a.Reset();
+                Ptr->SubmitReturn((uint)records.Length, p).TryThrow();
+                foreach (var a in records)
+                {
+                    a.m_ptr = null;
+                    a.m_data = null;
+                    a.Reset();
+                }
+            }
+            catch (Exception e)
+            {
+                throw new UnrecoverableException(e);
             }
         }
         else
@@ -226,15 +253,23 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 for (var i = 0; i < records.Length; i++)
                 {
                     if ((arr[i] = (IntPtr)records[i].Ptr) == 0) throw new NullReferenceException();
+                    records[i].AssertEndOrCanEnd();
                 }
                 fixed (IntPtr* p = arr)
                 {
-                    Ptr->SubmitReturn((uint)records.Length, (FGpuRecord**)p).TryThrow();
-                    foreach (var a in records)
+                    try
                     {
-                        a.m_ptr = null;
-                        a.m_data = null;
-                        a.Reset();
+                        Ptr->SubmitReturn((uint)records.Length, (FGpuRecord**)p).TryThrow();
+                        foreach (var a in records)
+                        {
+                            a.m_ptr = null;
+                            a.m_data = null;
+                            a.Reset();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        throw new UnrecoverableException(e);
                     }
                 }
             }
@@ -307,12 +342,12 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 {
                     Name = new(Name, Name8, p_name, p_name8),
                     Layout = layout.Ptr,
-                    InitBindings = p_items,
-                    NumInitBindings = (uint)items.Length,
+                    Bindings = p_items,
+                    NumBindings = (uint)items.Length,
                 };
-                FShaderBindGroup* ptr;
-                Device.Ptr->CreateShaderBindGroup(&f_options, &ptr).TryThrow();
-                return new(ptr, Name, this, layout);
+                FShaderBindGroupCreateResult result;
+                Device.Ptr->CreateShaderBindGroup(&f_options, &result).TryThrow();
+                return new(result, Name, this, layout, items);
             }
         }
         finally
@@ -330,37 +365,36 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
-        var f_items = ArrayPool<FSetBindGroupItem>.Shared.Rent(items.Length);
+        if (items.Length != layout.BindGroupLayouts.Length)
+            throw new ArgumentException(
+                $"The number of binding groups provided does not meet the required number; Provided({items.Length}) != Required({layout.BindGroupLayouts.Length})"
+            );
+        var f_items = ArrayPool<IntPtr>.Shared.Rent(items.Length);
         try
         {
             for (var i = 0; i < items.Length; i++)
             {
                 ref readonly var item = ref items[i];
-                f_items[i] = new()
-                {
-                    BindGroup = item.Group.Ptr,
-                    Index = item.Index,
-                };
+                f_items[i] = (IntPtr)item.Group.Ptr;
             }
             fixed (char* p_name = Name)
             fixed (byte* p_name8 = Name8)
-            fixed (FSetBindGroupItem* p_items = f_items)
+            fixed (IntPtr* p_items = f_items)
             {
                 FShaderBindingCreateOptions f_options = new()
                 {
                     Name = new(Name, Name8, p_name, p_name8),
                     Layout = layout.Ptr,
-                    InitBindGroups = p_items,
-                    NumInitBindGroups = (uint)items.Length,
+                    BindGroups = (FShaderBindGroup**)p_items,
                 };
                 FShaderBinding* ptr;
                 Device.Ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
-                return new(ptr, Name, this, layout);
+                return new(ptr, Name, this, layout, items);
             }
         }
         finally
         {
-            ArrayPool<FSetBindGroupItem>.Shared.Return(f_items);
+            ArrayPool<IntPtr>.Shared.Return(f_items);
         }
     }
 

@@ -32,6 +32,7 @@ namespace Coplt
         FList<FCmdItem> Commands;
         // 需要保证不重复，c# 部分需要使用 HashMap 去重
         FList<FCmdRes> Resources;
+        FList<FCmdBinding> Bindings;
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
         FList<FRenderInfo2> PayloadRenderInfo;
@@ -40,12 +41,13 @@ namespace Coplt
         FList<FMeshBuffers2> PayloadMeshBuffers;
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
         FList<u8> Blob;
+        u32 NumSetBindings{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), PayloadRect(allocator), PayloadViewport(allocator),
+            : Commands(allocator), Resources(allocator), Bindings(allocator), PayloadRect(allocator), PayloadViewport(allocator),
               PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
               PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
         {
@@ -55,6 +57,7 @@ namespace Coplt
         {
             Commands.Clear();
             Resources.Clear();
+            Bindings.Clear();
             PayloadRect.Clear();
             PayloadViewport.Clear();
             PayloadRenderInfo.Clear();
@@ -63,6 +66,7 @@ namespace Coplt
             PayloadMeshBuffers.Clear();
             PayloadVertexBufferRange.Clear();
             Blob.Clear();
+            NumSetBindings = 0;
         }
         #endif
     };

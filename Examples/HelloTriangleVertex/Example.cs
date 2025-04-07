@@ -52,14 +52,14 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 }
             }, MeshLayout, Name: Name
         );
-        PositionColorBuffer = Device.CreateBuffer(
+        PositionColorBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.VertexBuffer,
                 Size = sizeof(float) * 4 * 6,
             }, "Position and Color"
         );
-        UvBuffer = Device.CreateBuffer(
+        UvBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.VertexBuffer,

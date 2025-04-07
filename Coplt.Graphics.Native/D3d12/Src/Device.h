@@ -70,7 +70,7 @@ namespace Coplt
         FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept override;
         FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept override;
 
-        FResult CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroup** out) noexcept override;
+        FResult CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroupCreateResult* out) noexcept override;
         FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept override;
 
         FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept override;

@@ -173,7 +173,11 @@ namespace Coplt::Enhanced
         return;
     }
 
-    void EnhancedBarrierAnalyzer::OnUse(FCmdResRef ResRef)
+    void EnhancedBarrierAnalyzer::OnUse(const View& View)
+    {
+    }
+
+    void EnhancedBarrierAnalyzer::UpdateUse(FCmdResRef ResRef)
     {
         const auto ResIndex = ResRef.ResIndex();
         auto& info = m_resources[ResIndex];

@@ -44,7 +44,7 @@ namespace Coplt
     struct DescriptorManager final
     {
         constexpr static u32 InitResHeapSize = 1024;
-        constexpr static u32 InitSmpHeapSize = 128;
+        constexpr static u32 InitSmpHeapSize = 64;
 
         Rc<DescriptorHeap> m_res{};
         Rc<DescriptorHeap> m_smp{};

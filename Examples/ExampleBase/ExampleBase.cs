@@ -87,6 +87,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                         catch (Exception e)
                         {
                             Log.Error(e, "");
+                            Environment.Exit(1);
                         }
                     }
                 }
@@ -95,6 +96,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
         catch (Exception e)
         {
             Log.Error(e, "");
+            Environment.Exit(1);
         }
     }
 

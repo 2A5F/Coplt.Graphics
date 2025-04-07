@@ -6,6 +6,7 @@
 #include "../../Api/Include/Object.h"
 #include "../../Api/FFI/Cmd.h"
 #include "../Include/ResState.h"
+#include "../Include/View.h"
 
 namespace Coplt
 {
@@ -35,7 +36,8 @@ namespace Coplt
         virtual void EndAnalyze() = 0;
 
         virtual void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
-        virtual void OnUse(FCmdResRef ResRef) = 0;
+        virtual void OnUse(const View& View) = 0;
+        virtual void UpdateUse(FCmdResRef ResRef) = 0;
         virtual void OnCmd() = 0;
         // 每个命令都需要调用一次
         virtual void CmdNext() = 0;
@@ -162,7 +164,8 @@ namespace Coplt
             void StartAnalyze(std::span<FCmdRes> resources) override;
             void EndAnalyze() override;
             void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
-            void OnUse(FCmdResRef ResRef) override;
+            void OnUse(const View& View) override;
+            void UpdateUse(FCmdResRef ResRef) override;
             void OnCmd() override;
             void CmdNext() override;
 

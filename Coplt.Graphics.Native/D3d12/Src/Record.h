@@ -78,6 +78,11 @@ namespace Coplt
             void SetBinding(NonNull<FShaderBinding> binding, u32 i);
         };
 
+        struct SetBindingInfo
+        {
+
+        };
+
         u64 m_isolate_id{};
         u64 m_record_id{};
         SRc<FGpuIsolateConfig> m_isolate_config{};
@@ -85,6 +90,7 @@ namespace Coplt
         Rc<D3d12RecordContext> m_context{};
         Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
         std::vector<Rc<FGpuObject>> m_resources_owner{};
+        std::vector<SetBindingInfo> m_set_binding_info{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         RenderState m_cur_render{};
         ComputeState m_cur_compute{};
@@ -153,7 +159,8 @@ namespace Coplt
         void Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDispatch& cmd) const;
 
         void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
-        void SetBinding(NonNull<FShaderBinding> binding, u32 i);
+        // 返回是否改变
+        bool SetBinding(NonNull<FShaderBinding> binding, u32 i);
         void SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i);
     };
 
