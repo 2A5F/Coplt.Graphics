@@ -387,9 +387,11 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
         COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
     if (!SetBinding(Bindings[cmd.Binding].Binding, i)) return;
     const NonNull binding = m_pipeline_context.Binding;
+    ReadGuard binding_guard(binding->Lock());
     const auto groups = binding->Groups();
     for (const auto& group : groups)
     {
+        ReadGuard group_guard(group->Lock());
         const auto views = group->Views();
         for (const auto& view : views)
         {

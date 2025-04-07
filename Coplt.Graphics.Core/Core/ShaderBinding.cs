@@ -5,15 +5,8 @@ namespace Coplt.Graphics.Core;
 
 public record struct SetShaderBindGroupItem(uint Index, ShaderBindGroup Group);
 
-[Dropping(Unmanaged = true)]
-public sealed unsafe partial class ShaderBinding : IsolateChild
+public sealed unsafe class ShaderBinding : IsolateChild
 {
-    #region Fields
-
-    internal ShaderBindGroup[] m_groups;
-
-    #endregion
-
     #region Props
 
     public new FShaderBinding* Ptr => (FShaderBinding*)base.Ptr;
@@ -24,30 +17,23 @@ public sealed unsafe partial class ShaderBinding : IsolateChild
     #region Ctor
 
     internal ShaderBinding(
-        FShaderBinding* ptr, string? name, GpuIsolate isolate, ShaderBindingLayout layout, ReadOnlySpan<SetShaderBindGroupItem> items
+        FShaderBinding* ptr, string? name, GpuIsolate isolate, ShaderBindingLayout layout
     ) : base((FGpuObject*)ptr, name, isolate)
     {
         Layout = layout;
-        m_groups = new ShaderBindGroup[layout.BindGroupLayouts.Length];
-        Set(items);
-    }
-
-    private void Set(ReadOnlySpan<SetShaderBindGroupItem> items)
-    {
-        foreach (var item in items)
-        {
-            m_groups[item.Index] = item.Group;
-        }
     }
 
     #endregion
 
-    #region Drop
+    #region CheckSet
 
-    [Drop]
-    private void Drop()
+    internal static void CheckSet(ShaderBindingLayout layout, ReadOnlySpan<SetShaderBindGroupItem> items)
     {
-        m_groups = null!;
+        var count = layout.BindGroupLayouts.Length;
+        foreach (ref readonly var item in items)
+        {
+            if (item.Index >= count) throw new IndexOutOfRangeException();
+        }
     }
 
     #endregion

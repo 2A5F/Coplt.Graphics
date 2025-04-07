@@ -3093,6 +3093,15 @@ namespace Coplt.Graphics.Native
         public FShaderBindGroupData* Data;
     }
 
+    public unsafe partial struct FSetBindGroupItem
+    {
+        [NativeTypeName("Coplt::FShaderBindGroup *")]
+        public FShaderBindGroup* BindGroup;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Index;
+    }
+
     public unsafe partial struct FShaderBindingCreateOptions
     {
         [NativeTypeName("Coplt::FStr8or16")]
@@ -3101,7 +3110,11 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::FBindingLayout *")]
         public FBindingLayout* Layout;
 
-        public FShaderBindGroup** BindGroups;
+        [NativeTypeName("Coplt::FSetBindGroupItem *")]
+        public FSetBindGroupItem* BindGroups;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint NumBindGroups;
     }
 
     [Guid("A3CA644A-0E02-4D25-9A18-8835D66600F7")]

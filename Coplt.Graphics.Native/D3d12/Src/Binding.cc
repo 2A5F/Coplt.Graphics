@@ -52,9 +52,14 @@ const Rc<FBindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
     return m_layout;
 }
 
-const std::span<const View> D3d12ShaderBindGroup::Views() const noexcept
+std::span<const View> D3d12ShaderBindGroup::Views() const noexcept
 {
     return m_views;
+}
+
+RwLock& D3d12ShaderBindGroup::Lock() noexcept
+{
+    return m_lock;
 }
 
 void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
@@ -102,7 +107,7 @@ D3d12ShaderBinding::D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShade
     m_layout = Rc<ID3d12BindingLayout>::UnsafeClone(layout);
     const auto groups = m_layout->Groups();
     m_groups = std::vector(groups.size(), Rc<ID3d12ShaderBindGroup>{});
-    Set(std::span(options.BindGroups, options.BindGroups + m_groups.size()));
+    Set(std::span(options.BindGroups, options.BindGroups + options.NumBindGroups));
 }
 
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
@@ -115,22 +120,32 @@ const Rc<ID3d12BindingLayout>& D3d12ShaderBinding::Layout() const noexcept
     return m_layout;
 }
 
-const std::span<const Rc<ID3d12ShaderBindGroup>> D3d12ShaderBinding::Groups() const noexcept
+std::span<const Rc<ID3d12ShaderBindGroup>> D3d12ShaderBinding::Groups() const noexcept
 {
     return m_groups;
 }
 
-void D3d12ShaderBinding::Set(const std::span<FShaderBindGroup*> items)
+RwLock& D3d12ShaderBinding::Lock() noexcept
 {
-    for (usize i = 0; i < m_groups.size(); ++i)
+    return m_lock;
+}
+
+void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)
+{
+    for (const auto& item : items)
     {
-        const auto item = items[i];
-        if (item)
+        if (item.Index >= m_groups.size())
+            COPLT_THROW("Index out of range");
+        if (item.BindGroup)
         {
-            const auto bind_group = item->QueryInterface<ID3d12ShaderBindGroup>();
+            const auto bind_group = item.BindGroup->QueryInterface<ID3d12ShaderBindGroup>();
             if (bind_group == nullptr)
                 COPLT_THROW("BindGroup from different backends");
-            m_groups[i] = Rc<ID3d12ShaderBindGroup>::UnsafeClone(bind_group);
+            m_groups[item.Index] = Rc<ID3d12ShaderBindGroup>::UnsafeClone(bind_group);
+        }
+        else
+        {
+            m_groups[item.Index] = nullptr;
         }
     }
 }

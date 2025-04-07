@@ -42,11 +42,18 @@ namespace Coplt
         FShaderBindGroupData* Data{};
     };
 
+    struct FSetBindGroupItem
+    {
+        FShaderBindGroup* BindGroup{};
+        u32 Index{};
+    };
+
     struct FShaderBindingCreateOptions
     {
         FStr8or16 Name{};
         FBindingLayout* Layout{};
-        FShaderBindGroup** BindGroups{};
+        FSetBindGroupItem* BindGroups{};
+        u32 NumBindGroups{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBinding, "a3ca644a-0e02-4d25-9a18-8835d66600f7", FGpuObject)

@@ -19,7 +19,6 @@ public sealed unsafe partial class ShaderBindGroup : IsolateChild
     #region Fields
 
     internal FShaderBindGroupData* m_data;
-    internal View[] m_views;
 
     #endregion
 
@@ -27,8 +26,7 @@ public sealed unsafe partial class ShaderBindGroup : IsolateChild
 
     public new FShaderBindGroup* Ptr => (FShaderBindGroup*)base.Ptr;
     public ref readonly FShaderBindGroupData Data => ref *m_data;
-    public ReadOnlySpan<View> Views => m_views;
-    public ReadOnlySpan<uint> ItemIndexes => new(m_data->ItemIndexes, (int)m_data->NumItemIndexes);
+    public uint CountSlots => Data.CountSlots;
     public ShaderBindGroupLayout Layout { get; }
 
     #endregion
@@ -36,27 +34,11 @@ public sealed unsafe partial class ShaderBindGroup : IsolateChild
     #region Ctor
 
     internal ShaderBindGroup(
-        FShaderBindGroupCreateResult result, string? name, GpuIsolate isolate, ShaderBindGroupLayout layout, ReadOnlySpan<SetShaderBindItem> items
+        FShaderBindGroupCreateResult result, string? name, GpuIsolate isolate, ShaderBindGroupLayout layout
     ) : base((FGpuObject*)result.BindGroup, name, isolate)
     {
         m_data = result.Data;
         Layout = layout;
-        m_views = new View[Data.CountSlots];
-        Set(items);
-    }
-
-    private void Set(ReadOnlySpan<SetShaderBindItem> items)
-    {
-        var defs = Layout.Items;
-        var item_indexes = ItemIndexes;
-        foreach (ref readonly var item in items)
-        {
-            if (item.Slot >= defs.Length) throw new IndexOutOfRangeException();
-            ref readonly var def = ref defs[(int)item.Slot];
-            if (item.Index >= def.Count) throw new IndexOutOfRangeException();
-            ref var slot = ref m_views[item_indexes[(int)item.Slot] + item.Index];
-            slot = item.View;
-        }
     }
 
     #endregion
@@ -67,7 +49,21 @@ public sealed unsafe partial class ShaderBindGroup : IsolateChild
     private void Drop()
     {
         m_data = null;
-        m_views = null!;
+    }
+
+    #endregion
+
+    #region CheckSet
+
+    internal static void CheckSet(ShaderBindGroupLayout layout, ReadOnlySpan<SetShaderBindItem> items)
+    {
+        var defs = layout.Items;
+        foreach (ref readonly var item in items)
+        {
+            if (item.Slot >= defs.Length) throw new IndexOutOfRangeException();
+            ref readonly var def = ref defs[(int)item.Slot];
+            if (item.Index >= def.Count) throw new IndexOutOfRangeException();
+        }
     }
 
     #endregion

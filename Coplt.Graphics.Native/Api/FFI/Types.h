@@ -62,8 +62,8 @@ namespace Coplt
     using Char16 = char16_t;
 
     using RwLock = std::shared_mutex;
-    using WriteLock = std::unique_lock<RwLock>;
-    using ReadLock = std::shared_lock<RwLock>;
+    using WriteGuard = std::unique_lock<RwLock>;
+    using ReadGuard = std::shared_lock<RwLock>;
 
     template <class T>
     using Ref = std::reference_wrapper<T>;
