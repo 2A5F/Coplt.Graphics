@@ -93,6 +93,7 @@ namespace Coplt
 
         struct SlotInfo final
         {
+            // Shader Layout 中的 index
             u32 Index{};
             u32 Group{COPLT_U32_MAX};
             u32 IndexInGroup{COPLT_U32_MAX};
@@ -105,6 +106,17 @@ namespace Coplt
             explicit SlotInfo(const u32 index) : Index(index)
             {
             }
+        };
+
+        struct BindItemInfo
+        {
+            u32 Group{};
+            u32 IndexInGroup{};
+            FGraphicsFormat Format{};
+            FShaderStageFlags Stages{};
+            FShaderLayoutItemView View{};
+            FShaderLayoutItemType Type{};
+            FResourceAccess UavAccess{};
         };
     }
 
@@ -134,11 +146,13 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(ID3d12BindingLayout, "dcebfaa2-44d9-4c3c-95e7-28189ce7d5c4", FBindingLayout)
     {
         using SlotInfo = Layout::SlotInfo;
+        using BindItemInfo = Layout::BindItemInfo;
 
         virtual const Rc<FShaderLayout>& ShaderLayout() const noexcept = 0;
         virtual std::span<const Rc<FBindGroupLayout>> Groups() const noexcept = 0;
         virtual const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept = 0;
         virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
+        virtual std::span<const std::vector<BindItemInfo>> BindItemInfos() const noexcept = 0;
     };
 
     struct D3d12BindingLayout final : GpuObject<D3d12BindingLayout, ID3d12BindingLayout>
@@ -153,6 +167,7 @@ namespace Coplt
         std::vector<SlotInfo> m_slot_infos{};
         HashMap<BindSlot, usize> m_slot_to_info{};
         std::vector<std::vector<TableInfo>> m_tables{};
+        std::vector<std::vector<BindItemInfo>> m_bind_item_infos{};
 
         explicit D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindingLayoutCreateOptions& options);
 
@@ -162,6 +177,7 @@ namespace Coplt
         std::span<const Rc<FBindGroupLayout>> Groups() const noexcept override;
         const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
         std::span<const SlotInfo> SlotInfos() const noexcept override;
+        std::span<const std::vector<BindItemInfo>> BindItemInfos() const noexcept override;
     };
 
     struct D3d12ShaderInputLayout final : GpuObject<D3d12ShaderInputLayout, FShaderInputLayout>

@@ -13,6 +13,187 @@
 
 using namespace Coplt;
 
+ResourceInfo::ResourceInfo(Rc<FGpuObject>&& resource, const FCmdRes& res, const u32 index): Resource(std::move(resource)), Index(index)
+{
+    Type = res.Type;
+    switch (res.Type)
+    {
+    case FCmdResType::Image:
+        {
+            const auto obj = res.Image->QueryInterface<ID3d12GpuImage>();
+            if (obj == nullptr)
+                COPLT_THROW("Image from different backends");
+            Image = obj;
+            return;
+        }
+    case FCmdResType::Buffer:
+        {
+            const auto obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
+            if (obj == nullptr)
+                COPLT_THROW("Buffer from different backends");
+            Buffer = obj;
+            return;
+        }
+    case FCmdResType::Output:
+        {
+            const auto obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
+            if (obj == nullptr)
+                COPLT_THROW("Output from different backends");
+            Output = obj;
+            return;
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
+ResourceInfo::ResourceInfo(Rc<FGpuObject>&& resource, const View& view, u32 index): Resource(std::move(resource)), Index(index)
+{
+    switch (view.m_type)
+    {
+    case FViewType::None:
+        COPLT_THROW("Null view");
+    case FViewType::Buffer:
+        Type = FCmdResType::Buffer;
+        Buffer = NonNull(view.TryGetBuffer());
+        return;
+    case FViewType::Image:
+        Type = FCmdResType::Image;
+        Image = NonNull(view.TryGetImage());
+        return;
+    case FViewType::Sampler:
+        COPLT_THROW("Samplers cannot be used as resources");
+    }
+    COPLT_THROW("Unreachable");
+}
+
+bool ResourceInfo::IsImage() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        return true;
+    case FCmdResType::Buffer:
+        return false;
+    case FCmdResType::Output:
+        return true;
+    }
+    return false;
+}
+
+NonNull<ID3D12Resource> ResourceInfo::GetResource() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        {
+            return Image->GetResourcePtr();
+        }
+    case FCmdResType::Buffer:
+        {
+            return Buffer->GetResourcePtr();
+        }
+    case FCmdResType::Output:
+        {
+            return Output->GetResourcePtr();
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
+NonNull<FGpuBufferData> ResourceInfo::GetBufferData() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Buffer:
+        {
+            return Buffer->Data();
+        }
+    case FCmdResType::Image:
+        COPLT_THROW("Image is not buffer");
+    case FCmdResType::Output:
+        COPLT_THROW("Output is not buffer");
+    }
+    COPLT_THROW("Unreachable");
+}
+
+NonNull<FGpuImageData> ResourceInfo::GetImageData() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        {
+            return Image->Data();
+        }
+    case FCmdResType::Output:
+        {
+            return Output->ImageData();
+        }
+    case FCmdResType::Buffer:
+        COPLT_THROW("Buffer is not image");
+    }
+    COPLT_THROW("Unreachable");
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE ResourceInfo::GetRtv() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        {
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Buffer:
+        {
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Output:
+        {
+            return Output->GetRtv();
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE ResourceInfo::GetDsv() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        {
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Buffer:
+        {
+            COPLT_THROW("TODO");
+        }
+    case FCmdResType::Output:
+        {
+            COPLT_THROW("Output dose not support Dsv");
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
+NonNull<LayoutState> ResourceInfo::GetState() const
+{
+    switch (Type)
+    {
+    case FCmdResType::Image:
+        {
+            return Image->State();
+        }
+    case FCmdResType::Buffer:
+        {
+            return Buffer->State();
+        }
+    case FCmdResType::Output:
+        {
+            return Output->State();
+        }
+    }
+    COPLT_THROW("Unreachable");
+}
+
 void D3d12GpuRecord::PipelineContext::Reset()
 {
     Pipeline = nullptr;
@@ -103,6 +284,11 @@ const FGpuRecordData* D3d12GpuRecord::Data() const noexcept
     return this;
 }
 
+std::span<ResourceInfo> D3d12GpuRecord::ResourceInfos() noexcept
+{
+    return m_resource_infos;
+}
+
 const Rc<D3d12RecordContext>& D3d12GpuRecord::Context() const noexcept
 {
     return m_context;
@@ -137,8 +323,9 @@ void D3d12GpuRecord::Recycle()
     m_queue_wait_points.clear();
     m_barrier_analyzer->Clear();
     m_context->Recycle();
-    m_resources_owner.clear();
-    m_set_binding_info.clear();
+    m_resource_map.Clear();
+    m_resource_infos.clear();
+    m_set_binding_infos.clear();
     m_pipeline_context.Reset();
     ClearData();
     Ended = false;
@@ -164,8 +351,10 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("End cannot be called multiple times");
     if (Resources.size() >= std::numeric_limits<u32>::max())
         COPLT_THROW("Too many resources");
+    m_barrier_analyzer->StartAnalyze(this);
     ReadyResource();
     Analyze();
+    m_barrier_analyzer->EndAnalyze();
     if (m_isolate_config->MultiThreadRecord)
     {
         auto allocator = m_context->m_cmd_alloc_pool->RentCommandAllocator(GetType(Mode));
@@ -184,14 +373,14 @@ void D3d12GpuRecord::AfterSubmit()
     m_result_list = {};
 }
 
-FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
+ResourceInfo& D3d12GpuRecord::GetRes(const FCmdResRef& ref)
 {
-    return ref.Get(Resources);
+    return m_resource_infos[ref.ResIndex()];
 }
 
-const FCmdRes& D3d12GpuRecord::GetRes(const FCmdResRef& ref) const
+const ResourceInfo& D3d12GpuRecord::GetRes(const FCmdResRef& ref) const
 {
-    return ref.Get(Resources);
+    return m_resource_infos[ref.ResIndex()];
 }
 
 void D3d12GpuRecord::ResetState()
@@ -201,20 +390,57 @@ void D3d12GpuRecord::ResetState()
     m_pipeline_context.Reset();
 }
 
+FResIndex D3d12GpuRecord::AddResource(const FCmdRes& res)
+{
+    const NonNull obj = res.GetObjectPtr();
+    const auto index = m_resource_map.GetOrAdd(obj->ObjectId(), [this, obj, &res](auto& p)
+    {
+        const auto index = m_resource_infos.size();
+        p.put(static_cast<u32>(index));
+        m_resource_infos.push_back(ResourceInfo(Rc<FGpuObject>::UnsafeClone(obj), res, index));
+        m_barrier_analyzer->OnAddRes();
+    });
+    return FResIndex(index);
+}
+
+FResIndex D3d12GpuRecord::AddResource(const View& view)
+{
+    const auto obj = view.GetViewable();
+    const auto index = m_resource_map.GetOrAdd(obj->ObjectId(), [this, obj, &view](auto& p)
+    {
+        const auto index = m_resource_infos.size();
+        p.put(static_cast<u32>(index));
+        m_resource_infos.push_back(ResourceInfo(Rc<FGpuObject>::UnsafeClone(obj), view, index));
+        m_barrier_analyzer->OnAddRes();
+    });
+    return FResIndex(index);
+}
+
 void D3d12GpuRecord::ReadyResource()
 {
-    m_resources_owner.reserve(Resources.size());
+    m_resource_infos.clear();
+    m_resource_infos.reserve(Resources.size());
     for (u32 i = 0; i < Resources.size(); ++i)
     {
         const auto& res = Resources[i];
-        m_resources_owner.push_back(Rc<FGpuObject>::UnsafeClone(res.GetObjectPtr()));
+        const auto index = AddResource(res);
+        COPLT_DEBUG_ASSERT(index == i);
     }
+}
+
+void D3d12GpuRecord::ReadyBindings()
+{
+    // todo
+}
+
+void D3d12GpuRecord::ReleaseBindings()
+{
+    // todo
 }
 
 void D3d12GpuRecord::Analyze()
 {
     const auto commands = Commands.AsSpan();
-    m_barrier_analyzer->StartAnalyze(Resources.AsSpan());
     for (u32 i = 0; i < commands.size(); ++i, m_barrier_analyzer->CmdNext())
     {
         const auto& command = commands[i];
@@ -270,7 +496,6 @@ void D3d12GpuRecord::Analyze()
             break;
         }
     }
-    m_barrier_analyzer->EndAnalyze();
 }
 
 void D3d12GpuRecord::Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const
@@ -279,14 +504,14 @@ void D3d12GpuRecord::Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd
         COPLT_THROW_FMT("[{}] Cannot use PreparePresent in sub scope", i);
     if (Mode != FGpuRecordMode::Direct)
         COPLT_THROW_FMT("[{}] Can only present on the direct mode", i);
-    m_barrier_analyzer->OnUse(cmd.Output, ResAccess::None, ResUsage::Common, ResLayout::Common);
+    m_barrier_analyzer->OnUse(cmd.Output.ResIndex(), ResAccess::None, ResUsage::Common, ResLayout::Common);
 }
 
 void D3d12GpuRecord::Analyze_ClearColor(u32 i, const FCmdClearColor& cmd) const
 {
     if (m_state != RecordState::Main)
         COPLT_THROW_FMT("[{}] Cannot use ClearColor in sub scope", i);
-    m_barrier_analyzer->OnUse(cmd.Image, ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+    m_barrier_analyzer->OnUse(cmd.Image.ResIndex(), ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
     m_barrier_analyzer->OnCmd();
 }
 
@@ -294,7 +519,7 @@ void D3d12GpuRecord::Analyze_ClearDepthStencil(u32 i, const FCmdClearDepthStenci
 {
     if (m_state != RecordState::Main)
         COPLT_THROW_FMT("[{}] Cannot use ClearDepthStencil in sub scope", i);
-    m_barrier_analyzer->OnUse(cmd.Image, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+    m_barrier_analyzer->OnUse(cmd.Image.ResIndex(), ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
     m_barrier_analyzer->OnCmd();
 }
 
@@ -304,13 +529,13 @@ void D3d12GpuRecord::Analyze_BufferCopy(u32 i, const FCmdBufferCopy& cmd) const
         COPLT_THROW_FMT("[{}] Cannot use BufferCopy in sub scope", i);
     if (cmd.SrcType == FBufferRefType2::Buffer && cmd.DstType == FBufferRefType2::Buffer)
     {
-        m_barrier_analyzer->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
-        m_barrier_analyzer->OnUse(cmd.Src.Buffer, ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnUse(cmd.Dst.Buffer.ResIndex(), ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnUse(cmd.Src.Buffer.ResIndex(), ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
         m_barrier_analyzer->OnCmd();
     }
     else if (cmd.SrcType == FBufferRefType2::Upload && cmd.DstType == FBufferRefType2::Buffer)
     {
-        m_barrier_analyzer->OnUse(cmd.Dst.Buffer, ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        m_barrier_analyzer->OnUse(cmd.Dst.Buffer.ResIndex(), ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
         m_barrier_analyzer->OnCmd();
     }
     else
@@ -334,11 +559,11 @@ void D3d12GpuRecord::Analyze_Render(u32 i, const FCmdRender& cmd)
     const auto num_rtv = std::min(info.NumRtv, 8u);
     if (info.Dsv)
     {
-        m_barrier_analyzer->OnUse(info.Dsv, ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
+        m_barrier_analyzer->OnUse(info.Dsv.ResIndex(), ResAccess::DepthStencilWrite, ResUsage::Common, ResLayout::DepthStencilWrite);
     }
     for (u32 n = 0; n < num_rtv; ++n)
     {
-        m_barrier_analyzer->OnUse(info.Rtv[n], ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
+        m_barrier_analyzer->OnUse(info.Rtv[n].ResIndex(), ResAccess::RenderTargetWrite, ResUsage::Common, ResLayout::RenderTarget);
     }
     m_barrier_analyzer->OnCmd();
 }
@@ -350,8 +575,8 @@ void D3d12GpuRecord::Analyze_RenderEnd(u32 i, const FCmdRender& cmd)
     m_state = RecordState::Main;
     const auto& info = PayloadRenderInfo[cmd.InfoIndex];
     const auto num_rtv = std::min(info.NumRtv, 8u);
-    if (info.Dsv) m_barrier_analyzer->UpdateUse(info.Dsv);
-    for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->UpdateUse(info.Rtv[n]);
+    if (info.Dsv) m_barrier_analyzer->UpdateUse(info.Dsv.ResIndex());
+    for (u32 n = 0; n < num_rtv; ++n) m_barrier_analyzer->UpdateUse(info.Rtv[n].ResIndex());
     m_barrier_analyzer->OnCmd();
     m_pipeline_context.Reset();
 }
@@ -387,15 +612,23 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
         COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
     if (!SetBinding(Bindings[cmd.Binding].Binding, i)) return;
     const NonNull binding = m_pipeline_context.Binding;
+    // todo 弄个 vector 存储锁，在 end 结束后统一释放，在 end 开始时统一获取
     ReadGuard binding_guard(binding->Lock());
+    const auto bind_item_infos = binding->Layout()->BindItemInfos();
     const auto groups = binding->Groups();
-    for (const auto& group : groups)
+    for (u32 g = 0; g < groups.size(); ++g)
     {
+        const auto& group = groups[g];
+        if (!group) continue;
         ReadGuard group_guard(group->Lock());
         const auto views = group->Views();
-        for (const auto& view : views)
+        for (u32 v = 0; v < views.size(); ++v)
         {
-            // m_barrier_analyzer->OnUse(view);
+            const auto& view = views[v];
+            if (!view || view.IsSampler()) continue;
+            const auto& res_index = AddResource(view);
+            const auto& info = bind_item_infos[g][v];
+            m_barrier_analyzer->OnUse(res_index, view, info);
         }
     }
     m_barrier_analyzer->OnCmd();
@@ -408,12 +641,12 @@ void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd
     const auto& buf = PayloadMeshBuffers[cmd.PayloadIndex];
     if (buf.IndexBuffer.Buffer)
     {
-        m_barrier_analyzer->OnUse(buf.IndexBuffer.Buffer, ResAccess::IndexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
+        m_barrier_analyzer->OnUse(buf.IndexBuffer.Buffer.ResIndex(), ResAccess::IndexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
     }
     for (u32 c = 0; c < buf.VertexBufferCount; ++c)
     {
         const auto& item = PayloadVertexBufferRange[c];
-        m_barrier_analyzer->OnUse(item.Buffer, ResAccess::VertexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
+        m_barrier_analyzer->OnUse(item.Buffer.ResIndex(), ResAccess::VertexBufferRead, ResUsage::VertexOrMesh, ResLayout::Undefined);
     }
     m_barrier_analyzer->OnCmd();
 }
@@ -539,7 +772,7 @@ void D3d12GpuRecord::Interpret_ClearColor(const CmdList& list, const u32 i, cons
 {
     if (m_state != RecordState::Main)
         COPLT_THROW_FMT("[{}] Cannot use ClearColor in sub scope", i);
-    const auto rtv = GetRtv(GetRes(cmd.Image));
+    const auto rtv = GetRes(cmd.Image).GetRtv();
     list->g0->ClearRenderTargetView(
         rtv, cmd.Color, cmd.RectCount,
         cmd.RectCount == 0 ? nullptr : reinterpret_cast<const D3D12_RECT*>(&PayloadRect[cmd.RectIndex])
@@ -550,7 +783,7 @@ void D3d12GpuRecord::Interpret_ClearDepthStencil(const CmdList& list, const u32 
 {
     if (m_state != RecordState::Main)
         COPLT_THROW_FMT("[{}] Cannot use ClearDepthStencil in sub scope", i);
-    const auto dsv = GetDsv(GetRes(cmd.Image));
+    const auto dsv = GetRes(cmd.Image).GetDsv();
     D3D12_CLEAR_FLAGS flags{};
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Depth)) flags |= D3D12_CLEAR_FLAG_DEPTH;
     if (HasFlags(cmd.Clear, FDepthStencilClearFlags::Stencil)) flags |= D3D12_CLEAR_FLAG_STENCIL;
@@ -567,8 +800,8 @@ void D3d12GpuRecord::Interpret_BufferCopy(const CmdList& list, u32 i, const FCmd
     const auto& range = PayloadBufferCopyRange[cmd.RangeIndex];
     if (cmd.SrcType == FBufferRefType2::Buffer && cmd.DstType == FBufferRefType2::Buffer)
     {
-        const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
-        const auto src = GetResource(GetRes(cmd.Src.Buffer));
+        const auto dst = GetRes(cmd.Dst.Buffer).GetResource();
+        const auto src = GetRes(cmd.Src.Buffer).GetResource();
         if (range.Size == std::numeric_limits<u64>::max())
         {
             list->g0->CopyResource(dst, src);
@@ -580,7 +813,7 @@ void D3d12GpuRecord::Interpret_BufferCopy(const CmdList& list, u32 i, const FCmd
     }
     else if (cmd.SrcType == FBufferRefType2::Upload && cmd.DstType == FBufferRefType2::Buffer)
     {
-        const auto dst = GetResource(GetRes(cmd.Dst.Buffer));
+        const auto dst = GetRes(cmd.Dst.Buffer).GetResource();
         if (cmd.Src.Upload.Index >= m_context->m_upload_buffers.size())
             COPLT_THROW_FMT("[{}] Index out of bounds", i);
         const auto& src_obj = m_context->m_upload_buffers[cmd.Src.Upload.Index];
@@ -620,7 +853,7 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
             const auto& s_load = info.DsvLoadOp[1];
             const auto& s_store = info.DsvStoreOp[1];
             D3D12_RENDER_PASS_DEPTH_STENCIL_DESC desc{};
-            desc.cpuDescriptor = GetDsv(dsv);
+            desc.cpuDescriptor = dsv.GetDsv();
             desc.DepthBeginningAccess = ToDx(d_load, [&](D3D12_CLEAR_VALUE& cv)
             {
                 cv.Format = ToDx(info.DsvFormat);
@@ -635,8 +868,8 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
             {
                 const auto& res_info = PayloadResolveInfo[info.DsvResolveInfoIndex];
                 res.Format = ToDx(res_info.Format);
-                res.pSrcResource = GetResource(GetRes(res_info.Src));
-                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.pSrcResource = GetRes(res_info.Src).GetResource();
+                res.pDstResource = GetRes(res_info.Dst).GetResource();
                 res.SubresourceCount = 0;
                 res.ResolveMode = ToDx(res_info.Mode);
             });
@@ -644,8 +877,8 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
             {
                 const auto& res_info = PayloadResolveInfo[info.DsvResolveInfoIndex];
                 res.Format = ToDx(res_info.Format);
-                res.pSrcResource = GetResource(GetRes(res_info.Src));
-                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.pSrcResource = GetRes(res_info.Src).GetResource();
+                res.pDstResource = GetRes(res_info.Dst).GetResource();
                 res.SubresourceCount = 0;
                 res.ResolveMode = ToDx(res_info.Mode);
             });
@@ -657,7 +890,7 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
             const auto& load = info.RtvLoadOp[n];
             const auto& store = info.RtvStoreOp[n];
             D3D12_RENDER_PASS_RENDER_TARGET_DESC desc{};
-            desc.cpuDescriptor = GetRtv(rtv);
+            desc.cpuDescriptor = rtv.GetRtv();
             desc.BeginningAccess = ToDx(load, [&](D3D12_CLEAR_VALUE& cv)
             {
                 cv.Format = ToDx(info.RtvFormat[n]);
@@ -670,8 +903,8 @@ void D3d12GpuRecord::Interpret_Render(const CmdList& list, const u32 i, const FC
             {
                 const auto& res_info = PayloadResolveInfo[info.ResolveInfoIndex[n]];
                 res.Format = ToDx(res_info.Format);
-                res.pSrcResource = GetResource(GetRes(res_info.Src));
-                res.pDstResource = GetResource(GetRes(res_info.Dst));
+                res.pSrcResource = GetRes(res_info.Src).GetResource();
+                res.pDstResource = GetRes(res_info.Dst).GetResource();
                 res.SubresourceCount = 0;
                 res.ResolveMode = ToDx(res_info.Mode);
             });
@@ -750,7 +983,7 @@ void D3d12GpuRecord::Interpret_SetMeshBuffers(const CmdList& list, u32 i, const 
     const auto vbs = std::span(PayloadVertexBufferRange.data() + buffers.VertexBuffersIndex, buffers.VertexBufferCount);
     if (buffers.IndexBuffer.Buffer)
     {
-        const auto resource = GetResource(GetRes(buffers.IndexBuffer.Buffer));
+        const auto resource = GetRes(buffers.IndexBuffer.Buffer).GetResource();
         D3D12_INDEX_BUFFER_VIEW view{};
         view.BufferLocation = resource->GetGPUVirtualAddress() + buffers.IndexBuffer.Offset;
         view.SizeInBytes = buffers.IndexBuffer.Size;
@@ -762,7 +995,7 @@ void D3d12GpuRecord::Interpret_SetMeshBuffers(const CmdList& list, u32 i, const 
     {
         const auto& range = vbs[j];
         const auto& def = defs[range.Index];
-        const auto resource = GetResource(GetRes(range.Buffer));
+        const auto resource = GetRes(range.Buffer).GetResource();
         D3D12_VERTEX_BUFFER_VIEW view{};
         view.BufferLocation = resource->GetGPUVirtualAddress() + range.Offset;
         view.SizeInBytes = range.Size;
@@ -848,131 +1081,4 @@ D3D12_COMMAND_LIST_TYPE Coplt::GetType(const FGpuRecordMode Mode)
         return D3D12_COMMAND_LIST_TYPE_COPY;
     }
     return D3D12_COMMAND_LIST_TYPE_DIRECT;
-}
-
-NonNull<ID3D12Resource> Coplt::GetResource(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Image:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            return obj->GetResourcePtr();
-        }
-    case FCmdResType::Buffer:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            return obj->GetResourcePtr();
-        }
-    case FCmdResType::Output:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
-            return obj->GetResourcePtr();
-        }
-    }
-    return nullptr;
-}
-
-NonNull<FGpuBufferData> Coplt::GetBufferData(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Buffer:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            return obj->Data();
-        }
-    case FCmdResType::Image:
-    case FCmdResType::Output:
-        return nullptr;
-    }
-    return nullptr;
-}
-
-NonNull<FGpuImageData> Coplt::GetImageData(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Image:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            return obj->Data();
-        }
-    case FCmdResType::Output:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
-            return obj->ImageData();
-        }
-    case FCmdResType::Buffer:
-        return nullptr;
-    }
-    return nullptr;
-}
-
-CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetRtv(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Image:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            COPLT_THROW("TODO");
-        }
-    case FCmdResType::Buffer:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            COPLT_THROW("TODO");
-        }
-    case FCmdResType::Output:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
-            return obj->GetRtv();
-        }
-    }
-    COPLT_THROW("Unreachable");
-}
-
-CD3DX12_CPU_DESCRIPTOR_HANDLE Coplt::GetDsv(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Image:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            COPLT_THROW("TODO");
-        }
-    case FCmdResType::Buffer:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            COPLT_THROW("TODO");
-        }
-    case FCmdResType::Output:
-        {
-            COPLT_THROW("Output dose not support Dsv");
-        }
-    }
-    COPLT_THROW("Unreachable");
-}
-
-NonNull<LayoutState> Coplt::GetState(const FCmdRes& res)
-{
-    switch (res.Type)
-    {
-    case FCmdResType::Image:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuImage>();
-            return obj->State();
-        }
-    case FCmdResType::Buffer:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuBuffer>();
-            return obj->State();
-        }
-    case FCmdResType::Output:
-        {
-            const NonNull obj = res.Image->QueryInterface<ID3d12GpuOutput2>();
-            return obj->State();
-        }
-    }
-    COPLT_THROW("Unreachable");
 }

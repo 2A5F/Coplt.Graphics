@@ -20,13 +20,17 @@ D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FS
     CountSlots = sum_count;
     m_views = std::vector(sum_count, View{});
     m_item_indexes.reserve(items.size());
+    m_define_indexes.reserve(sum_count);
     for (u32 i = 0, off = 0; i < items.size(); ++i)
     {
         m_item_indexes.push_back(off);
-        off += std::max(1u, items[i].Count);
+        const auto count = std::max(1u, items[i].Count);
+        off += count;
+        for (int j = 0; j < count; ++j)
+        {
+            m_define_indexes.push_back(i);
+        }
     }
-    ItemIndexes = m_item_indexes.data();
-    NumItemIndexes = static_cast<u32>(m_item_indexes.size());
     Set(std::span(options.Bindings, options.Bindings + options.NumBindings));
     if (!options.Name.is_null())
     {
@@ -55,6 +59,16 @@ const Rc<FBindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
 std::span<const View> D3d12ShaderBindGroup::Views() const noexcept
 {
     return m_views;
+}
+
+std::span<const u32> D3d12ShaderBindGroup::ItemIndexes() const noexcept
+{
+    return m_item_indexes;
+}
+
+std::span<const u32> D3d12ShaderBindGroup::DefineIndexes() const noexcept
+{
+    return m_define_indexes;
 }
 
 RwLock& D3d12ShaderBindGroup::Lock() noexcept
@@ -113,6 +127,11 @@ D3d12ShaderBinding::D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShade
 FResult D3d12ShaderBinding::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FShaderBindingData* D3d12ShaderBinding::ShaderBindingData() noexcept
+{
+    return this;
 }
 
 const Rc<ID3d12BindingLayout>& D3d12ShaderBinding::Layout() const noexcept

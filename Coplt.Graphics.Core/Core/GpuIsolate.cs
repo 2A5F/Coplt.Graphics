@@ -310,9 +310,9 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                     BindGroups = p_items,
                     NumBindGroups = (uint)items.Length,
                 };
-                FShaderBinding* ptr;
-                Device.Ptr->CreateShaderBinding(&f_options, &ptr).TryThrow();
-                return new(ptr, Name, this, layout);
+                FShaderBindingCreateResult result;
+                Device.Ptr->CreateShaderBinding(&f_options, &result).TryThrow();
+                return new(result, Name, this, layout);
             }
         }
         finally

@@ -12,6 +12,9 @@ namespace Coplt
         virtual bool IsCompatible(const FBindGroupItem& def) const = 0;
     };
 
+    struct ID3d12GpuBuffer;
+    struct ID3d12GpuImage;
+
     struct View final
     {
         Rc<ID3d12GpuViewable> m_viewable{};
@@ -30,9 +33,15 @@ namespace Coplt
         View(const FView& view);
         View& operator=(const FView& view);
 
-        operator bool() const;
+        explicit operator bool() const;
 
         bool IsCompatible(const FBindGroupItem& def) const;
+        bool IsBuffer() const;
+        bool IsImage() const;
+        bool IsSampler() const;
+        NonNull<ID3d12GpuViewable> GetViewable() const;
+        Ptr<ID3d12GpuBuffer> TryGetBuffer() const;
+        Ptr<ID3d12GpuImage> TryGetImage() const;
 
         // void CreateDescriptor(
         //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type

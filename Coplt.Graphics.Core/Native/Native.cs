@@ -1333,10 +1333,10 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
-        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out)
+        public FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, [NativeTypeName("Coplt::FShaderBindingCreateResult *")] FShaderBindingCreateResult* @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBinding**, FResult*>)(lpVtbl[20]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderBindingCreateOptions*, FShaderBindingCreateResult*, FResult*>)(lpVtbl[20]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1415,7 +1415,7 @@ namespace Coplt.Graphics.Native
             FResult CreateShaderBindGroup([NativeTypeName("const FShaderBindGroupCreateOptions &")] FShaderBindGroupCreateOptions* options, [NativeTypeName("Coplt::FShaderBindGroupCreateResult *")] FShaderBindGroupCreateResult* @out);
 
             [return: NativeTypeName("Coplt::FResult")]
-            FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, FShaderBinding** @out);
+            FResult CreateShaderBinding([NativeTypeName("const FShaderBindingCreateOptions &")] FShaderBindingCreateOptions* options, [NativeTypeName("Coplt::FShaderBindingCreateResult *")] FShaderBindingCreateResult* @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
@@ -1741,6 +1741,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint NumSetBindings;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint SumMaxBindSlots;
 
         [NativeTypeName("Coplt::b8")]
         public B8 Ended;
@@ -3117,6 +3120,15 @@ namespace Coplt.Graphics.Native
         public uint NumBindGroups;
     }
 
+    public partial struct FShaderBindingData
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint SumPersistentSlots;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint SumTransientSlots;
+    }
+
     [Guid("A3CA644A-0E02-4D25-9A18-8835D66600F7")]
     [NativeTypeName("struct FShaderBinding : Coplt::FGpuObject")]
     public unsafe partial struct FShaderBinding : FShaderBinding.Interface, INativeGuid
@@ -3166,9 +3178,27 @@ namespace Coplt.Graphics.Native
             return *((delegate* unmanaged[Thiscall]<FShaderBinding*, FResult*, FStr8or16*, FResult*>)(lpVtbl[5]))((FShaderBinding*)Unsafe.AsPointer(ref this), &result, name);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FShaderBindingData *")]
+        public FShaderBindingData* ShaderBindingData()
+        {
+            return ((delegate* unmanaged[Thiscall]<FShaderBinding*, FShaderBindingData*>)(lpVtbl[6]))((FShaderBinding*)Unsafe.AsPointer(ref this));
+        }
+
         public interface Interface : FGpuObject.Interface
         {
+            [return: NativeTypeName("Coplt::FShaderBindingData *")]
+            FShaderBindingData* ShaderBindingData();
         }
+    }
+
+    public unsafe partial struct FShaderBindingCreateResult
+    {
+        [NativeTypeName("Coplt::FShaderBinding *")]
+        public FShaderBinding* Binding;
+
+        [NativeTypeName("Coplt::FShaderBindingData *")]
+        public FShaderBindingData* Data;
     }
 
     public unsafe partial struct FUploadBufferBlock

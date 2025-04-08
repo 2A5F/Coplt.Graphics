@@ -1,21 +1,55 @@
 #pragma once
 
+#include <vector>
 #include <directx/d3dx12.h>
 
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/FFI/Record.h"
 #include "Barrier.h"
 #include "Binding.h"
+#include "Buffer.h"
 #include "Context.h"
+#include "Image.h"
 #include "Isolate.h"
 #include "Layout.h"
+#include "Output.h"
 
 namespace Coplt
 {
+    struct ResourceInfo
+    {
+        Rc<FGpuObject> Resource{};
+
+        union
+        {
+            ID3d12GpuOutput2* Output;
+            ID3d12GpuBuffer* Buffer;
+            ID3d12GpuImage* Image;
+        };
+
+        FCmdResType Type{};
+        u32 Index{};
+
+        ResourceInfo() = default;
+        explicit ResourceInfo(Rc<FGpuObject>&& resource, const FCmdRes& res, u32 index);
+        explicit ResourceInfo(Rc<FGpuObject>&& resource, const View& view, u32 index);
+
+        bool IsImage() const;
+
+        NonNull<ID3D12Resource> GetResource() const;
+        NonNull<FGpuBufferData> GetBufferData() const;
+        NonNull<FGpuImageData> GetImageData() const;
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv() const;
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetDsv() const;
+        NonNull<LayoutState> GetState() const;
+    };
+
     COPLT_INTERFACE_DEFINE(ID3d12GpuRecord, "57a9c7f9-1ec0-4d78-89b9-e547667c50b3", FGpuRecord)
     {
         virtual FGpuRecordData* Data() noexcept = 0;
         virtual const FGpuRecordData* Data() const noexcept = 0;
+
+        virtual std::span<ResourceInfo> ResourceInfos() noexcept = 0;
 
         virtual const Rc<D3d12RecordContext>& Context() const noexcept = 0;
 
@@ -80,7 +114,6 @@ namespace Coplt
 
         struct SetBindingInfo
         {
-
         };
 
         u64 m_isolate_id{};
@@ -89,8 +122,9 @@ namespace Coplt
         Rc<D3d12GpuDevice> m_device{};
         Rc<D3d12RecordContext> m_context{};
         Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
-        std::vector<Rc<FGpuObject>> m_resources_owner{};
-        std::vector<SetBindingInfo> m_set_binding_info{};
+        HashMap<u64, u64> m_resource_map{}; // id -> index
+        std::vector<ResourceInfo> m_resource_infos{};
+        std::vector<SetBindingInfo> m_set_binding_infos{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         RenderState m_cur_render{};
         ComputeState m_cur_compute{};
@@ -104,6 +138,7 @@ namespace Coplt
         FGpuRecordData* GpuFGpuRecordData() noexcept override;
         FGpuRecordData* Data() noexcept override;
         const FGpuRecordData* Data() const noexcept override;
+        std::span<ResourceInfo> ResourceInfos() noexcept override;
         const Rc<D3d12RecordContext>& Context() const noexcept override;
         const D3d12RentedCommandList& ResultList() const noexcept override;
 
@@ -119,12 +154,16 @@ namespace Coplt
 
         void AfterSubmit() override;
 
-        FCmdRes& GetRes(const FCmdResRef& ref);
-        const FCmdRes& GetRes(const FCmdResRef& ref) const;
+        ResourceInfo& GetRes(const FCmdResRef& ref);
+        const ResourceInfo& GetRes(const FCmdResRef& ref) const;
 
         void ResetState();
 
+        FResIndex AddResource(const FCmdRes& res);
+        FResIndex AddResource(const View& view);
         void ReadyResource();
+        void ReadyBindings();
+        void ReleaseBindings();
 
         void Analyze();
         void Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;
@@ -165,10 +204,4 @@ namespace Coplt
     };
 
     D3D12_COMMAND_LIST_TYPE GetType(FGpuRecordMode Mode);
-    NonNull<ID3D12Resource> GetResource(const FCmdRes& res);
-    NonNull<FGpuBufferData> GetBufferData(const FCmdRes& res);
-    NonNull<FGpuImageData> GetImageData(const FCmdRes& res);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtv(const FCmdRes& res);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE GetDsv(const FCmdRes& res);
-    NonNull<LayoutState> GetState(const FCmdRes& res);
 }

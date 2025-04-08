@@ -30,7 +30,6 @@ namespace Coplt
         u64 Version{};
         FRecordContext* Context{};
         FList<FCmdItem> Commands;
-        // 需要保证不重复，c# 部分需要使用 HashMap 去重
         FList<FCmdRes> Resources;
         FList<FCmdBinding> Bindings;
         FList<FRect> PayloadRect;
@@ -42,6 +41,7 @@ namespace Coplt
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
         FList<u8> Blob;
         u32 NumSetBindings{};
+        u32 SumMaxBindSlots{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 

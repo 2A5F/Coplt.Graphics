@@ -19,6 +19,8 @@ namespace Coplt
     {
         virtual const Rc<FBindGroupLayout>& Layout() const noexcept = 0;
         virtual std::span<const View> Views() const noexcept = 0;
+        virtual std::span<const u32> ItemIndexes() const noexcept = 0;
+        virtual std::span<const u32> DefineIndexes() const noexcept = 0;
         virtual RwLock& Lock() noexcept = 0;
     };
 
@@ -28,6 +30,7 @@ namespace Coplt
         Rc<D3d12GpuDevice> m_device{};
         Rc<FBindGroupLayout> m_layout{};
         std::vector<View> m_views{};
+        std::vector<u32> m_define_indexes{};
         std::vector<u32> m_item_indexes{};
         RwLock m_lock{};
 
@@ -38,9 +41,12 @@ namespace Coplt
 
         const Rc<FBindGroupLayout>& Layout() const noexcept override;
         std::span<const View> Views() const noexcept override;
+        std::span<const u32> ItemIndexes() const noexcept override;
+        std::span<const u32> DefineIndexes() const noexcept override;
         RwLock& Lock() noexcept override;
 
         void Set(std::span<const FSetBindItem> items);
+
     };
 
     COPLT_INTERFACE_DEFINE(ID3d12ShaderBinding, "5073f785-cfb7-414d-9a84-1602d3bf378d", FShaderBinding)
@@ -50,7 +56,7 @@ namespace Coplt
         virtual RwLock& Lock() noexcept = 0;
     };
 
-    struct D3d12ShaderBinding final : GpuObject<D3d12ShaderBinding, ID3d12ShaderBinding>
+    struct D3d12ShaderBinding final : GpuObject<D3d12ShaderBinding, ID3d12ShaderBinding>, FShaderBindingData
     {
         Rc<D3d12GpuDevice> m_device{};
         Rc<ID3d12BindingLayout> m_layout{};
@@ -59,6 +65,8 @@ namespace Coplt
 
         explicit D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options);
         FResult SetName(const FStr8or16& name) noexcept override;
+
+        FShaderBindingData* ShaderBindingData() noexcept override;
 
         const Rc<ID3d12BindingLayout>& Layout() const noexcept override;
         std::span<const Rc<ID3d12ShaderBindGroup>> Groups() const noexcept override;

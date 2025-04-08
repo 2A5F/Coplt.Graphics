@@ -807,7 +807,7 @@ internal unsafe struct PipelineContext
                 throw new InvalidOperationException("The binding layout is not compatible with the currently set pipeline");
         }
         m_current_binding = Binding;
-        self.AddObject(m_current_binding);
+        var first = self.AddObject(m_current_binding);
         var cmd = new FCmdSetBinding
         {
             Base = { Type = FCmdType.SetBinding },
@@ -821,6 +821,7 @@ internal unsafe struct PipelineContext
             }
         );
         self.Data.Commands.Add(new() { SetBinding = cmd });
+        if (first) self.Data.SumMaxBindSlots += Binding.Data.SumPersistentSlots + Binding.Data.SumTransientSlots;
     }
 
     #endregion

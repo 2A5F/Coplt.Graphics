@@ -23,6 +23,12 @@
 #define COPLT_THROW_FMT(msg, ...) throw RuntimeException(fmt::format(msg, __VA_ARGS__))
 #endif
 
+#ifdef _DEBUG
+#define COPLT_DEBUG_ASSERT(x) if (!(x)) COPLT_THROW("Assertion failed: "#x)
+#else
+#define COPLT_DEBUG_ASSERT(x)
+#endif
+
 namespace Coplt
 {
     std::string to_string(const cpptrace::stacktrace& trace);

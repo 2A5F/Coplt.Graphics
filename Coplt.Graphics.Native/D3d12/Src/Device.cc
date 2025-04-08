@@ -310,11 +310,13 @@ FResult D3d12GpuDevice::CreateShaderBindGroup(const FShaderBindGroupCreateOption
     });
 }
 
-FResult D3d12GpuDevice::CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept
+FResult D3d12GpuDevice::CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBindingCreateResult* out) noexcept
 {
     return feb([&]
     {
-        *out = new D3d12ShaderBinding(this->CloneThis(), options);
+        const auto ptr = new D3d12ShaderBinding(this->CloneThis(), options);
+        out->Binding = ptr;
+        out->Data = ptr;
     });
 }
 

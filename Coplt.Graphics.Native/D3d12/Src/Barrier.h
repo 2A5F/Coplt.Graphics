@@ -3,6 +3,7 @@
 #include "Context.h"
 #include "Device.h"
 #include "Isolate.h"
+#include "Layout.h"
 #include "../../Api/Include/Object.h"
 #include "../../Api/FFI/Cmd.h"
 #include "../Include/ResState.h"
@@ -19,6 +20,8 @@ namespace Coplt
 
     struct ID3d12BarrierAnalyzer;
     struct ID3d12BarrierCombiner;
+    struct D3d12GpuRecord;
+    struct ResourceInfo;
 
     COPLT_INTERFACE_DEFINE(ID3d12BarrierMarshal, "792f273c-376d-4027-af99-0d14d3d71302", FUnknown)
     {
@@ -32,12 +35,13 @@ namespace Coplt
         virtual std::span<const IOResState> Outputs() const = 0;
 
         virtual void Clear() = 0;
-        virtual void StartAnalyze(std::span<FCmdRes> resources) = 0;
+        virtual void StartAnalyze(NonNull<D3d12GpuRecord> record) = 0;
         virtual void EndAnalyze() = 0;
+        virtual void OnAddRes() = 0;
 
-        virtual void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
-        virtual void OnUse(const View& View) = 0;
-        virtual void UpdateUse(FCmdResRef ResRef) = 0;
+        virtual void OnUse(FResIndex ResIndex, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
+        virtual void OnUse(FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info) = 0;
+        virtual void UpdateUse(FResIndex ResIndex) = 0;
         virtual void OnCmd() = 0;
         // 每个命令都需要调用一次
         virtual void CmdNext() = 0;
@@ -55,7 +59,8 @@ namespace Coplt
     {
         struct ResInfo
         {
-            FCmdRes Res{};
+            NonNull<ID3d12GpuRecord> Record;
+            u32 ResIndex{};
             NonNull<LayoutState> State;
         };
 
@@ -110,7 +115,7 @@ namespace Coplt
 
         struct ResInfo
         {
-            NonNull<const FCmdRes> Res;
+            u32 ResIndex;
             ResState State{};
             ResState OldState{};
             u32 PreGroup{COPLT_U32_MAX};
@@ -118,7 +123,7 @@ namespace Coplt
             u32 CurGroup{COPLT_U32_MAX};
             InfoState InfoState{};
 
-            explicit ResInfo(NonNull<const FCmdRes> Res);
+            explicit ResInfo(u32 ResIndex);
 
             void SetNewState(ResState state);
         };
@@ -149,6 +154,7 @@ namespace Coplt
             std::vector<Group> m_groups{};
             u32 m_last_cmd_count{};
             b8 m_use_split_barrier{};
+            NonNull<D3d12GpuRecord> m_record{NonNull<D3d12GpuRecord>::Unchecked(nullptr)};
 
             explicit EnhancedBarrierAnalyzer(const EnhancedBarrierMarshal& marshal);
 
@@ -161,11 +167,13 @@ namespace Coplt
             u32 CurGroupIndex() const;
 
             void Clear() override;
-            void StartAnalyze(std::span<FCmdRes> resources) override;
+            void StartAnalyze(NonNull<D3d12GpuRecord> record) override;
             void EndAnalyze() override;
-            void OnUse(FCmdResRef ResRef, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
-            void OnUse(const View& View) override;
-            void UpdateUse(FCmdResRef ResRef) override;
+            void OnAddRes() override;
+
+            void OnUse(FResIndex ResIndex, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
+            void OnUse(FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info) override;
+            void UpdateUse(FResIndex ResIndex) override;
             void OnCmd() override;
             void CmdNext() override;
 

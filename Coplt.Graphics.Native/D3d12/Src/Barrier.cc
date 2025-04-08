@@ -25,7 +25,7 @@ bool ID3d12EnhancedBarrierAnalyzer::Group::IsEmpty() const
     return m_buffer_barriers.empty() && m_texture_barriers.empty();
 }
 
-ID3d12EnhancedBarrierAnalyzer::ResInfo::ResInfo(const NonNull<const FCmdRes> Res) : Res(Res)
+ID3d12EnhancedBarrierAnalyzer::ResInfo::ResInfo(const u32 ResIndex) : ResIndex(ResIndex)
 {
 }
 
@@ -95,16 +95,11 @@ namespace Coplt::Enhanced
         m_groups.clear();
     }
 
-    void EnhancedBarrierAnalyzer::StartAnalyze(const std::span<FCmdRes> resources)
+    void EnhancedBarrierAnalyzer::StartAnalyze(NonNull<D3d12GpuRecord> record)
     {
-        m_use_split_barrier = m_isolate_config->UseSplitBarrier;
+        m_record = record;
         Clear();
-        m_resources.reserve(resources.size());
-        for (usize i = 0; i < resources.size(); ++i)
-        {
-            const auto& res = resources[i];
-            m_resources.push_back(ResInfo(&res));
-        }
+        m_use_split_barrier = m_isolate_config->UseSplitBarrier;
         m_groups.push_back({});
     }
 
@@ -124,11 +119,16 @@ namespace Coplt::Enhanced
             }
             m_outputs.push_back(IOResState{.ResIndex = i, .LstGroup = info.LstGroup, .State = info.State});
         }
+        m_record = NonNull<D3d12GpuRecord>::Unchecked(nullptr);
     }
 
-    void EnhancedBarrierAnalyzer::OnUse(const FCmdResRef ResRef, const ResAccess Access, const ResUsage Usage, const ResLayout Layout)
+    void EnhancedBarrierAnalyzer::OnAddRes()
     {
-        const auto ResIndex = ResRef.ResIndex();
+        m_resources.push_back(ResInfo(m_resources.size()));
+    }
+
+    void EnhancedBarrierAnalyzer::OnUse(const FResIndex ResIndex, const ResAccess Access, const ResUsage Usage, const ResLayout Layout)
+    {
         auto& info = m_resources[ResIndex];
         const auto new_state = ResState(Access, Usage, Layout);
         const auto need_split = m_use_split_barrier && m_last_cmd_count > 0;
@@ -173,13 +173,65 @@ namespace Coplt::Enhanced
         return;
     }
 
-    void EnhancedBarrierAnalyzer::OnUse(const View& View)
+    void EnhancedBarrierAnalyzer::OnUse(const FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info)
     {
+        auto access = ResAccess::Common;
+        auto usage = ResUsage::Common;
+        auto layout = ResLayout::Undefined;
+        for (const auto stage : IterStage(info.Stages))
+        {
+            switch (stage)
+            {
+            case FShaderStage::Compute:
+                usage |= ResUsage::Compute;
+                break;
+            case FShaderStage::Pixel:
+                usage |= ResUsage::Pixel;
+                break;
+            case FShaderStage::Vertex:
+            case FShaderStage::Mesh:
+            case FShaderStage::Task:
+                usage |= ResUsage::VertexOrMesh;
+                break;
+            default: ;
+            }
+        }
+        switch (info.View)
+        {
+        case FShaderLayoutItemView::Cbv:
+            access = ResAccess::ConstantBufferRead;
+            break;
+        case FShaderLayoutItemView::Srv:
+            access = ResAccess::ShaderResourceRead;
+            if (!IsBuffer(info.Type)) layout = ResLayout::ShaderResource;
+            break;
+        case FShaderLayoutItemView::Uav:
+            switch (info.UavAccess)
+            {
+            case FResourceAccess::ReadOnly:
+                access = ResAccess::UnorderedAccessRead;
+                break;
+            case FResourceAccess::WriteOnly:
+                access = ResAccess::UnorderedAccessWrite;
+                break;
+            case FResourceAccess::ReadWrite:
+            case FResourceAccess::Unknown:
+            default:
+                access = ResAccess::UnorderedAccessRead | ResAccess::UnorderedAccessWrite;
+                break;
+            }
+            if (!IsBuffer(info.Type)) layout = ResLayout::UnorderedAccess;
+            break;
+        case FShaderLayoutItemView::Sampler:
+        case FShaderLayoutItemView::Constants:
+        case FShaderLayoutItemView::StaticSampler:
+            return;
+        }
+        OnUse(ResIndex, access, usage, layout);
     }
 
-    void EnhancedBarrierAnalyzer::UpdateUse(FCmdResRef ResRef)
+    void EnhancedBarrierAnalyzer::UpdateUse(const FResIndex ResIndex)
     {
-        const auto ResIndex = ResRef.ResIndex();
         auto& info = m_resources[ResIndex];
         if (info.InfoState == InfoState::Unused)
             COPLT_THROW("The resource is not being used and the usage location cannot be updated");
@@ -205,7 +257,7 @@ namespace Coplt::Enhanced
 
     void EnhancedBarrierAnalyzer::CreateBarrier(const ResInfo& info)
     {
-        const auto& res = *info.Res;
+        const auto& res = m_record->m_resource_infos[info.ResIndex];
         const auto BeforeListIndex = info.PreGroup + 1;
         const auto AfterListIndex = info.LstGroup;
         const auto SyncBefore = GetBarrierSync(info.OldState.Access, info.OldState.Usage);
@@ -235,7 +287,7 @@ namespace Coplt::Enhanced
         };
         if (res.IsImage())
         {
-            const auto img_data = GetImageData(res);
+            const auto img_data = res.GetImageData();
             D3D12_TEXTURE_BARRIER barrier{
                 .SyncBefore = SyncBefore,
                 .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
@@ -243,7 +295,7 @@ namespace Coplt::Enhanced
                 .AccessAfter = AccessAfter,
                 .LayoutBefore = GetBarrierLayout(info.OldState.Layout),
                 .LayoutAfter = GetBarrierLayout(info.State.Layout),
-                .pResource = GetResource(res),
+                .pResource = res.GetResource(),
                 .Subresources = {
                     .IndexOrFirstMipLevel = 0,
                     .NumMipLevels = img_data->m_mip_levels,
@@ -258,13 +310,13 @@ namespace Coplt::Enhanced
         }
         else
         {
-            const auto buffer_data = GetBufferData(res);
+            const auto buffer_data = res.GetBufferData();
             D3D12_BUFFER_BARRIER barrier{
                 .SyncBefore = SyncBefore,
                 .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
                 .AccessBefore = AccessBefore,
                 .AccessAfter = AccessAfter,
-                .pResource = GetResource(res),
+                .pResource = res.GetResource(),
                 .Offset = 0,
                 .Size = buffer_data->m_size,
             };
@@ -323,7 +375,7 @@ namespace Coplt::Enhanced
     {
         for (const auto& record : records)
         {
-            const NonNull data = record->Data();
+            const auto resource_infos = record->ResourceInfos();
             const NonNull barrier_analyzer = record->BarrierAnalyzer()->QueryInterface<ID3d12EnhancedBarrierAnalyzer>();
             const auto& context = record->Context();
 
@@ -333,13 +385,14 @@ namespace Coplt::Enhanced
 
             for (const auto& input : barrier_analyzer->Inputs())
             {
-                const auto& res = data->Resources[input.ResIndex];
+                const auto& res = resource_infos[input.ResIndex];
                 bool exist;
-                auto& sr = m_submit_resources.GetOrAdd(res.GetObjectPtr()->ObjectId(), exist, [&](auto& p)
+                auto& sr = m_submit_resources.GetOrAdd(res.Resource->ObjectId(), exist, [&](auto& p)
                 {
                     p.put(ResInfo{
-                        .Res = res,
-                        .State = GetState(res),
+                        .Record = record,
+                        .ResIndex = input.ResIndex,
+                        .State = res.GetState(),
                     });
                 });
                 if (!exist)
@@ -349,7 +402,7 @@ namespace Coplt::Enhanced
                         auto& group = result_list ? m_tmp_group : barrier_analyzer->Groups()[0];
                         if (res.IsImage())
                         {
-                            const auto img_data = GetImageData(res);
+                            const auto img_data = res.GetImageData();
                             const auto SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage);
                             D3D12_TEXTURE_BARRIER barrier{
                                 .SyncBefore = D3D12_BARRIER_SYNC_NONE,
@@ -358,7 +411,7 @@ namespace Coplt::Enhanced
                                 .AccessAfter = GetBarrierAccess(input.State.Access),
                                 .LayoutBefore = GetBarrierLayout(sr.State->Layout),
                                 .LayoutAfter = GetBarrierLayout(input.State.Layout),
-                                .pResource = GetResource(res),
+                                .pResource = res.GetResource(),
                                 .Subresources = {
                                     .IndexOrFirstMipLevel = 0,
                                     .NumMipLevels = img_data->m_mip_levels,
@@ -373,14 +426,14 @@ namespace Coplt::Enhanced
                         }
                         else
                         {
-                            const auto buffer_data = GetBufferData(res);
+                            const auto buffer_data = res.GetBufferData();
                             const auto SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage);
                             D3D12_BUFFER_BARRIER barrier{
                                 .SyncBefore = D3D12_BARRIER_SYNC_NONE,
                                 .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
                                 .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
                                 .AccessAfter = GetBarrierAccess(input.State.Access),
-                                .pResource = GetResource(res),
+                                .pResource = res.GetResource(),
                                 .Offset = 0,
                                 .Size = buffer_data->m_size,
                             };
@@ -405,7 +458,7 @@ namespace Coplt::Enhanced
 
                 if (!m_tmp_group.IsEmpty())
                 {
-                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(data->Mode));
+                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(record->Data()->Mode));
                     auto list = allocator.RentCommandList();
                     EnhancedBarrierAnalyzer::SubmitBarrier(list, m_tmp_group);
                     list.Close();
@@ -421,7 +474,7 @@ namespace Coplt::Enhanced
                 }
                 else
                 {
-                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(data->Mode));
+                    auto allocator = context->m_cmd_alloc_pool->RentCommandAllocator(GetType(record->Data()->Mode));
                     auto list = allocator.RentCommandList();
                     barrier_analyzer->Interpret(list, *record);
                     list.Close();
@@ -439,12 +492,13 @@ namespace Coplt::Enhanced
 
             for (const auto& output : barrier_analyzer->Outputs())
             {
-                const auto& res = data->Resources[output.ResIndex];
-                const auto state = GetState(res);
+                const auto& res = resource_infos[output.ResIndex];
+                const auto state = res.GetState();
                 state->Layout = output.State.Layout;
                 m_submit_resources.AddOrReplace(
-                    res.GetObjectPtr()->ObjectId(), ResInfo{
-                        .Res = res,
+                    res.Resource->ObjectId(), ResInfo{
+                        .Record = record,
+                        .ResIndex = output.ResIndex,
                         .State = state,
                     }
                 );

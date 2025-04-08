@@ -90,20 +90,19 @@ namespace Coplt
             }
             return nullptr;
         }
+        #endif
+    };
 
-        bool IsImage() const
+    struct FResIndex
+    {
+        u32 Value{};
+
+        #ifdef FFI_SRC
+        explicit FResIndex(const u32 Value) : Value(Value)
         {
-            switch (Type)
-            {
-            case FCmdResType::Image:
-                return true;
-            case FCmdResType::Buffer:
-                return false;
-            case FCmdResType::Output:
-                return true;
-            }
-            return false;
         }
+
+        operator u32() const { return Value; }
         #endif
     };
 
@@ -112,25 +111,9 @@ namespace Coplt
         u32 IndexPlusOne{};
 
         #ifdef FFI_SRC
-        operator bool() const { return IndexPlusOne != 0; }
+        explicit operator bool() const { return IndexPlusOne != 0; }
 
-        u32 ResIndex() const { return IndexPlusOne - 1; }
-
-        FCmdRes& Get(FList<FCmdRes>& list) const
-        {
-            const auto index = ResIndex();
-            if (index > list.m_len)
-                COPLT_THROW("Index out of range");
-            return list[index];
-        }
-
-        const FCmdRes& Get(const FList<FCmdRes>& list) const
-        {
-            const auto index = ResIndex();
-            if (index > list.m_len)
-                COPLT_THROW("Index out of range");
-            return list[index];
-        }
+        FResIndex ResIndex() const { return FResIndex{IndexPlusOne - 1}; }
         #endif
     };
 

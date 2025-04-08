@@ -1,5 +1,7 @@
 #include "../Include/View.h"
 #include "../Include/GraphicsFormat.h"
+#include "Buffer.h"
+#include "Image.h"
 
 using namespace Coplt;
 
@@ -44,6 +46,36 @@ bool View::IsCompatible(const FBindGroupItem& def) const
         return m_viewable->IsCompatible(def);
     }
     return true;
+}
+
+bool View::IsBuffer() const
+{
+    return m_type == FViewType::Buffer;
+}
+
+bool View::IsImage() const
+{
+    return m_type == FViewType::Image;
+}
+
+bool View::IsSampler() const
+{
+    return m_type == FViewType::Sampler;
+}
+
+NonNull<ID3d12GpuViewable> View::GetViewable() const
+{
+    return m_viewable;
+}
+
+Ptr<ID3d12GpuBuffer> View::TryGetBuffer() const
+{
+    return m_viewable->QueryInterface<ID3d12GpuBuffer>();
+}
+
+Ptr<ID3d12GpuImage> View::TryGetImage() const
+{
+    return m_viewable->QueryInterface<ID3d12GpuImage>();
 }
 
 // void View::CreateDescriptor(

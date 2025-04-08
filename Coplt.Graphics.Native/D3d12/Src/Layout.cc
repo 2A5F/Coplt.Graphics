@@ -114,13 +114,24 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             );
         }
     }
+    m_bind_item_infos.reserve(options.NumGroups);
     for (u32 g = 0; g < options.NumGroups; g++)
     {
+        std::vector<BindItemInfo> bind_item_infos{};
         const auto& group = m_groups[g];
         const auto items = group->GetItems();
+        bind_item_infos.reserve(items.size());
         for (u32 i = 0; i < items.size(); ++i)
         {
-            for (const auto& item = items[i]; const auto stage : IterStage(item.Stages))
+            const auto& item = items[i];
+            BindItemInfo bind_item_info{};
+            bind_item_info.Group = g;
+            bind_item_info.IndexInGroup = i;
+            bind_item_info.Format = item.Format;
+            bind_item_info.Stages = item.Stages;
+            bind_item_info.View = item.View;
+            bind_item_info.UavAccess = item.UavAccess;
+            for (const auto stage : IterStage(item.Stages))
             {
                 BindSlot slot(item, stage);
                 const auto info_index = m_slot_to_info.TryGet(slot);
@@ -153,8 +164,30 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                 }
                 info.Group = g;
                 info.IndexInGroup = i;
+                switch (def.UavAccess)
+                {
+                case FResourceAccess::ReadOnly:
+                    if (bind_item_info.UavAccess == FResourceAccess::Unknown)
+                        bind_item_info.UavAccess = FResourceAccess::ReadOnly;
+                    else if (bind_item_info.UavAccess != FResourceAccess::ReadOnly)
+                        bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    break;
+                case FResourceAccess::WriteOnly:
+                    if (bind_item_info.UavAccess == FResourceAccess::Unknown)
+                        bind_item_info.UavAccess = FResourceAccess::WriteOnly;
+                    else if (bind_item_info.UavAccess != FResourceAccess::WriteOnly)
+                        bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    break;
+                case FResourceAccess::ReadWrite:
+                case FResourceAccess::Unknown:
+                default:
+                    bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    break;
+                }
             }
+            bind_item_infos.push_back(bind_item_info);
         }
+        m_bind_item_infos.push_back(std::move(bind_item_infos));
     }
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
@@ -365,6 +398,11 @@ const ComPtr<ID3D12RootSignature>& D3d12BindingLayout::RootSignature() const noe
 std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() const noexcept
 {
     return m_slot_infos;
+}
+
+std::span<const std::vector<BindItemInfo>> D3d12BindingLayout::BindItemInfos() const noexcept
+{
+    return m_bind_item_infos;
 }
 
 D3d12ShaderInputLayout::D3d12ShaderInputLayout(
