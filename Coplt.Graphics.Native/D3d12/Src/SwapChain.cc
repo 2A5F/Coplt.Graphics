@@ -72,8 +72,9 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
     Initialize();
 }
 
-D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainCreateOptions& options, HWND hwnd)
-    : D3d12GpuSwapChain(isolate, options, options.AlphaMode, options.VSync)
+D3d12GpuSwapChain::D3d12GpuSwapChain(
+    const NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainCreateOptions& options, void* handle, SwapChainFor For
+) : D3d12GpuSwapChain(isolate, options, options.AlphaMode, options.VSync)
 {
     bool is_hdr = false;
     this->Format = SelectFormat(options, is_hdr);
@@ -113,14 +114,37 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(const NonNull<D3d12GpuIsolate> isolate, con
     }
 
     ComPtr<IDXGISwapChain1> swap_chain;
-    chr | m_isolate->m_device->m_instance->m_factory->CreateSwapChainForHwnd(
-        m_queue.Get(),
-        hwnd,
-        &desc,
-        nullptr,
-        nullptr,
-        &swap_chain
-    );
+
+    if (For == SwapChainFor::Composition)
+    {
+        chr | m_isolate->m_device->m_instance->m_factory->CreateSwapChainForComposition(
+            m_queue.Get(),
+            &desc,
+            nullptr,
+            &swap_chain
+        );
+    }
+    else if (For == SwapChainFor::CoreWindow)
+    {
+        chr | m_isolate->m_device->m_instance->m_factory->CreateSwapChainForCoreWindow(
+            m_queue.Get(),
+            static_cast<IUnknown*>(handle),
+            &desc,
+            nullptr,
+            &swap_chain
+        );
+    }
+    else
+    {
+        chr | m_isolate->m_device->m_instance->m_factory->CreateSwapChainForHwnd(
+            m_queue.Get(),
+            static_cast<HWND>(handle),
+            &desc,
+            nullptr,
+            nullptr,
+            &swap_chain
+        );
+    }
 
     chr | swap_chain.As(&m_swap_chain);
 
@@ -371,4 +395,9 @@ void D3d12GpuSwapChain::WaitAllNoLock() const
 void D3d12GpuSwapChain::WaitFenceValueNoLock(const u64 fence_value) const
 {
     m_isolate->m_main_queue->WaitFenceValue(fence_value, m_event);
+}
+
+void* D3d12GpuSwapChain::GetRawPtr() const noexcept
+{
+    return m_swap_chain.Get();
 }

@@ -92,6 +92,9 @@ namespace Coplt
 
         // 设置垂直同步，实现可以选择忽略
         virtual FResult SetVSync(b8 Enable) noexcept = 0;
+
+        // dx 后端是 IDXGISwapChain3*
+        virtual void* GetRawPtr() const noexcept = 0;
     };
 
     struct FGpuSwapChainCreateResult

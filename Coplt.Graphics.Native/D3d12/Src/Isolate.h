@@ -58,6 +58,8 @@ namespace Coplt
         FResult SubmitReturn(u32 NumRecords, FGpuRecord** Records) noexcept override;
 
         FResult CreateSwapChainFromExists(const FGpuSwapChainFromExistsCreateOptions& options, FGpuSwapChainCreateResult& out) noexcept override;
+        FResult CreateSwapChainForComposition(const FGpuSwapChainCreateOptions& options, FGpuSwapChainCreateResult& out) noexcept override;
+        FResult CreateSwapChainForCoreWindow(const FGpuSwapChainCreateOptions& options, void* win, FGpuSwapChainCreateResult& out) noexcept override;
         FResult CreateSwapChainForHwnd(const FGpuSwapChainCreateOptions& options, void* hwnd, FGpuSwapChainCreateResult& out) noexcept override;
 
         void RentRecords(std::span<FGpuRecordCreateResult> out);

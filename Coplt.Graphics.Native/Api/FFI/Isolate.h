@@ -56,7 +56,11 @@ namespace Coplt
 
         virtual FResult CreateSwapChainFromExists(const FGpuSwapChainFromExistsCreateOptions& options, FGpuSwapChainCreateResult& out) noexcept = 0;
         // 在非 windows 系统上会报错
+        virtual FResult CreateSwapChainForComposition(const FGpuSwapChainCreateOptions& options, FGpuSwapChainCreateResult& out) noexcept = 0;
+        // 在非 windows 系统上会报错
         virtual FResult CreateSwapChainForHwnd(const FGpuSwapChainCreateOptions& options, void* hwnd, FGpuSwapChainCreateResult& out) noexcept = 0;
+        // 在非 windows 系统上会报错
+        virtual FResult CreateSwapChainForCoreWindow(const FGpuSwapChainCreateOptions& options, void* w, FGpuSwapChainCreateResult& out) noexcept = 0;
     };
 
     struct FGpuIsolateCreateResult

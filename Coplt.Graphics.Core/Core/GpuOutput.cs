@@ -168,6 +168,8 @@ public sealed unsafe class GpuSwapChain : GpuOutput2
     #region Methods
 
     public void SetVSync(bool Enable) => Ptr->SetVSync(Enable).TryThrow();
+    
+    public void GetRawPtr() => Ptr->GetRawPtr();
 
     #endregion
 }

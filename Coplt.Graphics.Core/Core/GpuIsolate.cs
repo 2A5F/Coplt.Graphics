@@ -202,12 +202,21 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
 
     #endregion
 
-    #region CreateSwapChainForHwnd
+    #region CreateSwapChainOnWindows
+
+    private enum SwapChainFor
+    {
+        Composition,
+        CoreWindow,
+        Hwnd,
+    }
 
     /// <summary>
     /// Will fail on non Windows systems
     /// </summary>
-    public GpuSwapChain CreateSwapChainForHwnd(IntPtr Hwnd, in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    private GpuSwapChain CreateSwapChainOnWindows(
+        IntPtr Handle, SwapChainFor For, in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
     {
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
@@ -227,10 +236,54 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 VSync = Options.VSync,
             };
             FGpuSwapChainCreateResult r;
-            Ptr->CreateSwapChainForHwnd(&f_options, (void*)Hwnd, &r).TryThrow();
+            switch (For)
+            {
+            case SwapChainFor.Composition:
+                Ptr->CreateSwapChainForComposition(&f_options, &r).TryThrow();
+                break;
+            case SwapChainFor.CoreWindow:
+                Ptr->CreateSwapChainForCoreWindow(&f_options, (void*)Handle, &r).TryThrow();
+                break;
+            case SwapChainFor.Hwnd:
+                Ptr->CreateSwapChainForHwnd(&f_options, (void*)Handle, &r).TryThrow();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(For), For, null);
+            }
             return new(r.SwapChain, r.Data, Name, this);
         }
     }
+
+    #endregion
+
+    #region CreateSwapChainForComposition
+
+    /// <summary>
+    /// Will fail on non Windows systems
+    /// </summary>
+    public GpuSwapChain CreateSwapChainForComposition(in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default)
+        => CreateSwapChainOnWindows(0, SwapChainFor.Composition, in Options, Name, Name8);
+
+    #endregion
+
+    #region CreateSwapChainForCoreWindow
+
+    /// <summary>
+    /// Will fail on non Windows systems
+    /// </summary>
+    public GpuSwapChain CreateSwapChainForCoreWindow(
+        IntPtr Window, in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => CreateSwapChainOnWindows(Window, SwapChainFor.CoreWindow, in Options, Name, Name8);
+
+    #endregion
+
+    #region CreateSwapChainForHwnd
+
+    /// <summary>
+    /// Will fail on non Windows systems
+    /// </summary>
+    public GpuSwapChain CreateSwapChainForHwnd(IntPtr Hwnd, in GpuSwapChainCreateOptions Options, string? Name = null, ReadOnlySpan<byte> Name8 = default)
+        => CreateSwapChainOnWindows(Hwnd, SwapChainFor.Hwnd, in Options, Name, Name8);
 
     #endregion
 

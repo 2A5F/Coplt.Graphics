@@ -10,7 +10,17 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(ID3d12GpuSwapChain, "d726caf3-41c4-4d60-895e-61c68a4dff98", FGpuSwapChain)
     {
         constexpr static UINT MaxBufferCount = 3;
+    };
 
+    enum class SwapChainFor
+    {
+        Hwnd,
+        CoreWindow,
+        Composition,
+    };
+
+    struct D3d12GpuSwapChain final : GpuObject<FGpuSwapChain, ID3d12GpuSwapChain, ID3d12GpuOutput2>, FGpuSwapChainData
+    {
         Rc<D3d12GpuIsolate> m_isolate{};
         // 可空
         Rc<FString> m_name{};
@@ -19,6 +29,8 @@ namespace Coplt
         ComPtr<IDXGISwapChain3> m_swap_chain{};
         ComPtr<ID3D12DescriptorHeap> m_rtv_heap{};
         ComPtr<ID3D12Resource> m_buffers[MaxBufferCount];
+        FGpuImageData m_image_data{};
+        LayoutState m_layout_state{};
         std::mutex m_resize_mutex{};
         std::mutex m_present_mutex{};
         HANDLE m_event{};
@@ -31,12 +43,6 @@ namespace Coplt
         std::atomic_bool m_waiting{};
         std::atomic_bool m_need_resize{};
         b8 m_debug_enabled{};
-    };
-
-    struct D3d12GpuSwapChain final : GpuObject<FGpuSwapChain, ID3d12GpuSwapChain, ID3d12GpuOutput2>, FGpuSwapChainData
-    {
-        FGpuImageData m_image_data{};
-        LayoutState m_layout_state{};
 
     private:
         explicit D3d12GpuSwapChain(
@@ -47,7 +53,7 @@ namespace Coplt
 
     public:
         explicit D3d12GpuSwapChain(NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainFromExistsCreateOptions& options);
-        explicit D3d12GpuSwapChain(NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainCreateOptions& options, HWND hwnd);
+        explicit D3d12GpuSwapChain(NonNull<D3d12GpuIsolate> isolate, const FGpuSwapChainCreateOptions& options, void* handle, SwapChainFor For);
 
         static FGraphicsFormat SelectFormat(const FGpuSwapChainCreateOptions& options, bool& is_hdr);
 
@@ -85,5 +91,7 @@ namespace Coplt
         void WaitAllNoLock() const;
 
         void WaitFenceValueNoLock(u64 fence_value) const;
+
+        void* GetRawPtr() const noexcept override;
     };
 }

@@ -137,11 +137,31 @@ FResult D3d12GpuIsolate::CreateSwapChainFromExists(const FGpuSwapChainFromExists
     });
 }
 
+FResult D3d12GpuIsolate::CreateSwapChainForComposition(const FGpuSwapChainCreateOptions& options, FGpuSwapChainCreateResult& out) noexcept
+{
+    return feb([&]
+    {
+        const auto ptr = new D3d12GpuSwapChain(this, options, nullptr, SwapChainFor::Composition);
+        out.SwapChain = ptr;
+        out.Data = ptr;
+    });
+}
+
+FResult D3d12GpuIsolate::CreateSwapChainForCoreWindow(const FGpuSwapChainCreateOptions& options, void* win, FGpuSwapChainCreateResult& out) noexcept
+{
+    return feb([&]
+    {
+        const auto ptr = new D3d12GpuSwapChain(this, options, win, SwapChainFor::CoreWindow);
+        out.SwapChain = ptr;
+        out.Data = ptr;
+    });
+}
+
 FResult D3d12GpuIsolate::CreateSwapChainForHwnd(const FGpuSwapChainCreateOptions& options, void* hwnd, FGpuSwapChainCreateResult& out) noexcept
 {
     return feb([&]
     {
-        const auto ptr = new D3d12GpuSwapChain(this, options, static_cast<HWND>(hwnd));
+        const auto ptr = new D3d12GpuSwapChain(this, options, hwnd, SwapChainFor::Hwnd);
         out.SwapChain = ptr;
         out.Data = ptr;
     });
