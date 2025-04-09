@@ -74,6 +74,39 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
     NumItems = m_items.size();
     NumStaticSamplers = m_static_samplers.size();
     Usage = options.Usage;
+
+    m_slots.reserve(m_items.size());
+    for (u32 i = 0; i < m_items.size(); ++i)
+    {
+        BindSlotInfo info{};
+        const auto& item = m_items[i];
+        const auto count = std::max(1u, item.Count);
+        switch (item.View)
+        {
+        case FShaderLayoutItemView::Cbv:
+        case FShaderLayoutItemView::Srv:
+        case FShaderLayoutItemView::Uav:
+            if (Usage == FBindGroupUsage::Dynamic && item.Count <= 1 && IsBuffer(item.Type))
+            {
+                info.Place = BindSlotPlace::NonTable;
+                break;
+            }
+            info.OffsetInTable = ResourceTableSize;
+            info.Place = BindSlotPlace::ResourceTable;
+            ResourceTableSize += count;
+            break;
+        case FShaderLayoutItemView::Sampler:
+            info.OffsetInTable = SamplerTableSize;
+            info.Place = BindSlotPlace::SamplerTable;
+            SamplerTableSize += count;
+            break;
+        case FShaderLayoutItemView::Constants:
+        case FShaderLayoutItemView::StaticSampler:
+            info.Place = BindSlotPlace::NonTable;
+            break;
+        }
+        m_slots.push_back(info);
+    }
 }
 
 FResult D3d12BindGroupLayout::SetName(const FStr8or16& name) noexcept
@@ -86,6 +119,16 @@ FBindGroupLayoutData* D3d12BindGroupLayout::BindGroupLayoutData() noexcept
     return this;
 }
 
+const D3d12BindGroupLayoutData& D3d12BindGroupLayout::Data() const noexcept
+{
+    return *this;
+}
+
+std::span<const BindSlotInfo> D3d12BindGroupLayout::Slots() const noexcept
+{
+    return m_slots;
+}
+
 D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindingLayoutCreateOptions& options)
     : m_device(device)
 {
@@ -93,7 +136,10 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
     m_groups.reserve(options.NumGroups);
     for (u32 i = 0; i < options.NumGroups; i++)
     {
-        m_groups.push_back(Rc<FBindGroupLayout>::UnsafeClone(options.Groups[i]));
+        const auto group = NonNull(options.Groups[i])->QueryInterface<ID3d12BindGroupLayout>();
+        if (group == nullptr)
+            COPLT_THROW_FMT("Group [{}] from different backends", i);
+        m_groups.push_back(Rc<ID3d12BindGroupLayout>::UnsafeClone(group));
     }
 
     const auto defines = m_shader_layout->GetItems();
@@ -119,6 +165,9 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
     {
         std::vector<BindItemInfo> bind_item_infos{};
         const auto& group = m_groups[g];
+        const auto& group_data = group->Data();
+        SumTableSamplerSlots += group_data.ResourceTableSize;
+        SumTableResourceSlots += group_data.SamplerTableSize;
         const auto items = group->GetItems();
         bind_item_infos.reserve(items.size());
         for (u32 i = 0; i < items.size(); ++i)
@@ -229,7 +278,8 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
         if (item.View == FShaderLayoutItemView::Sampler)
             goto DefineDescriptorTable;
 
-        if (group->Data().Usage == FBindGroupUsage::Dynamic)
+        const auto usage = group->Data().Usage;
+        if (usage == FBindGroupUsage::Dynamic)
         {
             if (item.Count > 1 || !IsBuffer(item.Type))
             {
@@ -256,8 +306,9 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
 
     DefineDescriptorTable:
         {
-            const auto group_items = group->GetItems();
-            const auto& group_item = group_items[info.IndexInGroup];
+            const auto slots = group->Slots();
+            const auto& slot = slots[info.IndexInGroup];
+            COPLT_DEBUG_ASSERT(slot.Place != BindSlotPlace::NonTable);
             D3D12_DESCRIPTOR_RANGE1 range{};
             const auto range_type = ToTableType(item.View);
             range.RangeType = range_type;
@@ -274,11 +325,10 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             range.NumDescriptors = std::max(1u, item.Count);
             range.BaseShaderRegister = item.Slot;
             range.RegisterSpace = item.Space;
-            range.OffsetInDescriptorsFromTableStart = table.Info.Size;
+            range.OffsetInDescriptorsFromTableStart = slot.OffsetInTable;
             info.SigIndex = static_cast<u32>(table.Ranges.size());
             info.SigPlace = SigPlace::Grouped;
             table.Ranges.push_back(range);
-            table.Info.Size += group_item.Count;
             continue;
         }
     DefineDescriptor:
@@ -328,8 +378,6 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             param.DescriptorTable.pDescriptorRanges = Ranges.data();
             root_parameters.push_back(param);
             infos.push_back(Info);
-            if (Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) SumTableSamplerSlots += Info.Size;
-            else SumTableResourceSlots += Info.Size;
         }
         m_tables.push_back(std::move(infos));
     }
@@ -392,7 +440,7 @@ const Rc<FShaderLayout>& D3d12BindingLayout::ShaderLayout() const noexcept
     return m_shader_layout;
 }
 
-std::span<const Rc<FBindGroupLayout>> D3d12BindingLayout::Groups() const noexcept
+std::span<const Rc<ID3d12BindGroupLayout>> D3d12BindingLayout::Groups() const noexcept
 {
     return m_groups;
 }

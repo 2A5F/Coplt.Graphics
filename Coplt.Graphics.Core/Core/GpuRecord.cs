@@ -816,7 +816,7 @@ internal unsafe struct PipelineContext
         };
         self.Data.Bindings.Add(new() { Binding = Binding.Ptr });
         self.Data.Commands.Add(new() { SetBinding = cmd });
-        if (first) self.Data.SumMaxBindSlots += Binding.Data.SumPersistentSlots + Binding.Data.SumTransientSlots;
+        if (first) self.Data.SumMaxBindSlots += Binding.Data.SumPersistentSlots + Binding.Data.SumTransientSlots; // todo 这个计算移到 c艹
     }
 
     #endregion

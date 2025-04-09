@@ -14,21 +14,25 @@ namespace Coplt
     {
         D3D12_DESCRIPTOR_RANGE_TYPE ToTableType(FShaderLayoutItemView view);
 
+        enum class BindSlotPlace : u8
+        {
+            NonTable,
+            ResourceTable,
+            SamplerTable,
+        };
+
+        struct BindSlotInfo
+        {
+            u32 OffsetInTable{};
+            BindSlotPlace Place{};
+        };
+
         struct TableInfo final
         {
-            u32 Size{};
             u32 Group{};
             u32 RootIndex{};
             FShaderStage Stage{};
             D3D12_DESCRIPTOR_RANGE_TYPE Type{};
-        };
-
-        struct GroupInfo final
-        {
-            std::vector<TableInfo> Tables{};
-            // 第一个资源描述符表在 cpu 暂存描述符堆中的偏移
-            u32 ResourceTableOffset{};
-            u32 SamplerTableOffset{};
         };
 
         struct TableDefine final
@@ -139,16 +143,32 @@ namespace Coplt
         FShaderLayoutData* ShaderLayoutData() noexcept override;
     };
 
-    struct D3d12BindGroupLayout final : GpuObject<D3d12BindGroupLayout, FBindGroupLayout>, FBindGroupLayoutData
+    struct D3d12BindGroupLayoutData : FBindGroupLayoutData
+    {
+        u32 ResourceTableSize{};
+        u32 SamplerTableSize{};
+    };
+
+    COPLT_INTERFACE_DEFINE(ID3d12BindGroupLayout, "2e440ba8-f47a-4f98-a434-31125406e55c", FBindGroupLayout)
+    {
+        using BindSlotInfo = Layout::BindSlotInfo;
+        virtual const D3d12BindGroupLayoutData& Data() const noexcept = 0;
+        virtual std::span<const BindSlotInfo> Slots() const noexcept = 0;
+    };
+
+    struct D3d12BindGroupLayout final : GpuObject<D3d12BindGroupLayout, ID3d12BindGroupLayout>, D3d12BindGroupLayoutData
     {
         std::vector<FBindGroupItem> m_items{};
         std::vector<FStaticSamplerInfo> m_static_samplers{};
+        std::vector<BindSlotInfo> m_slots{};
 
         explicit D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
+        const D3d12BindGroupLayoutData& Data() const noexcept override;
+        std::span<const BindSlotInfo> Slots() const noexcept override;
     };
 
     struct D3d12BindingLayoutData
@@ -157,7 +177,7 @@ namespace Coplt
         u32 SumTableSamplerSlots{};
     };
 
-    COPLT_INTERFACE_DEFINE(ID3d12BindingLayout, "dcebfaa2-44d9-4c3c-95e7-28189ce7d5c4", FBindingLayout)
+    COPLT_INTERFACE_DEFINE(ID3d12BindingLayout, "7271c0de-ec05-44be-9d1b-4b54894e297e", FBindingLayout)
     {
         using SlotInfo = Layout::SlotInfo;
         using BindItemInfo = Layout::BindItemInfo;
@@ -165,10 +185,12 @@ namespace Coplt
 
         virtual const D3d12BindingLayoutData& Data() const noexcept = 0;
         virtual const Rc<FShaderLayout>& ShaderLayout() const noexcept = 0;
-        virtual std::span<const Rc<FBindGroupLayout>> Groups() const noexcept = 0;
+        virtual std::span<const Rc<ID3d12BindGroupLayout>> Groups() const noexcept = 0;
         virtual const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept = 0;
         virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
+        // 第一层索引是 Group index
         virtual std::span<const std::vector<TableInfo>> TableInfos() const noexcept = 0;
+        // 第一层索引是 Group index
         virtual std::span<const std::vector<BindItemInfo>> BindItemInfos() const noexcept = 0;
     };
 
@@ -179,7 +201,7 @@ namespace Coplt
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12RootSignature> m_root_signature{};
         Rc<FShaderLayout> m_shader_layout{};
-        std::vector<Rc<FBindGroupLayout>> m_groups{};
+        std::vector<Rc<ID3d12BindGroupLayout>> m_groups{};
         std::vector<SlotInfo> m_slot_infos{};
         HashMap<BindSlot, usize> m_slot_to_info{};
         // 第一层索引是 Group index
@@ -193,7 +215,7 @@ namespace Coplt
 
         const D3d12BindingLayoutData& Data() const noexcept override;
         const Rc<FShaderLayout>& ShaderLayout() const noexcept override;
-        std::span<const Rc<FBindGroupLayout>> Groups() const noexcept override;
+        std::span<const Rc<ID3d12BindGroupLayout>> Groups() const noexcept override;
         const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
         std::span<const SlotInfo> SlotInfos() const noexcept override;
         std::span<const std::vector<TableInfo>> TableInfos() const noexcept override;
