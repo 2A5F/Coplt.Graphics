@@ -631,7 +631,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             const auto& info = bind_item_infos[g][v];
             m_barrier_analyzer->OnUse(res_index, view, info);
         }
-        group->EnsureAvailable(*binding, g);
+        group->EnsureAvailable();
     }
     m_barrier_analyzer->OnCmd();
 }

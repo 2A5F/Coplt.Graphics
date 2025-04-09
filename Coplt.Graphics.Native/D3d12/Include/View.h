@@ -2,6 +2,9 @@
 
 #include <variant>
 
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include "../../Api/FFI/Resource.h"
 #include "../../Api/FFI/Binding.h"
 
@@ -14,6 +17,7 @@ namespace Coplt
 
     struct ID3d12GpuBuffer;
     struct ID3d12GpuImage;
+    struct ID3d12GpuSampler;
 
     struct View final
     {
@@ -42,21 +46,12 @@ namespace Coplt
         NonNull<ID3d12GpuViewable> GetViewable() const;
         Ptr<ID3d12GpuBuffer> TryGetBuffer() const;
         Ptr<ID3d12GpuImage> TryGetImage() const;
+        Ptr<ID3d12GpuSampler> TryGetSampler() const;
 
-        // void CreateDescriptor(
-        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        // ) const;
-        // static void CreateNullDescriptor(
-        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView view
-        // );
-        // void CreateBufferDescriptor(
-        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        //     ) const;
-        // void CreateImageDescriptor(
-        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        //     ) const;
-        // void CreateSamplerDescriptor(
-        //     NonNull<ID3D12Device2> device, const FShaderLayoutItemDefine& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle, FShaderLayoutGroupView type
-        // ) const;
+        void CreateDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
+        static void CreateNullDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle);
+        void CreateBufferDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
+        void CreateImageDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
+        void CreateSamplerDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
     };
 }

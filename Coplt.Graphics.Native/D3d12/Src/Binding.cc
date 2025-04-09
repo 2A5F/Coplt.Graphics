@@ -10,7 +10,10 @@ using namespace Coplt;
 
 D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FShaderBindGroupCreateOptions& options) : m_device(std::move(device))
 {
-    m_layout = Rc<FBindGroupLayout>::UnsafeClone(NonNull(options.Layout));
+    const auto layout = NonNull(options.Layout)->QueryInterface<ID3d12BindGroupLayout>();
+    if (layout == nullptr)
+        COPLT_THROW("Layout from different backends");
+    m_layout = Rc<ID3d12BindGroupLayout>::UnsafeClone(layout);
     const auto items = m_layout->GetItems();
     usize sum_count = 0;
     for (const auto& item : items)
@@ -19,6 +22,7 @@ D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FS
     }
     CountSlots = sum_count;
     m_views = std::vector(sum_count, View{});
+    m_changed_marks = std::vector(sum_count, false);
     m_item_indexes.reserve(items.size());
     m_define_indexes.reserve(sum_count);
     for (u32 i = 0, off = 0; i < items.size(); ++i)
@@ -31,11 +35,29 @@ D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FS
             m_define_indexes.push_back(i);
         }
     }
-    Set(std::span(options.Bindings, options.Bindings + options.NumBindings));
+    const auto& layout_data = m_layout->Data();
+    m_resource_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_sampler_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    if (layout_data.ResourceTableSize > 0)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = layout_data.ResourceTableSize;
+        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_resource_heap));
+    }
+    if (layout_data.SamplerTableSize > 0)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        desc.NumDescriptors = layout_data.SamplerTableSize;
+        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_sampler_heap));
+    }
     if (!options.Name.is_null())
     {
         m_name = options.Name.ToString();
+        DoSetName(m_name->GetStr());
     }
+    Set(std::span(options.Bindings, options.Bindings + options.NumBindings));
 }
 
 FResult D3d12ShaderBindGroup::SetName(const FStr8or16& name) noexcept
@@ -43,7 +65,45 @@ FResult D3d12ShaderBindGroup::SetName(const FStr8or16& name) noexcept
     return feb([&]
     {
         m_name = name.ToString();
+        DoSetName(name);
     });
+}
+
+void D3d12ShaderBindGroup::DoSetName(const FStr8or16& name) const
+{
+    if (name.is_null()) return;
+    if (m_resource_heap)
+    {
+        if (name.is8())
+        {
+            const auto str = fmt::format("[{}]::ResourceDescriptorHeap", name.str8);
+            chr | m_resource_heap >> SetNameEx(FStr8or16(str));
+        }
+        else
+        {
+            const auto str = fmt::format(
+                L"[{}]::ResourceDescriptorHeap",
+                reinterpret_cast<const wchar_t*>(name.str16)
+            );
+            chr | m_resource_heap >> SetNameEx(FStr8or16(str));
+        }
+    }
+    if (m_sampler_heap)
+    {
+        if (name.is8())
+        {
+            const auto str = fmt::format("[{}]::SamplerDescriptorHeap", name.str8);
+            chr | m_resource_heap >> SetNameEx(FStr8or16(str));
+        }
+        else
+        {
+            const auto str = fmt::format(
+                L"[{}]::SamplerDescriptorHeap",
+                reinterpret_cast<const wchar_t*>(name.str16)
+            );
+            chr | m_resource_heap >> SetNameEx(FStr8or16(str));
+        }
+    }
 }
 
 FShaderBindGroupData* D3d12ShaderBindGroup::ShaderBindGroupData() noexcept
@@ -51,7 +111,7 @@ FShaderBindGroupData* D3d12ShaderBindGroup::ShaderBindGroupData() noexcept
     return this;
 }
 
-const Rc<FBindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
+const Rc<ID3d12BindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
 {
     return m_layout;
 }
@@ -80,6 +140,7 @@ void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
 {
     if (items.empty()) return;
     const auto defs = m_layout->GetItems();
+    const auto slots = m_layout->Slots();
     for (const auto& item : items)
     {
         if (item.Slot >= defs.size())
@@ -89,38 +150,59 @@ void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
             COPLT_THROW("Index out of range");
         const auto index = m_item_indexes[item.Slot] + item.Index;
         View view(item.View);
-        if (!view.IsCompatible(def))
+        if (view)
         {
-            const auto id = ObjectId();
-            if (m_device->Debug() && m_device->Logger().IsEnable(FLogLevel::Error))
+            if (!view.IsCompatible(def))
             {
-                const auto name = m_name->GetStr();
-                if (name.is_null())
-                    m_device->Logger().Log(FLogLevel::Error, fmt::format("Incompatible bindings in BindGroup({})", id));
-                else if (name.is8())
-                    m_device->Logger().Log(FLogLevel::Error, fmt::format("Incompatible bindings in BindGroup({}, \"{}\")", id, name.str8));
-                else
-                    m_device->Logger().LogW(
-                        FLogLevel::Error,
-                        fmt::format(
-                            L"Incompatible bindings in BindGroup({}, \"{}\")", id,
-                            reinterpret_cast<const wchar_t*>(name.str16)
-                        )
-                    );
+                const auto id = ObjectId();
+                if (m_device->Debug() && m_device->Logger().IsEnable(FLogLevel::Error))
+                {
+                    const auto name = m_name->GetStr();
+                    if (name.is_null())
+                        m_device->Logger().Log(FLogLevel::Error, fmt::format("Incompatible bindings in BindGroup({})", id));
+                    else if (name.is8())
+                        m_device->Logger().Log(FLogLevel::Error, fmt::format("Incompatible bindings in BindGroup({}, \"{}\")", id, name.str8));
+                    else
+                        m_device->Logger().LogW(
+                            FLogLevel::Error,
+                            fmt::format(
+                                L"Incompatible bindings in BindGroup({}, \"{}\")", id,
+                                reinterpret_cast<const wchar_t*>(name.str16)
+                            )
+                        );
+                }
+                COPLT_THROW_FMT("Incompatible bindings [{},{}] in BindGroup({})", item.Slot, item.Index, id);
             }
-            COPLT_THROW_FMT("Incompatible bindings [{},{}] in BindGroup({})", item.Slot, item.Index, id);
         }
         m_views[index] = std::move(view);
+        const auto& slot = slots[item.Slot];
+        if (slot.Place == Layout::BindSlotPlace::NonTable) continue;
+        m_changed_marks[index] = true;
     }
     m_changed = true;
 }
 
-void D3d12ShaderBindGroup::EnsureAvailable(ID3d12ShaderBinding& binding, u32 group_index)
+void D3d12ShaderBindGroup::EnsureAvailable()
 {
     if (!m_changed) return;
-    std::lock_guard guard(binding.DescLock());
+    std::lock_guard guard(m_desc_lock);
     if (!m_changed) return;
-    // todo
+    const auto defs = m_layout->GetItems();
+    const auto slots = m_layout->Slots();
+    for (usize i = 0; i < m_views.size(); ++i)
+    {
+        const auto def_index = m_define_indexes[i];
+        const auto& slot = slots[def_index];
+        if (slot.Place == Layout::BindSlotPlace::NonTable) continue;
+        if (const auto& mark = m_changed_marks[i]) continue;
+        else mark = false;
+        const auto& view = m_views[i];
+        const auto& def = defs[def_index];
+        const auto& heap = slot.Place == Layout::BindSlotPlace::ResourceTable ? m_resource_heap : m_sampler_heap;
+        COPLT_DEBUG_ASSERT(heap != nullptr);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(heap->GetCPUDescriptorHandleForHeapStart(), slot.OffsetInTable, m_resource_heap_inc);
+        view.CreateDescriptor(m_device->m_device.Get(), def, handle);
+    }
     m_changed = false;
 }
 
@@ -158,11 +240,6 @@ std::span<const Rc<ID3d12ShaderBindGroup>> D3d12ShaderBinding::Groups() const no
 RwLock& D3d12ShaderBinding::SelfLock() noexcept
 {
     return m_self_lock;
-}
-
-std::mutex& D3d12ShaderBinding::DescLock() noexcept
-{
-    return m_desc_lock;
 }
 
 void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)
