@@ -112,6 +112,10 @@ namespace Coplt
             void SetBinding(NonNull<FShaderBinding> binding, u32 i);
         };
 
+        struct BindingInfo
+        {
+        };
+
         struct SetBindingInfo
         {
         };
@@ -163,7 +167,6 @@ namespace Coplt
         FResIndex AddResource(const View& view);
         void ReadyResource();
         void ReadyBindings();
-        void ReleaseBindings();
 
         void Analyze();
         void Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;

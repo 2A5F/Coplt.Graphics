@@ -71,13 +71,14 @@ std::span<const u32> D3d12ShaderBindGroup::DefineIndexes() const noexcept
     return m_define_indexes;
 }
 
-RwLock& D3d12ShaderBindGroup::Lock() noexcept
+RwLock& D3d12ShaderBindGroup::SelfLock() noexcept
 {
-    return m_lock;
+    return m_self_lock;
 }
 
 void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
 {
+    if (items.empty()) return;
     const auto defs = m_layout->GetItems();
     for (const auto& item : items)
     {
@@ -111,6 +112,16 @@ void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
         }
         m_views[index] = std::move(view);
     }
+    m_changed = true;
+}
+
+void D3d12ShaderBindGroup::EnsureAvailable(ID3d12ShaderBinding& binding, u32 group_index)
+{
+    if (!m_changed) return;
+    std::lock_guard guard(binding.DescLock());
+    if (!m_changed) return;
+    // todo
+    m_changed = false;
 }
 
 D3d12ShaderBinding::D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options) : m_device(std::move(device))
@@ -144,9 +155,14 @@ std::span<const Rc<ID3d12ShaderBindGroup>> D3d12ShaderBinding::Groups() const no
     return m_groups;
 }
 
-RwLock& D3d12ShaderBinding::Lock() noexcept
+RwLock& D3d12ShaderBinding::SelfLock() noexcept
 {
-    return m_lock;
+    return m_self_lock;
+}
+
+std::mutex& D3d12ShaderBinding::DescLock() noexcept
+{
+    return m_desc_lock;
 }
 
 void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)

@@ -814,12 +814,7 @@ internal unsafe struct PipelineContext
             Binding = (uint)self.Data.Bindings.LongLength,
             Index = self.Data.NumSetBindings++,
         };
-        self.Data.Bindings.Add(
-            new()
-            {
-                Binding = Binding.Ptr
-            }
-        );
+        self.Data.Bindings.Add(new() { Binding = Binding.Ptr });
         self.Data.Commands.Add(new() { SetBinding = cmd });
         if (first) self.Data.SumMaxBindSlots += Binding.Data.SumPersistentSlots + Binding.Data.SumTransientSlots;
     }

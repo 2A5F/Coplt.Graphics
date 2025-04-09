@@ -18,7 +18,7 @@ namespace Coplt
         {
         }
 
-        ~Finally()
+        ~Finally() noexcept(false)
         {
             f();
         }

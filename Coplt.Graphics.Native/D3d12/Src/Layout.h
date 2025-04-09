@@ -23,6 +23,14 @@ namespace Coplt
             D3D12_DESCRIPTOR_RANGE_TYPE Type{};
         };
 
+        struct GroupInfo final
+        {
+            std::vector<TableInfo> Tables{};
+            // 第一个资源描述符表在 cpu 暂存描述符堆中的偏移
+            u32 ResourceTableOffset{};
+            u32 SamplerTableOffset{};
+        };
+
         struct TableDefine final
         {
             std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges{};
@@ -143,22 +151,30 @@ namespace Coplt
         FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
     };
 
+    struct D3d12BindingLayoutData
+    {
+        u32 SumTableResourceSlots{};
+        u32 SumTableSamplerSlots{};
+    };
+
     COPLT_INTERFACE_DEFINE(ID3d12BindingLayout, "dcebfaa2-44d9-4c3c-95e7-28189ce7d5c4", FBindingLayout)
     {
         using SlotInfo = Layout::SlotInfo;
         using BindItemInfo = Layout::BindItemInfo;
+        using TableInfo = Layout::TableInfo;
 
+        virtual const D3d12BindingLayoutData& Data() const noexcept = 0;
         virtual const Rc<FShaderLayout>& ShaderLayout() const noexcept = 0;
         virtual std::span<const Rc<FBindGroupLayout>> Groups() const noexcept = 0;
         virtual const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept = 0;
         virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
+        virtual std::span<const std::vector<TableInfo>> TableInfos() const noexcept = 0;
         virtual std::span<const std::vector<BindItemInfo>> BindItemInfos() const noexcept = 0;
     };
 
-    struct D3d12BindingLayout final : GpuObject<D3d12BindingLayout, ID3d12BindingLayout>
+    struct D3d12BindingLayout final : GpuObject<D3d12BindingLayout, ID3d12BindingLayout>, D3d12BindingLayoutData
     {
         using BindSlot = Layout::BindSlot;
-        using TableInfo = Layout::TableInfo;
 
         Rc<D3d12GpuDevice> m_device{};
         ComPtr<ID3D12RootSignature> m_root_signature{};
@@ -166,17 +182,21 @@ namespace Coplt
         std::vector<Rc<FBindGroupLayout>> m_groups{};
         std::vector<SlotInfo> m_slot_infos{};
         HashMap<BindSlot, usize> m_slot_to_info{};
+        // 第一层索引是 Group index
         std::vector<std::vector<TableInfo>> m_tables{};
+        // 第一层索引是 Group index
         std::vector<std::vector<BindItemInfo>> m_bind_item_infos{};
 
         explicit D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindingLayoutCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
+        const D3d12BindingLayoutData& Data() const noexcept override;
         const Rc<FShaderLayout>& ShaderLayout() const noexcept override;
         std::span<const Rc<FBindGroupLayout>> Groups() const noexcept override;
         const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
         std::span<const SlotInfo> SlotInfos() const noexcept override;
+        std::span<const std::vector<TableInfo>> TableInfos() const noexcept override;
         std::span<const std::vector<BindItemInfo>> BindItemInfos() const noexcept override;
     };
 

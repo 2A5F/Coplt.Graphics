@@ -328,6 +328,8 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             param.DescriptorTable.pDescriptorRanges = Ranges.data();
             root_parameters.push_back(param);
             infos.push_back(Info);
+            if (Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) SumTableSamplerSlots += Info.Size;
+            else SumTableResourceSlots += Info.Size;
         }
         m_tables.push_back(std::move(infos));
     }
@@ -380,6 +382,11 @@ FResult D3d12BindingLayout::SetName(const FStr8or16& name) noexcept
     });
 }
 
+const D3d12BindingLayoutData& D3d12BindingLayout::Data() const noexcept
+{
+    return *this;
+}
+
 const Rc<FShaderLayout>& D3d12BindingLayout::ShaderLayout() const noexcept
 {
     return m_shader_layout;
@@ -398,6 +405,11 @@ const ComPtr<ID3D12RootSignature>& D3d12BindingLayout::RootSignature() const noe
 std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() const noexcept
 {
     return m_slot_infos;
+}
+
+std::span<const std::vector<TableInfo>> D3d12BindingLayout::TableInfos() const noexcept
+{
+    return m_tables;
 }
 
 std::span<const std::vector<BindItemInfo>> D3d12BindingLayout::BindItemInfos() const noexcept

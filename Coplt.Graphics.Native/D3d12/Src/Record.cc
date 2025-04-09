@@ -10,6 +10,7 @@
 #include "Buffer.h"
 #include "Pipeline.h"
 #include "GraphicsPipeline.h"
+#include "../../Api/Include/Finally.h"
 
 using namespace Coplt;
 
@@ -353,6 +354,7 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("Too many resources");
     m_barrier_analyzer->StartAnalyze(this);
     ReadyResource();
+    ReadyBindings();
     Analyze();
     m_barrier_analyzer->EndAnalyze();
     if (m_isolate_config->MultiThreadRecord)
@@ -430,12 +432,12 @@ void D3d12GpuRecord::ReadyResource()
 
 void D3d12GpuRecord::ReadyBindings()
 {
-    // todo
-}
-
-void D3d12GpuRecord::ReleaseBindings()
-{
-    // todo
+    m_set_binding_infos.clear();
+    m_set_binding_infos.reserve(NumSetBindings);
+    for (u32 i = 0; i < NumSetBindings; ++i)
+    {
+        m_set_binding_infos.push_back(SetBindingInfo());
+    }
 }
 
 void D3d12GpuRecord::Analyze()
@@ -485,7 +487,7 @@ void D3d12GpuRecord::Analyze()
             break;
         case FCmdType::SetViewportScissor:
             if (Mode != FGpuRecordMode::Direct)
-                COPLT_THROW_FMT("[{}] Can only Draw on the direct mode", i);
+                COPLT_THROW_FMT("[{}] Can only SetViewportScissor on the direct mode", i);
             break;
         case FCmdType::Draw:
             if (Mode != FGpuRecordMode::Direct)
@@ -612,15 +614,14 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
         COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
     if (!SetBinding(Bindings[cmd.Binding].Binding, i)) return;
     const NonNull binding = m_pipeline_context.Binding;
-    // todo 弄个 vector 存储锁，在 end 结束后统一释放，在 end 开始时统一获取
-    ReadGuard binding_guard(binding->Lock());
+    ReadGuard binding_guard(binding->SelfLock());
     const auto bind_item_infos = binding->Layout()->BindItemInfos();
     const auto groups = binding->Groups();
     for (u32 g = 0; g < groups.size(); ++g)
     {
         const auto& group = groups[g];
         if (!group) continue;
-        ReadGuard group_guard(group->Lock());
+        ReadGuard group_guard(group->SelfLock());
         const auto views = group->Views();
         for (u32 v = 0; v < views.size(); ++v)
         {
@@ -630,6 +631,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             const auto& info = bind_item_infos[g][v];
             m_barrier_analyzer->OnUse(res_index, view, info);
         }
+        group->EnsureAvailable(*binding, g);
     }
     m_barrier_analyzer->OnCmd();
 }
