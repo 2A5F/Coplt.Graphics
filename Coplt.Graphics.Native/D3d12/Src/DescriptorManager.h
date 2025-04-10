@@ -52,5 +52,7 @@ namespace Coplt
         DescriptorManager() = default;
 
         explicit DescriptorManager(NonNull<D3d12GpuDevice> device);
+
+        void EnsureCapacity();
     };
 }

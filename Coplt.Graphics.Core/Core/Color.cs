@@ -1,10 +1,17 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using Coplt.Graphics.Utilities;
 
 namespace Coplt.Graphics;
 
-public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
+public struct Color
+    : IEquatable<Color>, IComparable<Color>, IComparable,
+        IAdditionOperators<Color, Color, Color>,
+        ISubtractionOperators<Color, Color, Color>,
+        IMultiplyOperators<Color, Color, Color>,
+        IDivisionOperators<Color, Color, Color>,
+        IModulusOperators<Color, Color, Color>
 {
     #region Fields
 
@@ -109,6 +116,8 @@ public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
     public static Color operator *(Color a, Color b) => new(a.Vector * b.Vector);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Color operator /(Color a, Color b) => new(a.Vector / b.Vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Color operator %(Color a, Color b) => new(Utils.Rem(a.Vector, b.Vector));
 
     #endregion
 
@@ -290,9 +299,47 @@ public struct Color : IEquatable<Color>, IComparable<Color>, IComparable
     }
 
     #endregion
+
+    #region Linear
+
+    public readonly Color ToLinear
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var c = Vector128.LessThanOrEqual(vector, Vector128.Create(0.04045f));
+            var low = vector * Vector128.Create(1f / 12.92f);
+            var high = Utils.Pow((vector + Vector128.Create(0.055f)) * Vector128.Create(1f / 1.055f), Vector128.Create(2.4f));
+            var r = Vector128.ConditionalSelect(c, low, high);
+            return new Color(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
+        }
+    }
+
+    public readonly Color ToSrgb
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var c = Vector128.LessThanOrEqual(vector, Vector128.Create(0.0031308f));
+            var low = vector * Vector128.Create(12.92f);
+            var high = Utils.Fma(Vector128.Create(1.055f), Utils.Pow(vector, Vector128.Create(1f / 2.4f)), Vector128.Create(-0.055f));
+            var r = Vector128.ConditionalSelect(c, low, high);
+            return new Color(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
+        }
+    }
+
+    #endregion
 }
 
-public struct Color255 : IEquatable<Color255>, IComparable<Color255>, IComparable
+public struct Color255
+    : IEquatable<Color255>, IComparable<Color255>, IComparable,
+        IAdditionOperators<Color255, Color255, Color255>,
+        ISubtractionOperators<Color255, Color255, Color255>,
+        IMultiplyOperators<Color255, Color255, Color255>,
+        IDivisionOperators<Color255, Color255, Color255>,
+        IModulusOperators<Color255, Color255, Color255>
 {
     #region Fields
 
@@ -392,6 +439,8 @@ public struct Color255 : IEquatable<Color255>, IComparable<Color255>, IComparabl
     public static Color255 operator *(Color255 a, Color255 b) => new(a.Vector * b.Vector);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Color255 operator /(Color255 a, Color255 b) => new(a.Vector / b.Vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Color255 operator %(Color255 a, Color255 b) => new(Utils.Rem(a.Vector, b.Vector));
 
     #endregion
 
@@ -490,7 +539,13 @@ public struct Color255 : IEquatable<Color255>, IComparable<Color255>, IComparabl
     #endregion
 }
 
-public struct ColorHsv : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparable
+public struct ColorHsv
+    : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparable,
+        IAdditionOperators<ColorHsv, ColorHsv, ColorHsv>,
+        ISubtractionOperators<ColorHsv, ColorHsv, ColorHsv>,
+        IMultiplyOperators<ColorHsv, ColorHsv, ColorHsv>,
+        IDivisionOperators<ColorHsv, ColorHsv, ColorHsv>,
+        IModulusOperators<ColorHsv, ColorHsv, ColorHsv>
 {
     #region Fields
 
@@ -581,6 +636,8 @@ public struct ColorHsv : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparabl
     public static ColorHsv operator *(ColorHsv a, ColorHsv b) => new(a.Vector * b.Vector);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ColorHsv operator /(ColorHsv a, ColorHsv b) => new(a.Vector / b.Vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ColorHsv operator %(ColorHsv a, ColorHsv b) => new(Utils.Rem(a.Vector, b.Vector));
 
     #endregion
 
@@ -714,7 +771,13 @@ public struct ColorHsv : IEquatable<ColorHsv>, IComparable<ColorHsv>, IComparabl
     #endregion
 }
 
-public struct ColorHsl : IEquatable<ColorHsl>, IComparable<ColorHsl>, IComparable
+public struct ColorHsl
+    : IEquatable<ColorHsl>, IComparable<ColorHsl>, IComparable,
+        IAdditionOperators<ColorHsl, ColorHsl, ColorHsl>,
+        ISubtractionOperators<ColorHsl, ColorHsl, ColorHsl>,
+        IMultiplyOperators<ColorHsl, ColorHsl, ColorHsl>,
+        IDivisionOperators<ColorHsl, ColorHsl, ColorHsl>,
+        IModulusOperators<ColorHsl, ColorHsl, ColorHsl>
 {
     #region Fields
 
@@ -805,6 +868,8 @@ public struct ColorHsl : IEquatable<ColorHsl>, IComparable<ColorHsl>, IComparabl
     public static ColorHsl operator *(ColorHsl a, ColorHsl b) => new(a.Vector * b.Vector);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ColorHsl operator /(ColorHsl a, ColorHsl b) => new(a.Vector / b.Vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ColorHsl operator %(ColorHsl a, ColorHsl b) => new(Utils.Rem(a.Vector, b.Vector));
 
     #endregion
 

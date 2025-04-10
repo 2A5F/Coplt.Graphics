@@ -1,6 +1,7 @@
 ﻿using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
+using Serilog;
 
 namespace Examples;
 

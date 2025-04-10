@@ -326,11 +326,13 @@ namespace Coplt::Enhanced
 
     void EnhancedBarrierAnalyzer::Interpret(const D3d12RentedCommandList& list, ID3d12GpuRecord& record)
     {
+        record.BeforeInterpret(list);
         for (auto& group : m_groups)
         {
             SubmitBarrier(list, group);
             record.Interpret(list, group.m_cmd_index, group.m_cmd_count);
         }
+        record.AfterInterpret(list);
     }
 
     void EnhancedBarrierAnalyzer::SubmitBarrier(const D3d12RentedCommandList& list, Group& group)

@@ -130,9 +130,12 @@ public record struct GpuSwapChainCreateOptions()
     public required uint Width;
     public required uint Height;
     /// <summary>
-    /// 是否使用 srgb，实现可以选择忽略
+    /// <para>是否使用 <c>sRGB</c>，实现可以选择忽略</para>
+    /// <para>是指整个渲染管线是不是使用 <c>sRGB</c>，而不是交换链是不是使用，具体交换链格式请使用 <see cref="GpuOutput2.Format"/> 获取</para>
+    /// <para>设置为 <c>false</c> 时需要注意保证顶点缓冲区和 cbuffer 中传入的颜色是线性的，以及使用 <c>sRGB</c> 视图转换纹理到线性</para>
+    /// <para><c>true</c> 时将原样传输像素数据进行呈现，<c>false</c> 将在呈现时对输出执行 线性 -> <c>sRGB</c> 转换</para>
     /// </summary>
-    public bool Srgb;
+    public bool Srgb = true;
     /// <summary>
     /// 是否使用 hdr，实现可以选择忽略
     /// </summary>

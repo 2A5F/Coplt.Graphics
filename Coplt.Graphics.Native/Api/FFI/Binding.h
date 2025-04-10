@@ -56,8 +56,6 @@ namespace Coplt
 
     struct FShaderBindingData
     {
-        u32 SumPersistentSlots{};
-        u32 SumTransientSlots{};
     };
 
     COPLT_INTERFACE_DEFINE(FShaderBinding, "a3ca644a-0e02-4d25-9a18-8835d66600f7", FGpuObject)

@@ -77,12 +77,13 @@ D3d12GpuSwapChain::D3d12GpuSwapChain(
 ) : D3d12GpuSwapChain(isolate, options, options.AlphaMode, options.VSync)
 {
     bool is_hdr = false;
-    this->Format = SelectFormat(options, is_hdr);
+    const auto format = SelectFormat(options, is_hdr);
+    this->Format = this->Srgb ? format : ToSrgb(format);
 
     DXGI_SWAP_CHAIN_DESC1 desc{};
     desc.Width = this->Width = options.Width;
     desc.Height = this->Height = options.Height;
-    desc.Format = ToDx(this->Format);
+    desc.Format = ToDx(format);
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -194,7 +195,7 @@ void D3d12GpuSwapChain::CreateRts()
     {
         chr | m_swap_chain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
         D3D12_RENDER_TARGET_VIEW_DESC desc{};
-        desc.Format = ToDx(this->Srgb ? ToSrgb(this->Format) : this->Format);
+        desc.Format = ToDx(this->Format);
         desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
         desc.Texture2D.MipSlice = 0;
         desc.Texture2D.PlaneSlice = 0;

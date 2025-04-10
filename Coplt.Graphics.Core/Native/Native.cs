@@ -3144,11 +3144,6 @@ namespace Coplt.Graphics.Native
 
     public partial struct FShaderBindingData
     {
-        [NativeTypeName("Coplt::u32")]
-        public uint SumPersistentSlots;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint SumTransientSlots;
     }
 
     [Guid("A3CA644A-0E02-4D25-9A18-8835D66600F7")]

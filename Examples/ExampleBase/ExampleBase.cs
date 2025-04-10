@@ -52,8 +52,8 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 {
                     Width = Width,
                     Height = Height,
-                    // VSync = true,
-                    // Srgb = true,
+                    VSync = true,
+                    // Srgb = false,
                 }
             );
             Record = Isolate.RentRecord();

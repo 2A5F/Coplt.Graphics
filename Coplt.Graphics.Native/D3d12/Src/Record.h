@@ -64,7 +64,9 @@ namespace Coplt
 
         virtual const Rc<ID3d12BarrierAnalyzer>& BarrierAnalyzer() = 0;
 
+        virtual void BeforeInterpret(const D3d12RentedCommandList& list) = 0;
         virtual void Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count) = 0;
+        virtual void AfterInterpret(const D3d12RentedCommandList& list) = 0;
 
         virtual void AfterSubmit() = 0;
     };
@@ -182,6 +184,8 @@ namespace Coplt
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
         void Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const;
 
+        void BeforeInterpret(const D3d12RentedCommandList& list) override;
+        void AfterInterpret(const D3d12RentedCommandList& list) override;
         void Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count) override;
         void Interpret_Label(const CmdList& list, u32 i, const FCmdLabel& cmd) const;
         void Interpret_BeginScope(const CmdList& list, u32 i, const FCmdBeginScope& cmd) const;

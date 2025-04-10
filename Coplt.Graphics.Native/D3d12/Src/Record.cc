@@ -442,6 +442,7 @@ void D3d12GpuRecord::ReadyBindings()
 
 void D3d12GpuRecord::Analyze()
 {
+    // m_context->m_descriptor_manager
     const auto commands = Commands.AsSpan();
     for (u32 i = 0; i < commands.size(); ++i, m_barrier_analyzer->CmdNext())
     {
@@ -668,7 +669,20 @@ void D3d12GpuRecord::Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const
     }
 }
 
-void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, u32 offset, u32 count)
+void D3d12GpuRecord::BeforeInterpret(const D3d12RentedCommandList& list)
+{
+    if (const auto& g0 = list->g0)
+    {
+        ID3D12DescriptorHeap* heaps[2]{m_context->m_descriptor_manager.m_res->m_heap.Get(), m_context->m_descriptor_manager.m_smp->m_heap.Get()};
+        g0->SetDescriptorHeaps(2, heaps);
+    }
+}
+
+void D3d12GpuRecord::AfterInterpret(const D3d12RentedCommandList& list)
+{
+}
+
+void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, const u32 offset, const u32 count)
 {
     const auto commands = Commands.AsSpan();
     for (u32 c = 0; c < count; ++c)
