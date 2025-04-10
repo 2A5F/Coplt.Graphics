@@ -111,6 +111,11 @@ FShaderBindGroupData* D3d12ShaderBindGroup::ShaderBindGroupData() noexcept
     return this;
 }
 
+u64 D3d12ShaderBindGroup::Version() const noexcept
+{
+    return m_version;
+}
+
 const Rc<ID3d12BindGroupLayout>& D3d12ShaderBindGroup::Layout() const noexcept
 {
     return m_layout;
@@ -180,13 +185,14 @@ void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
         m_changed_marks[index] = true;
     }
     m_changed = true;
+    m_version++;
 }
 
-void D3d12ShaderBindGroup::EnsureAvailable()
+bool D3d12ShaderBindGroup::EnsureAvailable()
 {
-    if (!m_changed) return;
+    if (!m_changed) return false;
     std::lock_guard guard(m_desc_lock);
-    if (!m_changed) return;
+    if (!m_changed) return false;
     const auto defs = m_layout->GetItems();
     const auto slots = m_layout->Slots();
     for (usize i = 0; i < m_views.size(); ++i)
@@ -194,8 +200,8 @@ void D3d12ShaderBindGroup::EnsureAvailable()
         const auto def_index = m_define_indexes[i];
         const auto& slot = slots[def_index];
         if (slot.Place == Layout::BindSlotPlace::NonTable) continue;
-        if (const auto& mark = m_changed_marks[i]) continue;
-        else mark = false;
+        if (const auto& mark = m_changed_marks[i]) mark = false;
+        else continue;
         const auto& view = m_views[i];
         const auto& def = defs[def_index];
         const auto& heap = slot.Place == Layout::BindSlotPlace::ResourceTable ? m_resource_heap : m_sampler_heap;
@@ -204,6 +210,17 @@ void D3d12ShaderBindGroup::EnsureAvailable()
         view.CreateDescriptor(m_device->m_device.Get(), def, handle);
     }
     m_changed = false;
+    return true;
+}
+
+const ComPtr<ID3D12DescriptorHeap>& D3d12ShaderBindGroup::ResourceHeap() noexcept
+{
+    return m_resource_heap;
+}
+
+const ComPtr<ID3D12DescriptorHeap>& D3d12ShaderBindGroup::SamplerHeap() noexcept
+{
+    return m_sampler_heap;
 }
 
 D3d12ShaderBinding::D3d12ShaderBinding(Rc<D3d12GpuDevice>&& device, const FShaderBindingCreateOptions& options) : m_device(std::move(device))
@@ -227,6 +244,11 @@ FShaderBindingData* D3d12ShaderBinding::ShaderBindingData() noexcept
     return this;
 }
 
+u64 D3d12ShaderBinding::Version() const noexcept
+{
+    return m_version;
+}
+
 const Rc<ID3d12BindingLayout>& D3d12ShaderBinding::Layout() const noexcept
 {
     return m_layout;
@@ -244,6 +266,7 @@ RwLock& D3d12ShaderBinding::SelfLock() noexcept
 
 void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)
 {
+    if (items.size() == 0) return;
     for (const auto& item : items)
     {
         if (item.Index >= m_groups.size())
@@ -260,4 +283,5 @@ void D3d12ShaderBinding::Set(const std::span<FSetBindGroupItem> items)
             m_groups[item.Index] = nullptr;
         }
     }
+    m_version++;
 }

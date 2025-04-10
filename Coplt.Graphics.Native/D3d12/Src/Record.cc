@@ -236,7 +236,7 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
     }
 }
 
-void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding, u32 i, const FCmdSetBinding& cmd)
 {
     if (Binding && binding->ObjectId() == Binding->ObjectId()) return;
     const Ptr dx_binding = binding->QueryInterface<ID3d12ShaderBinding>();
@@ -252,6 +252,7 @@ void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding
         COPLT_THROW_FMT("[{}] The binding layout is not compatible with the currently set pipeline", i);
     }
     Binding = dx_binding;
+    SetBindingIndex = cmd.Index;
 }
 
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
@@ -326,7 +327,10 @@ void D3d12GpuRecord::Recycle()
     m_context->Recycle();
     m_resource_map.Clear();
     m_resource_infos.clear();
+    m_binding_infos.clear();
     m_set_binding_infos.clear();
+    m_allocations.clear();
+    m_bind_items.clear();
     m_pipeline_context.Reset();
     ClearData();
     Ended = false;
@@ -436,6 +440,12 @@ void D3d12GpuRecord::ReadyBindings(u32& MinResHeapSize, u32& MinSmpHeapSize)
 {
     MinResHeapSize = 0;
     MinSmpHeapSize = 0;
+    m_binding_infos.clear();
+    m_binding_infos.reserve(Bindings.size());
+    for (u32 i = 0; i < Bindings.size(); ++i)
+    {
+        m_binding_infos.push_back({});
+    }
     m_set_binding_infos.clear();
     m_set_binding_infos.reserve(NumSetBindings);
     for (u32 i = 0; i < NumSetBindings; ++i)
@@ -456,7 +466,6 @@ void D3d12GpuRecord::ReadyBindings(u32& MinResHeapSize, u32& MinSmpHeapSize)
 
 void D3d12GpuRecord::Analyze()
 {
-    // m_context->m_descriptor_manager
     const auto commands = Commands.AsSpan();
     for (u32 i = 0; i < commands.size(); ++i, m_barrier_analyzer->CmdNext())
     {
@@ -627,27 +636,86 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
 {
     if (m_state != RecordState::Render && m_state != RecordState::Compute)
         COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
-    if (!SetBinding(Bindings[cmd.Binding].Binding, i)) return;
+    if (!SetBinding(Bindings[cmd.Binding].Binding, i, cmd)) return;
     const NonNull binding = m_pipeline_context.Binding;
     ReadGuard binding_guard(binding->SelfLock());
-    const auto bind_item_infos = binding->Layout()->BindItemInfos();
+    Finally clear_lock([&] { m_tmp_locks.clear(); }); // todo 锁移到整个 render pass 范围，不允许在 render pass 中修改绑定内容
     const auto groups = binding->Groups();
     for (u32 g = 0; g < groups.size(); ++g)
     {
         const auto& group = groups[g];
         if (!group) continue;
-        ReadGuard group_guard(group->SelfLock());
+        m_tmp_locks.push_back(ReadGuard{group->SelfLock()});
+    }
+    const auto& binding_layout = binding->Layout();
+    const auto group_item_infos = binding_layout->GroupItemInfos();
+    const auto bind_item_infos = binding_layout->BindItemInfos();
+    bool any_changed = false;
+    for (u32 g = 0; g < groups.size(); ++g)
+    {
+        const auto& group = groups[g];
+        if (!group) continue;
         const auto views = group->Views();
         for (u32 v = 0; v < views.size(); ++v)
         {
             const auto& view = views[v];
             if (!view || view.IsSampler()) continue;
             const auto& res_index = AddResource(view);
-            const auto& info = bind_item_infos[g][v];
-            m_barrier_analyzer->OnUse(res_index, view, info);
+            const auto& info = group_item_infos[g][v];
+            m_barrier_analyzer->OnUse(res_index, view, info); // todo 屏障移动到每次 draw
         }
-        group->EnsureAvailable();
+        if (group->EnsureAvailable()) any_changed = true;
     }
+    auto& binding_info = m_binding_infos[cmd.Binding];
+    auto& set_binding_info = m_set_binding_infos[cmd.Index];
+    const auto binding_version = binding->Version();
+    if (binding_info.AllocationIndex == COPLT_U32_MAX || binding_info.BindingVersion != binding_version || any_changed)
+    {
+        binding_info.BindingVersion = binding_version;
+        binding_info.AllocationIndex = m_allocations.size();
+        binding_info.BindItemIndex = m_bind_items.size();
+        for (u32 g = 0; g < groups.size(); ++g)
+        {
+            const auto& group = groups[g];
+            if (!group)
+            {
+                m_allocations.push_back({});
+                continue;
+            }
+            const auto object_id = group->ObjectId();
+            const auto& data = group->Layout()->Data();
+            // todo 确定是最后一次修改
+            const auto f = [&](const u32 size, const Rc<DescriptorHeap>& heap, const ComPtr<ID3D12DescriptorHeap>& dh, const bool last)
+            {
+                if (size == 0) return;
+                DescriptorAllocation allocation;
+                if (data.Usage == FBindGroupUsage::Dynamic && !last)
+                {
+                    allocation = heap->AllocateTmp(size);
+                    m_allocations.push_back(allocation);
+                }
+                else
+                {
+                    bool exists = false;
+                    allocation = heap->Allocate(object_id, size, exists);
+                    m_allocations.push_back(allocation);
+                    if (exists) return;
+                }
+                m_device->m_device->CopyDescriptorsSimple(size, allocation.GetCpuHandle(), dh->GetCPUDescriptorHandleForHeapStart(), heap->m_type);
+            };
+            f(data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), true);
+            f(data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), true);
+        }
+        for (const auto& bind_item_info : bind_item_infos)
+        {
+            BindItem item{};
+            // todo 直接资源和常量
+            m_bind_items.push_back(item);
+        }
+    }
+    set_binding_info.Layout = binding_layout.get();
+    set_binding_info.AllocationIndex = binding_info.AllocationIndex;
+    set_binding_info.BindItemIndex = binding_info.BindItemIndex;
     m_barrier_analyzer->OnCmd();
 }
 
@@ -993,7 +1061,39 @@ void D3d12GpuRecord::Interpret_SetPipeline(const CmdList& list, const u32 i, con
 
 void D3d12GpuRecord::Interpret_SetBinding(const CmdList& list, u32 i, const FCmdSetBinding& cmd)
 {
-    // todo
+    if (m_state != RecordState::Render && m_state != RecordState::Compute)
+        COPLT_THROW_FMT("[{}] Cannot use SetBinding in main scope", i);
+    if (!SetBinding(Bindings[cmd.Binding].Binding, i, cmd)) return;
+    const auto& set_binding_info = m_set_binding_infos[m_pipeline_context.SetBindingIndex];
+    const auto bind_item_infos = set_binding_info.Layout->BindItemInfos();
+    for (usize n = 0; n < bind_item_infos.size(); ++n)
+    {
+        const auto& bind_item_info = bind_item_infos[n];
+        const auto& bind_item = m_bind_items[set_binding_info.BindItemIndex + n];
+        // todo 直接资源和常量
+        switch (bind_item_info.Place)
+        {
+        case Layout::BindItemPlace::Table:
+            {
+                const auto& allocation = m_allocations[set_binding_info.AllocationIndex + bind_item_info.Group];
+                if (m_state == RecordState::Render)
+                {
+                    list->g0->SetGraphicsRootDescriptorTable(bind_item_info.RootIndex, allocation.GetGpuHandle());
+                }
+                else
+                {
+                    list->g0->SetComputeRootDescriptorTable(bind_item_info.RootIndex, allocation.GetGpuHandle());
+                }
+                break;
+            }
+        case Layout::BindItemPlace::Direct:
+            // todo
+            break;
+        case Layout::BindItemPlace::Const:
+            // todo
+            break;
+        }
+    }
 }
 
 void D3d12GpuRecord::Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const
@@ -1074,10 +1174,10 @@ void D3d12GpuRecord::SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i)
     m_pipeline_context.SetPipeline(pipeline, i);
 }
 
-bool D3d12GpuRecord::SetBinding(NonNull<FShaderBinding> binding, u32 i)
+bool D3d12GpuRecord::SetBinding(NonNull<FShaderBinding> binding, u32 i, const FCmdSetBinding& cmd)
 {
     if (m_pipeline_context.Binding && binding->ObjectId() == m_pipeline_context.Binding->ObjectId()) return false;
-    m_pipeline_context.SetBinding(binding, i);
+    m_pipeline_context.SetBinding(binding, i, cmd);
     return true;
 }
 

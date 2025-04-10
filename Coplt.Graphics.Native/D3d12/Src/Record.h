@@ -105,21 +105,36 @@ namespace Coplt
             Ptr<ID3d12GraphicsShaderPipeline> GPipeline{};
 
             Ptr<ID3d12ShaderBinding> Binding{};
+            u32 SetBindingIndex{};
 
             bool PipelineChanged{};
             bool BindingChanged{};
 
             void Reset();
             void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
-            void SetBinding(NonNull<FShaderBinding> binding, u32 i);
+            void SetBinding(NonNull<FShaderBinding> binding, u32 i, const FCmdSetBinding& cmd);
         };
 
         struct BindingInfo
         {
+            u64 BindingVersion{};
+            u32 AllocationIndex{COPLT_U32_MAX};
+            u32 BindItemIndex{COPLT_U32_MAX};
         };
 
         struct SetBindingInfo
         {
+            ID3d12BindingLayout* Layout{};
+            u32 AllocationIndex{COPLT_U32_MAX};
+            u32 BindItemIndex{COPLT_U32_MAX};
+        };
+
+        struct BindItem
+        {
+            union
+            {
+                // todo 直接资源和常量
+            };
         };
 
         u64 m_isolate_id{};
@@ -130,8 +145,12 @@ namespace Coplt
         Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
         HashMap<u64, u64> m_resource_map{}; // id -> index
         std::vector<ResourceInfo> m_resource_infos{};
+        std::vector<BindingInfo> m_binding_infos{};
         std::vector<SetBindingInfo> m_set_binding_infos{};
+        std::vector<DescriptorAllocation> m_allocations{};
+        std::vector<BindItem> m_bind_items{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
+        std::vector<ReadGuard> m_tmp_locks{};
         RenderState m_cur_render{};
         ComputeState m_cur_compute{};
         PipelineContext m_pipeline_context{};
@@ -207,7 +226,7 @@ namespace Coplt
 
         void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
         // 返回是否改变
-        bool SetBinding(NonNull<FShaderBinding> binding, u32 i);
+        bool SetBinding(NonNull<FShaderBinding> binding, u32 i, const FCmdSetBinding& cmd);
         void SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i);
     };
 

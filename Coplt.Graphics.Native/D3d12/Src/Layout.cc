@@ -160,20 +160,20 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             );
         }
     }
-    m_bind_item_infos.reserve(options.NumGroups);
+    m_group_item_infos.reserve(options.NumGroups);
     for (u32 g = 0; g < options.NumGroups; g++)
     {
-        std::vector<BindItemInfo> bind_item_infos{};
+        std::vector<GroupItemInfo> group_item_infos{};
         const auto& group = m_groups[g];
         const auto& group_data = group->Data();
         SumTableSamplerSlots += group_data.ResourceTableSize;
         SumTableResourceSlots += group_data.SamplerTableSize;
         const auto items = group->GetItems();
-        bind_item_infos.reserve(items.size());
+        group_item_infos.reserve(items.size());
         for (u32 i = 0; i < items.size(); ++i)
         {
             const auto& item = items[i];
-            BindItemInfo bind_item_info{};
+            GroupItemInfo bind_item_info{};
             bind_item_info.Group = g;
             bind_item_info.IndexInGroup = i;
             bind_item_info.Format = item.Format;
@@ -234,9 +234,9 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                     break;
                 }
             }
-            bind_item_infos.push_back(bind_item_info);
+            group_item_infos.push_back(bind_item_info);
         }
-        m_bind_item_infos.push_back(std::move(bind_item_infos));
+        m_group_item_infos.push_back(std::move(group_item_infos));
     }
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
@@ -263,6 +263,13 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             info.SigIndex = static_cast<u32>(root_parameters.size());
             info.SigPlace = SigPlace::Const;
             root_parameters.push_back(param);
+
+            BindItemInfo item_info{};
+            item_info.Group = info.Group;
+            item_info.IndexInGroup = info.Index;
+            item_info.RootIndex = info.SigIndex;
+            item_info.Place = BindItemPlace::Const;
+            m_bind_item_infos.push_back(item_info);
             continue;
         }
 
@@ -342,6 +349,13 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             info.SigIndex = static_cast<u32>(root_parameters.size());
             info.SigPlace = SigPlace::Direct;
             root_parameters.push_back(param);
+
+            BindItemInfo item_info{};
+            item_info.Group = info.Group;
+            item_info.IndexInGroup = info.Index;
+            item_info.RootIndex = info.SigIndex;
+            item_info.Place = BindItemPlace::Direct;
+            m_bind_item_infos.push_back(item_info);
             continue;
         }
     DefineStaticSampler:
@@ -378,6 +392,13 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             param.DescriptorTable.pDescriptorRanges = Ranges.data();
             root_parameters.push_back(param);
             infos.push_back(Info);
+
+            BindItemInfo item_info{};
+            item_info.Group = Info.Group;
+            item_info.IndexInGroup = 0;
+            item_info.RootIndex = Info.RootIndex;
+            item_info.Place = BindItemPlace::Table;
+            m_bind_item_infos.push_back(item_info);
         }
         m_tables.push_back(std::move(infos));
     }
@@ -455,14 +476,19 @@ std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() co
     return m_slot_infos;
 }
 
+std::span<const BindItemInfo> D3d12BindingLayout::BindItemInfos() const noexcept
+{
+    return m_bind_item_infos;
+}
+
 std::span<const std::vector<TableInfo>> D3d12BindingLayout::TableInfos() const noexcept
 {
     return m_tables;
 }
 
-std::span<const std::vector<BindItemInfo>> D3d12BindingLayout::BindItemInfos() const noexcept
+std::span<const std::vector<GroupItemInfo>> D3d12BindingLayout::GroupItemInfos() const noexcept
 {
-    return m_bind_item_infos;
+    return m_group_item_infos;
 }
 
 D3d12ShaderInputLayout::D3d12ShaderInputLayout(

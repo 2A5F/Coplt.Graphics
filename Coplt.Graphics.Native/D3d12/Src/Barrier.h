@@ -40,7 +40,7 @@ namespace Coplt
         virtual void OnAddRes() = 0;
 
         virtual void OnUse(FResIndex ResIndex, ResAccess Access, ResUsage Usage, ResLayout Layout) = 0;
-        virtual void OnUse(FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info) = 0;
+        virtual void OnUse(FResIndex ResIndex, const View& View, const Layout::GroupItemInfo& info) = 0;
         virtual void UpdateUse(FResIndex ResIndex) = 0;
         virtual void OnCmd() = 0;
         // 每个命令都需要调用一次
@@ -172,7 +172,7 @@ namespace Coplt
             void OnAddRes() override;
 
             void OnUse(FResIndex ResIndex, ResAccess Access, ResUsage Usage, ResLayout Layout) override;
-            void OnUse(FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info) override;
+            void OnUse(FResIndex ResIndex, const View& View, const Layout::GroupItemInfo& info) override;
             void UpdateUse(FResIndex ResIndex) override;
             void OnCmd() override;
             void CmdNext() override;

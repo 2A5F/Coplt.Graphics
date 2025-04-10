@@ -92,13 +92,13 @@ void View::CreateDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem&
         CreateNullDescriptor(device, def, handle);
         break;
     case FViewType::Buffer:
-        // CreateBufferDescriptor(device, def, handle);
+        CreateBufferDescriptor(device, def, handle);
         break;
     case FViewType::Image:
-        // CreateImageDescriptor(device, def, handle);
+        CreateImageDescriptor(device, def, handle);
         break;
     case FViewType::Sampler:
-        // CreateSamplerDescriptor(device, def, handle);
+        CreateSamplerDescriptor(device, def, handle);
         break;
     }
 }

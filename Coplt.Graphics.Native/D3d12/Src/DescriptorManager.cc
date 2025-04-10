@@ -4,19 +4,26 @@
 
 using namespace Coplt;
 
-DescriptorAllocation::DescriptorAllocation(DescriptorHeap& heap, const u64 offset)
-    : m_heap(heap.CloneThis()), m_offset(offset)
+DescriptorAllocation::DescriptorAllocation(DescriptorHeap* heap, const u64 offset)
+    : m_heap(heap), m_offset(offset)
 {
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorAllocation::GetCpuHandle() const
 {
+    if (!m_heap) return {};
     return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_heap->m_heap->GetCPUDescriptorHandleForHeapStart(), m_offset, m_heap->m_inc);
 }
 
 CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorAllocation::GetGpuHandle() const
 {
+    if (!m_heap) return {};
     return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_heap->m_heap->GetGPUDescriptorHandleForHeapStart(), m_offset, m_heap->m_inc);
+}
+
+DescriptorAllocation::operator bool() const
+{
+    return m_heap != nullptr;
 }
 
 DescriptorHeap::DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_size)
@@ -101,7 +108,7 @@ DescriptorAllocation DescriptorHeap::Allocate(const u64 ObjectId, const u32 Size
             p.put(Allocation{allocation, offset});
         }
     });
-    return DescriptorAllocation(*this, allocation.m_offset);
+    return DescriptorAllocation(this, allocation.m_offset);
 }
 
 DescriptorAllocation DescriptorHeap::AllocateTmp(const u32 Size)
@@ -111,7 +118,7 @@ DescriptorAllocation DescriptorHeap::AllocateTmp(const u32 Size)
     if (m_tmp_offset > m_half_size)
         COPLT_THROW("Out of descriptor heap");
     const auto inv_offset = m_half_size * 2 - offset - Size;
-    return DescriptorAllocation(*this, inv_offset);
+    return DescriptorAllocation(this, inv_offset);
 }
 
 DescriptorManager::DescriptorManager(NonNull<D3d12GpuDevice> device)

@@ -17,13 +17,16 @@ namespace Coplt
     // 分配只能在帧内使用
     struct DescriptorAllocation
     {
-        Rc<DescriptorHeap> m_heap{};
+        DescriptorHeap* m_heap;
         u64 m_offset{};
 
-        explicit DescriptorAllocation(DescriptorHeap& heap, u64 offset);
+        DescriptorAllocation() = default;
+        explicit DescriptorAllocation(DescriptorHeap* heap, u64 offset);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const;
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const;
+
+        explicit operator bool() const;
     };
 
     struct DescriptorHeap final : Object<DescriptorHeap, FUnknown>

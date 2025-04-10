@@ -173,7 +173,7 @@ namespace Coplt::Enhanced
         return;
     }
 
-    void EnhancedBarrierAnalyzer::OnUse(const FResIndex ResIndex, const View& View, const Layout::BindItemInfo& info)
+    void EnhancedBarrierAnalyzer::OnUse(const FResIndex ResIndex, const View& View, const Layout::GroupItemInfo& info)
     {
         auto access = ResAccess::Common;
         auto usage = ResUsage::Common;
