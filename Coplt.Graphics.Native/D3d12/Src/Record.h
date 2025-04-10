@@ -168,7 +168,8 @@ namespace Coplt
         FResIndex AddResource(const FCmdRes& res);
         FResIndex AddResource(const View& view);
         void ReadyResource();
-        void ReadyBindings();
+        // 返回帧所需的最小描述符堆大小
+        void ReadyBindings(u32& MinResHeapSize, u32& MinSmpHeapSize);
 
         void Analyze();
         void Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;

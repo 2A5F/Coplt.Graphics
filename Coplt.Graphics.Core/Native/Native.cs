@@ -1744,6 +1744,8 @@ namespace Coplt.Graphics.Native
 
         public FList<FCmdBinding> Bindings;
 
+        public FList<FBindingChange> BindingChange;
+
         public FList<FRect> PayloadRect;
 
         public FList<FViewport> PayloadViewport;
@@ -1763,9 +1765,6 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint NumSetBindings;
-
-        [NativeTypeName("Coplt::u32")]
-        public uint SumMaxBindSlots;
 
         [NativeTypeName("Coplt::b8")]
         public B8 Ended;
@@ -2202,6 +2201,12 @@ namespace Coplt.Graphics.Native
         public FShaderBinding* Binding;
     }
 
+    public partial struct FBindingChange
+    {
+        [NativeTypeName("Coplt::u32")]
+        public uint Binding;
+    }
+
     [NativeTypeName("struct FCmdSetBinding : Coplt::FCmdBase")]
     public partial struct FCmdSetBinding
     {
@@ -2327,7 +2332,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L353_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L359_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]

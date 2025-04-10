@@ -807,16 +807,20 @@ internal unsafe struct PipelineContext
                 throw new InvalidOperationException("The binding layout is not compatible with the currently set pipeline");
         }
         m_current_binding = Binding;
+        var binding_index = (uint)self.Data.Bindings.LongLength;
+        self.Data.Bindings.Add(new() { Binding = Binding.Ptr });
         var first = self.AddObject(m_current_binding);
+        if (first)
+        {
+            self.Data.BindingChange.Add(new() { Binding = binding_index, });
+        }
         var cmd = new FCmdSetBinding
         {
             Base = { Type = FCmdType.SetBinding },
-            Binding = (uint)self.Data.Bindings.LongLength,
+            Binding = binding_index,
             Index = self.Data.NumSetBindings++,
         };
-        self.Data.Bindings.Add(new() { Binding = Binding.Ptr });
         self.Data.Commands.Add(new() { SetBinding = cmd });
-        // if (first) self.Data.SumMaxBindSlots += Binding.Data.SumPersistentSlots + Binding.Data.SumTransientSlots; // todo 这个计算移到 c艹
     }
 
     #endregion

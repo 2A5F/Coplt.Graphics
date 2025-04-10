@@ -354,7 +354,9 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("Too many resources");
     m_barrier_analyzer->StartAnalyze(this);
     ReadyResource();
-    ReadyBindings();
+    u32 MinResHeapSize{}, MinSmpHeapSize{};
+    ReadyBindings(MinResHeapSize, MinSmpHeapSize);
+    m_context->m_descriptor_manager.ReadyFrame(MinResHeapSize, MinSmpHeapSize);
     Analyze();
     m_barrier_analyzer->EndAnalyze();
     if (m_isolate_config->MultiThreadRecord)
@@ -430,13 +432,25 @@ void D3d12GpuRecord::ReadyResource()
     }
 }
 
-void D3d12GpuRecord::ReadyBindings()
+void D3d12GpuRecord::ReadyBindings(u32& MinResHeapSize, u32& MinSmpHeapSize)
 {
+    MinResHeapSize = 0;
+    MinSmpHeapSize = 0;
     m_set_binding_infos.clear();
     m_set_binding_infos.reserve(NumSetBindings);
     for (u32 i = 0; i < NumSetBindings; ++i)
     {
         m_set_binding_infos.push_back(SetBindingInfo());
+    }
+    for (u32 i = 0; i < BindingChange.size(); ++i)
+    {
+        const auto& item = BindingChange[i];
+        const auto binding = NonNull(Bindings[item.Binding].Binding)->QueryInterface<ID3d12ShaderBinding>();
+        if (binding == nullptr)
+            COPLT_THROW_FMT("Binding [{}] comes from different backends", item.Binding);
+        const auto& data = binding->Layout()->Data();
+        MinResHeapSize += data.SumTableResourceSlots;
+        MinSmpHeapSize += data.SumTableSamplerSlots;
     }
 }
 

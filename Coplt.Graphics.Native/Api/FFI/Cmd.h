@@ -271,6 +271,12 @@ namespace Coplt
         FShaderBinding* Binding{};
     };
 
+    struct FBindingChange
+    {
+        // Payload 中的索引，类型为 FCmdBinding
+        u32 Binding{};
+    };
+
     struct FCmdSetBinding : FCmdBase
     {
         // Payload 中的索引，类型为 FCmdBinding

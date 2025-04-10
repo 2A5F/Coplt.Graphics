@@ -32,6 +32,7 @@ namespace Coplt
         FList<FCmdItem> Commands;
         FList<FCmdRes> Resources;
         FList<FCmdBinding> Bindings;
+        FList<FBindingChange> BindingChange;
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
         FList<FRenderInfo2> PayloadRenderInfo;
@@ -41,15 +42,14 @@ namespace Coplt
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
         FList<u8> Blob;
         u32 NumSetBindings{};
-        u32 SumMaxBindSlots{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), Bindings(allocator), PayloadRect(allocator), PayloadViewport(allocator),
-              PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
-              PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator),
+              PayloadRect(allocator), PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator),
+              PayloadBufferCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
         {
         }
 
@@ -58,6 +58,7 @@ namespace Coplt
             Commands.Clear();
             Resources.Clear();
             Bindings.Clear();
+            BindingChange.Clear();
             PayloadRect.Clear();
             PayloadViewport.Clear();
             PayloadRenderInfo.Clear();
