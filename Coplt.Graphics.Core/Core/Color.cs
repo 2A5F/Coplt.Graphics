@@ -300,6 +300,66 @@ public struct Color
 
     #endregion
 
+    #region Shuffle
+
+    public Color RgbaToBgra
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(2, 1, 0, 3));
+            return new(r);
+        }
+    }
+
+    public Color BgraToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get => RgbaToBgra;
+    }
+
+    public Color RgbaToArgb
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(3, 0, 1, 2));
+            return new(r);
+        }
+    }
+
+    public Color ArgbToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(1, 2, 3, 0));
+            return new(r);
+        }
+    }
+
+    public Color RgbaToAbgr
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(3, 2, 1, 0));
+            return new(r);
+        }
+    }
+
+    public Color AbgrToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get => RgbaToAbgr;
+    }
+
+    #endregion
+
     #region Linear
 
     public readonly Color ToLinear
@@ -312,7 +372,7 @@ public struct Color
             var low = vector * Vector128.Create(1f / 12.92f);
             var high = Utils.Pow((vector + Vector128.Create(0.055f)) * Vector128.Create(1f / 1.055f), Vector128.Create(2.4f));
             var r = Vector128.ConditionalSelect(c, low, high);
-            return new Color(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
+            return new(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
         }
     }
 
@@ -326,7 +386,7 @@ public struct Color
             var low = vector * Vector128.Create(12.92f);
             var high = Utils.Fma(Vector128.Create(1.055f), Utils.Pow(vector, Vector128.Create(1f / 2.4f)), Vector128.Create(-0.055f));
             var r = Vector128.ConditionalSelect(c, low, high);
-            return new Color(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
+            return new(Vector128.ConditionalSelect(Vector128.Create(-1, -1, -1, 0).AsSingle(), r, vector));
         }
     }
 
@@ -534,6 +594,66 @@ public struct Color255
         get => To01.Hsl;
         [MethodImpl(256 | 512)]
         set => this = value.Rgb255;
+    }
+
+    #endregion
+
+    #region Shuffle
+
+    public Color255 RgbaToBgra
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(2, 1, 0, 3));
+            return new(r);
+        }
+    }
+
+    public Color255 BgraToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get => RgbaToBgra;
+    }
+
+    public Color255 RgbaToArgb
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(3, 0, 1, 2));
+            return new(r);
+        }
+    }
+
+    public Color255 ArgbToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(1, 2, 3, 0));
+            return new(r);
+        }
+    }
+
+    public Color255 RgbaToAbgr
+    {
+        [MethodImpl(256 | 512)]
+        get
+        {
+            var vector = m_vector;
+            var r = Vector128.Shuffle(vector, Vector128.Create(3, 2, 1, 0));
+            return new(r);
+        }
+    }
+
+    public Color255 AbgrToRgba
+    {
+        [MethodImpl(256 | 512)]
+        get => RgbaToAbgr;
     }
 
     #endregion
