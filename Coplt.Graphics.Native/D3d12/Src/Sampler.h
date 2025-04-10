@@ -4,10 +4,12 @@
 
 #include "../../Api/Include/GpuObject.h"
 #include "../FFI/Sampler.h"
+#include "../Include/Sampler.h"
+#include "../Include/View.h"
 
 namespace Coplt
 {
-    COPLT_INTERFACE_DEFINE(ID3d12GpuSampler, "0d342b3b-5960-4e5b-97c0-4028feab682e", FD3d12GpuSampler)
+    COPLT_INTERFACE_DEFINE(ID3d12GpuSampler, "0d342b3b-5960-4e5b-97c0-4028feab682e", FD3d12GpuSampler, ID3d12GpuViewable)
     {
         virtual NonNull<const D3D12_SAMPLER_DESC> Desc() const noexcept = 0;
     };
@@ -22,5 +24,7 @@ namespace Coplt
         FResult SetName(const FStr8or16& name) noexcept override;
         const FSamplerInfo* Info() const noexcept override;
         NonNull<const D3D12_SAMPLER_DESC> Desc() const noexcept override;
+
+        bool IsCompatible(const FBindGroupItem& def) const override;
     };
 }

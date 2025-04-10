@@ -3,6 +3,7 @@
 #include "Binding.h"
 #include "Features.h"
 #include "GpuObject.h"
+#include "Isolate.h"
 #include "Layout.h"
 #include "Queue.h"
 #include "Shader.h"
@@ -76,21 +77,35 @@ namespace Coplt
         // d3d12 返回 ID3D12Device*
         virtual void* GetRawDevice() noexcept = 0;
 
-        virtual FResult CreateMainQueue(const FMainQueueCreateOptions& options, FGpuQueue** out) noexcept = 0;
+        virtual FResult CreateIsolate(const FGpuIsolateCreateOptions& options, FGpuIsolateCreateResult& out) noexcept = 0;
 
-        virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModule** out) noexcept = 0;
-        virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayout** out) noexcept = 0;
-        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayout** out) noexcept = 0;
+        virtual FResult CreateShaderLayout(const FShaderLayoutCreateOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
+        virtual FResult CreateBindGroupLayout(const FBindGroupLayoutCreateOptions& options, FBindGroupLayoutCreateResult* out) noexcept = 0;
+        virtual FResult CreateBindingLayout(const FBindingLayoutCreateOptions& options, FBindingLayout** out) noexcept = 0;
+        virtual FResult GetEmptyShaderLayout(const FGetEmptyShaderLayoutOptions& options, FShaderLayoutCreateResult* out) noexcept = 0;
+        virtual FResult GetEmptyBindGroupLayout(FBindGroupLayoutCreateResult* out) noexcept = 0;
+        virtual FResult GetEmptyBindingLayout(const FGetEmptyBindingLayoutOptions& options, FBindingLayout** out) noexcept = 0;
         virtual FResult CreateShaderInputLayout(const FShaderInputLayoutCreateOptions& options, FShaderInputLayout** out) noexcept = 0;
-        virtual FResult CreateShader(const FShaderCreateOptions& options, FShader** out) noexcept = 0;
-        virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBinding** out) noexcept = 0;
-
         virtual FResult CreateMeshLayout(const FMeshLayoutCreateOptions& options, FMeshLayout** out) noexcept = 0;
+
+        virtual FResult CreateShaderModule(const FShaderModuleCreateOptions& options, FShaderModuleCreateResult* out) noexcept = 0;
+        virtual FResult CreateShader(const FShaderCreateOptions& options, FShaderCreateResult* out) noexcept = 0;
+
+        virtual FResult CreateShaderBindGroup(const FShaderBindGroupCreateOptions& options, FShaderBindGroupCreateResult* out) noexcept = 0;
+        virtual FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBindingCreateResult* out) noexcept = 0;
 
         virtual FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept = 0;
 
         virtual FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept = 0;
         virtual FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept = 0;
         virtual FResult CreateSampler(const FGpuSamplerCreateOptions& options, FGpuSampler** out) noexcept = 0;
+    };
+
+    struct FGpuDeviceCreateResult
+    {
+        FGpuDevice* Device{};
+        FGpuIsolateCreateResult MainIsolate{};
+        // 可空
+        FGpuIsolateCreateResult CopyIsolate{};
     };
 }

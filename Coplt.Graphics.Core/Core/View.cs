@@ -24,9 +24,9 @@ public unsafe partial struct View
     public FView ToFFI() => Tag switch
     {
         Tags.None    => new FView { Type = FViewType.None },
-        Tags.Buffer  => new FView { Type = FViewType.Buffer, Buffer = Buffer.Ptr },
-        Tags.Image   => new FView { Type = FViewType.Image, Image = Image.Ptr },
-        Tags.Sampler => new FView { Type = FViewType.Sampler, Sampler = Sampler.Ptr },
+        Tags.Buffer  => new FView { Type = FViewType.Buffer, Viewable = ((GpuViewable)Buffer).Ptr },
+        Tags.Image   => new FView { Type = FViewType.Image, Viewable = ((GpuViewable)Image).Ptr },
+        Tags.Sampler => new FView { Type = FViewType.Sampler, Viewable = ((GpuViewable)Sampler).Ptr },
         _            => throw new ArgumentOutOfRangeException()
     };
 }

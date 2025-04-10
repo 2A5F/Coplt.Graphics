@@ -87,8 +87,8 @@ namespace
         std::vector<std::string>& tmp_strings,
         std::vector<D3D12_INPUT_ELEMENT_DESC>& dst,
         std::vector<u32>& input_slots,
-        FD3d12ShaderInputLayout* input_layout,
-        FD3d12MeshLayout* mesh_layout
+        FShaderInputLayout* input_layout,
+        FMeshLayout* mesh_layout
     )
     {
         const auto buffers = mesh_layout->GetBuffers();
@@ -135,15 +135,17 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     if (options.Shader == nullptr)
         COPLT_THROW("Shader is null");
     m_shader = Rc<FShader>::UnsafeClone(options.Shader);
-    if (!HasFlags(m_shader->Stages, FShaderStageFlags::Pixel))
+    if (!HasFlags(m_shader->Stages(), FShaderStageFlags::Pixel))
         COPLT_THROW("The shader is not graphics");
 
-    if (auto layout = m_shader->Layout())
+    if (m_shader->Layout())
     {
-        auto dx_layout = layout->QueryInterface<FD3d12ShaderLayout>();
-        if (dx_layout == nullptr)
+        auto layout = NonNull(options.Layout)->QueryInterface<ID3d12BindingLayout>();
+        if (layout == nullptr)
             COPLT_THROW("Shader layout from different backends");
-        m_layout = Rc<FD3d12ShaderLayout>::UnsafeClone(dx_layout);
+        m_layout = Rc<ID3d12BindingLayout>::UnsafeClone(layout);
+        if (m_layout->ShaderLayout()->ObjectId() != m_shader->Layout()->ObjectId())
+            COPLT_THROW("Differences between binding layout and shader layout");
     }
     else
     {
@@ -152,60 +154,54 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
         {
             flags |= FShaderLayoutFlags::InputAssembler;
         }
-        m_layout = m_device->GetEmptyLayout(flags);
+        m_layout = m_device->GetEmptyBindingLayout(flags);
     }
 
-    auto root_signature = static_cast<ID3D12RootSignature*>(m_layout->GetRootSignaturePtr());
+    auto root_signature = m_layout->RootSignature().Get();
 
     std::vector<std::string> tmp_strings{};
     std::vector<D3D12_INPUT_ELEMENT_DESC> input_element_desc{};
     std::vector<u32> input_slots{};
     CD3DX12_PIPELINE_STATE_STREAM2 stream{};
 
-    if (HasFlags(m_shader->Stages, FShaderStageFlags::Vertex))
+    if (HasFlags(m_shader->Stages(), FShaderStageFlags::Vertex))
     {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
         desc.pRootSignature = root_signature;
-        auto ps = m_shader->Pixel();
-        auto vs = m_shader->Vertex();
-        desc.PS = D3D12_SHADER_BYTECODE{ps->Data, ps->Size};
-        desc.VS = D3D12_SHADER_BYTECODE{vs->Data, vs->Size};
+        NonNull ps = m_shader->Pixel();
+        NonNull vs = m_shader->Vertex();
+        desc.PS = D3D12_SHADER_BYTECODE{ps->Data().Data, ps->Data().Size};
+        desc.VS = D3D12_SHADER_BYTECODE{vs->Data().Data, vs->Data().Size};
         SetGraphicsState(desc, options);
         desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS |
             D3D12_PIPELINE_STATE_FLAG_DYNAMIC_INDEX_BUFFER_STRIP_CUT;
         if (auto input_layout = m_shader->InputLayout())
         {
-            auto dx_input_layout = input_layout->QueryInterface<FD3d12ShaderInputLayout>();
-            if (dx_input_layout == nullptr)
-                COPLT_THROW("Input layout from different backends");
-            FD3d12MeshLayout* dx_mesh_layout{};
-            if (options.MeshLayout != nullptr)
+            FMeshLayout* mesh_layout = options.MeshLayout;
+            if (options.MeshLayout == nullptr)
             {
-                dx_mesh_layout = options.MeshLayout->QueryInterface<FD3d12MeshLayout>();
-                if (dx_mesh_layout == nullptr)
-                    COPLT_THROW("Mesh layout from different backends");
+                mesh_layout = m_device->GetEmptyMeshLayout().get();
             }
-            else dx_mesh_layout = m_device->GetEmptyMeshLayout().get();
-            SetInputLayout(&m_device, tmp_strings, input_element_desc, input_slots, dx_input_layout, dx_mesh_layout);
+            SetInputLayout(&m_device, tmp_strings, input_element_desc, input_slots, input_layout, mesh_layout);
             desc.InputLayout.NumElements = input_element_desc.size();
             desc.InputLayout.pInputElementDescs = input_element_desc.data();
-            m_input_layout = Rc<FD3d12ShaderInputLayout>::UnsafeClone(dx_input_layout);
-            m_mesh_layout = Rc<FD3d12MeshLayout>::UnsafeClone(dx_mesh_layout);
+            m_input_layout = Rc<FShaderInputLayout>::UnsafeClone(input_layout);
+            m_mesh_layout = Rc<FMeshLayout>::UnsafeClone(mesh_layout);
         }
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
     }
-    else if (HasFlags(m_shader->Stages, FShaderStageFlags::Mesh))
+    else if (HasFlags(m_shader->Stages(), FShaderStageFlags::Mesh))
     {
         D3DX12_MESH_SHADER_PIPELINE_STATE_DESC desc{};
         desc.pRootSignature = root_signature;
-        auto ps = m_shader->Pixel();
-        auto ms = m_shader->Mesh();
+        NonNull ps = m_shader->Pixel();
+        NonNull ms = m_shader->Mesh();
         auto ts = m_shader->Task();
-        desc.PS = D3D12_SHADER_BYTECODE{ps->Data, ps->Size};
-        desc.MS = D3D12_SHADER_BYTECODE{ms->Data, ms->Size};
+        desc.PS = D3D12_SHADER_BYTECODE{ps->Data().Data, ps->Data().Size};
+        desc.MS = D3D12_SHADER_BYTECODE{ms->Data().Data, ms->Data().Size};
         if (ts != nullptr)
-            desc.AS = D3D12_SHADER_BYTECODE{ts->Data, ts->Size};
+            desc.AS = D3D12_SHADER_BYTECODE{ts->Data().Data, ts->Data().Size};
         SetGraphicsState(desc, options);
         desc.Flags = D3D12_PIPELINE_STATE_FLAG_DYNAMIC_DEPTH_BIAS;
         stream = CD3DX12_PIPELINE_STATE_STREAM2(desc);
@@ -235,9 +231,14 @@ FResult D3d12GraphicsShaderPipeline::SetName(const FStr8or16& name) noexcept
     });
 }
 
-void* D3d12GraphicsShaderPipeline::GetPipelineStatePtr() noexcept
+const Rc<ID3d12BindingLayout>& D3d12GraphicsShaderPipeline::Layout() const noexcept
 {
-    return m_pipeline.Get();
+    return m_layout;
+}
+
+const ComPtr<ID3D12PipelineState>& D3d12GraphicsShaderPipeline::GetPipelineState() const noexcept
+{
+    return m_pipeline;
 }
 
 FShader* D3d12GraphicsShaderPipeline::GetShader() noexcept
@@ -245,14 +246,14 @@ FShader* D3d12GraphicsShaderPipeline::GetShader() noexcept
     return m_shader.get();
 }
 
-FShaderLayout* D3d12GraphicsShaderPipeline::GetLayout() noexcept
+FBindingLayout* D3d12GraphicsShaderPipeline::GetLayout() noexcept
 {
     return m_layout.get();
 }
 
 FShaderStageFlags D3d12GraphicsShaderPipeline::GetStages() noexcept
 {
-    return m_shader->Stages;
+    return m_shader->Stages();
 }
 
 const FGraphicsPipelineState* D3d12GraphicsShaderPipeline::GetGraphicsState() noexcept

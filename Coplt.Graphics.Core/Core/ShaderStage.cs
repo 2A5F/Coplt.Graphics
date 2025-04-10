@@ -12,7 +12,7 @@ namespace Coplt.Graphics
     }
 
     [Flags]
-    public enum ShaderStageFlags : byte
+    public enum ShaderStageFlags : uint
     {
         None = 0,
         Compute = 1 << 0,

@@ -23,6 +23,6 @@ namespace Coplt
 
         virtual b8 IsSupport(const FDeviceRequires& Requires) noexcept = 0;
 
-        virtual FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept = 0;
+        virtual FResult CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDeviceCreateResult* out) noexcept = 0;
     };
 }

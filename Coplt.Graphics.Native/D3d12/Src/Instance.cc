@@ -77,7 +77,7 @@ void D3d12Instance::CreateAdapter(ComPtr<IDXGIAdapter1>&& adapter)
     m_adapters.push_back(new D3d12GpuAdapter(this->CloneThis(), std::move(adapter)));
 }
 
-FResult D3d12Instance::CreateDevice(const FGpuAutoSelectDeviceCreateOptions& options, FGpuDevice** out) noexcept
+FResult D3d12Instance::CreateDevice(const FGpuAutoSelectDeviceCreateOptions& options, FGpuDeviceCreateResult* out) noexcept
 {
     return feb([&]
     {
@@ -89,7 +89,7 @@ FResult D3d12Instance::CreateDevice(const FGpuAutoSelectDeviceCreateOptions& opt
                 continue;
             auto r = feb([&]
             {
-                *out = new D3d12GpuDevice(adapter.Clone(), options);
+                out->Device = new D3d12GpuDevice(adapter.Clone(), options, *out);
             });
             if (!r.IsError())
                 goto end;

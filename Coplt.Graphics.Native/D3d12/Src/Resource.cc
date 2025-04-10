@@ -6,50 +6,60 @@
 using namespace Coplt;
 
 ResourcePack::ResourcePack(
-    D3d12GpuDevice* device, D3D12MA::Allocator* allocator, const FCpuAccess cpu_access,
-    FResState& state, const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value,
-    bool image
+    D3d12GpuDevice* device, D3D12MA::Allocator* allocator, const FCpuAccess cpu_access, ResLayout& layout,
+    const D3D12_RESOURCE_DESC1* desc, const D3D12_CLEAR_VALUE* clear_value, bool image
 )
 {
     D3D12MA::ALLOCATION_DESC alloc_desc{};
     alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
-
-    D3D12_BARRIER_LAYOUT layout = D3D12_BARRIER_LAYOUT_UNDEFINED;
-    D3D12_RESOURCE_STATES init_state{};
     switch (cpu_access)
     {
     case FCpuAccess::Write:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-        init_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-        if (image)
-        {
-            state = FResState::ImageGenericRead();
-            layout = D3D12_BARRIER_LAYOUT_GENERIC_READ;
-        }
-        else state = FResState::BufferGenericRead();
         break;
     case FCpuAccess::Read:
         alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
+        break;
+    case FCpuAccess::ReadWrite:
+        if (device->m_uma_pool) alloc_desc.CustomPool = device->m_uma_pool.Get();
+        else
+            COPLT_THROW("Non-UMA devices cannot create read write resources");
+    default:
+        alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        break;
+    }
+
+    layout = ResLayout::Undefined;
+    D3D12_BARRIER_LAYOUT init_layout = D3D12_BARRIER_LAYOUT_UNDEFINED;
+    D3D12_RESOURCE_STATES init_state{};
+    switch (cpu_access)
+    {
+    case FCpuAccess::Write:
+        init_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+        if (image)
+        {
+            layout = ResLayout::GenericRead;
+            init_layout = D3D12_BARRIER_LAYOUT_GENERIC_READ;
+        }
+        break;
+    case FCpuAccess::Read:
         init_state = D3D12_RESOURCE_STATE_COPY_DEST;
         if (image)
         {
-            state = FResState::ImageCopyDst();
-            layout = D3D12_BARRIER_LAYOUT_COPY_DEST;
+            layout = ResLayout::CopyDest;
+            init_layout = D3D12_BARRIER_LAYOUT_COPY_DEST;
         }
-        else state = FResState::BufferCopyDst();
         break;
+    case FCpuAccess::ReadWrite:
     default:
-        alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
         init_state = D3D12_RESOURCE_STATE_COMMON;
-        if (image) state = FResState::ImageCommon();
-        else state = FResState::BufferCommon();
         break;
     }
 
     if (device->m_adapter->m_features.EnhancedBarriers)
     {
         chr | allocator->CreateResource3(
-            &alloc_desc, desc, layout, clear_value,
+            &alloc_desc, desc, init_layout, clear_value,
             0, nullptr, &m_allocation, IID_PPV_ARGS(&m_resource)
         );
     }
@@ -79,6 +89,7 @@ BufferPack::BufferPack(
     const u64 size, const D3D12_RESOURCE_FLAGS Flags
 ) : m_size(size)
 {
+    ResLayout layout{};
     const auto desc = CD3DX12_RESOURCE_DESC1::Buffer(size, Flags);
-    m_resource = ResourcePack(device, allocator, cpu_access, m_state, &desc, nullptr, false);
+    m_resource = ResourcePack(device, allocator, cpu_access, layout, &desc, nullptr, false);
 }

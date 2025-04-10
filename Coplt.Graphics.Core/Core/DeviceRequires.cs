@@ -129,6 +129,14 @@ public record struct DeviceFeatures
     /// 真 · 无绑定, dx 使用 dynamic resource，vk 使用 VK_EXT_mutable_descriptor_type
     /// </summary>
     public bool DynBindless;
+    /// <summary>
+    /// 设备是否是统一内存访问架构
+    /// </summary>
+    public bool UMA;
+    /// <summary>
+    /// 设备是否是缓存一致的统一内存访问架构
+    /// </summary>
+    public bool CacheCoherentUMA;
 
     public DeviceFeatures(in FDeviceFeatures native)
     {
@@ -139,5 +147,7 @@ public record struct DeviceFeatures
         EnhancedBarriers = native.EnhancedBarriers;
         ArrBindless = native.ArrBindless;
         DynBindless = native.DynBindless;
+        UMA = native.UMA;
+        CacheCoherentUMA = native.CacheCoherentUMA;
     }
 }

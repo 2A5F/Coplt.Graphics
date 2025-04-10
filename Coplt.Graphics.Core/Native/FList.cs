@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Coplt.Dropping;
 using Coplt.Graphics.Utilities;
 
@@ -108,6 +109,26 @@ public unsafe partial struct FList<T> where T : unmanaged
 
     #endregion
 
+    #region EnsureCap
+
+    public void EnsureCap(nuint cap)
+    {
+        cap = BitOperations.RoundUpToPowerOf2(cap);
+        if (cap < m_cap) return;
+        if (m_ptr == null)
+        {
+            m_cap = cap;
+            m_ptr = (T*)m_allocator->MemoryAlloc(m_cap * (nuint)sizeof(T), (nuint)Utils.AlignOf<T>());
+        }
+        else if (m_cap < cap)
+        {
+            m_cap = cap;
+            m_ptr = (T*)m_allocator->MemoryReAlloc(m_ptr, m_cap * (nuint)sizeof(T), (nuint)Utils.AlignOf<T>());
+        }
+    }
+
+    #endregion
+
     #region Add
 
     public ref T UnsafeAdd()
@@ -122,6 +143,21 @@ public unsafe partial struct FList<T> where T : unmanaged
     {
         UnsafeAdd() = item;
     }
+
+    #endregion
+
+    #region AddRange
+
+    public Span<T> UnsafeAddRange(int size)
+    {
+        var new_len = m_len + (nuint)size;
+        if (new_len >= m_cap) EnsureCap(new_len);
+        var span = new Span<T>(m_ptr + m_len, size);
+        m_len = new_len;
+        return span;
+    }
+
+    public void AddRange(ReadOnlySpan<T> span) => span.CopyTo(UnsafeAddRange(span.Length));
 
     #endregion
 

@@ -1,6 +1,7 @@
 ﻿using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
+using Serilog;
 
 namespace Examples;
 
@@ -13,7 +14,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     private GpuBuffer UvBuffer = null!;
 
     public override string Name => "Hello Triangle Vertex";
-    protected override async Task LoadResources(CommandList cmd)
+    protected override async Task LoadResources(GpuRecord cmd)
     {
         var SlotId_Position = Graphics.GetSlotId("Position");
         var SlotId_Color = Graphics.GetSlotId("Color");
@@ -52,14 +53,14 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 }
             }, MeshLayout, Name: Name
         );
-        PositionColorBuffer = Device.CreateBuffer(
+        PositionColorBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.VertexBuffer,
                 Size = sizeof(float) * 4 * 6,
             }, "Position and Color"
         );
-        UvBuffer = Device.CreateBuffer(
+        UvBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.VertexBuffer,
@@ -81,9 +82,9 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             ]
         );
     }
-    protected override void Render(CommandList cmd, Time time)
+    protected override void Render(GpuRecord cmd, Time time)
     {
-        using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))]);
+        using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))], Name: Name);
         render.SetMeshBuffers(
             MeshLayout, [
                 new(0, PositionColorBuffer),

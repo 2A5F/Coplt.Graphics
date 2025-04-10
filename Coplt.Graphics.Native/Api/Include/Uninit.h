@@ -1,4 +1,5 @@
 #pragma once
+#include <cpptrace/cpptrace.hpp>
 #include <utility>
 
 namespace Coplt
@@ -23,9 +24,9 @@ namespace Coplt
         Uninit(Uninit&& r) = delete;
         Uninit(const Uninit& r) = delete;
 
-        ~Uninit()
+        void AssertInitialized() const
         {
-            if (!m_initialized) throw std::exception("Uninitialized");
+            if (!m_initialized) throw cpptrace::logic_error("Uninitialized");
         }
 
         T* unsafe_put()
@@ -123,4 +124,12 @@ namespace Coplt
             return operator=(p);
         }
     };
+
+    template<class T, Fn<void, Uninit<T>&> F>
+    void init_scope(T& v, F& f)
+    {
+        Uninit<T> u(v);
+        f(u);
+        u.AssertInitialized();
+    }
 }

@@ -123,15 +123,19 @@ namespace Coplt
 
         T* operator->() const
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
             return m_ptr;
         }
 
         T& operator*() const
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
             return *m_ptr;
         }
 
@@ -214,15 +218,19 @@ namespace Coplt
 
         NonNull(T* ptr) : m_ptr(ptr)
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
         }
 
         template <class U> requires std::convertible_to<U*, T*>
         NonNull(U* ptr) : m_ptr(ptr)
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
         }
 
         NonNull(const Rc<T>& rc) : NonNull(rc.get())
@@ -236,15 +244,19 @@ namespace Coplt
 
         NonNull(Ptr<T> ptr) : m_ptr(ptr.m_ptr)
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
         }
 
         template <class U> requires std::convertible_to<U*, T*>
         NonNull(Ptr<U> ptr) : m_ptr(ptr.m_ptr)
         {
+            #ifdef COPLT_NULL_CHECK
             if (m_ptr == nullptr) [[unlikely]]
                 COPLT_THROW("Null Pointer");
+            #endif
         }
 
         NonNull(NonNull&& other) noexcept : m_ptr(std::exchange(other.m_ptr, nullptr))

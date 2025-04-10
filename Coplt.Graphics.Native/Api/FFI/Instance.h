@@ -25,7 +25,7 @@ namespace Coplt
 
     struct FGpuAdapter;
     struct FGpuAutoSelectDeviceCreateOptions;
-    struct FGpuDevice;
+    struct FGpuDeviceCreateResult;
 
     struct FInstanceCreateOptions
     {
@@ -48,6 +48,6 @@ namespace Coplt
         virtual FResult CreateBlob(usize size, FBlob** out) noexcept = 0;
 
         virtual FGpuAdapter* const* GetAdapters(u32* out_count) noexcept = 0;
-        virtual FResult CreateDevice(const FGpuAutoSelectDeviceCreateOptions& options, FGpuDevice** out) noexcept = 0;
+        virtual FResult CreateDevice(const FGpuAutoSelectDeviceCreateOptions& options, FGpuDeviceCreateResult* out) noexcept = 0;
     };
 }

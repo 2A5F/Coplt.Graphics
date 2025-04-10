@@ -58,5 +58,11 @@ namespace Coplt
         b8 DynBindless{};
         // 仅动态无绑定模式，将无法使用着色器绑定，着色器布局中只能具有根常量/常量推送，此模式具有设备全局描述符堆
         b8 DynBindlessOnly{};
+        // 可以任意创建隔离，dx12 永远为 true，vk 永远为 false
+        b8 ExtraIsolate{};
+        // 是否是缓存一致的 UMA 架构
+        b8 UMA{};
+        // 是否是缓存一致的 UMA 架构
+        b8 CacheCoherentUMA{};
     };
 }

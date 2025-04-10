@@ -10,17 +10,21 @@
 #include "Resource.h"
 #include "../../Api/Include/GpuObject.h"
 #include "../../Api/Include/Ptr.h"
+#include "../Include/ResState.h"
+#include "../Include/View.h"
 
 namespace Coplt
 {
-    COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage)
+    COPLT_INTERFACE_DEFINE(ID3d12GpuImage, "12748625-44ab-48e0-a40f-9b1d5685ce88", FD3d12GpuImage, ID3d12GpuViewable)
     {
+        virtual NonNull<FGpuImageData> Data() = 0;
         virtual NonNull<ID3D12Resource> GetResourcePtr() = 0;
-        virtual NonNull<FGpuImageData> GetDataPtr() noexcept = 0;
+        virtual NonNull<LayoutState> State() = 0;
     };
 
     struct D3d12GpuImage final : GpuObject<D3d12GpuImage, ID3d12GpuImage>, FGpuImageData
     {
+        LayoutState m_layout_state{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<FString> m_name{};
         ComPtr<D3D12MA::Allocator> m_allocator{};
@@ -30,13 +34,14 @@ namespace Coplt
         explicit D3d12GpuImage(Rc<D3d12GpuDevice>&& device, const FGpuImageCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
-        ResourceType GetResourceType() noexcept override;
-        FGpuViewableData* GpuViewableData() noexcept override;
         FGpuResourceData* GpuResourceData() noexcept override;
         FGpuImageData* GpuImageData() noexcept override;
-        NonNull<FGpuImageData> GetDataPtr() noexcept override;
+        NonNull<FGpuImageData> Data() override;
+        NonNull<LayoutState> State() override;
 
         void* GetRawResourcePtr() noexcept override;
         NonNull<ID3D12Resource> GetResourcePtr() override;
+
+        bool IsCompatible(const FBindGroupItem& def) const override;
     };
 }

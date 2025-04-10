@@ -8,6 +8,22 @@
 #endif
 #endif
 
+#ifndef COPLT_REQUIRES
+#ifdef FFI_SRC
+#define COPLT_REQUIRES requires
+#else
+#define COPLT_REQUIRES
+#endif
+#endif
+
+#ifndef COPLT_POD
+#ifdef FFI_SRC
+#define COPLT_POD(T) std::is_trivially_copyable_v<T>
+#else
+#define COPLT_POD(T)
+#endif
+#endif
+
 #ifndef COPLT_CDECL
 #ifdef _MSC_VER
 #define COPLT_CDECL __cdecl
@@ -56,6 +72,12 @@
 #endif
 #endif
 
+#ifndef COPLT_NULL_CHECK
+#ifdef _DEBUG
+#define COPLT_NULL_CHECK
+#endif
+#endif
+
 #if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__)
 #define COPLT_X64
 #elif defined(__aarch64__) || defined(_M_ARM64)
@@ -63,6 +85,7 @@
 #endif
 
 #define COPLT_U32_MAX 4294967295
+#define COPLT_U64_MAX 18446744073709551615
 
 #ifdef FFI_SRC
 #define COPLT_ENUM_FLAGS(Name, Type) enum class Name : Type;\
@@ -117,6 +140,10 @@ inline constexpr bool HasFlags(Name a, Name b)\
 inline constexpr bool HasAnyFlags(Name a, Name b)\
 {\
     return (a & b) != 0;\
+}\
+inline constexpr bool HasFlagsOnly(Name a, Name b)\
+{\
+return (a & ~(b)) == 0;\
 }\
 enum class Name : Type
 #else

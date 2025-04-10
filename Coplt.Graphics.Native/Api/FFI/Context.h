@@ -14,7 +14,7 @@ namespace Coplt
         u64 size{};
     };
 
-    COPLT_INTERFACE_DEFINE(FFrameContext, "3a22de68-8377-4e57-a167-3efdb97c102a", FGpuObject)
+    COPLT_INTERFACE_DEFINE(FRecordContext, "15b4821d-0648-4b78-9c21-c6a5b6a5ed75", FGpuObject)
     {
         FList<FUploadBufferBlock> m_upload_buffer{};
 

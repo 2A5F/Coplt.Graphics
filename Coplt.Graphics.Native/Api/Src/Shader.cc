@@ -9,7 +9,7 @@ using namespace Coplt;
 ShaderModule::ShaderModule(u8* const data, const size_t size, const FShaderStage stage, Rc<FString8>&& entry_point)
     : m_entry_point(std::move(entry_point))
 {
-    Data = data;
+    FShaderModuleData::Data = data;
     Size = size;
     Stage = stage;
 }
@@ -32,6 +32,11 @@ void ShaderModule::Free(void* self)
 FResult ShaderModule::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FShaderModuleData* ShaderModule::ShaderModuleData() noexcept
+{
+    return this;
 }
 
 FString8* ShaderModule::GetEntryPoint() noexcept
@@ -60,52 +65,57 @@ Shader::Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options) : m
         const auto module = options.Modules[i];
         if (module == nullptr)
             COPLT_THROW_FMT("options.Modules[{}] is null", i);
-        switch (module->Stage)
+        switch (module->Data().Stage)
         {
         case FShaderStage::Compute:
             if (options.Count != 1)
                 COPLT_THROW("The compute stage cannot be combined with other stage");
-            Stages = FShaderStageFlags::Compute;
+            FShaderData::Stages = FShaderStageFlags::Compute;
             m_modules[0] = Rc<FShaderModule>::UnsafeClone(module);
             return;
         case FShaderStage::Pixel:
             if (options.Count == 1)
                 COPLT_THROW("The pixel stage cannot exist alone");
-            Stages |= FShaderStageFlags::Pixel;
+            FShaderData::Stages |= FShaderStageFlags::Pixel;
             m_modules[0] = Rc<FShaderModule>::UnsafeClone(module);
             break;
         case FShaderStage::Vertex:
-            if (HasAnyFlags(Stages, FShaderStageFlags::Mesh | FShaderStageFlags::Task))
+            if (HasAnyFlags(FShaderData::Stages, FShaderStageFlags::Mesh | FShaderStageFlags::Task))
                 COPLT_THROW("The vertex stage and the mesh/task stage are mutually exclusive");
-            Stages |= FShaderStageFlags::Vertex;
+            FShaderData::Stages |= FShaderStageFlags::Vertex;
             m_modules[1] = Rc<FShaderModule>::UnsafeClone(module);
             break;
         case FShaderStage::Mesh:
-            if (HasFlags(Stages, FShaderStageFlags::Vertex))
+            if (HasFlags(FShaderData::Stages, FShaderStageFlags::Vertex))
                 COPLT_THROW("The vertex stage and the mesh/task stage are mutually exclusive");
-            Stages |= FShaderStageFlags::Mesh;
+            FShaderData::Stages |= FShaderStageFlags::Mesh;
             m_modules[1] = Rc<FShaderModule>::UnsafeClone(module);
             break;
         case FShaderStage::Task:
-            if (HasFlags(Stages, FShaderStageFlags::Vertex))
+            if (HasFlags(FShaderData::Stages, FShaderStageFlags::Vertex))
                 COPLT_THROW("The vertex stage and the mesh/task stage are mutually exclusive");
-            Stages |= FShaderStageFlags::Task;
+            FShaderData::Stages |= FShaderStageFlags::Task;
             m_modules[2] = Rc<FShaderModule>::UnsafeClone(module);
             break;
         default:
             COPLT_THROW_FMT(
-                "Unknown shader stage {}", static_cast<u32>(module->Stage)
+                "Unknown shader stage {}", static_cast<u32>(module->Data().Stage)
             );
         }
     }
 
-    if (HasFlags(Stages, FShaderStageFlags::Task) && !HasFlags(Stages, FShaderStageFlags::Mesh))
+    if (HasFlags(FShaderData::Stages, FShaderStageFlags::Task) && !HasFlags(FShaderData::Stages, FShaderStageFlags::Mesh))
         COPLT_THROW("Having a task stage must also have a mesh stage");
 }
 
 FResult Shader::SetName(const FStr8or16& name) noexcept
 {
     return FResult::None();
+}
+
+FShaderData* Shader::ShaderData() noexcept
+{
+    return this;
 }
 
 FShaderLayout* Shader::Layout() noexcept
@@ -120,25 +130,25 @@ FShaderInputLayout* Shader::InputLayout() noexcept
 
 FShaderModule* Shader::Compute() noexcept
 {
-    return HasFlags(Stages, FShaderStageFlags::Compute) ? m_modules[0].get() : nullptr;
+    return HasFlags(FShaderData::Stages, FShaderStageFlags::Compute) ? m_modules[0].get() : nullptr;
 }
 
 FShaderModule* Shader::Pixel() noexcept
 {
-    return HasFlags(Stages, FShaderStageFlags::Pixel) ? m_modules[0].get() : nullptr;
+    return HasFlags(FShaderData::Stages, FShaderStageFlags::Pixel) ? m_modules[0].get() : nullptr;
 }
 
 FShaderModule* Shader::Vertex() noexcept
 {
-    return HasFlags(Stages, FShaderStageFlags::Vertex) ? m_modules[1].get() : nullptr;
+    return HasFlags(FShaderData::Stages, FShaderStageFlags::Vertex) ? m_modules[1].get() : nullptr;
 }
 
 FShaderModule* Shader::Mesh() noexcept
 {
-    return HasFlags(Stages, FShaderStageFlags::Mesh) ? m_modules[1].get() : nullptr;
+    return HasFlags(FShaderData::Stages, FShaderStageFlags::Mesh) ? m_modules[1].get() : nullptr;
 }
 
 FShaderModule* Shader::Task() noexcept
 {
-    return HasFlags(Stages, FShaderStageFlags::Task) ? m_modules[2].get() : nullptr;
+    return HasFlags(FShaderData::Stages, FShaderStageFlags::Task) ? m_modules[2].get() : nullptr;
 }

@@ -278,10 +278,8 @@ namespace Coplt
             auto& entry = m_p_entries[index];
             slot.hash_code() = hash_code;
             slot.next = *bucket - 1;
-            Uninit<Key> u_key(entry.first);
-            Uninit<Value> u_value(entry.second);
-            create_key(u_key);
-            create_value(u_value);
+            init_scope(entry.first, create_key);
+            init_scope(entry.second, create_value);
             *bucket = index + 1;
             if (out_entry) *out_entry = std::addressof(entry);
 
@@ -425,7 +423,7 @@ namespace Coplt
         Value* TryGet(const Key& key) const
         {
             auto entry = FindEntry(key);
-            if (entry) return std::addressof(entry->value);
+            if (entry) return std::addressof(entry->second);
             return nullptr;
         }
 
@@ -569,7 +567,7 @@ namespace Coplt
         }
 
         // 返回是否添加
-        template <Fn<void, Value*> CreateValue>
+        template <Fn<void, UP<Value>> CreateValue>
         bool TryAdd(const Key& key, CreateValue create_value)
         {
             return TryInsert(
@@ -1226,8 +1224,7 @@ namespace Coplt
             auto& slot_key = m_p_keys[index];
             slot.hash_code() = hash_code;
             slot.next = *bucket - 1;
-            Uninit<Key> u_key(slot_key);
-            create_key(u_key);
+            init_scope(slot_key, create_key);
             *bucket = index + 1;
 
             return true;

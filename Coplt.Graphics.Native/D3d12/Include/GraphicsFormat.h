@@ -2,7 +2,6 @@
 
 #include <directx/dxgiformat.h>
 
-#include "../../Api/FFI/Command.h"
 #include "../../Api/FFI/GraphicsFormat.h"
 
 namespace Coplt
@@ -164,8 +163,19 @@ namespace Coplt
         case FGraphicsFormat::Astc_12x10_sRGB:
         case FGraphicsFormat::Astc_12x12_UNorm:
         case FGraphicsFormat::Astc_12x12_sRGB:
+        case FGraphicsFormat::Etc2_R8G8B8_UNorm:
+        case FGraphicsFormat::Etc2_R8G8B8_sRGB:
+        case FGraphicsFormat::Etc2_R8G8B8A1_UNorm:
+        case FGraphicsFormat::Etc2_R8G8B8A1_sRGB:
+        case FGraphicsFormat::Etc2_R8G8B8A8_UNorm:
+        case FGraphicsFormat::Etc2_R8G8B8A8_sRGB:
+        case FGraphicsFormat::Eac_R11_UNorm:
+        case FGraphicsFormat::Eac_R11_SNorm:
+        case FGraphicsFormat::Eac_R11G11_UNorm:
+        case FGraphicsFormat::Eac_R11G11_SNorm:
             return DXGI_FORMAT_UNKNOWN;
         }
+
         return static_cast<DXGI_FORMAT>(value);
     }
 

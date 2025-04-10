@@ -47,6 +47,7 @@ D3d12GpuAdapter::D3d12GpuAdapter(
 
     m_features.DescriptorHeap = true;
     m_features.ArrBindless = true;
+    m_features.ExtraIsolate = true;
 
     m_features.ShaderModelLevel = static_cast<FShaderModelLevel>(m_feature_support.HighestShaderModel());
     if (m_features.ShaderModelLevel >= FShaderModelLevel::SM_6_6 && m_feature_support.ResourceBindingTier() >= D3D12_RESOURCE_BINDING_TIER_3)
@@ -57,13 +58,16 @@ D3d12GpuAdapter::D3d12GpuAdapter(
     if (m_feature_support.RaytracingTier() >= D3D12_RAYTRACING_TIER_1_0) m_features.RayTracing = true;
     if (m_feature_support.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1) m_features.MeshShader = true;
     if (m_feature_support.EnhancedBarriersSupported()) m_features.EnhancedBarriers = true;
+
+    if (m_feature_support.UMA())m_features.UMA = true;
+    if (m_feature_support.CacheCoherentUMA())m_features.CacheCoherentUMA = true;
 }
 
-FResult D3d12GpuAdapter::CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDevice** out) noexcept
+FResult D3d12GpuAdapter::CreateDevice(const FGpuDeviceCreateOptions& options, FGpuDeviceCreateResult* out) noexcept
 {
     return feb([&]
     {
-        *out = new D3d12GpuDevice(this->CloneThis(), options);
+        out->Device = new D3d12GpuDevice(this->CloneThis(), options, *out);
     });
 }
 

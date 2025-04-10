@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "GpuObject.h"
 #include "PipelineState.h"
+#include "View.h"
 
 namespace Coplt
 {
@@ -43,8 +44,33 @@ namespace Coplt
         FSamplerInfo Info{};
     };
 
-    COPLT_INTERFACE_DEFINE(FGpuSampler, "16a5b373-ad9e-4033-89fd-6a5b4aabaef2", FGpuObject)
+    COPLT_INTERFACE_DEFINE(FGpuSampler, "16a5b373-ad9e-4033-89fd-6a5b4aabaef2", FGpuViewable)
     {
         virtual const FSamplerInfo* Info() const noexcept = 0;
+    };
+
+    enum class FStaticSamplerBorderColor : u8
+    {
+        Transparent,
+        Black,
+        White,
+        BlackUInt,
+        WhiteUInt,
+    };
+
+    struct FStaticSamplerInfo
+    {
+        u32 MaxAnisotropy{0};
+        f32 MipLodBias{};
+        f32 MinLod{};
+        f32 MaxLod{3.402823466E38};
+        FCmpFunc Cmp{};
+        FFilter Mag{};
+        FFilter Min{};
+        FFilter Mipmap{};
+        FAddressMode U{};
+        FAddressMode V{};
+        FAddressMode W{};
+        FStaticSamplerBorderColor BorderColor{};
     };
 }

@@ -39,19 +39,14 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
     public BufferUsage Usage => (BufferUsage)Data->m_usage;
     GpuResourceType IGpuResource.Type => GpuResourceType.Buffer;
     IGpuResource IGpuView.Resource => this;
-    FResourceMeta IGpuResource.GetMeta() => new()
-    {
-        Type = FResourceRefType.Buffer,
-        Buffer = Ptr,
-    };
 
     #endregion
 
     #region Ctor
 
-    internal GpuBuffer(FGpuBuffer* ptr, string? name, GpuQueue queue) : this(ptr, ptr->GpuBufferData(), name, queue) { }
-    private GpuBuffer(FGpuBuffer* ptr, FGpuBufferData* data, string? name, GpuQueue queue)
-        : base((FGpuResource*)ptr, (FGpuResourceData*)data, name, queue) { }
+    internal GpuBuffer(FGpuBuffer* ptr, string? name, GpuIsolate isolate) : this(ptr, ptr->GpuBufferData(), name, isolate) { }
+    private GpuBuffer(FGpuBuffer* ptr, FGpuBufferData* data, string? name, GpuIsolate isolate)
+        : base((FGpuResource*)ptr, (FGpuResourceData*)data, name, isolate) { }
 
     #endregion
 
@@ -61,6 +56,16 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
         m_name is null
             ? $"{nameof(GpuBuffer)}(0x{(nuint)m_ptr:X})"
             : $"{nameof(GpuBuffer)}(0x{(nuint)m_ptr:X} \"{m_name}\")";
+
+    #endregion
+
+    #region Cmd
+
+    FCmdRes IGpuResource.IntoCmd() => new()
+    {
+        Type = FCmdResType.Buffer,
+        Buffer = Ptr,
+    };
 
     #endregion
 

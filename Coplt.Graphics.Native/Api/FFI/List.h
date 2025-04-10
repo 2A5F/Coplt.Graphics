@@ -5,14 +5,13 @@
 
 #if FFI_SRC
 #include <utility>
+#include <span>
 #endif
 
 namespace Coplt
 {
     template <typename T>
-#ifdef FFI_SRC
-        requires std::is_trivially_copyable_v<T>
-#endif
+        COPLT_REQUIRES COPLT_POD(T)
     struct FList COPLT_FINAL
     {
         FAllocator* m_allocator{};
@@ -20,7 +19,7 @@ namespace Coplt
         size_t m_len{};
         size_t m_cap{};
 
-#ifdef FFI_SRC
+        #ifdef FFI_SRC
 
         constexpr static size_t InitCapacity = 4;
 
@@ -76,6 +75,12 @@ namespace Coplt
             return m_ptr[index];
         }
 
+        const T& operator[](size_t index) const
+        {
+            if (index >= m_len) throw std::out_of_range("FList::operator[]");
+            return m_ptr[index];
+        }
+
         T* data() const
         {
             return m_ptr;
@@ -91,11 +96,13 @@ namespace Coplt
         {
             if (m_ptr == nullptr)
             {
+                if (m_allocator == nullptr) throw std::bad_alloc();
                 m_cap = InitCapacity;
                 m_ptr = static_cast<T*>(m_allocator->MemoryAlloc(m_cap * sizeof(T), alignof(T)));
             }
             else
             {
+                if (m_allocator == nullptr) throw std::bad_alloc();
                 m_cap *= 2;
                 m_ptr = static_cast<T*>(m_allocator->MemoryReAlloc(m_ptr, m_cap * sizeof(T), alignof(T)));
             }
@@ -135,6 +142,16 @@ namespace Coplt
         {
             m_len = 0;
         }
-#endif
+
+        std::span<T> AsSpan()
+        {
+            return std::span(data(), size());
+        }
+
+        std::span<const T> AsSpan() const
+        {
+            return std::span(data(), size());
+        }
+        #endif
     };
 }

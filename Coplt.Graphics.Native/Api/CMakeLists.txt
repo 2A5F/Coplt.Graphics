@@ -21,11 +21,9 @@ add_library(${target_name} STATIC
     FFI/Output.h
     FFI/Queue.h
     FFI/GraphicsFormat.h
-    FFI/States.h
     Src/Allocator.cc
     Src/Allocator.h
     FFI/List.h
-    FFI/Command.h
     FFI/Resource.h
     FFI/Shader.h
     Src/Shader.h
@@ -56,6 +54,13 @@ add_library(${target_name} STATIC
     Include/GpuObject.h
     Include/Option.h
     FFI/Sampler.h
+    FFI/Isolate.h
+    FFI/Record.h
+    Include/Finally.h
+    FFI/Cmd.h
+    FFI/Structs.h
+    FFI/Chunked.h
+    FFI/View.h
 )
 set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 add_library(Coplt::Graphics::Api ALIAS ${target_name})

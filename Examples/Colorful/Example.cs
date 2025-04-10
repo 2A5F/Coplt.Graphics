@@ -6,31 +6,47 @@ namespace Examples;
 
 public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handle, Width, Height)
 {
-    private ShaderLayout Layout = null!;
+    private ShaderLayout ShaderLayout = null!;
+    private ShaderBindGroupLayout BindGroupLayout = null!;
+    private ShaderBindingLayout BindingLayout = null!;
     private Shader Shader = null!;
     private GraphicsShaderPipeline Pipeline = null!;
-    private ShaderBinding ShaderBinding = null!;
     private GpuBuffer ArgBuffer = null!;
+    private ShaderBindGroup BindGroup = null!;
+    private ShaderBinding Binding = null!;
 
     public override string Name => "Colorful";
-    protected override async Task LoadResources(CommandList cmd)
+    protected override async Task LoadResources(GpuRecord cmd)
     {
         var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
-        Layout = Device.CreateShaderLayout(
+        ShaderLayout = Device.CreateShaderLayout(
             [
                 new()
                 {
+                    Id = 0,
                     Slot = 0,
                     Stage = ShaderStage.Pixel,
                     View = ShaderLayoutItemView.Cbv,
                     Type = ShaderLayoutItemType.ConstantBuffer,
-                    Usage = ShaderLayoutItemUsage.Persist,
                 }
-            ],
-            Name: Name
+            ]
         );
-        Shader = Device.CreateShader(modules, Layout);
-        ShaderBinding = Device.CreateShaderBinding(Layout, Name: Name);
+        BindingLayout = Device.CreateBindingLayout(
+            ShaderLayout, [
+                BindGroupLayout = Device.CreateBindGroupLayout(
+                    [
+                        new()
+                        {
+                            Id = 0,
+                            Stages = ShaderStageFlags.Pixel,
+                            View = ShaderLayoutItemView.Cbv,
+                            Type = ShaderLayoutItemType.ConstantBuffer,
+                        }
+                    ]
+                )
+            ], Name: Name
+        );
+        Shader = Device.CreateShader(modules, ShaderLayout);
         Pipeline = Device.CreateGraphicsShaderPipeline(
             Shader, new()
             {
@@ -45,9 +61,9 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                     }
                 },
                 Topology = PrimitiveTopologyType.TriangleStrip,
-            }, Name: Name
+            }, BindingLayout, Name: Name
         );
-        ArgBuffer = Device.CreateBuffer(
+        ArgBuffer = Isolate.CreateBuffer(
             new()
             {
                 Purpose = ResourcePurpose.ConstantBuffer,
@@ -55,12 +71,13 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             },
             Name: "Args"
         );
-        cmd.Bind(ShaderBinding, [new(0, ArgBuffer)]);
+        BindGroup = Isolate.CreateBindGroup(BindGroupLayout, [new(0, ArgBuffer)]);
+        Binding = Isolate.CreateBinding(BindingLayout, [new(0, BindGroup)]);
     }
-    protected override void Render(CommandList cmd, Time time)
+    protected override void Render(GpuRecord cmd, Time time)
     {
         cmd.Upload(ArgBuffer, [(float)time.Total.TotalSeconds]);
-        using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f))]);
-        render.Draw(Pipeline, 4, Binding: ShaderBinding);
+        using var render = cmd.Render([new(Output, LoadOp.Discard)]);
+        render.Draw(Pipeline, 4, Binding: Binding);
     }
 }

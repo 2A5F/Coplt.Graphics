@@ -8,7 +8,7 @@
 
 namespace Coplt
 {
-    struct ShaderModule final : GpuObject<ShaderModule, FShaderModule>
+    struct ShaderModule final : GpuObject<ShaderModule, FShaderModule>, FShaderModuleData
     {
     private:
         using Self = ShaderModule;
@@ -25,11 +25,13 @@ namespace Coplt
 
         FResult SetName(const FStr8or16& name) noexcept override;
 
+        FShaderModuleData* ShaderModuleData() noexcept override;
+
         // 可空
         FString8* GetEntryPoint() noexcept override;
     };
 
-    struct Shader final : GpuObject<Shader, FShader>
+    struct Shader final : GpuObject<Shader, FShader>, FShaderData
     {
         Rc<FGpuDevice> m_device{};
         // 可空
@@ -42,6 +44,8 @@ namespace Coplt
         explicit Shader(Rc<FGpuDevice>&& device, const FShaderCreateOptions& options);
 
         FResult SetName(const FStr8or16& name) noexcept override;
+
+        FShaderData* ShaderData() noexcept override;
 
         FShaderLayout* Layout() noexcept override;
 

@@ -31,7 +31,6 @@ public sealed unsafe partial class GpuAdapter
     public DeviceType DeviceType => (DeviceType)m_ptr->m_device_type;
     public Backend Backend => (Backend)m_ptr->m_backend;
     public DeviceFeatures Features => new(m_ptr->m_features);
-    public bool UseLegacyState => !m_ptr->m_features.EnhancedBarriers;
 
     #endregion
 
@@ -70,11 +69,6 @@ public sealed unsafe partial class GpuAdapter
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     )
     {
-        var QueueName = !Instance.DebugEnabled || Name is null ? null : $"{Name} Main Queue";
-        var QueueName8 = !Instance.DebugEnabled || Name8.Length == 0
-            ? Name8
-            : Utils.JoinUtf8String(Name8, " Main Queue"u8);
-
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
         {
@@ -82,9 +76,9 @@ public sealed unsafe partial class GpuAdapter
             {
                 Name = new(Name, Name8, p_name, p_name8),
             };
-            FGpuDevice* ptr;
-            m_ptr->CreateDevice(&f_options, &ptr).TryThrow();
-            return new(ptr, Instance, this, Name, QueueName: QueueName, QueueName8: QueueName8);
+            FGpuDeviceCreateResult result;
+            m_ptr->CreateDevice(&f_options, &result).TryThrow();
+            return new(result, Instance, this, Name);
         }
     }
 

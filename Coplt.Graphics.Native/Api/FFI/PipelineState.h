@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "GraphicsFormat.h"
 #include "String.h"
+#include "Structs.h"
 
 namespace Coplt
 {

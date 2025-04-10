@@ -23,6 +23,12 @@
 #define COPLT_THROW_FMT(msg, ...) throw RuntimeException(fmt::format(msg, __VA_ARGS__))
 #endif
 
+#ifdef _DEBUG
+#define COPLT_DEBUG_ASSERT(x) if (!(x)) COPLT_THROW("Assertion failed: "#x)
+#else
+#define COPLT_DEBUG_ASSERT(x)
+#endif
+
 namespace Coplt
 {
     std::string to_string(const cpptrace::stacktrace& trace);
@@ -307,5 +313,50 @@ namespace Coplt
             logger.Log(FLogLevel::Error, msg);
         }
         return r;
+    }
+
+    template <Fn<void> F>
+    void feb(Logger& logger, F f) noexcept
+    {
+        CPPTRACE_TRY
+            {
+                try
+                {
+                    f();
+                }
+                catch (FResult& e)
+                {
+                    logger.Log(FLogLevel::Error, FLogType::Common, e.msg);
+                    e.Drop();
+                }
+                catch (cpptrace::exception& e)
+                {
+                    logger.Log(FLogLevel::Error, e.what());
+                }
+                catch (Exception& e)
+                {
+                    const auto& msg = e.what();
+                    logger.Log(FLogLevel::Error, msg);
+                }
+                #ifdef _WINDOWS
+                catch (WException& e)
+                {
+                    const auto& msg = e.what();
+                    logger.LogW(FLogLevel::Error, msg);
+                }
+                #endif
+            }
+        CPPTRACE_CATCH(std::exception& ex)
+        {
+            const auto trace = to_string(cpptrace::from_current_exception());
+            const auto msg = fmt::format("{}\r\n{}", ex.what(), trace.c_str());
+            logger.Log(FLogLevel::Error, msg);
+        }
+        CPPTRACE_CATCH_ALT(...)
+        {
+            const auto trace = to_string(cpptrace::from_current_exception());
+            const auto msg = fmt::format("Unknown failure occurred. Possible memory corruption\r\n{}", trace.c_str());
+            logger.Log(FLogLevel::Error, msg);
+        }
     }
 }

@@ -12,8 +12,12 @@ No any resources, including vertex buffers.
 Graphics = GraphicsInstance.LoadD3d12();
 // Creating a Graphics Device
 Device = Graphics.CreateDevice(Debug: true, Name: "Main Device");
+// Get the main isolate of the device, isolate contains multiple queues internally
+Isolate = Device.MainIsolate;
 // Creating a swap chain
-Output = Device.MainQueue.CreateOutputForHwnd(new() { Width = Width, Height = Height }, Hwnd);
+Output = Isolate.CreateSwapChainForHwnd(new() { Width = Width, Height = Height }, Hwnd);
+// Rent command recording object
+Record = Isolate.RentRecord();
 ```
 
 ## 2 LoadResources
@@ -45,14 +49,19 @@ Pipeline = Device.CreateGraphicsShaderPipeline(
 
 ## 3 Render
 ```cs
-var cmd = Device.MainCommandList;
 while (!IsClosed)
 {
-   Render(cmd, CalcTime());
+   Render(Record, CalcTime());
+   // Split PreparePresent and Present so that Present can be done on a separate thread
+   Record.PreparePresent(Output);
+   // Recording objects can be reused immediately after submission
+   Isolate.Submit(Record);
+   // Present is a combination of PresentNoWait and Wait
+   // Using them separately can wait for multiple outputs in batches
    Output.Present();
 }
 
-void Render(CommandList cmd, Time time)
+void Render(GpuRecord cmd, Time time)
 {
     using var render = cmd.Render([new(Output, new Color(0.83f, 0.8f, 0.97f, 1f))]);
     render.Draw(Pipeline, 3);
