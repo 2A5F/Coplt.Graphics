@@ -137,6 +137,12 @@ namespace Coplt
             };
         };
 
+        struct AllocationPoint
+        {
+            DescriptorAllocation Resource{};
+            DescriptorAllocation Sampler{};
+        };
+
         u64 m_isolate_id{};
         u64 m_record_id{};
         SRc<FGpuIsolateConfig> m_isolate_config{};
@@ -147,7 +153,7 @@ namespace Coplt
         std::vector<ResourceInfo> m_resource_infos{};
         std::vector<BindingInfo> m_binding_infos{};
         std::vector<SetBindingInfo> m_set_binding_infos{};
-        std::vector<DescriptorAllocation> m_allocations{};
+        std::vector<AllocationPoint> m_allocations{};
         std::vector<BindItem> m_bind_items{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         std::vector<ReadGuard> m_tmp_locks{};
@@ -195,6 +201,7 @@ namespace Coplt
         void Analyze_ClearColor(u32 i, const FCmdClearColor& cmd) const;
         void Analyze_ClearDepthStencil(u32 i, const FCmdClearDepthStencil& cmd) const;
         void Analyze_BufferCopy(u32 i, const FCmdBufferCopy& cmd) const;
+        void Analyze_BufferImageCopy(u32 i, const FCmdBufferImageCopy& cmd) const;
         void Analyze_Render(u32 i, const FCmdRender& cmd);
         void Analyze_RenderEnd(u32 i, const FCmdRender& cmd);
         void Analyze_Compute(u32 i, const FCmdCompute& cmd);
@@ -213,6 +220,7 @@ namespace Coplt
         void Interpret_ClearColor(const CmdList& list, u32 i, const FCmdClearColor& cmd);
         void Interpret_ClearDepthStencil(const CmdList& list, u32 i, const FCmdClearDepthStencil& cmd);
         void Interpret_BufferCopy(const CmdList& list, u32 i, const FCmdBufferCopy& cmd);
+        void Interpret_BufferImageCopy(const CmdList& list, u32 i, const FCmdBufferImageCopy& cmd);
         void Interpret_Render(const CmdList& list, u32 i, const FCmdRender& cmd);
         void Interpret_RenderEnd(const CmdList& list, u32 i, const FCmdRender& cmd);
         void Interpret_Compute(const CmdList& list, u32 i, const FCmdCompute& cmd);

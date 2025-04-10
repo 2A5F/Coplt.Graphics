@@ -1756,6 +1756,8 @@ namespace Coplt.Graphics.Native
 
         public FList<FBufferCopyRange> PayloadBufferCopyRange;
 
+        public FList<FBufferImageCopyRange> PayloadBufferImageCopyRange;
+
         public FList<FMeshBuffers2> PayloadMeshBuffers;
 
         public FList<FVertexBufferRange2> PayloadVertexBufferRange;
@@ -1785,6 +1787,7 @@ namespace Coplt.Graphics.Native
         ClearColor,
         ClearDepthStencil,
         BufferCopy,
+        BufferImageCopy,
         Render,
         Compute,
         SetPipeline,
@@ -1805,7 +1808,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L70_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L71_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -2144,8 +2147,8 @@ namespace Coplt.Graphics.Native
         public FBufferRefType2 SrcType;
     }
 
-    [NativeTypeName("struct FCndBufferImageCopy : Coplt::FCmdBase")]
-    public partial struct FCndBufferImageCopy
+    [NativeTypeName("struct FCmdBufferImageCopy : Coplt::FCmdBase")]
+    public partial struct FCmdBufferImageCopy
     {
         public FCmdBase Base;
 
@@ -2332,7 +2335,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L359_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L360_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2412,6 +2415,16 @@ namespace Coplt.Graphics.Native
             get
             {
                 return ref Anonymous.BufferCopy;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdBufferImageCopy BufferImageCopy
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.BufferImageCopy;
             }
         }
 
@@ -2539,6 +2552,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdBufferCopy")]
             public FCmdBufferCopy BufferCopy;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdBufferImageCopy")]
+            public FCmdBufferImageCopy BufferImageCopy;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdRender")]

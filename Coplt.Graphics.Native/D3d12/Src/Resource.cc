@@ -29,6 +29,7 @@ ResourcePack::ResourcePack(
         break;
     }
 
+    layout = ResLayout::Undefined;
     D3D12_BARRIER_LAYOUT init_layout = D3D12_BARRIER_LAYOUT_UNDEFINED;
     D3D12_RESOURCE_STATES init_state{};
     switch (cpu_access)

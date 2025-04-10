@@ -102,7 +102,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     /// <summary>
     /// 返回的 Span 只能写入
     /// </summary>
-    public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc2 loc, uint Align = 4)
+    public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc loc, uint Align = 4)
     {
         if (Align > 1) Size += Align - 1;
         ref var upload_buffers = ref Data.Context->m_upload_buffer;
@@ -113,7 +113,7 @@ public sealed unsafe class GpuRecord : IsolateChild
             {
                 var offset = block.cur_offset.Aligned(Align);
                 var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-                loc = new UploadLoc2(Data.Id, Data.Version, i, offset, Size);
+                loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
                 block.cur_offset += Size;
                 return r;
             }
@@ -126,13 +126,13 @@ public sealed unsafe class GpuRecord : IsolateChild
             if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
             var offset = block.cur_offset.Aligned(Align);
             var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-            loc = new UploadLoc2(Data.Id, Data.Version, i, offset, Size);
+            loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
             block.cur_offset += Size;
             return r;
         }
     }
 
-    public UploadLoc2 WriteToUpload(ReadOnlySpan<byte> Data, uint Align = 4)
+    public UploadLoc WriteToUpload(ReadOnlySpan<byte> Data, uint Align = 4)
     {
         Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc, Align));
         return loc;
@@ -141,20 +141,20 @@ public sealed unsafe class GpuRecord : IsolateChild
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
     /// </summary>
-    public ImageUploadBufferMemory2 AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length = 1) =>
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length = 1) =>
         AllocImageUploadMemory2D(PixelSize, Width, Height, Length, out _);
 
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
     /// </summary>
-    public ImageUploadBufferMemory2 AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc2 loc)
+    public ImageUploadBufferMemory AllocImageUploadMemory2D(uint PixelSize, uint Width, uint Height, uint Length, out UploadLoc loc)
     {
         if (PixelSize < 1 || Width < 1 || Height < 1 || Length < 1) throw new ArgumentOutOfRangeException();
         var row_stride = (PixelSize * Width).Aligned(256);
         var row_count = Height * Length;
         var buffer_size = row_stride * row_count + 256u;
         var slice = AllocUploadMemory(buffer_size, out loc, 256u);
-        return new ImageUploadBufferMemory2(slice, row_stride, row_count, Length, Height, loc);
+        return new ImageUploadBufferMemory(slice, row_stride, row_count, Length, Height, loc);
     }
 
     #endregion
@@ -462,7 +462,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     public void Upload(
         GpuBuffer Dst,
-        UploadLoc2 Loc,
+        UploadLoc Loc,
         ulong DstOffset = 0
     )
     {
@@ -491,6 +491,90 @@ public sealed unsafe class GpuRecord : IsolateChild
             }
         );
         Data.Commands.Add(new() { BufferCopy = cmd });
+    }
+
+    #endregion
+    
+    #region ImageUpload
+
+    public void Upload(
+        GpuImage Dst,
+        ImageUploadBufferMemory Memory,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Memory.Loc, Memory.RowStride, Memory.RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    ) => Upload(
+        Dst, Loc,
+        0, 0, 0,
+        Dst.Width, Dst.Height, Dst.DepthOrLength,
+        BytesPerRow, RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane
+    );
+
+    public void Upload(
+        GpuImage Dst,
+        UploadLoc Loc,
+        uint DstX,
+        uint DstY,
+        uint DstZ,
+        uint DstWidth,
+        uint DstHeight,
+        uint DstDepth,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All
+    )
+    {
+        Dst.AssertSameIsolate(Isolate);
+        if (Loc.RecordId != Data.Id)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        if (Loc.RecordVersion != Data.Version)
+            throw new ArgumentException("An attempt was made to use an expired upload location");
+        var cmd = new FCmdBufferImageCopy
+        {
+            Base = { Type = FCmdType.BufferImageCopy },
+            RangeIndex = (uint)Data.PayloadBufferImageCopyRange.LongLength,
+            Image = AddResource(Dst),
+            Buffer = { Upload = Loc },
+            BufferType = FBufferRefType2.Upload,
+            ImageToBuffer = false,
+        };
+        var range = new FBufferImageCopyRange
+        {
+            BufferOffset = Loc.Offset,
+            BytesPerRow = BytesPerRow,
+            RowsPerImage = RowsPerImage,
+            ImageIndex = ImageIndex,
+            ImageCount = ImageCount,
+            MipLevel = (ushort)MipLevel,
+            Plane = Plane.ToFFI(),
+        };
+        range.ImageOffset[0] = DstX;
+        range.ImageOffset[1] = DstY;
+        range.ImageOffset[2] = DstZ;
+        range.ImageExtent[0] = DstWidth;
+        range.ImageExtent[1] = DstHeight;
+        range.ImageExtent[2] = DstDepth;
+        Data.PayloadBufferImageCopyRange.Add(range);
+        Data.Commands.Add(new() { BufferImageCopy = cmd });
     }
 
     #endregion

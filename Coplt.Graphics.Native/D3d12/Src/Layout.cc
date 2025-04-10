@@ -173,13 +173,14 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
         for (u32 i = 0; i < items.size(); ++i)
         {
             const auto& item = items[i];
-            GroupItemInfo bind_item_info{};
-            bind_item_info.Group = g;
-            bind_item_info.IndexInGroup = i;
-            bind_item_info.Format = item.Format;
-            bind_item_info.Stages = item.Stages;
-            bind_item_info.View = item.View;
-            bind_item_info.UavAccess = item.UavAccess;
+            GroupItemInfo group_item_info{};
+            group_item_info.Group = g;
+            group_item_info.IndexInGroup = i;
+            group_item_info.Format = item.Format;
+            group_item_info.Stages = item.Stages;
+            group_item_info.View = item.View;
+            group_item_info.Type = item.Type;
+            group_item_info.UavAccess = item.UavAccess;
             for (const auto stage : IterStage(item.Stages))
             {
                 BindSlot slot(item, stage);
@@ -216,25 +217,25 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                 switch (def.UavAccess)
                 {
                 case FResourceAccess::ReadOnly:
-                    if (bind_item_info.UavAccess == FResourceAccess::Unknown)
-                        bind_item_info.UavAccess = FResourceAccess::ReadOnly;
-                    else if (bind_item_info.UavAccess != FResourceAccess::ReadOnly)
-                        bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    if (group_item_info.UavAccess == FResourceAccess::Unknown)
+                        group_item_info.UavAccess = FResourceAccess::ReadOnly;
+                    else if (group_item_info.UavAccess != FResourceAccess::ReadOnly)
+                        group_item_info.UavAccess = FResourceAccess::ReadWrite;
                     break;
                 case FResourceAccess::WriteOnly:
-                    if (bind_item_info.UavAccess == FResourceAccess::Unknown)
-                        bind_item_info.UavAccess = FResourceAccess::WriteOnly;
-                    else if (bind_item_info.UavAccess != FResourceAccess::WriteOnly)
-                        bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    if (group_item_info.UavAccess == FResourceAccess::Unknown)
+                        group_item_info.UavAccess = FResourceAccess::WriteOnly;
+                    else if (group_item_info.UavAccess != FResourceAccess::WriteOnly)
+                        group_item_info.UavAccess = FResourceAccess::ReadWrite;
                     break;
                 case FResourceAccess::ReadWrite:
                 case FResourceAccess::Unknown:
                 default:
-                    bind_item_info.UavAccess = FResourceAccess::ReadWrite;
+                    group_item_info.UavAccess = FResourceAccess::ReadWrite;
                     break;
                 }
             }
-            group_item_infos.push_back(bind_item_info);
+            group_item_infos.push_back(group_item_info);
         }
         m_group_item_infos.push_back(std::move(group_item_infos));
     }
@@ -269,6 +270,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.IndexInGroup = info.Index;
             item_info.RootIndex = info.SigIndex;
             item_info.Place = BindItemPlace::Const;
+            item_info.Type = BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
             continue;
         }
@@ -355,6 +357,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.IndexInGroup = info.Index;
             item_info.RootIndex = info.SigIndex;
             item_info.Place = BindItemPlace::Direct;
+            item_info.Type = BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
             continue;
         }
@@ -398,6 +401,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.IndexInGroup = 0;
             item_info.RootIndex = Info.RootIndex;
             item_info.Place = BindItemPlace::Table;
+            item_info.Type = Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? BindItemType::Sampler : BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
         }
         m_tables.push_back(std::move(infos));

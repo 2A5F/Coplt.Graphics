@@ -495,6 +495,9 @@ void D3d12GpuRecord::Analyze()
         case FCmdType::BufferCopy:
             Analyze_BufferCopy(i, command.BufferCopy);
             break;
+        case FCmdType::BufferImageCopy:
+            Analyze_BufferImageCopy(i, command.BufferImageCopy);
+            break;
         case FCmdType::Render:
             Analyze_Render(i, command.Render);
             break;
@@ -573,6 +576,29 @@ void D3d12GpuRecord::Analyze_BufferCopy(u32 i, const FCmdBufferCopy& cmd) const
     }
 }
 
+void D3d12GpuRecord::Analyze_BufferImageCopy(u32 i, const FCmdBufferImageCopy& cmd) const
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use BufferImageCopy in sub scope", i);
+    if (cmd.ImageToBuffer)
+    {
+        m_barrier_analyzer->OnUse(cmd.Image.ResIndex(), ResAccess::CopySourceRead, ResUsage::Common, ResLayout::CopySource);
+        if (cmd.BufferType == FBufferRefType2::Buffer)
+        {
+            m_barrier_analyzer->OnUse(cmd.Buffer.Buffer.ResIndex(), ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::Common);
+        }
+    }
+    else
+    {
+        m_barrier_analyzer->OnUse(cmd.Image.ResIndex(), ResAccess::CopyDestWrite, ResUsage::Common, ResLayout::CopyDest);
+        if (cmd.BufferType == FBufferRefType2::Buffer)
+        {
+            m_barrier_analyzer->OnUse(cmd.Buffer.Buffer.ResIndex(), ResAccess::CopySourceRead, ResUsage::Common, ResLayout::Common);
+        }
+    }
+    m_barrier_analyzer->OnCmd();
+}
+
 void D3d12GpuRecord::Analyze_Render(u32 i, const FCmdRender& cmd)
 {
     if (m_state != RecordState::Main)
@@ -639,7 +665,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
     if (!SetBinding(Bindings[cmd.Binding].Binding, i, cmd)) return;
     const NonNull binding = m_pipeline_context.Binding;
     ReadGuard binding_guard(binding->SelfLock());
-    Finally clear_lock([&] { m_tmp_locks.clear(); }); // todo 锁移到整个 render pass 范围，不允许在 render pass 中修改绑定内容
+    Finally clear_lock([&] { m_tmp_locks.clear(); });
     const auto groups = binding->Groups();
     for (u32 g = 0; g < groups.size(); ++g)
     {
@@ -662,7 +688,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             if (!view || view.IsSampler()) continue;
             const auto& res_index = AddResource(view);
             const auto& info = group_item_infos[g][v];
-            m_barrier_analyzer->OnUse(res_index, view, info); // todo 屏障移动到每次 draw
+            m_barrier_analyzer->OnUse(res_index, view, info);
         }
         if (group->EnsureAvailable()) any_changed = true;
     }
@@ -684,27 +710,30 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             }
             const auto object_id = group->ObjectId();
             const auto& data = group->Layout()->Data();
+            DescriptorAllocation resource_allocation{};
+            DescriptorAllocation sampler_allocation{};
             // todo 确定是最后一次修改
-            const auto f = [&](const u32 size, const Rc<DescriptorHeap>& heap, const ComPtr<ID3D12DescriptorHeap>& dh, const bool last)
+            const auto f = [&](
+                const bool last, const u32 size, const Rc<DescriptorHeap>& heap,
+                const ComPtr<ID3D12DescriptorHeap>& dh, DescriptorAllocation& allocation
+            )
             {
                 if (size == 0) return;
-                DescriptorAllocation allocation;
                 if (data.Usage == FBindGroupUsage::Dynamic && !last)
                 {
                     allocation = heap->AllocateTmp(size);
-                    m_allocations.push_back(allocation);
                 }
                 else
                 {
                     bool exists = false;
                     allocation = heap->Allocate(object_id, size, exists);
-                    m_allocations.push_back(allocation);
                     if (exists) return;
                 }
                 m_device->m_device->CopyDescriptorsSimple(size, allocation.GetCpuHandle(), dh->GetCPUDescriptorHandleForHeapStart(), heap->m_type);
             };
-            f(data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), true);
-            f(data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), true);
+            f(true, data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), resource_allocation);
+            f(true, data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), sampler_allocation);
+            m_allocations.push_back({resource_allocation, sampler_allocation});
         }
         for (const auto& bind_item_info : bind_item_infos)
         {
@@ -799,6 +828,9 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, const u32 off
             break;
         case FCmdType::BufferCopy:
             Interpret_BufferCopy(list, i, command.BufferCopy);
+            break;
+        case FCmdType::BufferImageCopy:
+            Interpret_BufferImageCopy(list, i, command.BufferImageCopy);
             break;
         case FCmdType::Render:
             Interpret_Render(list, i, command.Render);
@@ -926,6 +958,125 @@ void D3d12GpuRecord::Interpret_BufferCopy(const CmdList& list, u32 i, const FCmd
             "[{}] Unsupported copy combination {{ SrcType = {} DstType = {} }}",
             i, static_cast<u8>(cmd.SrcType), static_cast<u8>(cmd.DstType)
         );
+    }
+}
+
+void D3d12GpuRecord::Interpret_BufferImageCopy(const CmdList& list, u32 i, const FCmdBufferImageCopy& cmd)
+{
+    if (m_state != RecordState::Main)
+        COPLT_THROW_FMT("[{}] Cannot use BufferImageCopy in sub scope", i);
+    const auto& range = PayloadBufferImageCopyRange[cmd.RangeIndex];
+    const auto& image_info = GetRes(cmd.Image);
+    const auto image_data = image_info.GetImageData();
+    const auto IsDsOrYCbCr = IsDepthStencil(image_data->m_format) || IsYCbCr(image_data->m_format);
+    auto bytes_per_row = range.BytesPerRow;
+    auto rows_per_image = range.RowsPerImage;
+    if (bytes_per_row == 0)
+    {
+        const auto [block_width, _] = GetBlockDimensions(image_data->m_format);
+        const auto block_size = GetBlockCopySize(image_data->m_format, IsDsOrYCbCr ? Some(range.Plane) : nullptr);
+        bytes_per_row = (range.ImageExtent[0] / block_width) * block_size;
+        bytes_per_row = Aligned256(bytes_per_row);
+    }
+    else
+    {
+        if (!IsAligned256(bytes_per_row))
+            COPLT_THROW_FMT("BytesPerRow must must be a multiple of 256 at command {}", i);
+    }
+    if (rows_per_image == 0)
+    {
+        if (image_data->m_dimension == FImageDimension::Three)
+        {
+            rows_per_image = range.ImageExtent[1] * range.ImageExtent[2];
+        }
+        else
+        {
+            rows_per_image = range.ImageExtent[1];
+        }
+    }
+    if (image_data->m_dimension == FImageDimension::Three)
+    {
+        if (range.ImageIndex != 0 || range.ImageCount != 1)
+            COPLT_THROW_FMT("Image index or count out of range at command {}", i);
+    }
+    else
+    {
+        if (range.ImageCount < 1 || range.ImageIndex + range.ImageCount > image_data->m_depth_or_length)
+            COPLT_THROW_FMT("Image index or count out of range at command {}", i);
+    }
+    if (IsDepthStencil(image_data->m_format) || IsYCbCr(image_data->m_format))
+    {
+        if (static_cast<u8>(range.Plane) >= 2)
+            COPLT_THROW_FMT("Plane index or count out of range at command {}", i);
+    }
+    else
+    {
+        if (range.Plane != FImagePlane::All)
+            COPLT_THROW_FMT("Plane index or count out of range at command {}", i);
+    }
+    const auto image = image_info.GetResource();
+    auto buffer = NonNull<ID3D12Resource>::Unchecked(nullptr);
+    if (cmd.BufferType == FBufferRefType2::Buffer)
+    {
+        buffer = GetRes(cmd.Buffer.Buffer).GetResource();
+    }
+    else if (cmd.BufferType == FBufferRefType2::Upload)
+    {
+        const auto& obj = m_context->m_upload_buffers[cmd.Buffer.Upload.Index];
+        buffer = obj.m_resource.m_resource.Get();
+    }
+    else
+    {
+        COPLT_THROW_FMT("Unknown Buffer Type {} at command {}", static_cast<u8>(cmd.BufferType), i);
+    }
+    D3D12_TEXTURE_COPY_LOCATION buffer_loc{};
+    buffer_loc.pResource = buffer;
+    buffer_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    buffer_loc.PlacedFootprint.Footprint.Format = GetBufferImageCopyFormat(image_data->m_format, range.Plane, IsDsOrYCbCr);
+    buffer_loc.PlacedFootprint.Footprint.Width = range.ImageExtent[0];
+    buffer_loc.PlacedFootprint.Footprint.Height = range.ImageExtent[1];
+    buffer_loc.PlacedFootprint.Footprint.Depth = range.ImageExtent[2];
+    buffer_loc.PlacedFootprint.Footprint.RowPitch = bytes_per_row;
+    D3D12_TEXTURE_COPY_LOCATION image_loc{};
+    image_loc.pResource = image;
+    image_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    const auto image_stride = bytes_per_row * rows_per_image;
+    for (auto ai = 0u; ai < range.ImageCount; ++ai)
+    {
+        buffer_loc.PlacedFootprint.Offset = range.BufferOffset + ai * image_stride;
+        image_loc.SubresourceIndex = D3D12CalcSubresource(
+            range.MipLevel, range.ImageIndex + ai, static_cast<u8>(range.Plane),
+            image_data->m_mip_levels, image_data->m_depth_or_length
+        );
+        if (cmd.ImageToBuffer)
+        {
+            D3D12_BOX box{};
+            box.left = range.ImageOffset[0];
+            box.top = range.ImageOffset[1];
+            box.front = range.ImageOffset[2];
+            box.right = range.ImageOffset[0] + range.ImageExtent[0];
+            box.bottom = range.ImageOffset[1] + range.ImageExtent[1];
+            box.back = range.ImageOffset[2] + range.ImageExtent[2];
+            list->g0->CopyTextureRegion(
+                &buffer_loc,
+                0,
+                0,
+                0,
+                &image_loc,
+                &box
+            );
+        }
+        else
+        {
+            list->g0->CopyTextureRegion(
+                &image_loc,
+                range.ImageOffset[0],
+                range.ImageOffset[1],
+                range.ImageOffset[2],
+                &buffer_loc,
+                nullptr
+            );
+        }
     }
 }
 
@@ -1076,13 +1227,14 @@ void D3d12GpuRecord::Interpret_SetBinding(const CmdList& list, u32 i, const FCmd
         case Layout::BindItemPlace::Table:
             {
                 const auto& allocation = m_allocations[set_binding_info.AllocationIndex + bind_item_info.Group];
+                const auto& al = bind_item_info.Type == Layout::BindItemType::Resource ? allocation.Resource : allocation.Sampler;
                 if (m_state == RecordState::Render)
                 {
-                    list->g0->SetGraphicsRootDescriptorTable(bind_item_info.RootIndex, allocation.GetGpuHandle());
+                    list->g0->SetGraphicsRootDescriptorTable(bind_item_info.RootIndex, al.GetGpuHandle());
                 }
                 else
                 {
-                    list->g0->SetComputeRootDescriptorTable(bind_item_info.RootIndex, allocation.GetGpuHandle());
+                    list->g0->SetComputeRootDescriptorTable(bind_item_info.RootIndex, al.GetGpuHandle());
                 }
                 break;
             }

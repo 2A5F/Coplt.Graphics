@@ -38,6 +38,7 @@ namespace Coplt
         FList<FRenderInfo2> PayloadRenderInfo;
         FList<FResolveInfo2> PayloadResolveInfo;
         FList<FBufferCopyRange> PayloadBufferCopyRange;
+        FList<FBufferImageCopyRange> PayloadBufferImageCopyRange;
         FList<FMeshBuffers2> PayloadMeshBuffers;
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
         FList<u8> Blob;
@@ -47,9 +48,9 @@ namespace Coplt
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator),
-              PayloadRect(allocator), PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator),
-              PayloadBufferCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator), PayloadRect(allocator),
+              PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
+              PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
         {
         }
 
@@ -64,6 +65,7 @@ namespace Coplt
             PayloadRenderInfo.Clear();
             PayloadResolveInfo.Clear();
             PayloadBufferCopyRange.Clear();
+            PayloadBufferImageCopyRange.Clear();
             PayloadMeshBuffers.Clear();
             PayloadVertexBufferRange.Clear();
             Blob.Clear();

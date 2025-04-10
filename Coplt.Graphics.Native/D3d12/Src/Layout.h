@@ -138,6 +138,12 @@ namespace Coplt
             Const,
         };
 
+        enum class BindItemType : u8
+        {
+            Resource,
+            Sampler,
+        };
+
         struct BindItemInfo
         {
             u32 Group{};
@@ -145,6 +151,7 @@ namespace Coplt
             u32 IndexInGroup{};
             u32 RootIndex{};
             BindItemPlace Place{};
+            BindItemType Type{};
         };
     }
 

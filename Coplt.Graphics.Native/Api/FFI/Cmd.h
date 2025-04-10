@@ -23,6 +23,7 @@ namespace Coplt
         ClearDepthStencil,
 
         BufferCopy,
+        BufferImageCopy,
 
         Render,
         Compute,
@@ -236,7 +237,7 @@ namespace Coplt
         FBufferRefType2 SrcType{};
     };
 
-    struct FCndBufferImageCopy : FCmdBase
+    struct FCmdBufferImageCopy : FCmdBase
     {
         // 类型为 FBufferImageCopyRange
         u32 RangeIndex{};
@@ -370,6 +371,7 @@ namespace Coplt
             FCmdClearDepthStencil ClearDepthStencil;
 
             FCmdBufferCopy BufferCopy;
+            FCmdBufferImageCopy BufferImageCopy;
 
             FCmdRender Render;
             FCmdCompute Compute;

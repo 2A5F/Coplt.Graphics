@@ -52,7 +52,7 @@ public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
                 {
                     Width = Width,
                     Height = Height,
-                    VSync = true,
+                    // VSync = true,
                     // Srgb = false,
                 }
             );
