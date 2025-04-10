@@ -8,30 +8,52 @@ Demonstrates the use of image load, upload and sampler
 ```cs
 var modules = await LoadShaderModules("Shader", [ShaderStage.Vertex, ShaderStage.Pixel]);
 
-Layout = Device.CreateShaderLayout(
+ShaderLayout = Device.CreateShaderLayout(
     [
         new()
         {
+            Id = 0,
             Slot = 0,
             Stage = ShaderStage.Pixel,
             View = ShaderLayoutItemView.Srv,
             Type = ShaderLayoutItemType.Texture2D,
-            Usage = ShaderLayoutItemUsage.Persist,
         },
         new()
         {
+            Id = 1,
             Slot = 0,
             Stage = ShaderStage.Pixel,
             View = ShaderLayoutItemView.Sampler,
             Type = ShaderLayoutItemType.Sampler,
-            Usage = ShaderLayoutItemUsage.Persist,
         }
-    ]
+    ],
+    Name: Name
+);
+BindingLayout = Device.CreateBindingLayout(
+    ShaderLayout, [
+        BindGroupLayout = Device.CreateBindGroupLayout(
+            [
+                new()
+                {
+                    Id = 0,
+                    Stages = ShaderStageFlags.Pixel,
+                    View = ShaderLayoutItemView.Srv,
+                    Type = ShaderLayoutItemType.Texture2D,
+                },
+                new()
+                {
+                    Id = 1,
+                    Stages = ShaderStageFlags.Pixel,
+                    View = ShaderLayoutItemView.Sampler,
+                    Type = ShaderLayoutItemType.Sampler,
+                }
+            ]
+        )
+    ], Name: Name
 );
 
-Shader = Device.CreateShader(modules, Layout);
-Pipeline = Device.CreateGraphicsShaderPipeline(... Omitted here);
-ShaderBinding = Device.CreateShaderBinding(Layout, Name: Name);
+Shader = Device.CreateShader(modules, ShaderLayout);
+Pipeline = Device.CreateGraphicsShaderPipeline(.. Omitted here);
 
 Sampler = Device.CreateSampler(SamplerInfo.LinearRepeat);
 // or
@@ -48,14 +70,14 @@ using var image_data = await LoadImage("./Image.png");
 // Allocate memory for image upload. Due to the 256 row alignment requirement, 
 // the memory cannot be simply calculated and cannot be used as a whole block of memory.
 // This rhi does not provide a high-level abstraction for uploading images, as any image loading library can be used
-var upload_memory = Device.MainQueue.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
+var upload_memory = cmd.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
 for (var row = 0u; row < upload_memory.RowCount; row++)
 {
     var row_span = image_data.Frames[0].PixelBuffer.DangerousGetRowSpan((int)row);
     MemoryMarshal.AsBytes(row_span).CopyTo(upload_memory[row]);
 }
 
-var test_image = Device.CreateImage(
+var test_image = Isolate.CreateImage(
     new()
     {
         Purpose = ResourcePurpose.ShaderResource,
@@ -67,11 +89,12 @@ var test_image = Device.CreateImage(
 );
 cmd.Upload(test_image, upload_memory);
 
-cmd.Bind(ShaderBinding, [new(0, test_image), new(1, Sampler)]);
+BindGroup = Isolate.CreateBindGroup(BindGroupLayout, [new(0, test_image), new(1, Sampler)]);
+Binding = Isolate.CreateBinding(BindingLayout, [new(0, BindGroup)]);
 ```
 
 ## 3 Render
 ```cs
 using var render = cmd.Render([new(Output, LoadOp.Discard)]);
-render.Draw(Pipeline, 4, Binding: ShaderBinding);
+render.Draw(Pipeline, 4, Binding: Binding);
 ```
