@@ -421,6 +421,12 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
         fixed (char* p_name = Name)
         fixed (byte* p_name8 = Name8)
         {
+            var DepthOrLength = Math.Max(options.DepthOrLength, 1);
+            if (options.Dimension == ImageDimension.Cube)
+            {
+                if (options.DepthOrLength == 0) DepthOrLength = 6;
+                if (options.DepthOrLength % 6 != 0) throw new ArgumentException("The number of cube texture arrays must be a multiple of 6");
+            }
             FGpuImageCreateOptions f_options = new()
             {
                 Base =
@@ -432,7 +438,7 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 Format = options.Format.ToFFI(),
                 Width = Math.Max(options.Width, 1),
                 Height = Math.Max(options.Height, 1),
-                DepthOrLength = Math.Max(options.DepthOrLength, 1),
+                DepthOrLength = DepthOrLength,
                 MipLevels = (ushort)Math.Max(options.MipLevels, 1),
                 MultisampleCount = (byte)Math.Max(options.MultisampleCount, 1),
                 Dimension = options.Dimension.ToFFI(),

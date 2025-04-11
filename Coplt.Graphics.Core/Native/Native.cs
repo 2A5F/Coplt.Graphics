@@ -3549,15 +3549,197 @@ namespace Coplt.Graphics.Native
     public enum FViewType : byte
     {
         None = 0,
-        Buffer = 1,
-        Image = 2,
-        Sampler = 3,
+        Sampler = 1,
+        Buffer = 2,
+        Image1D = 3,
+        Image1DArray = 4,
+        Image2D = 5,
+        Image2DArray = 6,
+        Image2DMs = 7,
+        Image2DMsArray = 8,
+        Image3D = 9,
+        ImageCube = 10,
+        ImageCubeArray = 11,
+    }
+
+    public partial struct FViewData
+    {
+        [NativeTypeName("__AnonymousRecord_View_L30_C9")]
+        public _Anonymous1_e__Union Anonymous1;
+
+        [NativeTypeName("__AnonymousRecord_View_L52_C9")]
+        public _Anonymous2_e__Union Anonymous2;
+
+        [NativeTypeName("Coplt::FGraphicsFormat")]
+        public FGraphicsFormat Format;
+
+        [UnscopedRef]
+        public ref ulong Offset
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Offset;
+            }
+        }
+
+        [UnscopedRef]
+        public ref uint Index
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous1.Index;
+            }
+        }
+
+        [UnscopedRef]
+        public ref uint Z
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous1.Z;
+            }
+        }
+
+        [UnscopedRef]
+        public ref byte Mip
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous2.Anonymous.Mip;
+            }
+        }
+
+        [UnscopedRef]
+        public ref byte NumMips
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous2.Anonymous.NumMips;
+            }
+        }
+
+        [UnscopedRef]
+        public ref byte Plane
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous2.Anonymous.Plane;
+            }
+        }
+
+        [UnscopedRef]
+        public ref uint Stride
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous1.Anonymous.Anonymous2.Stride;
+            }
+        }
+
+        [UnscopedRef]
+        public ref uint Size
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous2.Size;
+            }
+        }
+
+        [UnscopedRef]
+        public ref uint Depth
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous2.Depth;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous1_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::u64")]
+            public ulong Offset;
+
+            [FieldOffset(0)]
+            [NativeTypeName("__AnonymousRecord_View_L33_C13")]
+            public _Anonymous_e__Struct Anonymous;
+
+            public partial struct _Anonymous_e__Struct
+            {
+                [NativeTypeName("__AnonymousRecord_View_L35_C17")]
+                public _Anonymous1_e__Union Anonymous1;
+
+                [NativeTypeName("__AnonymousRecord_View_L40_C17")]
+                public _Anonymous2_e__Union Anonymous2;
+
+                [StructLayout(LayoutKind.Explicit)]
+                public partial struct _Anonymous1_e__Union
+                {
+                    [FieldOffset(0)]
+                    [NativeTypeName("Coplt::u32")]
+                    public uint Index;
+
+                    [FieldOffset(0)]
+                    [NativeTypeName("Coplt::u32")]
+                    public uint Z;
+                }
+
+                [StructLayout(LayoutKind.Explicit)]
+                public partial struct _Anonymous2_e__Union
+                {
+                    [FieldOffset(0)]
+                    [NativeTypeName("__AnonymousRecord_View_L42_C21")]
+                    public _Anonymous_e__Struct Anonymous;
+
+                    [FieldOffset(0)]
+                    [NativeTypeName("Coplt::u32")]
+                    public uint Stride;
+
+                    public partial struct _Anonymous_e__Struct
+                    {
+                        [NativeTypeName("Coplt::u8")]
+                        public byte Mip;
+
+                        [NativeTypeName("Coplt::u8")]
+                        public byte NumMips;
+
+                        [NativeTypeName("Coplt::u8")]
+                        public byte Plane;
+                    }
+                }
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public partial struct _Anonymous2_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::u32")]
+            public uint Size;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::u32")]
+            public uint Depth;
+        }
     }
 
     public unsafe partial struct FView
     {
         [NativeTypeName("Coplt::FGpuViewable *")]
         public FGpuViewable* Viewable;
+
+        [NativeTypeName("Coplt::FViewData")]
+        public FViewData Data;
 
         [NativeTypeName("Coplt::FViewType")]
         public FViewType Type;

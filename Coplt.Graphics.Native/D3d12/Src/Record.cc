@@ -57,7 +57,15 @@ ResourceInfo::ResourceInfo(Rc<FGpuObject>&& resource, const View& view, u32 inde
         Type = FCmdResType::Buffer;
         Buffer = NonNull(view.TryGetBuffer());
         return;
-    case FViewType::Image:
+    case FViewType::Image1D:
+    case FViewType::Image1DArray:
+    case FViewType::Image2D:
+    case FViewType::Image2DArray:
+    case FViewType::Image2DMs:
+    case FViewType::Image2DMsArray:
+    case FViewType::Image3D:
+    case FViewType::ImageCube:
+    case FViewType::ImageCubeArray:
         Type = FCmdResType::Image;
         Image = NonNull(view.TryGetImage());
         return;

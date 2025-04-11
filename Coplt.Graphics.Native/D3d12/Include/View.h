@@ -22,6 +22,7 @@ namespace Coplt
     struct View final
     {
         Rc<ID3d12GpuViewable> m_viewable{};
+        FViewData m_data{};
         FViewType m_type{};
 
         View() = default;
