@@ -1349,10 +1349,18 @@ namespace Coplt.Graphics.Native
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NativeTypeName("Coplt::FResult")]
+        public FResult CreateComputePipeline([NativeTypeName("const FShaderPipelineCreateOptions &")] FShaderPipelineCreateOptions* options, FComputeShaderPipeline** @out)
+        {
+            FResult result;
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FShaderPipelineCreateOptions*, FComputeShaderPipeline**, FResult*>)(lpVtbl[22]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [return: NativeTypeName("Coplt::FResult")]
         public FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[22]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuBufferCreateOptions*, FGpuBuffer**, FResult*>)(lpVtbl[23]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1360,7 +1368,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateImage([NativeTypeName("const FGpuImageCreateOptions &")] FGpuImageCreateOptions* options, FGpuImage** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuImageCreateOptions*, FGpuImage**, FResult*>)(lpVtbl[23]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuImageCreateOptions*, FGpuImage**, FResult*>)(lpVtbl[24]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1368,7 +1376,7 @@ namespace Coplt.Graphics.Native
         public FResult CreateSampler([NativeTypeName("const FGpuSamplerCreateOptions &")] FGpuSamplerCreateOptions* options, FGpuSampler** @out)
         {
             FResult result;
-            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuSamplerCreateOptions*, FGpuSampler**, FResult*>)(lpVtbl[24]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
+            return *((delegate* unmanaged[Thiscall]<FGpuDevice*, FResult*, FGpuSamplerCreateOptions*, FGpuSampler**, FResult*>)(lpVtbl[25]))((FGpuDevice*)Unsafe.AsPointer(ref this), &result, options, @out);
         }
 
         public interface Interface : FGpuObject.Interface
@@ -1419,6 +1427,9 @@ namespace Coplt.Graphics.Native
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateGraphicsPipeline([NativeTypeName("const FGraphicsShaderPipelineCreateOptions &")] FGraphicsShaderPipelineCreateOptions* options, FGraphicsShaderPipeline** @out);
+
+            [return: NativeTypeName("Coplt::FResult")]
+            FResult CreateComputePipeline([NativeTypeName("const FShaderPipelineCreateOptions &")] FShaderPipelineCreateOptions* options, FComputeShaderPipeline** @out);
 
             [return: NativeTypeName("Coplt::FResult")]
             FResult CreateBuffer([NativeTypeName("const FGpuBufferCreateOptions &")] FGpuBufferCreateOptions* options, FGpuBuffer** @out);

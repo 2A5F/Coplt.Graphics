@@ -13,6 +13,7 @@
 #include "Isolate.h"
 #include "Layout.h"
 #include "Output.h"
+#include "Pipeline.h"
 
 namespace Coplt
 {
@@ -103,6 +104,8 @@ namespace Coplt
             Ptr<ID3d12BindingLayout> Layout{};
             // 如果不是图形管线将不会设置
             Ptr<ID3d12GraphicsShaderPipeline> GPipeline{};
+            // 如果不是计算管线将不会设置
+            Ptr<ID3d12ComputeShaderPipeline> CPipeline{};
 
             Ptr<ID3d12ShaderBinding> Binding{};
             u32 SetBindingIndex{};

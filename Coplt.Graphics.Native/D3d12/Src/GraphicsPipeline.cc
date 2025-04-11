@@ -131,7 +131,6 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     Rc<D3d12GpuDevice>&& device, const FGraphicsShaderPipelineCreateOptions& options
 ) : m_device(std::move(device)), m_graphics_state(options.GraphicsState)
 {
-    m_dx_device = m_device->m_device;
     if (options.Shader == nullptr)
         COPLT_THROW("Shader is null");
     m_shader = Rc<FShader>::UnsafeClone(options.Shader);
@@ -212,7 +211,7 @@ D3d12GraphicsShaderPipeline::D3d12GraphicsShaderPipeline(
     D3D12_PIPELINE_STATE_STREAM_DESC stream_desc{};
     stream_desc.SizeInBytes = sizeof(stream);
     stream_desc.pPipelineStateSubobjectStream = &stream;
-    chr | m_dx_device->CreatePipelineState(&stream_desc, IID_PPV_ARGS(&m_pipeline));
+    chr | m_device->m_device->CreatePipelineState(&stream_desc, IID_PPV_ARGS(&m_pipeline));
 
     if (m_device->Debug())
     {

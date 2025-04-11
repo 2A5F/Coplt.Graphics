@@ -74,6 +74,7 @@ namespace Coplt
         FResult CreateShaderBinding(const FShaderBindingCreateOptions& options, FShaderBindingCreateResult* out) noexcept override;
 
         FResult CreateGraphicsPipeline(const FGraphicsShaderPipelineCreateOptions& options, FGraphicsShaderPipeline** out) noexcept override;
+        FResult CreateComputePipeline(const FShaderPipelineCreateOptions& options, FComputeShaderPipeline** out) noexcept override;
 
         FResult CreateBuffer(const FGpuBufferCreateOptions& options, FGpuBuffer** out) noexcept override;
         FResult CreateImage(const FGpuImageCreateOptions& options, FGpuImage** out) noexcept override;

@@ -237,6 +237,15 @@ void D3d12GpuRecord::PipelineContext::SetPipeline(NonNull<FShaderPipeline> pipel
         }
         GPipeline = g_pipeline;
     }
+    else if (HasFlags(stages, FShaderStageFlags::Compute))
+    {
+        const Ptr c_pipeline = pipeline->QueryInterface<ID3d12ComputeShaderPipeline>();
+        if (!c_pipeline)
+        {
+            COPLT_THROW_FMT("[{}] Invalid pipeline: pipeline is not a compute pipeline, but there is a compute shader in the stages.", i);
+        }
+        CPipeline = c_pipeline;
+    }
     PipelineChanged = true;
     if (Binding && Binding->Layout()->ObjectId() != Layout->ObjectId())
     {
