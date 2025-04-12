@@ -2,6 +2,7 @@
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
+using Coplt.Mathematics;
 
 namespace Examples;
 
@@ -22,28 +23,47 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         var modules = await LoadShaderModules("Shader", [ShaderStage.Compute]);
         ShaderLayout = Device.CreateShaderLayout(
             [
-                // new()
-                // {
-                //     Id = 0,
-                //     Slot = 0,
-                //     Stage = ShaderStage.Pixel,
-                //     View = ShaderLayoutItemView.Cbv,
-                //     Type = ShaderLayoutItemType.ConstantBuffer,
-                // }
+                new()
+                {
+                    Id = 0,
+                    Slot = 0,
+                    Stage = ShaderStage.Compute,
+                    View = ShaderLayoutItemView.Cbv,
+                    Type = ShaderLayoutItemType.ConstantBuffer,
+                },
+                new()
+                {
+                    Id = 1,
+                    Slot = 0,
+                    Count = uint.MaxValue,
+                    Stage = ShaderStage.Compute,
+                    View = ShaderLayoutItemView.Uav,
+                    Type = ShaderLayoutItemType.Texture2D,
+                    UavAccess = ResourceAccess.ReadWrite,
+                }
             ]
         );
         BindingLayout = Device.CreateBindingLayout(
             ShaderLayout, [
                 BindGroupLayout = Device.CreateBindGroupLayout(
                     [
-                        // new()
-                        // {
-                        //     Id = 0,
-                        //     Stages = ShaderStageFlags.Pixel,
-                        //     View = ShaderLayoutItemView.Cbv,
-                        //     Type = ShaderLayoutItemType.ConstantBuffer,
-                        // }
-                    ]
+                        new()
+                        {
+                            Id = 0,
+                            Stages = ShaderStageFlags.Compute,
+                            View = ShaderLayoutItemView.Cbv,
+                            Type = ShaderLayoutItemType.ConstantBuffer,
+                        },
+                        new()
+                        {
+                            Id = 1,
+                            Count = uint.MaxValue,
+                            Stages = ShaderStageFlags.Compute,
+                            View = ShaderLayoutItemView.Uav,
+                            Type = ShaderLayoutItemType.Texture2D,
+                        }
+                    ],
+                    Usage: BindGroupUsage.Dynamic
                 )
             ], Name: Name
         );
@@ -51,7 +71,9 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         Pipeline = Device.CreateComputeShaderPipeline(
             Shader, BindingLayout, Name: Name
         );
-        
+        BindGroup = Isolate.CreateBindGroup(BindGroupLayout, []);
+        Binding = Isolate.CreateBinding(BindingLayout, [new(0, BindGroup)]);
+
         using var image_data = await LoadImage("./pattern.png");
         var upload_memory = cmd.AllocImageUploadMemory2D(4, (uint)image_data.Width, (uint)image_data.Height);
         for (var row = 0u; row < upload_memory.RowCount; row++)
@@ -59,6 +81,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             var row_span = image_data.Frames[0].PixelBuffer.DangerousGetRowSpan((int)row);
             MemoryMarshal.AsBytes(row_span).CopyTo(upload_memory[row]);
         }
+        var mip_levels = 1 + (uint)math.log2((double)math.max(image_data.Width, image_data.Height));
         var test_image = Isolate.CreateImage(
             new()
             {
@@ -66,6 +89,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 Format = GraphicsFormat.R8G8B8A8_UNorm,
                 Width = (uint)image_data.Width,
                 Height = (uint)image_data.Height,
+                MipLevels = mip_levels,
             },
             Name: "Test Image"
         );

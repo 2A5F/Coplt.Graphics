@@ -83,6 +83,13 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
         const auto count = std::max(1u, item.Count);
         if (count == COPLT_U32_MAX)
         {
+            if (Usage != FBindGroupUsage::Dynamic)
+            {
+                COPLT_THROW_FMT(
+                    "Invalid binding define {{ Id = {}, Scope = {}, Stages = {} }} at [{}]; Only dynamic usage groups support unlimited length arrays",
+                    item.Id, item.Scope, static_cast<u32>(item.Stages), i
+                );
+            }
             if (i + 1 != m_items.size())
             {
                 COPLT_THROW_FMT(

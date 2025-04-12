@@ -36,6 +36,7 @@ namespace Coplt
         Rc<FString> m_name{};
         Rc<D3d12GpuDevice> m_device{};
         Rc<ID3d12BindGroupLayout> m_layout{};
+        // 动态组永远不会创建描述符暂存堆
         ComPtr<ID3D12DescriptorHeap> m_resource_heap{};
         ComPtr<ID3D12DescriptorHeap> m_sampler_heap{};
         u32 m_resource_heap_inc{};

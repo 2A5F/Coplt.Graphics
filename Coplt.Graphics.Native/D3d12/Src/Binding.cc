@@ -14,50 +14,66 @@ D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FS
     if (layout == nullptr)
         COPLT_THROW("Layout from different backends");
     m_layout = Rc<ID3d12BindGroupLayout>::UnsafeClone(layout);
+    const auto& layout_data = m_layout->Data();
+    m_resource_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_sampler_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
     const auto items = m_layout->GetItems();
     usize sum_count = 0;
     for (const auto& item : items)
     {
-        sum_count += std::max(1u, item.Count);
+        if (item.Count == COPLT_U32_MAX) sum_count += 1;
+        else sum_count += std::max(1u, item.Count);
     }
     CountSlots = sum_count;
-    m_views = std::vector(sum_count, View{});
-    m_changed_marks = std::vector(sum_count, false);
     m_item_indexes.reserve(items.size());
     m_define_indexes.reserve(sum_count);
     for (u32 i = 0, off = 0; i < items.size(); ++i)
     {
         m_item_indexes.push_back(off);
         const auto count = std::max(1u, items[i].Count);
+        if (count == COPLT_U32_MAX)
+        {
+            m_define_indexes.push_back(i);
+            break;
+        }
         off += count;
         for (int j = 0; j < count; ++j)
         {
             m_define_indexes.push_back(i);
         }
     }
-    const auto& layout_data = m_layout->Data();
-    m_resource_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    m_sampler_heap_inc = m_device->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-    if (layout_data.ResourceTableSize > 0)
+    if (layout_data.Usage == FBindGroupUsage::Dynamic)
     {
-        D3D12_DESCRIPTOR_HEAP_DESC desc{};
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        desc.NumDescriptors = layout_data.ResourceTableSize;
-        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_resource_heap));
+        if (options.NumBindings > 0)
+        {
+            COPLT_THROW("Dynamic groups are not allowed to set items");
+        }
     }
-    if (layout_data.SamplerTableSize > 0)
+    else
     {
-        D3D12_DESCRIPTOR_HEAP_DESC desc{};
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        desc.NumDescriptors = layout_data.SamplerTableSize;
-        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_sampler_heap));
+        m_views = std::vector(sum_count, View{});
+        m_changed_marks = std::vector(sum_count, false);
+        if (layout_data.ResourceTableSize > 0)
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc{};
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            desc.NumDescriptors = layout_data.ResourceTableSize;
+            chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_resource_heap));
+        }
+        if (layout_data.SamplerTableSize > 0)
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc{};
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+            desc.NumDescriptors = layout_data.SamplerTableSize;
+            chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_sampler_heap));
+        }
+        if (!options.Name.is_null())
+        {
+            m_name = options.Name.ToString();
+            DoSetName(m_name->GetStr());
+        }
+        Set(std::span(options.Bindings, options.Bindings + options.NumBindings));
     }
-    if (!options.Name.is_null())
-    {
-        m_name = options.Name.ToString();
-        DoSetName(m_name->GetStr());
-    }
-    Set(std::span(options.Bindings, options.Bindings + options.NumBindings));
 }
 
 FResult D3d12ShaderBindGroup::SetName(const FStr8or16& name) noexcept
@@ -143,6 +159,10 @@ RwLock& D3d12ShaderBindGroup::SelfLock() noexcept
 
 void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
 {
+    if (m_layout->Data().Usage == FBindGroupUsage::Dynamic)
+    {
+        COPLT_THROW("Dynamic groups are not allowed to set items");
+    }
     if (items.empty()) return;
     const auto defs = m_layout->GetItems();
     const auto slots = m_layout->Slots();
