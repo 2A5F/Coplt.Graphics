@@ -497,6 +497,8 @@ void D3d12GpuRecord::Analyze()
         case FCmdType::End:
             if (m_state == RecordState::Render)
                 Analyze_RenderEnd(i, m_cur_render.Cmd);
+            else if (m_state == RecordState::Compute)
+                Analyze_ComputeEnd(i, m_cur_compute.Cmd);
             else
                 COPLT_THROW("Cannot use End in main scope");
             break;
@@ -519,7 +521,8 @@ void D3d12GpuRecord::Analyze()
             Analyze_Render(i, command.Render);
             break;
         case FCmdType::Compute:
-            COPLT_THROW("TODO");
+            Analyze_Compute(i, command.Compute);
+            break;
         case FCmdType::SetPipeline:
             Analyze_SetPipeline(i, command.SetPipeline);
             break;
@@ -825,6 +828,8 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, const u32 off
         case FCmdType::End:
             if (m_state == RecordState::Render)
                 Interpret_RenderEnd(list, i, m_cur_render.Cmd);
+            else if (m_state == RecordState::Compute)
+                Interpret_ComputeEnd(list, i, m_cur_compute.Cmd);
             else
                 COPLT_THROW("Cannot use End in main scope");
             break;
@@ -853,7 +858,8 @@ void D3d12GpuRecord::Interpret(const D3d12RentedCommandList& list, const u32 off
             Interpret_Render(list, i, command.Render);
             break;
         case FCmdType::Compute:
-            COPLT_THROW("TODO");
+            Interpret_Compute(list, i, command.Compute);
+            break;
         case FCmdType::SetPipeline:
             Interpret_SetPipeline(list, i, command.SetPipeline);
             break;

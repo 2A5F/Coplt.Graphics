@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net9.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UseWPF>true</UseWPF>
+        <RootNamespace>Examples</RootNamespace>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <D3D12SDKVersion>715</D3D12SDKVersion>
+        <D3D12SDKPath>D3D12</D3D12SDKPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Coplt.Graphics.Core\Coplt.Graphics.Core.csproj"/>
+        <ProjectReference Include="..\ExampleBase\ExampleBase.csproj"/>
+        <PackageReference Include="Serilog" Version="4.2.0"/>
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
+        <PackageReference Include="Serilog.Exceptions" Version="8.4.0"/>
+        <PackageReference Include="Serilog.Expressions" Version="5.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
+        <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.715.1-preview" GeneratePathProperty="true"/>
+        <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.8.2502.8" GeneratePathProperty="true" ExcludeAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../../D3D12SDKVersionPatcher.exe" Visible="false"/>
+        <None Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\**\*.dll"
+              Exclude="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\DirectSR.dll"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\**\*.pdb"
+              Exclude="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\DirectSR.pdb;$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\d3dconfig.pdb"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+              Condition="'$(Configuration)' == 'Debug'"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\**\*.dll"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+        />
+        <None Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\**\*.pdb"
+              Link="$(D3D12SDKPath)\%(RecursiveDir)%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest"
+              Visible="false"
+              Condition="'$(Configuration)' == 'Debug'"
+        />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="../../Assets/pattern.png" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+    <Target Name="PatchDxSdkExport" AfterTargets="Build">
+        <Exec Command="..\..\D3D12SDKVersionPatcher.exe .\$(OutDir)\$(AssemblyName).exe $(D3D12SDKVersion) .\$(D3D12SDKPath)\"/>
+    </Target>
+
+    <Target Name="BuildShader" AfterTargets="Build">
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T cs_6_6 -E Compute -Od -Zi -Qembed_debug -Fo $(OutDir)/Shader.Compute.dxil ./Shaders/Shader.hlsl"/>
+    </Target>
+
+    <ItemGroup>
+        <None Include="../../build/debug/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="../../Coplt.Graphics.Native/D3d12/ThirdParty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+</Project>
