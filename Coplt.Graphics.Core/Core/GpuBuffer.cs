@@ -69,7 +69,7 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
 
     #endregion
 
-    #region View
+    #region Try View
 
     public bool TryVbv() => Purpose.HasFlags(ResourcePurpose.VertexBuffer);
     public bool TryIbv() => Purpose.HasFlags(ResourcePurpose.IndexBuffer);
@@ -77,6 +77,13 @@ public sealed unsafe partial class GpuBuffer : GpuResource, IGpuResource, ICbv, 
     public bool TryUav() => Purpose.HasFlags(ResourcePurpose.UnorderedAccess);
     public bool TrySrv() => Purpose.HasFlags(ResourcePurpose.ShaderResource);
     public bool TryCbv() => Purpose.HasFlags(ResourcePurpose.ConstantBuffer);
+
+    #endregion
+
+    #region Create View
+
+    public View View(ulong Offset = 0, int Size = -1, int Stride = -1, GraphicsFormat Format = 0) =>
+        Core.View.MakeBuffer(this, Offset, Size, Stride, Format);
 
     #endregion
 

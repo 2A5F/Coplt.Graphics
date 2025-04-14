@@ -97,14 +97,23 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         );
         cmd.Upload(test_image, upload_memory);
 
-        GenMipmaps(cmd);
+        GenMipmaps(cmd, test_image);
     }
 
-    private void GenMipmaps(GpuRecord cmd)
+    private void GenMipmaps(GpuRecord cmd, GpuImage image)
     {
         using var compute = cmd.Compute();
-        // compute.SetBinding(Binding);
-        // compute.DynamicNew(0, 4);
+        compute.SetBinding(Binding);
+        compute.SetDynSize(0, 4);
+        compute.SetConstants(0, 0, [image.Width, image.Height, 4]);
+        compute.SetDynItem(
+            0, [
+                new(1, 0, image.View2D(0, 1)),
+                new(1, 1, image.View2D(1, 1)),
+                new(1, 2, image.View2D(2, 1)),
+                new(1, 3, image.View2D(3, 1)),
+            ]
+        );
         compute.Dispatch(Pipeline, 1, 1);
     }
 

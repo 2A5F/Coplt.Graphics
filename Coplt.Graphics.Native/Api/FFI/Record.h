@@ -41,6 +41,8 @@ namespace Coplt
         FList<FBufferImageCopyRange> PayloadBufferImageCopyRange;
         FList<FMeshBuffers2> PayloadMeshBuffers;
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
+        FList<u32> Payload32Bits;
+        FList<FSetBindItem> PayloadSetBindItem;
         FList<u8> Blob;
         u32 NumSetBindings{};
         b8 Ended{};
@@ -50,7 +52,8 @@ namespace Coplt
         explicit FGpuRecordData(FAllocator* allocator)
             : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator), PayloadRect(allocator),
               PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
-              PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
+              PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator),
+              Payload32Bits(allocator), PayloadSetBindItem(allocator), Blob(allocator)
         {
         }
 
@@ -68,6 +71,8 @@ namespace Coplt
             PayloadBufferImageCopyRange.Clear();
             PayloadMeshBuffers.Clear();
             PayloadVertexBufferRange.Clear();
+            Payload32Bits.Clear();
+            PayloadSetBindItem.Clear();
             Blob.Clear();
             NumSetBindings = 0;
         }

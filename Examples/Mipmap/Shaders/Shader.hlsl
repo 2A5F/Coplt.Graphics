@@ -1,14 +1,7 @@
-enum class Mode : uint
-{
-    Common,
-    L4,
-};
-
 cbuffer Args : register(b0)
 {
-    Mode mode;
-    uint mip_levels; // 0 .. 4
     uint2 size;
+    uint mip_levels; // 0 .. 4
 }
 
 RWTexture2D<float4> images[] : register(u0);

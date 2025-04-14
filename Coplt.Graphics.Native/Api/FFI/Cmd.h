@@ -31,7 +31,9 @@ namespace Coplt
         // Render / Compute
         SetPipeline,
         SetBinding,
-        DynamicNew,
+        SetConsts,
+        SetDynSize,
+        SetDynItem,
 
         // Render
         SetViewportScissor,
@@ -287,12 +289,33 @@ namespace Coplt
         u32 Index{};
     };
 
-    struct FCmdDynamicNew : FCmdBase
+    struct FCmdSetConsts : FCmdBase
     {
         // 绑定中的第几个组
-        u32 GroupIndex{};
-        // 如果组中有动态大小数组，则需要填写
-        u32 DynArraySize{};
+        u32 Group{};
+        u32 Slot{};
+        // Payload 中的索引，类型为 u32
+        u32 ValueIndex{};
+        u32 Count{};
+        u32 Offset{};
+    };
+
+    // 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    struct FCmdSetDynSize : FCmdBase
+    {
+        // 绑定中的第几个组
+        u32 Group{};
+        // 动态数组大小
+        u32 Size{};
+    };
+
+    struct FCmdSetDynItem : FCmdBase
+    {
+        // 绑定中的第几个组
+        u32 Group{};
+        // Payload 中的索引，类型为 FSetBindItem
+        u32 ItemIndex{};
+        u32 Count{};
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,7 +410,9 @@ namespace Coplt
 
             FCmdSetPipeline SetPipeline;
             FCmdSetBinding SetBinding;
-            FCmdDynamicNew DynamicNew;
+            FCmdSetConsts SetConsts;
+            FCmdSetDynSize SetDynSize;
+            FCmdSetDynItem SetDynItem;
 
             FCmdSetViewportScissor SetViewportScissor;
             FCmdSetMeshBuffers SetMeshBuffers;

@@ -981,16 +981,58 @@ internal unsafe struct PipelineContext
         self.Data.Commands.Add(new() { SetBinding = cmd });
     }
 
-    public void DynamicNew(GpuRecord self, uint GroupIndex, uint DynArraySize)
+    public void SetDynSize(GpuRecord self, uint GroupIndex, uint Size)
     {
         if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
-        var cmd = new FCmdDynamicNew
+        var cmd = new FCmdSetDynSize
         {
-            Base = { Type = FCmdType.DynamicNew },
-            GroupIndex = GroupIndex,
-            DynArraySize = DynArraySize,
+            Base = { Type = FCmdType.SetDynSize },
+            Group = GroupIndex,
+            Size = Size,
         };
-        self.Data.Commands.Add(new() { DynamicNew = cmd });
+        self.Data.Commands.Add(new() { SetDynSize = cmd });
+    }
+
+    public void SetConstants(GpuRecord self, uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset)
+    {
+        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
+        if (Constants.Length == 0) return;
+        var cmd = new FCmdSetConsts
+        {
+            Base = { Type = FCmdType.SetConsts },
+            Group = GroupIndex,
+            Slot = BindIndex,
+            ValueIndex = (uint)self.Data.Payload32Bits.LongLength,
+            Count = (uint)Constants.Length,
+            Offset = Offset,
+        };
+        self.Data.Payload32Bits.AddRange(Constants);
+        self.Data.Commands.Add(new() { SetConsts = cmd });
+    }
+
+    public void SetDynItem(GpuRecord self, uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
+    {
+        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
+        if (Items.Length == 0) return;
+        var cmd = new FCmdSetDynItem
+        {
+            Base = { Type = FCmdType.SetDynItem },
+            Group = GroupIndex,
+            ItemIndex = (uint)self.Data.PayloadSetBindItem.LongLength,
+            Count = (uint)Items.Length,
+        };
+        var dst = self.Data.PayloadSetBindItem.UnsafeAddRange(Items.Length);
+        for (var i = 0; i < Items.Length; i++)
+        {
+            ref readonly var item = ref Items[i];
+            dst[i] = new()
+            {
+                View = item.View.ToFFI(),
+                Slot = item.BindIndex,
+                Index = item.ArrayIndex,
+            };
+        }
+        self.Data.Commands.Add(new() { SetDynItem = cmd });
     }
 
     #endregion
@@ -1081,10 +1123,40 @@ public unsafe struct RenderScope(
         m_pipeline_context.SetBinding(self, Binding);
     }
 
-    public void DynamicNew(uint GroupIndex, uint DynArraySize = 0)
+    /// <summary>
+    /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    /// </summary>
+    public void SetDynSize(uint GroupIndex, uint Size)
     {
         self.AssertNotEnded();
-        m_pipeline_context.DynamicNew(self, GroupIndex, DynArraySize);
+        m_pipeline_context.SetDynSize(self, GroupIndex, Size);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public void SetConstants(uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, Constants, Offset);
+    }
+
+    public void SetConstants<T>(uint GroupIndex, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
+    }
+
+    public void SetConstants<T>(uint GroupIndex, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
+    }
+
+    public void SetDynItem(uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetDynItem(self, GroupIndex, Items);
     }
 
     #endregion
@@ -1377,10 +1449,40 @@ public unsafe struct ComputeScope(
         m_pipeline_context.SetBinding(self, Binding);
     }
 
-    public void DynamicNew(uint GroupIndex, uint DynArraySize = 0)
+    /// <summary>
+    /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    /// </summary>
+    public void SetDynSize(uint GroupIndex, uint Size)
     {
         self.AssertNotEnded();
-        m_pipeline_context.DynamicNew(self, GroupIndex, DynArraySize);
+        m_pipeline_context.SetDynSize(self, GroupIndex, Size);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public void SetConstants(uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, Constants, Offset);
+    }
+
+    public void SetConstants<T>(uint GroupIndex, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
+    }
+
+    public void SetConstants<T>(uint GroupIndex, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        self.AssertNotEnded();
+        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
+    }
+
+    public void SetDynItem(uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.SetDynItem(self, GroupIndex, Items);
     }
 
     #endregion

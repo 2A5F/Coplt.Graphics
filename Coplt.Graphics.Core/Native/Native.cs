@@ -1773,6 +1773,11 @@ namespace Coplt.Graphics.Native
 
         public FList<FVertexBufferRange2> PayloadVertexBufferRange;
 
+        [NativeTypeName("FList<u32>")]
+        public FList<uint> Payload32Bits;
+
+        public FList<FSetBindItem> PayloadSetBindItem;
+
         [NativeTypeName("FList<u8>")]
         public FList<byte> Blob;
 
@@ -1803,7 +1808,9 @@ namespace Coplt.Graphics.Native
         Compute,
         SetPipeline,
         SetBinding,
-        DynamicNew,
+        SetConsts,
+        SetDynSize,
+        SetDynItem,
         SetViewportScissor,
         SetMeshBuffers,
         Draw,
@@ -1820,7 +1827,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L72_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L74_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -2234,16 +2241,52 @@ namespace Coplt.Graphics.Native
         public uint Index;
     }
 
-    [NativeTypeName("struct FCmdDynamicNew : Coplt::FCmdBase")]
-    public partial struct FCmdDynamicNew
+    [NativeTypeName("struct FCmdSetConsts : Coplt::FCmdBase")]
+    public partial struct FCmdSetConsts
     {
         public FCmdBase Base;
 
         [NativeTypeName("Coplt::u32")]
-        public uint GroupIndex;
+        public uint Group;
 
         [NativeTypeName("Coplt::u32")]
-        public uint DynArraySize;
+        public uint Slot;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ValueIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Count;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Offset;
+    }
+
+    [NativeTypeName("struct FCmdSetDynSize : Coplt::FCmdBase")]
+    public partial struct FCmdSetDynSize
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Group;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Size;
+    }
+
+    [NativeTypeName("struct FCmdSetDynItem : Coplt::FCmdBase")]
+    public partial struct FCmdSetDynItem
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Group;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint ItemIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint Count;
     }
 
     [NativeTypeName("struct FCmdSetViewportScissor : Coplt::FCmdBase")]
@@ -2359,7 +2402,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L369_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L392_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2493,12 +2536,32 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
-        public ref FCmdDynamicNew DynamicNew
+        public ref FCmdSetConsts SetConsts
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.DynamicNew;
+                return ref Anonymous.SetConsts;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdSetDynSize SetDynSize
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetDynSize;
+            }
+        }
+
+        [UnscopedRef]
+        public ref FCmdSetDynItem SetDynItem
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.SetDynItem;
             }
         }
 
@@ -2608,8 +2671,16 @@ namespace Coplt.Graphics.Native
             public FCmdSetBinding SetBinding;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCmdDynamicNew")]
-            public FCmdDynamicNew DynamicNew;
+            [NativeTypeName("Coplt::FCmdSetConsts")]
+            public FCmdSetConsts SetConsts;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdSetDynSize")]
+            public FCmdSetDynSize SetDynSize;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdSetDynItem")]
+            public FCmdSetDynItem SetDynItem;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdSetViewportScissor")]

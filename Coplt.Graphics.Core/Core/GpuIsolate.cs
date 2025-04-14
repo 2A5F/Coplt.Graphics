@@ -304,8 +304,8 @@ public sealed unsafe partial class GpuIsolate : DeviceChild
                 f_items[i] = new()
                 {
                     View = item.View.ToFFI(),
-                    Slot = item.Slot,
-                    Index = item.Index,
+                    Slot = item.BindIndex,
+                    Index = item.ArrayIndex,
                 };
             }
             fixed (char* p_name = Name)
