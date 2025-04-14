@@ -981,6 +981,18 @@ internal unsafe struct PipelineContext
         self.Data.Commands.Add(new() { SetBinding = cmd });
     }
 
+    public void DynamicNew(GpuRecord self, uint GroupIndex, uint DynArraySize)
+    {
+        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
+        var cmd = new FCmdDynamicNew
+        {
+            Base = { Type = FCmdType.DynamicNew },
+            GroupIndex = GroupIndex,
+            DynArraySize = DynArraySize,
+        };
+        self.Data.Commands.Add(new() { DynamicNew = cmd });
+    }
+
     #endregion
 }
 
@@ -1067,6 +1079,12 @@ public unsafe struct RenderScope(
     {
         self.AssertNotEnded();
         m_pipeline_context.SetBinding(self, Binding);
+    }
+
+    public void DynamicNew(uint GroupIndex, uint DynArraySize = 0)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.DynamicNew(self, GroupIndex, DynArraySize);
     }
 
     #endregion
@@ -1357,6 +1375,12 @@ public unsafe struct ComputeScope(
     {
         self.AssertNotEnded();
         m_pipeline_context.SetBinding(self, Binding);
+    }
+
+    public void DynamicNew(uint GroupIndex, uint DynArraySize = 0)
+    {
+        self.AssertNotEnded();
+        m_pipeline_context.DynamicNew(self, GroupIndex, DynArraySize);
     }
 
     #endregion

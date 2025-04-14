@@ -31,6 +31,7 @@ namespace Coplt
         // Render / Compute
         SetPipeline,
         SetBinding,
+        DynamicNew,
 
         // Render
         SetViewportScissor,
@@ -286,6 +287,14 @@ namespace Coplt
         u32 Index{};
     };
 
+    struct FCmdDynamicNew : FCmdBase
+    {
+        // 绑定中的第几个组
+        u32 GroupIndex{};
+        // 如果组中有动态大小数组，则需要填写
+        u32 DynArraySize{};
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCmdSetViewportScissor : FCmdBase
@@ -378,6 +387,7 @@ namespace Coplt
 
             FCmdSetPipeline SetPipeline;
             FCmdSetBinding SetBinding;
+            FCmdDynamicNew DynamicNew;
 
             FCmdSetViewportScissor SetViewportScissor;
             FCmdSetMeshBuffers SetMeshBuffers;

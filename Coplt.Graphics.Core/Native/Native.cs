@@ -1803,6 +1803,7 @@ namespace Coplt.Graphics.Native
         Compute,
         SetPipeline,
         SetBinding,
+        DynamicNew,
         SetViewportScissor,
         SetMeshBuffers,
         Draw,
@@ -1819,7 +1820,7 @@ namespace Coplt.Graphics.Native
 
     public unsafe partial struct FCmdRes
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L71_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L72_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("Coplt::FCmdResType")]
@@ -2233,6 +2234,18 @@ namespace Coplt.Graphics.Native
         public uint Index;
     }
 
+    [NativeTypeName("struct FCmdDynamicNew : Coplt::FCmdBase")]
+    public partial struct FCmdDynamicNew
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint GroupIndex;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint DynArraySize;
+    }
+
     [NativeTypeName("struct FCmdSetViewportScissor : Coplt::FCmdBase")]
     public partial struct FCmdSetViewportScissor
     {
@@ -2346,7 +2359,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L360_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L369_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2480,6 +2493,16 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
+        public ref FCmdDynamicNew DynamicNew
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return ref Anonymous.DynamicNew;
+            }
+        }
+
+        [UnscopedRef]
         public ref FCmdSetViewportScissor SetViewportScissor
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2583,6 +2606,10 @@ namespace Coplt.Graphics.Native
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdSetBinding")]
             public FCmdSetBinding SetBinding;
+
+            [FieldOffset(0)]
+            [NativeTypeName("Coplt::FCmdDynamicNew")]
+            public FCmdDynamicNew DynamicNew;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdSetViewportScissor")]
@@ -4939,6 +4966,7 @@ namespace Coplt.Graphics.Native
     {
         Common = 0,
         Dynamic = 1,
+        Freeze = 2,
     }
 
     public unsafe partial struct FBindGroupLayoutCreateOptions

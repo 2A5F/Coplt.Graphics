@@ -734,25 +734,34 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             DescriptorAllocation sampler_allocation{};
             // todo 确定是最后一次修改
             const auto f = [&](
-                const bool last, const u32 size, const Rc<DescriptorHeap>& heap,
+                const bool dyn, const u32 size, const Rc<DescriptorHeap>& heap,
                 const ComPtr<ID3D12DescriptorHeap>& dh, DescriptorAllocation& allocation
             )
             {
                 if (size == 0) return;
-                if (data.Usage == FBindGroupUsage::Dynamic && !last)
+                if (data.Usage == FBindGroupUsage::Dynamic)
                 {
                     allocation = heap->AllocateTmp(size);
                 }
                 else
                 {
-                    bool exists = false;
-                    allocation = heap->Allocate(object_id, size, exists);
-                    if (exists) return;
+                    if (dyn)
+                    {
+                        allocation = heap->AllocateTmp(size);
+                    }
+                    else
+                    {
+                        bool exists = false;
+                        allocation = heap->Allocate(object_id, size, exists);
+                        if (exists) return;
+                    }
+                    m_device->m_device->CopyDescriptorsSimple(
+                        size, allocation.GetCpuHandle(), dh->GetCPUDescriptorHandleForHeapStart(), heap->m_type
+                    );
                 }
-                m_device->m_device->CopyDescriptorsSimple(size, allocation.GetCpuHandle(), dh->GetCPUDescriptorHandleForHeapStart(), heap->m_type);
             };
-            f(true, data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), resource_allocation);
-            f(true, data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), sampler_allocation);
+            f(false, data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), resource_allocation);
+            f(false, data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), sampler_allocation);
             m_allocations.push_back({resource_allocation, sampler_allocation});
         }
         for (const auto& bind_item_info : bind_item_infos)

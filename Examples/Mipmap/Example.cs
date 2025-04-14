@@ -28,7 +28,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                     Id = 0,
                     Slot = 0,
                     Stage = ShaderStage.Compute,
-                    View = ShaderLayoutItemView.Cbv,
+                    View = ShaderLayoutItemView.Constants,
+                    Count = 4,
                     Type = ShaderLayoutItemType.ConstantBuffer,
                 },
                 new()
@@ -51,7 +52,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                         {
                             Id = 0,
                             Stages = ShaderStageFlags.Compute,
-                            View = ShaderLayoutItemView.Cbv,
+                            View = ShaderLayoutItemView.Constants,
+                            Count = 4,
                             Type = ShaderLayoutItemType.ConstantBuffer,
                         },
                         new()
@@ -101,7 +103,9 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
     private void GenMipmaps(GpuRecord cmd)
     {
         using var compute = cmd.Compute();
-        compute.Dispatch(Pipeline, 1, 1, 1);
+        // compute.SetBinding(Binding);
+        // compute.DynamicNew(0, 4);
+        compute.Dispatch(Pipeline, 1, 1);
     }
 
     protected override void Render(GpuRecord cmd, Time time)
