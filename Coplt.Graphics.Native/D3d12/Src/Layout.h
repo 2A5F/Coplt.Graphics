@@ -214,6 +214,8 @@ namespace Coplt
         virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
         virtual std::span<const BindItemInfo> BindItemInfos() const noexcept = 0;
         // 第一层索引是 Group index
+        virtual std::span<const std::vector<BindItemInfo>> GroupBindItemInfos() const noexcept = 0;
+        // 第一层索引是 Group index
         virtual std::span<const std::vector<TableInfo>> TableInfos() const noexcept = 0;
         // 第一层索引是 Group index
         virtual std::span<const std::vector<GroupItemInfo>> GroupItemInfos() const noexcept = 0;
@@ -231,6 +233,8 @@ namespace Coplt
         std::vector<BindItemInfo> m_bind_item_infos{};
         HashMap<BindSlot, usize> m_slot_to_info{};
         // 第一层索引是 Group index
+        std::vector<std::vector<BindItemInfo>> m_group_bind_item_infos{};
+        // 第一层索引是 Group index
         std::vector<std::vector<TableInfo>> m_tables{};
         // 第一层索引是 Group index
         std::vector<std::vector<GroupItemInfo>> m_group_item_infos{};
@@ -245,6 +249,7 @@ namespace Coplt
         const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
         std::span<const SlotInfo> SlotInfos() const noexcept override;
         std::span<const BindItemInfo> BindItemInfos() const noexcept override;
+        std::span<const std::vector<BindItemInfo>> GroupBindItemInfos() const noexcept override;
         std::span<const std::vector<TableInfo>> TableInfos() const noexcept override;
         std::span<const std::vector<GroupItemInfo>> GroupItemInfos() const noexcept override;
     };

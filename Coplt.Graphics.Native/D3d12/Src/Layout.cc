@@ -262,6 +262,8 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
     std::vector<HashMap<TableKey, TableDefine>> tables{};
     tables.reserve(m_groups.size());
     for (u32 i = 0; i < m_groups.size(); i++) tables.push_back({});
+    m_group_bind_item_infos.reserve(m_groups.size());
+    for (u32 i = 0; i < m_groups.size(); i++) m_group_bind_item_infos.push_back({});
 
     for (auto& info : m_slot_infos)
     {
@@ -289,6 +291,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.Place = BindItemPlace::Const;
             item_info.Type = BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
+            m_group_bind_item_infos[info.Group].push_back(item_info);
             continue;
         }
 
@@ -376,6 +379,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.Place = BindItemPlace::Direct;
             item_info.Type = BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
+            m_group_bind_item_infos[info.Group].push_back(item_info);
             continue;
         }
     DefineStaticSampler:
@@ -420,6 +424,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             item_info.Place = BindItemPlace::Table;
             item_info.Type = Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? BindItemType::Sampler : BindItemType::Resource;
             m_bind_item_infos.push_back(item_info);
+            m_group_bind_item_infos[Info.Group].push_back(item_info);
         }
         m_tables.push_back(std::move(infos));
     }
@@ -500,6 +505,11 @@ std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() co
 std::span<const BindItemInfo> D3d12BindingLayout::BindItemInfos() const noexcept
 {
     return m_bind_item_infos;
+}
+
+std::span<const std::vector<BindItemInfo>> D3d12BindingLayout::GroupBindItemInfos() const noexcept
+{
+    return m_group_bind_item_infos;
 }
 
 std::span<const std::vector<TableInfo>> D3d12BindingLayout::TableInfos() const noexcept

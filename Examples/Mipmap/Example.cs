@@ -102,12 +102,12 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
 
     private void GenMipmaps(GpuRecord cmd, GpuImage image)
     {
-        using var compute = cmd.Compute();
+        using var compute = cmd.Compute(Name: "GenMipmaps");
         compute.SetBinding(Binding);
-        compute.SetDynSize(0, 4);
-        compute.SetConstants(0, 0, [image.Width, image.Height, 4]);
-        compute.SetDynItem(
-            0, [
+        compute.SetDynArraySize(BindGroup, 4);
+        compute.SetConstants(BindGroup, 0, [image.Width, image.Height, 4]);
+        compute.SetBindItem(
+            BindGroup, [
                 new(1, 0, image.View2D(0, 1)),
                 new(1, 1, image.View2D(1, 1)),
                 new(1, 2, image.View2D(2, 1)),

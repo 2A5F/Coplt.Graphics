@@ -44,7 +44,7 @@ namespace Coplt
         FList<u32> Payload32Bits;
         FList<FSetBindItem> PayloadSetBindItem;
         FList<u8> Blob;
-        u32 NumSetBindings{};
+        u32 NumSyncBindings{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 
@@ -74,7 +74,7 @@ namespace Coplt
             Payload32Bits.Clear();
             PayloadSetBindItem.Clear();
             Blob.Clear();
-            NumSetBindings = 0;
+            NumSyncBindings = 0;
         }
         #endif
     };

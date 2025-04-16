@@ -1782,7 +1782,7 @@ namespace Coplt.Graphics.Native
         public FList<byte> Blob;
 
         [NativeTypeName("Coplt::u32")]
-        public uint NumSetBindings;
+        public uint NumSyncBindings;
 
         [NativeTypeName("Coplt::b8")]
         public B8 Ended;
@@ -1808,9 +1808,9 @@ namespace Coplt.Graphics.Native
         Compute,
         SetPipeline,
         SetBinding,
-        SetConsts,
-        SetDynSize,
-        SetDynItem,
+        SetConstants,
+        SetDynArraySize,
+        SetBindItem,
         SetViewportScissor,
         SetMeshBuffers,
         Draw,
@@ -2241,13 +2241,22 @@ namespace Coplt.Graphics.Native
         public uint Index;
     }
 
-    [NativeTypeName("struct FCmdSetConsts : Coplt::FCmdBase")]
-    public partial struct FCmdSetConsts
+    [NativeTypeName("struct FCmdSyncBinding : Coplt::FCmdBase")]
+    public partial struct FCmdSyncBinding
     {
         public FCmdBase Base;
 
         [NativeTypeName("Coplt::u32")]
-        public uint Group;
+        public uint SyncBindingIndex;
+    }
+
+    [NativeTypeName("struct FCmdSetConstants : Coplt::FCmdBase")]
+    public unsafe partial struct FCmdSetConstants
+    {
+        public FCmdBase Base;
+
+        [NativeTypeName("Coplt::FShaderBindGroup *")]
+        public FShaderBindGroup* Group;
 
         [NativeTypeName("Coplt::u32")]
         public uint Slot;
@@ -2262,25 +2271,25 @@ namespace Coplt.Graphics.Native
         public uint Offset;
     }
 
-    [NativeTypeName("struct FCmdSetDynSize : Coplt::FCmdBase")]
-    public partial struct FCmdSetDynSize
+    [NativeTypeName("struct FCmdSetDynArraySize : Coplt::FCmdBase")]
+    public unsafe partial struct FCmdSetDynArraySize
     {
         public FCmdBase Base;
 
-        [NativeTypeName("Coplt::u32")]
-        public uint Group;
+        [NativeTypeName("Coplt::FShaderBindGroup *")]
+        public FShaderBindGroup* Group;
 
         [NativeTypeName("Coplt::u32")]
         public uint Size;
     }
 
-    [NativeTypeName("struct FCmdSetDynItem : Coplt::FCmdBase")]
-    public partial struct FCmdSetDynItem
+    [NativeTypeName("struct FCmdSetBindItem : Coplt::FCmdBase")]
+    public unsafe partial struct FCmdSetBindItem
     {
         public FCmdBase Base;
 
-        [NativeTypeName("Coplt::u32")]
-        public uint Group;
+        [NativeTypeName("Coplt::FShaderBindGroup *")]
+        public FShaderBindGroup* Group;
 
         [NativeTypeName("Coplt::u32")]
         public uint ItemIndex;
@@ -2358,10 +2367,10 @@ namespace Coplt.Graphics.Native
         public uint PayloadIndex;
     }
 
-    [NativeTypeName("struct FCmdDraw : Coplt::FCmdBase")]
+    [NativeTypeName("struct FCmdDraw : Coplt::FCmdSyncBinding")]
     public partial struct FCmdDraw
     {
-        public FCmdBase Base;
+        public FCmdSyncBinding Base;
 
         [NativeTypeName("Coplt::u32")]
         public uint VertexOrIndexCount;
@@ -2382,10 +2391,10 @@ namespace Coplt.Graphics.Native
         public B8 Indexed;
     }
 
-    [NativeTypeName("struct FCmdDispatch : Coplt::FCmdBase")]
+    [NativeTypeName("struct FCmdDispatch : Coplt::FCmdSyncBinding")]
     public partial struct FCmdDispatch
     {
-        public FCmdBase Base;
+        public FCmdSyncBinding Base;
 
         [NativeTypeName("Coplt::u32")]
         public uint GroupCountX;
@@ -2402,7 +2411,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L392_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L394_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -2536,32 +2545,32 @@ namespace Coplt.Graphics.Native
         }
 
         [UnscopedRef]
-        public ref FCmdSetConsts SetConsts
+        public ref FCmdSetConstants SetConstants
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.SetConsts;
+                return ref Anonymous.SetConstants;
             }
         }
 
         [UnscopedRef]
-        public ref FCmdSetDynSize SetDynSize
+        public ref FCmdSetDynArraySize SetDynArraySize
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.SetDynSize;
+                return ref Anonymous.SetDynArraySize;
             }
         }
 
         [UnscopedRef]
-        public ref FCmdSetDynItem SetDynItem
+        public ref FCmdSetBindItem SetBindItem
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return ref Anonymous.SetDynItem;
+                return ref Anonymous.SetBindItem;
             }
         }
 
@@ -2671,16 +2680,16 @@ namespace Coplt.Graphics.Native
             public FCmdSetBinding SetBinding;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCmdSetConsts")]
-            public FCmdSetConsts SetConsts;
+            [NativeTypeName("Coplt::FCmdSetConstants")]
+            public FCmdSetConstants SetConstants;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCmdSetDynSize")]
-            public FCmdSetDynSize SetDynSize;
+            [NativeTypeName("Coplt::FCmdSetDynArraySize")]
+            public FCmdSetDynArraySize SetDynArraySize;
 
             [FieldOffset(0)]
-            [NativeTypeName("Coplt::FCmdSetDynItem")]
-            public FCmdSetDynItem SetDynItem;
+            [NativeTypeName("Coplt::FCmdSetBindItem")]
+            public FCmdSetBindItem SetBindItem;
 
             [FieldOffset(0)]
             [NativeTypeName("Coplt::FCmdSetViewportScissor")]

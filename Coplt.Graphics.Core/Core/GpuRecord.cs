@@ -906,6 +906,84 @@ public sealed unsafe class GpuRecord : IsolateChild
     }
 
     #endregion
+
+    #region Binding
+
+    internal void SetDynArraySize(ShaderBindGroup Group, uint Size)
+    {
+        AssertNotEnded();
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic) 
+            throw new ArgumentException("Dynamic array size can only be set for dynamic groups");
+        AddObject(Group);
+        var cmd = new FCmdSetDynArraySize
+        {
+            Base = { Type = FCmdType.SetDynArraySize },
+            Group = Group.Ptr,
+            Size = Size,
+        };
+        Data.Commands.Add(new() { SetDynArraySize = cmd });
+    }
+
+    internal void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        SetConstants(Group, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
+    }
+
+    internal void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        SetConstants(Group, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
+    }
+
+    [OverloadResolutionPriority(1)]
+    internal void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
+    {
+        AssertNotEnded();
+        if (Constants.Length == 0) return;
+        AddObject(Group);
+        var cmd = new FCmdSetConstants
+        {
+            Base = { Type = FCmdType.SetConstants },
+            Group = Group.Ptr,
+            Slot = BindIndex,
+            ValueIndex = (uint)Data.Payload32Bits.LongLength,
+            Count = (uint)Constants.Length,
+            Offset = Offset,
+        };
+        Data.Payload32Bits.AddRange(Constants);
+        Data.Commands.Add(new() { SetConstants = cmd });
+    }
+
+    internal void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items)
+    {
+        AssertNotEnded();
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic) 
+            throw new ArgumentException("Only items in a dynamic group can be set dynamically");
+        if (Items.Length == 0) return;
+        AddObject(Group);
+        var cmd = new FCmdSetBindItem
+        {
+            Base = { Type = FCmdType.SetBindItem },
+            Group = Group.Ptr,
+            ItemIndex = (uint)Data.PayloadSetBindItem.LongLength,
+            Count = (uint)Items.Length,
+        };
+        var dst = Data.PayloadSetBindItem.UnsafeAddRange(Items.Length);
+        for (var i = 0; i < Items.Length; i++)
+        {
+            ref readonly var item = ref Items[i];
+            dst[i] = new()
+            {
+                View = item.View.ToFFI(),
+                Slot = item.BindIndex,
+                Index = item.ArrayIndex,
+            };
+        }
+        Data.Commands.Add(new() { SetBindItem = cmd });
+    }
+
+    #endregion
 }
 
 #region DebugScope
@@ -976,63 +1054,9 @@ internal unsafe struct PipelineContext
         {
             Base = { Type = FCmdType.SetBinding },
             Binding = binding_index,
-            Index = self.Data.NumSetBindings++,
+            // Index = self.Data.NumSetBindings++,
         };
         self.Data.Commands.Add(new() { SetBinding = cmd });
-    }
-
-    public void SetDynSize(GpuRecord self, uint GroupIndex, uint Size)
-    {
-        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
-        var cmd = new FCmdSetDynSize
-        {
-            Base = { Type = FCmdType.SetDynSize },
-            Group = GroupIndex,
-            Size = Size,
-        };
-        self.Data.Commands.Add(new() { SetDynSize = cmd });
-    }
-
-    public void SetConstants(GpuRecord self, uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset)
-    {
-        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
-        if (Constants.Length == 0) return;
-        var cmd = new FCmdSetConsts
-        {
-            Base = { Type = FCmdType.SetConsts },
-            Group = GroupIndex,
-            Slot = BindIndex,
-            ValueIndex = (uint)self.Data.Payload32Bits.LongLength,
-            Count = (uint)Constants.Length,
-            Offset = Offset,
-        };
-        self.Data.Payload32Bits.AddRange(Constants);
-        self.Data.Commands.Add(new() { SetConsts = cmd });
-    }
-
-    public void SetDynItem(GpuRecord self, uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
-    {
-        if (m_current_binding == null) throw new InvalidOperationException("Binding not set");
-        if (Items.Length == 0) return;
-        var cmd = new FCmdSetDynItem
-        {
-            Base = { Type = FCmdType.SetDynItem },
-            Group = GroupIndex,
-            ItemIndex = (uint)self.Data.PayloadSetBindItem.LongLength,
-            Count = (uint)Items.Length,
-        };
-        var dst = self.Data.PayloadSetBindItem.UnsafeAddRange(Items.Length);
-        for (var i = 0; i < Items.Length; i++)
-        {
-            ref readonly var item = ref Items[i];
-            dst[i] = new()
-            {
-                View = item.View.ToFFI(),
-                Slot = item.BindIndex,
-                Index = item.ArrayIndex,
-            };
-        }
-        self.Data.Commands.Add(new() { SetDynItem = cmd });
     }
 
     #endregion
@@ -1126,38 +1150,21 @@ public unsafe struct RenderScope(
     /// <summary>
     /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
     /// </summary>
-    public void SetDynSize(uint GroupIndex, uint Size)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetDynSize(self, GroupIndex, Size);
-    }
+    public void SetDynArraySize(ShaderBindGroup Group, uint Size) => 
+        self.SetDynArraySize(Group, Size);
 
     [OverloadResolutionPriority(1)]
-    public void SetConstants(uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, Constants, Offset);
-    }
+    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) => 
+        self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(uint GroupIndex, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
-    {
-        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
-    }
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged => 
+        self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(uint GroupIndex, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
-    {
-        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
-    }
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged => 
+        self.SetConstants(Group, BindIndex, Constant, Offset);
 
-    public void SetDynItem(uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetDynItem(self, GroupIndex, Items);
-    }
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) => 
+        self.SetBindItem(Group, Items);
 
     #endregion
 
@@ -1312,7 +1319,11 @@ public unsafe struct RenderScope(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDraw
         {
-            Base = { Type = FCmdType.Draw },
+            Base =
+            {
+                Base = { Type = FCmdType.Draw },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             VertexOrIndexCount = VertexOrIndexCount,
             InstanceCount = InstanceCount,
             FirstVertexOrIndex = FirstVertexOrIndex,
@@ -1338,6 +1349,8 @@ public unsafe struct RenderScope(
         ShaderBinding? Binding = null
     )
     {
+        if (GroupCountX == 0 || GroupCountY == 0 || GroupCountZ == 0)
+            throw new ArgumentException("GroupCountX and GroupCountY and GroupCountZ must not be 0");
         self.AssertNotEnded();
         if (Pipeline != null)
         {
@@ -1354,7 +1367,11 @@ public unsafe struct RenderScope(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
-            Base = { Type = FCmdType.Dispatch },
+            Base =
+            {
+                Base = { Type = FCmdType.Dispatch },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,
@@ -1452,38 +1469,20 @@ public unsafe struct ComputeScope(
     /// <summary>
     /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
     /// </summary>
-    public void SetDynSize(uint GroupIndex, uint Size)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetDynSize(self, GroupIndex, Size);
-    }
+    public void SetDynArraySize(ShaderBindGroup Group, uint Size) => self.SetDynArraySize(Group, Size);
 
     [OverloadResolutionPriority(1)]
-    public void SetConstants(uint GroupIndex, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, Constants, Offset);
-    }
+    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) =>
+        self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(uint GroupIndex, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
-    {
-        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
-    }
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged => 
+        self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(uint GroupIndex, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
-    {
-        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
-        self.AssertNotEnded();
-        m_pipeline_context.SetConstants(self, GroupIndex, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
-    }
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged => 
+        self.SetConstants(Group, BindIndex, Constant, Offset);
 
-    public void SetDynItem(uint GroupIndex, ReadOnlySpan<SetShaderBindItem> Items)
-    {
-        self.AssertNotEnded();
-        m_pipeline_context.SetDynItem(self, GroupIndex, Items);
-    }
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) => 
+        self.SetBindItem(Group, Items);
 
     #endregion
 
@@ -1500,6 +1499,8 @@ public unsafe struct ComputeScope(
         ShaderBinding? Binding = null
     )
     {
+        if (GroupCountX == 0 || GroupCountY == 0 || GroupCountZ == 0)
+            throw new ArgumentException("GroupCountX and GroupCountY and GroupCountZ must not be 0");
         self.AssertNotEnded();
         if (Pipeline != null)
         {
@@ -1516,7 +1517,11 @@ public unsafe struct ComputeScope(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
-            Base = { Type = FCmdType.Dispatch },
+            Base =
+            {
+                Base = { Type = FCmdType.Dispatch },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,

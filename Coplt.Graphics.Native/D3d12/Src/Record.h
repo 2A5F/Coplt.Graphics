@@ -108,7 +108,7 @@ namespace Coplt
             Ptr<ID3d12ComputeShaderPipeline> CPipeline{};
 
             Ptr<ID3d12ShaderBinding> Binding{};
-            u32 SetBindingIndex{};
+            u32 BindingIndex{};
 
             bool PipelineChanged{};
             bool BindingChanged{};
@@ -120,28 +120,50 @@ namespace Coplt
 
         struct BindingInfo
         {
+            Ptr<ID3d12BindingLayout> Layout{};
             u64 BindingVersion{};
-            u32 AllocationIndex{COPLT_U32_MAX};
             u32 BindItemIndex{COPLT_U32_MAX};
+            u32 BindItemCount{0};
+            u32 BindGroupInfoIndex{COPLT_U32_MAX};
+            bool Changed{};
+
+            explicit operator bool() const noexcept
+            {
+                return Layout;
+            }
         };
 
-        struct SetBindingInfo
+        struct BindGroupInfo
         {
-            ID3d12BindingLayout* Layout{};
-            u32 AllocationIndex{COPLT_U32_MAX};
+            u32 DynArraySize{};
+            bool Changed{};
+        };
+
+        struct SyncBindingInfo
+        {
+            Ptr<ID3d12BindingLayout> Layout{};
             u32 BindItemIndex{COPLT_U32_MAX};
+            u32 BindItemCount{0};
+
+            explicit operator bool() const noexcept
+            {
+                return Layout;
+            }
         };
 
         struct BindItem
         {
+            Ptr<const Layout::BindItemInfo> Info{};
             union
             {
+                u32 AllocationIndex{};
                 // todo 直接资源和常量
             };
         };
 
         struct AllocationPoint
         {
+            u32 GroupIndex{};
             DescriptorAllocation Resource{};
             DescriptorAllocation Sampler{};
         };
@@ -155,7 +177,7 @@ namespace Coplt
         HashMap<u64, u64> m_resource_map{}; // id -> index
         std::vector<ResourceInfo> m_resource_infos{};
         std::vector<BindingInfo> m_binding_infos{};
-        std::vector<SetBindingInfo> m_set_binding_infos{};
+        std::vector<SyncBindingInfo> m_sync_binding_infos{};
         std::vector<AllocationPoint> m_allocations{};
         std::vector<BindItem> m_bind_items{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
@@ -211,8 +233,10 @@ namespace Coplt
         void Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
         void Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd);
+        void Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
-        void Analyze_Dispatch(u32 i, const FCmdDispatch& cmd) const;
+        void Analyze_Draw(u32 i, const FCmdDraw& cmd);
+        void Analyze_Dispatch(u32 i, const FCmdDispatch& cmd);
 
         void BeforeInterpret(const D3d12RentedCommandList& list) override;
         void AfterInterpret(const D3d12RentedCommandList& list) override;
@@ -229,15 +253,15 @@ namespace Coplt
         void Interpret_Compute(const CmdList& list, u32 i, const FCmdCompute& cmd);
         void Interpret_ComputeEnd(const CmdList& list, u32 i, const FCmdCompute& cmd);
         void Interpret_SetPipeline(const CmdList& list, u32 i, const FCmdSetPipeline& cmd);
-        void Interpret_SetBinding(const CmdList& list, u32 i, const FCmdSetBinding& cmd);
+        void Interpret_SyncBinding(const CmdList& list, u32 i, const FCmdSyncBinding& cmd);
         void Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const;
         void Interpret_SetMeshBuffers(const CmdList& list, u32 i, const FCmdSetMeshBuffers& cmd) const;
-        void Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd) const;
-        void Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDispatch& cmd) const;
+        void Interpret_Draw(const CmdList& list, u32 i, const FCmdDraw& cmd);
+        void Interpret_Dispatch(const CmdList& list, u32 i, const FCmdDispatch& cmd);
 
         void SetPipeline(NonNull<FShaderPipeline> pipeline, u32 i);
         // 返回是否改变
-        bool SetBinding(NonNull<FShaderBinding> binding, u32 i, const FCmdSetBinding& cmd);
+        bool SetBinding(u32 i, const FCmdSetBinding& cmd);
         void SetPipeline(const CmdList& list, NonNull<FShaderPipeline> pipeline, u32 i);
     };
 
