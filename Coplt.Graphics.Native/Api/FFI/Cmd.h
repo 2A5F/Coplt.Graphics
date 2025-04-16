@@ -296,7 +296,10 @@ namespace Coplt
 
     struct FCmdSetConstants : FCmdBase
     {
+        // Payload 中的索引，类型为 FCmdBindGroup
         FShaderBindGroup* Group{};
+        // 第几个 SetConstants
+        u32 SetConstantsIndex{};
         u32 Slot{};
         // Payload 中的索引，类型为 u32
         u32 ValueIndex{};
@@ -307,6 +310,7 @@ namespace Coplt
     // 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
     struct FCmdSetDynArraySize : FCmdBase
     {
+        // Payload 中的索引，类型为 FCmdBindGroup
         FShaderBindGroup* Group{};
         // 动态数组大小
         u32 Size{};
@@ -314,6 +318,7 @@ namespace Coplt
 
     struct FCmdSetBindItem : FCmdBase
     {
+        // Payload 中的索引，类型为 FCmdBindGroup
         FShaderBindGroup* Group{};
         // Payload 中的索引，类型为 FSetBindItem
         u32 ItemIndex{};

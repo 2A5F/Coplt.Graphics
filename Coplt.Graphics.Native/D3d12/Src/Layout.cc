@@ -90,10 +90,25 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
                     item.Id, item.Scope, static_cast<u32>(item.Stages), i
                 );
             }
-            if (i + 1 != m_items.size())
+            switch (item.View)
             {
+            case FShaderLayoutItemView::Cbv:
+            case FShaderLayoutItemView::Srv:
+            case FShaderLayoutItemView::Uav:
+                if (i + 1 != m_items.size())
+                {
+                    COPLT_THROW_FMT(
+                        "Invalid binding define {{ Id = {}, Scope = {}, Stages = {} }} at [{}]; Dynamic length array must be the last item in the group",
+                        item.Id, item.Scope, static_cast<u32>(item.Stages), i
+                    );
+                }
+                DynamicArrayIndex = i;
+                break;
+            case FShaderLayoutItemView::Sampler:
+            case FShaderLayoutItemView::Constants:
+            case FShaderLayoutItemView::StaticSampler:
                 COPLT_THROW_FMT(
-                    "Invalid binding define {{ Id = {}, Scope = {}, Stages = {} }} at [{}]; Dynamic length array must be the last item in the group",
+                    "Invalid binding define {{ Id = {}, Scope = {}, Stages = {} }} at [{}]; Only Cbv|Srv|Uav View support unlimited length arrays",
                     item.Id, item.Scope, static_cast<u32>(item.Stages), i
                 );
             }
@@ -110,7 +125,10 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
             }
             info.OffsetInTable = ResourceTableSize;
             info.Place = BindSlotPlace::ResourceTable;
-            ResourceTableSize += count;
+            if (count != COPLT_U32_MAX)
+            {
+                ResourceTableSize += count;
+            }
             break;
         case FShaderLayoutItemView::Sampler:
             info.OffsetInTable = SamplerTableSize;

@@ -122,10 +122,10 @@ namespace Coplt
         {
             Ptr<ID3d12BindingLayout> Layout{};
             u64 BindingVersion{};
-            u32 BindItemIndex{COPLT_U32_MAX};
-            u32 BindItemCount{0};
-            u32 BindGroupInfoIndex{COPLT_U32_MAX};
-            bool Changed{};
+            u32 PersistentBindItemIndex{COPLT_U32_MAX};
+            u32 PersistentBindItemCount{0};
+            u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
+            u32 DynamicBindGroupInfoIndCount{0};
 
             explicit operator bool() const noexcept
             {
@@ -135,15 +135,33 @@ namespace Coplt
 
         struct BindGroupInfo
         {
+            Rc<ID3d12ShaderBindGroup> BindGroup{};
+            u32 Index{};
             u32 DynArraySize{};
-            bool Changed{};
+            // 类型为 SetConstantsChunk
+            u32 SetConstantsHead{COPLT_U32_MAX};
+            // 类型为 SetConstantsChunk
+            u32 SetConstantsTail{COPLT_U32_MAX};
+            // 只有再 Frozen 变为 true 后才会设置
+            u32 DynamicBindItemIndex{COPLT_U32_MAX};
+            u32 DynamicBindItemCount{0};
+            // 冻结后不可再修改
+            bool Frozen{false};
+        };
+
+        struct SetConstantsChunk
+        {
+            u32 Next{COPLT_U32_MAX};
+            u32 CmdIndex[7]{COPLT_U32_MAX};
         };
 
         struct SyncBindingInfo
         {
             Ptr<ID3d12BindingLayout> Layout{};
-            u32 BindItemIndex{COPLT_U32_MAX};
-            u32 BindItemCount{0};
+            u32 PersistentBindItemIndex{COPLT_U32_MAX};
+            u32 PersistentBindItemCount{0};
+            u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
+            u32 DynamicBindGroupInfoIndCount{0};
 
             explicit operator bool() const noexcept
             {
@@ -154,6 +172,7 @@ namespace Coplt
         struct BindItem
         {
             Ptr<const Layout::BindItemInfo> Info{};
+
             union
             {
                 u32 AllocationIndex{};
@@ -168,6 +187,12 @@ namespace Coplt
             DescriptorAllocation Sampler{};
         };
 
+        struct BindGroupInd
+        {
+            u32 GroupIndex{};
+            u32 InfoIndex{};
+        };
+
         u64 m_isolate_id{};
         u64 m_record_id{};
         SRc<FGpuIsolateConfig> m_isolate_config{};
@@ -177,8 +202,13 @@ namespace Coplt
         HashMap<u64, u64> m_resource_map{}; // id -> index
         std::vector<ResourceInfo> m_resource_infos{};
         std::vector<BindingInfo> m_binding_infos{};
+        std::vector<BindGroupInfo> m_dynamic_bind_group_infos{};
+        HashMap<u64, u64> m_dynamic_bind_group_map{}; // id -> index
         std::vector<SyncBindingInfo> m_sync_binding_infos{};
         std::vector<AllocationPoint> m_allocations{};
+        std::vector<BindGroupInd> m_dynamic_bind_group_info_indexes{};
+        std::vector<BindGroupInd> m_dynamic_bind_group_info_sync_indexes{};
+        std::vector<SetConstantsChunk> m_set_constants_chunks{};
         std::vector<BindItem> m_bind_items{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         std::vector<ReadGuard> m_tmp_locks{};
@@ -219,7 +249,10 @@ namespace Coplt
         FResIndex AddResource(const View& view);
         void ReadyResource();
         // 返回帧所需的最小描述符堆大小
-        void ReadyBindings(u32& MinResHeapSize, u32& MinSmpHeapSize);
+        void ReadyBindings(u32& MaxResHeapSize, u32& MaxSmpHeapSize);
+
+        BindGroupInfo& QueryBindGroupInfo(ID3d12ShaderBindGroup& group, bool mut);
+        BindGroupInfo& QueryBindGroupInfo(NonNull<FShaderBindGroup> group, u32 i, bool mut);
 
         void Analyze();
         void Analyze_PreparePresent(u32 i, const FCmdPreparePresent& cmd) const;
@@ -233,6 +266,7 @@ namespace Coplt
         void Analyze_ComputeEnd(u32 i, const FCmdCompute& cmd);
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
         void Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd);
+        void Analyze_SetConstants(u32 i, const FCmdSetConstants& cmd);
         void Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
         void Analyze_Draw(u32 i, const FCmdDraw& cmd);

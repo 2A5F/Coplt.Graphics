@@ -45,15 +45,16 @@ namespace Coplt
         FList<FSetBindItem> PayloadSetBindItem;
         FList<u8> Blob;
         u32 NumSyncBindings{};
+        u32 SumDynArraySize{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator), PayloadRect(allocator),
-              PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
-              PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator),
-              Payload32Bits(allocator), PayloadSetBindItem(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator),
+              PayloadRect(allocator), PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator),
+              PayloadBufferCopyRange(allocator), PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator),
+              PayloadVertexBufferRange(allocator), Payload32Bits(allocator), PayloadSetBindItem(allocator), Blob(allocator)
         {
         }
 

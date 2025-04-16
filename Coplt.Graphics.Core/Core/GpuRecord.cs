@@ -14,7 +14,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     #region Fields
 
     internal FGpuRecordData* m_data;
-    internal readonly Dictionary<object, uint> m_resources = new();
+    internal readonly Dictionary<IGpuResource, uint> m_resources = new();
     internal readonly HashSet<object> m_objects = new();
     internal uint m_debug_scope_count;
     internal bool m_in_render_or_compute_scope;
@@ -912,7 +912,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     internal void SetDynArraySize(ShaderBindGroup Group, uint Size)
     {
         AssertNotEnded();
-        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic) 
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic)
             throw new ArgumentException("Dynamic array size can only be set for dynamic groups");
         AddObject(Group);
         var cmd = new FCmdSetDynArraySize
@@ -958,7 +958,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     internal void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items)
     {
         AssertNotEnded();
-        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic) 
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic)
             throw new ArgumentException("Only items in a dynamic group can be set dynamically");
         if (Items.Length == 0) return;
         AddObject(Group);
@@ -1150,20 +1150,20 @@ public unsafe struct RenderScope(
     /// <summary>
     /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
     /// </summary>
-    public void SetDynArraySize(ShaderBindGroup Group, uint Size) => 
+    public void SetDynArraySize(ShaderBindGroup Group, uint Size) =>
         self.SetDynArraySize(Group, Size);
 
     [OverloadResolutionPriority(1)]
-    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) => 
+    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) =>
         self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged => 
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged =>
         self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged => 
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged =>
         self.SetConstants(Group, BindIndex, Constant, Offset);
 
-    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) => 
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) =>
         self.SetBindItem(Group, Items);
 
     #endregion
@@ -1475,13 +1475,13 @@ public unsafe struct ComputeScope(
     public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) =>
         self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged => 
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged =>
         self.SetConstants(Group, BindIndex, Constants, Offset);
 
-    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged => 
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged =>
         self.SetConstants(Group, BindIndex, Constant, Offset);
 
-    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) => 
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) =>
         self.SetBindItem(Group, Items);
 
     #endregion

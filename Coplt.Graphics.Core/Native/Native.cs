@@ -1784,6 +1784,9 @@ namespace Coplt.Graphics.Native
         [NativeTypeName("Coplt::u32")]
         public uint NumSyncBindings;
 
+        [NativeTypeName("Coplt::u32")]
+        public uint SumDynArraySize;
+
         [NativeTypeName("Coplt::b8")]
         public B8 Ended;
 
@@ -2259,6 +2262,9 @@ namespace Coplt.Graphics.Native
         public FShaderBindGroup* Group;
 
         [NativeTypeName("Coplt::u32")]
+        public uint SetConstantsIndex;
+
+        [NativeTypeName("Coplt::u32")]
         public uint Slot;
 
         [NativeTypeName("Coplt::u32")]
@@ -2411,7 +2417,7 @@ namespace Coplt.Graphics.Native
 
     public partial struct FCmdItem
     {
-        [NativeTypeName("__AnonymousRecord_Cmd_L394_C9")]
+        [NativeTypeName("__AnonymousRecord_Cmd_L399_C9")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -5083,6 +5089,9 @@ namespace Coplt.Graphics.Native
 
         [NativeTypeName("Coplt::u32")]
         public uint NumStaticSamplers;
+
+        [NativeTypeName("Coplt::u32")]
+        public uint DynamicArrayIndex;
 
         [NativeTypeName("Coplt::FBindGroupUsage")]
         public FBindGroupUsage Usage;
