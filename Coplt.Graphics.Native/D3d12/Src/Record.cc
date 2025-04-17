@@ -831,6 +831,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
         }
         binding_info.PersistentBindItemCount = m_bind_items.size() - binding_info.PersistentBindItemCount;
         binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_infos.size() - binding_info.DynamicBindGroupInfoIndIndex;
+        binding_info.Changed = true;
     }
 }
 
@@ -863,8 +864,9 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
     auto& binding_info = m_binding_infos[m_pipeline_context.BindingIndex];
     auto& sync_binding_info = m_sync_binding_infos[cmd.SyncBindingIndex];
     sync_binding_info.Layout = binding_info.Layout;
+    auto changed = binding_info.Changed;
+    binding_info.Changed = false;
     const NonNull binding_layout = sync_binding_info.Layout;
-    const auto group_item_infos = binding_layout->GroupItemInfos();
     const auto group_bind_item_infos = binding_layout->GroupBindItemInfos();
     sync_binding_info.PersistentBindItemIndex = binding_info.PersistentBindItemIndex;
     sync_binding_info.PersistentBindItemCount = binding_info.PersistentBindItemCount;
@@ -879,6 +881,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
         if (!info.Frozen)
         {
             info.Frozen = true;
+            changed = true;
             info.DynamicBindItemIndex = m_bind_items.size();
             const auto& group = info.BindGroup;
             const auto& bind_item_infos = group_bind_item_infos[ind.GroupIndex];
@@ -911,6 +914,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
         }
     }
     sync_binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_info_sync_inds.size() - sync_binding_info.DynamicBindGroupInfoIndIndex;
+    if (!changed) sync_binding_info.Skip = true;
 }
 
 void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd)
@@ -1394,8 +1398,11 @@ void D3d12GpuRecord::Interpret_SetPipeline(const CmdList& list, const u32 i, con
 void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCmdSyncBinding& cmd)
 {
     const auto& sync_binding_info = m_sync_binding_infos[cmd.SyncBindingIndex];
-    if (!sync_binding_info) return;
+    if (!sync_binding_info || sync_binding_info.Skip) return;
     const NonNull layout = sync_binding_info.Layout;
+
+    #pragma region 持久分配的描述符表
+
     const auto persistent_bind_items = std::span(m_bind_items)
         .subspan(sync_binding_info.PersistentBindItemIndex, sync_binding_info.PersistentBindItemCount);
     for (const auto& bind_item : persistent_bind_items)
@@ -1423,6 +1430,11 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
             COPLT_THROW("Unreachable");
         }
     }
+
+    #pragma endregion
+
+    #pragma region 动态组
+
     const auto dyn_bind_group_info_inds = std::span(m_dynamic_bind_group_info_sync_inds)
         .subspan(sync_binding_info.DynamicBindGroupInfoIndIndex, sync_binding_info.DynamicBindGroupInfoIndCount);
     for (const auto& dyn_bind_group_info_ind : dyn_bind_group_info_inds)
@@ -1431,6 +1443,9 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
         if (!info.BindGroup) continue;
         const auto& group_bind_item_info = layout->GroupBindItemInfos()[dyn_bind_group_info_ind.GroupIndex];
         auto set_constants_chunk_index = info.SetConstantsHead;
+
+        #pragma region 常量
+
         while (set_constants_chunk_index != COPLT_U32_MAX)
         {
             const auto& set_constants_chunk = m_set_constants_chunks[set_constants_chunk_index];
@@ -1461,7 +1476,11 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
             }
             set_constants_chunk_index = set_constants_chunk.Next;
         }
+
+        #pragma endregion
     }
+
+    #pragma endregion
 }
 
 void D3d12GpuRecord::Interpret_SetViewportScissor(const CmdList& list, u32 i, const FCmdSetViewportScissor& cmd) const

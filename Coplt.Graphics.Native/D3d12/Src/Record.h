@@ -126,6 +126,7 @@ namespace Coplt
             u32 PersistentBindItemCount{0};
             u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
             u32 DynamicBindGroupInfoIndCount{0};
+            bool Changed{};
 
             explicit operator bool() const noexcept
             {
@@ -163,6 +164,7 @@ namespace Coplt
             // 类型为 BindGroupInd
             u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
             u32 DynamicBindGroupInfoIndCount{0};
+            bool Skip{};
 
             explicit operator bool() const noexcept
             {

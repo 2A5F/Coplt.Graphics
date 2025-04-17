@@ -81,6 +81,16 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
         BindSlotInfo info{};
         const auto& item = m_items[i];
         const auto count = std::max(1u, item.Count);
+        if (item.View == FShaderLayoutItemView::Constants)
+        {
+            if (Usage != FBindGroupUsage::Dynamic)
+            {
+                COPLT_THROW_FMT(
+                    "Invalid binding define {{ Id = {}, Scope = {}, Stages = {} }} at [{}]; Only dynamic usage groups support constants",
+                    item.Id, item.Scope, static_cast<u32>(item.Stages), i
+                );
+            }
+        }
         if (count == COPLT_U32_MAX)
         {
             if (Usage != FBindGroupUsage::Dynamic)
