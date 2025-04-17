@@ -160,6 +160,7 @@ namespace Coplt
             Ptr<ID3d12BindingLayout> Layout{};
             u32 PersistentBindItemIndex{COPLT_U32_MAX};
             u32 PersistentBindItemCount{0};
+            // 类型为 BindGroupInd
             u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
             u32 DynamicBindGroupInfoIndCount{0};
 
@@ -190,6 +191,7 @@ namespace Coplt
         struct BindGroupInd
         {
             u32 GroupIndex{};
+            // 类型是 BindGroupInfo
             u32 InfoIndex{};
         };
 
@@ -206,8 +208,8 @@ namespace Coplt
         HashMap<u64, u64> m_dynamic_bind_group_map{}; // id -> index
         std::vector<SyncBindingInfo> m_sync_binding_infos{};
         std::vector<AllocationPoint> m_allocations{};
-        std::vector<BindGroupInd> m_dynamic_bind_group_info_indexes{};
-        std::vector<BindGroupInd> m_dynamic_bind_group_info_sync_indexes{};
+        std::vector<BindGroupInd> m_dynamic_bind_group_info_inds{};
+        std::vector<BindGroupInd> m_dynamic_bind_group_info_sync_inds{};
         std::vector<SetConstantsChunk> m_set_constants_chunks{};
         std::vector<BindItem> m_bind_items{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};

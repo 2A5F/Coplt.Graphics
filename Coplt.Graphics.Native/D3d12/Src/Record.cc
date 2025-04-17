@@ -347,8 +347,8 @@ void D3d12GpuRecord::Recycle()
     m_resource_infos.clear();
     m_binding_infos.clear();
     m_dynamic_bind_group_infos.clear();
-    m_dynamic_bind_group_info_indexes.clear();
-    m_dynamic_bind_group_info_sync_indexes.clear();
+    m_dynamic_bind_group_info_inds.clear();
+    m_dynamic_bind_group_info_sync_inds.clear();
     m_set_constants_chunks.clear();
     m_sync_binding_infos.clear();
     m_allocations.clear();
@@ -785,7 +785,7 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             if (data.Usage == FBindGroupUsage::Dynamic)
             {
                 // 对于动态资源，只记录动态组信息索引， SyncBinding 时再处理
-                m_dynamic_bind_group_info_indexes.push_back(BindGroupInd{
+                m_dynamic_bind_group_info_inds.push_back(BindGroupInd{
                     .GroupIndex = g,
                     .InfoIndex = QueryBindGroupInfo(*group, false).Index,
                 });
@@ -868,14 +868,14 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
     const auto group_bind_item_infos = binding_layout->GroupBindItemInfos();
     sync_binding_info.PersistentBindItemIndex = binding_info.PersistentBindItemIndex;
     sync_binding_info.PersistentBindItemCount = binding_info.PersistentBindItemCount;
-    sync_binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_info_sync_indexes.size();
-    const auto bi_ind = std::span(m_dynamic_bind_group_info_indexes)
+    sync_binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_info_sync_inds.size();
+    const auto bi_ind = std::span(m_dynamic_bind_group_info_inds)
         .subspan(binding_info.DynamicBindGroupInfoIndIndex, binding_info.DynamicBindGroupInfoIndCount);
     for (auto& ind : bi_ind)
     {
         const auto& old_bind_group_info = m_dynamic_bind_group_infos[ind.InfoIndex];
         auto& info = QueryBindGroupInfo(*old_bind_group_info.BindGroup, false);
-        m_dynamic_bind_group_info_sync_indexes.push_back({.GroupIndex = ind.GroupIndex, .InfoIndex = info.Index});
+        m_dynamic_bind_group_info_sync_inds.push_back({.GroupIndex = ind.GroupIndex, .InfoIndex = info.Index});
         if (!info.Frozen)
         {
             info.Frozen = true;
@@ -910,7 +910,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
             info.DynamicBindItemCount = m_bind_items.size() - info.DynamicBindItemIndex;
         }
     }
-    sync_binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_info_sync_indexes.size() - sync_binding_info.DynamicBindGroupInfoIndIndex;
+    sync_binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_info_sync_inds.size() - sync_binding_info.DynamicBindGroupInfoIndIndex;
 }
 
 void D3d12GpuRecord::Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd)
@@ -1395,6 +1395,7 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
 {
     const auto& sync_binding_info = m_sync_binding_infos[cmd.SyncBindingIndex];
     if (!sync_binding_info) return;
+    const NonNull layout = sync_binding_info.Layout;
     const auto persistent_bind_items = std::span(m_bind_items)
         .subspan(sync_binding_info.PersistentBindItemIndex, sync_binding_info.PersistentBindItemCount);
     for (const auto& bind_item : persistent_bind_items)
@@ -1420,6 +1421,45 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
         case Layout::BindItemPlace::Const:
             // 持久绑定只有描述符表，不会存在直接资源和常量
             COPLT_THROW("Unreachable");
+        }
+    }
+    const auto dyn_bind_group_info_inds = std::span(m_dynamic_bind_group_info_sync_inds)
+        .subspan(sync_binding_info.DynamicBindGroupInfoIndIndex, sync_binding_info.DynamicBindGroupInfoIndCount);
+    for (const auto& dyn_bind_group_info_ind : dyn_bind_group_info_inds)
+    {
+        const auto& info = m_dynamic_bind_group_infos[dyn_bind_group_info_ind.InfoIndex];
+        if (!info.BindGroup) continue;
+        const auto& group_bind_item_info = layout->GroupBindItemInfos()[dyn_bind_group_info_ind.GroupIndex];
+        auto set_constants_chunk_index = info.SetConstantsHead;
+        while (set_constants_chunk_index != COPLT_U32_MAX)
+        {
+            const auto& set_constants_chunk = m_set_constants_chunks[set_constants_chunk_index];
+            for (auto& set_constants_cmd_index : set_constants_chunk.CmdIndex)
+            {
+                if (set_constants_cmd_index == COPLT_U32_MAX) break;
+                const auto& set_constants_cmd = Commands[set_constants_cmd_index].SetConstants;
+                if (set_constants_cmd.Slot > group_bind_item_info.size())
+                    COPLT_THROW_FMT("[{}] Invalid set constant slot index, out of range", i);
+                const auto& bind_item_info = group_bind_item_info[set_constants_cmd.Slot];
+                COPLT_DEBUG_ASSERT(bind_item_info.Place == Layout::BindItemPlace::Const);
+                const auto root_index = bind_item_info.RootIndex;
+                if (set_constants_cmd.Count == 0) continue;
+                if (m_state == RecordState::Render)
+                {
+                    list->g0->SetGraphicsRoot32BitConstants(
+                        root_index, set_constants_cmd.Count,
+                        &Payload32Bits[set_constants_cmd.ValueIndex], set_constants_cmd.Offset
+                    );
+                }
+                else
+                {
+                    list->g0->SetComputeRoot32BitConstants(
+                        root_index, set_constants_cmd.Count,
+                        &Payload32Bits[set_constants_cmd.ValueIndex], set_constants_cmd.Offset
+                    );
+                }
+            }
+            set_constants_chunk_index = set_constants_chunk.Next;
         }
     }
 }
