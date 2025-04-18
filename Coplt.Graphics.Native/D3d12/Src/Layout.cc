@@ -241,7 +241,8 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                 }
                 const auto& def = defines[info.Index];
                 if (
-                    def.View != item.View || (item.View == FShaderLayoutItemView::StaticSampler ? false : def.Count != item.Count)
+                    def.View != item.View ||
+                    (item.View == FShaderLayoutItemView::StaticSampler || def.Count == COPLT_U32_MAX ? false : def.Count != item.Count)
                     || def.Type != item.Type || def.Format != item.Format
                 )
                 {
@@ -250,7 +251,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                         slot.Id, slot.Scope, static_cast<u32>(slot.Stage), g, i
                     );
                 }
-                if (item.Count < def.Count)
+                if (def.Count != COPLT_U32_MAX && item.Count < def.Count)
                 {
                     COPLT_THROW_FMT(
                         "Incompatible binding slot {{ Id = {}, Scope = {}, Stage = {} }} at Group {} [{}]; The group provides fewer bindings than the shader requires",
