@@ -312,12 +312,12 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             info.SigPlace = SigPlace::Const;
             root_parameters.push_back(param);
 
-            BindItemInfo item_info{};
+            RootItemInfo item_info{};
             item_info.Group = info.Group;
             item_info.IndexInGroup = info.Index;
             item_info.RootIndex = info.SigIndex;
-            item_info.Place = BindItemPlace::Const;
-            item_info.Type = BindItemType::Resource;
+            item_info.Place = RootItemPlace::Const;
+            item_info.Type = RootItemType::Resource;
             m_bind_item_infos.push_back(item_info);
             m_group_bind_item_infos[info.Group].push_back(item_info);
             continue;
@@ -400,12 +400,12 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             info.SigPlace = SigPlace::Direct;
             root_parameters.push_back(param);
 
-            BindItemInfo item_info{};
+            RootItemInfo item_info{};
             item_info.Group = info.Group;
             item_info.IndexInGroup = info.Index;
             item_info.RootIndex = info.SigIndex;
-            item_info.Place = BindItemPlace::Direct;
-            item_info.Type = BindItemType::Resource;
+            item_info.Place = RootItemPlace::Direct;
+            item_info.Type = RootItemType::Resource;
             m_bind_item_infos.push_back(item_info);
             m_group_bind_item_infos[info.Group].push_back(item_info);
             continue;
@@ -445,12 +445,12 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             root_parameters.push_back(param);
             infos.push_back(Info);
 
-            BindItemInfo item_info{};
+            RootItemInfo item_info{};
             item_info.Group = Info.Group;
             item_info.IndexInGroup = 0;
             item_info.RootIndex = Info.RootIndex;
-            item_info.Place = BindItemPlace::Table;
-            item_info.Type = Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? BindItemType::Sampler : BindItemType::Resource;
+            item_info.Place = RootItemPlace::Table;
+            item_info.Type = Info.Type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? RootItemType::Sampler : RootItemType::Resource;
             m_bind_item_infos.push_back(item_info);
             m_group_bind_item_infos[Info.Group].push_back(item_info);
         }
@@ -530,12 +530,12 @@ std::span<const D3d12BindingLayout::SlotInfo> D3d12BindingLayout::SlotInfos() co
     return m_slot_infos;
 }
 
-std::span<const BindItemInfo> D3d12BindingLayout::BindItemInfos() const noexcept
+std::span<const RootItemInfo> D3d12BindingLayout::RootItemInfos() const noexcept
 {
     return m_bind_item_infos;
 }
 
-std::span<const std::vector<BindItemInfo>> D3d12BindingLayout::GroupBindItemInfos() const noexcept
+std::span<const std::vector<RootItemInfo>> D3d12BindingLayout::GroupRootItemInfos() const noexcept
 {
     return m_group_bind_item_infos;
 }

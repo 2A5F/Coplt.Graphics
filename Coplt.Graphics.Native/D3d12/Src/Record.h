@@ -122,8 +122,8 @@ namespace Coplt
         {
             Ptr<ID3d12BindingLayout> Layout{};
             u64 BindingVersion{};
-            u32 PersistentBindItemIndex{COPLT_U32_MAX};
-            u32 PersistentBindItemCount{0};
+            u32 PersistentRootItemIndex{COPLT_U32_MAX};
+            u32 PersistentRootItemCount{0};
             u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
             u32 DynamicBindGroupInfoIndCount{0};
             bool Changed{};
@@ -143,9 +143,13 @@ namespace Coplt
             u32 SetConstantsHead{COPLT_U32_MAX};
             // 类型为 SetConstantsChunk
             u32 SetConstantsTail{COPLT_U32_MAX};
+            // 类型为 SetBindItemChunk
+            u32 SetBindItemHead{COPLT_U32_MAX};
+            // 类型为 SetBindItemChunk
+            u32 SetBindItemTail{COPLT_U32_MAX};
             // 只有再 Frozen 变为 true 后才会设置
-            u32 DynamicBindItemIndex{COPLT_U32_MAX};
-            u32 DynamicBindItemCount{0};
+            u32 DynamicRootItemIndex{COPLT_U32_MAX};
+            u32 DynamicRootItemCount{0};
             // 冻结后不可再修改
             bool Frozen{false};
         };
@@ -156,11 +160,17 @@ namespace Coplt
             u32 CmdIndex[7]{COPLT_U32_MAX};
         };
 
+        struct SetBindItemChunk
+        {
+            u32 Next{COPLT_U32_MAX};
+            u32 CmdIndex[7]{COPLT_U32_MAX};
+        };
+
         struct SyncBindingInfo
         {
             Ptr<ID3d12BindingLayout> Layout{};
-            u32 PersistentBindItemIndex{COPLT_U32_MAX};
-            u32 PersistentBindItemCount{0};
+            u32 PersistentRootItemIndex{COPLT_U32_MAX};
+            u32 PersistentRootItemCount{0};
             // 类型为 BindGroupInd
             u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
             u32 DynamicBindGroupInfoIndCount{0};
@@ -172,15 +182,10 @@ namespace Coplt
             }
         };
 
-        struct BindItem
+        struct TableRootItem
         {
-            Ptr<const Layout::BindItemInfo> Info{};
-
-            union
-            {
-                u32 AllocationIndex{};
-                // todo 直接资源和常量
-            };
+            Ptr<const Layout::RootItemInfo> Info{};
+            u32 AllocationIndex{};
         };
 
         struct BindGroupInd
@@ -203,8 +208,11 @@ namespace Coplt
 
         struct TmpDescAllocation
         {
-            u32 HeapIndex{};
+            u32 HeapIndex{COPLT_U32_MAX};
             u32 OffsetInHeap{};
+            u32 Size{};
+
+            explicit operator bool() const noexcept { return HeapIndex != COPLT_U32_MAX; }
         };
 
         struct TmpDescHeaps
@@ -271,7 +279,8 @@ namespace Coplt
         std::vector<BindGroupInd> m_dynamic_bind_group_info_inds{};
         std::vector<BindGroupInd> m_dynamic_bind_group_info_sync_inds{};
         std::vector<SetConstantsChunk> m_set_constants_chunks{};
-        std::vector<BindItem> m_bind_items{};
+        std::vector<SetBindItemChunk> m_set_bind_item_chunks{};
+        std::vector<TableRootItem> m_table_bind_items{};
         TmpDescHeaps m_tmp_res_heaps{};
         TmpDescHeaps m_tmp_smp_heaps{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
@@ -332,6 +341,8 @@ namespace Coplt
         void Analyze_SetPipeline(u32 i, const FCmdSetPipeline& cmd);
         void Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd);
         void Analyze_SetConstants(u32 i, const FCmdSetConstants& cmd);
+        void Analyze_SetDynArraySize(u32 i, const FCmdSetDynArraySize& cmd);
+        void Analyze_SetBindItem(u32 i, const FCmdSetBindItem& cmd);
         void Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd);
         void Analyze_SetMeshBuffers(u32 i, const FCmdSetMeshBuffers& cmd);
         void Analyze_Draw(u32 i, const FCmdDraw& cmd);

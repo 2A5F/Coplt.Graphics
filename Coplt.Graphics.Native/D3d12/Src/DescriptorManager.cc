@@ -27,7 +27,7 @@ DescriptorAllocation::operator bool() const
 }
 
 DescriptorHeap::DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_size, u32 max_size)
-    : m_device(device->m_device), m_half_size(init_size), m_type(type), m_max_size(max_size)
+    : m_device(device->m_device), m_half_size(init_size), m_type(type), m_max_size(max_size / 2)
 {
     {
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
@@ -60,7 +60,7 @@ void DescriptorHeap::EnsureCapacity(u32 cap)
 {
     const auto new_cap = std::min(std::bit_ceil(cap), m_max_size);
     if (cap > new_cap)
-        COPLT_THROW_FMT("Out of memory; The required descriptor heap capacity is {}, but the maximum allowed is {}", cap, m_max_size);
+        COPLT_THROW_FMT("Out of memory; The required descriptor heap capacity is {}, but the maximum allowed is {}", cap * 2, m_max_size * 2);
     cap = new_cap;
     if (m_need_grow) cap = std::max(cap, std::min(m_half_size * 2, m_max_size));
     else if (cap <= m_half_size) return;

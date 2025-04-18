@@ -87,7 +87,7 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         var test_image = Isolate.CreateImage(
             new()
             {
-                Purpose = ResourcePurpose.ShaderResource,
+                Purpose = ResourcePurpose.ShaderResource | ResourcePurpose.UnorderedAccess,
                 Format = GraphicsFormat.R8G8B8A8_UNorm,
                 Width = (uint)image_data.Width,
                 Height = (uint)image_data.Height,

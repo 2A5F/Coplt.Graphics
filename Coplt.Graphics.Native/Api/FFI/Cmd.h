@@ -307,7 +307,7 @@ namespace Coplt
         u32 Offset{};
     };
 
-    // 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    // 设置动态绑定的动态数组大小
     struct FCmdSetDynArraySize : FCmdBase
     {
         // Payload 中的索引，类型为 FCmdBindGroup
