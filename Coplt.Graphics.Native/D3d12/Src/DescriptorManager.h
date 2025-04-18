@@ -35,6 +35,7 @@ namespace Coplt
         {
             D3D12MA::VirtualAllocation m_allocation{};
             u64 m_offset{};
+            u64 m_version{};
         };
 
         // 堆版本，每次扩容增加版本，每次扩容所有持久分配都会失效
@@ -45,6 +46,7 @@ namespace Coplt
         HashMap<u64, Allocation> m_allocations{}; // todo 释放绑组时排队到隔离，释放分配
         // 描述符半容量，永远保证一半容量可以完整容纳每帧需求
         u32 m_half_size{};
+        u32 m_max_size{};
         // 临时分配的偏移
         u32 m_tmp_offset{};
         // heap 类型的描述符增量
@@ -53,12 +55,12 @@ namespace Coplt
         // 下帧是否需要扩容，即使半容量足够
         bool m_need_grow{};
 
-        explicit DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_size);
+        explicit DescriptorHeap(NonNull<D3d12GpuDevice> device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 init_size, u32 max_size);
 
         void ReadyFrame(u32 cap);
         void EnsureCapacity(u32 cap);
 
-        DescriptorAllocation Allocate(u64 ObjectId, u32 Size, bool& IsOld);
+        DescriptorAllocation Allocate(u64 ObjectId, u64 Version, u32 Size, bool& NeedUpload);
         DescriptorAllocation AllocateTmp(u32 Size);
     };
 
@@ -66,6 +68,8 @@ namespace Coplt
     {
         constexpr static u32 InitResHeapSize = 1024;
         constexpr static u32 InitSmpHeapSize = 64;
+        constexpr static u32 MaxResHeapSize = COPLT_U32_MAX;
+        constexpr static u32 MaxSmpHeapSize = 4096;
 
         Rc<DescriptorHeap> m_res{};
         Rc<DescriptorHeap> m_smp{};

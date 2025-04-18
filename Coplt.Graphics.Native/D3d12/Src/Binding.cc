@@ -8,6 +8,11 @@
 
 using namespace Coplt;
 
+DescriptorHeapPair::operator bool() const
+{
+    return ResourceHeap || SamplerHeap;
+}
+
 D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FShaderBindGroupCreateOptions& options) : m_device(std::move(device))
 {
     const auto layout = NonNull(options.Layout)->QueryInterface<ID3d12BindGroupLayout>();
@@ -67,7 +72,7 @@ D3d12ShaderBindGroup::D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FS
             desc.NumDescriptors = layout_data.SamplerTableSize;
             chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_sampler_heap));
         }
-        if (!options.Name.is_null())
+        if (m_device->Debug() && !options.Name.is_null())
         {
             m_name = options.Name.ToString();
             DoSetName(m_name->GetStr());
@@ -80,6 +85,7 @@ FResult D3d12ShaderBindGroup::SetName(const FStr8or16& name) noexcept
 {
     return feb([&]
     {
+        if (!m_device->Debug()) return;
         m_name = name.ToString();
         DoSetName(name);
     });
@@ -118,6 +124,43 @@ void D3d12ShaderBindGroup::DoSetName(const FStr8or16& name) const
                 reinterpret_cast<const wchar_t*>(name.str16)
             );
             chr | m_resource_heap >> SetNameEx(FStr8or16(str));
+        }
+    }
+}
+
+void D3d12ShaderBindGroup::DoSetName(const FStr8or16& name, const DescriptorHeapPair& pair)
+{
+    if (name.is_null()) return;
+    if (pair.ResourceHeap)
+    {
+        if (name.is8())
+        {
+            const auto str = fmt::format("[{}]::ResourceDescriptorHeap", name.str8);
+            chr | pair.ResourceHeap >> SetNameEx(FStr8or16(str));
+        }
+        else
+        {
+            const auto str = fmt::format(
+                L"[{}]::ResourceDescriptorHeap",
+                reinterpret_cast<const wchar_t*>(name.str16)
+            );
+            chr | pair.ResourceHeap >> SetNameEx(FStr8or16(str));
+        }
+    }
+    if (pair.SamplerHeap)
+    {
+        if (name.is8())
+        {
+            const auto str = fmt::format("[{}]::SamplerDescriptorHeap", name.str8);
+            chr | pair.SamplerHeap >> SetNameEx(FStr8or16(str));
+        }
+        else
+        {
+            const auto str = fmt::format(
+                L"[{}]::SamplerDescriptorHeap",
+                reinterpret_cast<const wchar_t*>(name.str16)
+            );
+            chr | pair.SamplerHeap >> SetNameEx(FStr8or16(str));
         }
     }
 }
@@ -208,13 +251,63 @@ void D3d12ShaderBindGroup::Set(const std::span<const FSetBindItem> items)
     m_version++;
 }
 
-bool D3d12ShaderBindGroup::EnsureAvailable()
+DescriptorHeapPair D3d12ShaderBindGroup::Cow() const
 {
-    if (!m_changed) return false;
+    DescriptorHeapPair out{};
+    const auto& layout_data = m_layout->Data();
+    if (layout_data.ResourceTableSize > 0)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = layout_data.ResourceTableSize;
+        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&out.ResourceHeap));
+        m_device->m_device->CopyDescriptorsSimple(
+            layout_data.ResourceTableSize,
+            out.ResourceHeap->GetCPUDescriptorHandleForHeapStart(),
+            m_resource_heap->GetCPUDescriptorHandleForHeapStart(),
+            desc.Type
+        );
+        out.ResourceVersion = m_resource_version + 1;
+    }
+    if (layout_data.SamplerTableSize > 0)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        desc.NumDescriptors = layout_data.SamplerTableSize;
+        chr | m_device->m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&out.SamplerHeap));
+        m_device->m_device->CopyDescriptorsSimple(
+            layout_data.SamplerTableSize,
+            out.SamplerHeap->GetCPUDescriptorHandleForHeapStart(),
+            m_sampler_heap->GetCPUDescriptorHandleForHeapStart(),
+            desc.Type
+        );
+        out.SamplerVersion = m_sampler_version + 1;
+    }
+    if (m_device->Debug() && m_name)
+    {
+        DoSetName(m_name->GetStr(), out);
+    }
+    return out;
+}
+
+bool D3d12ShaderBindGroup::EnsureAvailable(DescriptorHeapPair& out)
+{
+    if (!m_changed)
+    {
+        out.ResourceHeap = m_resource_heap;
+        out.SamplerHeap = m_sampler_heap;
+        return false;
+    }
     std::lock_guard guard(m_desc_lock);
-    if (!m_changed) return false;
+    if (!m_changed)
+    {
+        out.ResourceHeap = m_resource_heap;
+        out.SamplerHeap = m_sampler_heap;
+        return false;
+    }
     const auto defs = m_layout->GetItems();
     const auto slots = m_layout->Slots();
+    auto new_heap = Cow();
     for (usize i = 0; i < m_views.size(); ++i)
     {
         const auto def_index = m_define_indexes[i];
@@ -224,12 +317,17 @@ bool D3d12ShaderBindGroup::EnsureAvailable()
         else continue;
         const auto& view = m_views[i];
         const auto& def = defs[def_index];
-        const auto& heap = slot.Place == Layout::BindSlotPlace::ResourceTable ? m_resource_heap : m_sampler_heap;
+        const auto& heap = slot.Place == Layout::BindSlotPlace::ResourceTable ? new_heap.ResourceHeap : new_heap.SamplerHeap;
         COPLT_DEBUG_ASSERT(heap != nullptr);
         CD3DX12_CPU_DESCRIPTOR_HANDLE handle(heap->GetCPUDescriptorHandleForHeapStart(), slot.OffsetInTable, m_resource_heap_inc);
         view.CreateDescriptor(m_device->m_device.Get(), def, handle);
     }
     m_changed = false;
+    m_resource_heap = new_heap.ResourceHeap;
+    m_sampler_heap = new_heap.SamplerHeap;
+    m_resource_version = std::max(m_resource_version, new_heap.ResourceVersion);
+    m_sampler_version = std::max(m_sampler_version, new_heap.SamplerVersion);
+    out = std::move(new_heap);
     return true;
 }
 

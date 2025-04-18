@@ -32,7 +32,7 @@ namespace Coplt
         FList<FCmdItem> Commands;
         FList<FCmdRes> Resources;
         FList<FCmdBinding> Bindings;
-        FList<FBindingChange> BindingChange;
+        FList<FBindingChange> BindingChange; // todo remove
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
         FList<FRenderInfo2> PayloadRenderInfo;

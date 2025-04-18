@@ -183,18 +183,74 @@ namespace Coplt
             };
         };
 
-        struct AllocationPoint
-        {
-            u32 GroupIndex{};
-            DescriptorAllocation Resource{};
-            DescriptorAllocation Sampler{};
-        };
-
         struct BindGroupInd
         {
             u32 GroupIndex{};
             // 类型是 BindGroupInfo
             u32 InfoIndex{};
+        };
+
+        struct TmpDescHeap
+        {
+            ComPtr<ID3D12DescriptorHeap> m_heap{};
+            u32 m_size{};
+            u32 m_offset{};
+
+            TmpDescHeap() = default;
+
+            explicit TmpDescHeap(const ComPtr<ID3D12Device2>& device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 size);
+        };
+
+        struct TmpDescAllocation
+        {
+            u32 HeapIndex{};
+            u32 OffsetInHeap{};
+        };
+
+        struct TmpDescHeaps
+        {
+            constexpr static u32 InitSize = 1024;
+
+            ComPtr<ID3D12Device2> m_device{};
+            std::vector<TmpDescHeap> m_heaps{};
+            D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
+            // 只记录，实际值可能超过分配量，可以记录但是不分配
+            u32 m_sum_size{};
+
+            TmpDescHeaps() = default;
+
+            explicit TmpDescHeaps(NonNull<D3d12GpuIsolate> isolate, D3D12_DESCRIPTOR_HEAP_TYPE type);
+
+            void Recycle();
+
+            TmpDescAllocation Alloc(u32 Size);
+            void Grow(u32 MinSize);
+        };
+
+        struct TmpGroupDescriptorHeap
+        {
+            u32 GroupIndex{};
+            DescriptorHeapPair Heap{};
+            bool Changed{};
+        };
+
+        struct AllocationPoint
+        {
+            u32 GroupIndex{};
+            // 类型为 PersistentAllocationPointInfo；u32::Max 表示是临时动态分配，其他表示是持久分配
+            u32 PersistentInfoIndex{COPLT_U32_MAX};
+            DescriptorAllocation Resource{};
+            DescriptorAllocation Sampler{};
+            TmpDescAllocation TmpResource{};
+            TmpDescAllocation TmpSampler{};
+        };
+
+        struct PersistentAllocationPointInfo
+        {
+            u64 ObjectId{};
+            DescriptorHeapPair Heap{};
+            bool Changed{};
+            bool Last{};
         };
 
         u64 m_isolate_id{};
@@ -204,18 +260,23 @@ namespace Coplt
         Rc<D3d12RecordContext> m_context{};
         Rc<ID3d12BarrierAnalyzer> m_barrier_analyzer{};
         HashMap<u64, u64> m_resource_map{}; // id -> index
+        std::vector<Rc<IUnknown>> m_object_handles{};
         std::vector<ResourceInfo> m_resource_infos{};
         std::vector<BindingInfo> m_binding_infos{};
         std::vector<BindGroupInfo> m_dynamic_bind_group_infos{};
         HashMap<u64, u64> m_dynamic_bind_group_map{}; // id -> index
         std::vector<SyncBindingInfo> m_sync_binding_infos{};
         std::vector<AllocationPoint> m_allocations{};
+        std::vector<PersistentAllocationPointInfo> m_persistent_allocation_infos{};
         std::vector<BindGroupInd> m_dynamic_bind_group_info_inds{};
         std::vector<BindGroupInd> m_dynamic_bind_group_info_sync_inds{};
         std::vector<SetConstantsChunk> m_set_constants_chunks{};
         std::vector<BindItem> m_bind_items{};
+        TmpDescHeaps m_tmp_res_heaps{};
+        TmpDescHeaps m_tmp_smp_heaps{};
         std::vector<QueueWaitPoint> m_queue_wait_points{};
         std::vector<ReadGuard> m_tmp_locks{};
+        std::vector<TmpGroupDescriptorHeap> m_tmp_gdhs{};
         RenderState m_cur_render{};
         ComputeState m_cur_compute{};
         PipelineContext m_pipeline_context{};
@@ -252,8 +313,8 @@ namespace Coplt
         FResIndex AddResource(const FCmdRes& res);
         FResIndex AddResource(const View& view);
         void ReadyResource();
-        // 返回帧所需的最小描述符堆大小
-        void ReadyBindings(u32& MaxResHeapSize, u32& MaxSmpHeapSize);
+        void ReadyBindings();
+        void UploadDescriptors();
 
         BindGroupInfo& QueryBindGroupInfo(ID3d12ShaderBindGroup& group, bool mut);
         BindGroupInfo& QueryBindGroupInfo(NonNull<FShaderBindGroup> group, u32 i, bool mut);

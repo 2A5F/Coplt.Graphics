@@ -272,9 +272,66 @@ void D3d12GpuRecord::PipelineContext::SetBinding(NonNull<FShaderBinding> binding
     BindingIndex = cmd.Binding;
 }
 
+D3d12GpuRecord::TmpDescHeap::TmpDescHeap(const ComPtr<ID3D12Device2>& device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const u32 size)
+    : m_size(size)
+{
+    D3D12_DESCRIPTOR_HEAP_DESC desc{};
+    desc.Type = type;
+    desc.NumDescriptors = size;
+    chr | device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
+}
+
+D3d12GpuRecord::TmpDescHeaps::TmpDescHeaps(NonNull<D3d12GpuIsolate> isolate, const D3D12_DESCRIPTOR_HEAP_TYPE type)
+    : m_device(isolate->m_device->m_device), m_type(type)
+{
+}
+
+void D3d12GpuRecord::TmpDescHeaps::Recycle()
+{
+    m_sum_size = 0;
+    if (!m_heaps.empty())
+    {
+        TmpDescHeap last = std::move(m_heaps.back());
+        last.m_offset = 0;
+        m_heaps.clear();
+        m_heaps.push_back(std::move(last));
+    }
+}
+
+D3d12GpuRecord::TmpDescAllocation D3d12GpuRecord::TmpDescHeaps::Alloc(const u32 Size)
+{
+    if (m_heaps.empty()) goto Grow;
+    for (u32 i = 0; i < m_heaps.size(); ++i)
+    {
+        auto& heap = m_heaps[i];
+        if (heap.m_size - heap.m_offset < Size) continue;
+        const auto offset = heap.m_offset;
+        heap.m_offset += Size;
+        m_sum_size += Size;
+        return TmpDescAllocation{i, offset};
+    }
+Grow:
+    Grow(Size);
+    {
+        auto& heap = m_heaps.back();
+        const auto offset = heap.m_offset;
+        heap.m_offset += Size;
+        m_sum_size += Size;
+        return TmpDescAllocation{m_heaps.size() - 1, offset};
+    }
+}
+
+void D3d12GpuRecord::TmpDescHeaps::Grow(const u32 MinSize)
+{
+    const auto size = std::max(m_heaps.empty() ? InitSize : m_heaps.back().m_size * 2, std::bit_ceil(MinSize));
+    m_heaps.push_back(TmpDescHeap(m_device, m_type, size));
+}
+
 D3d12GpuRecord::D3d12GpuRecord(const NonNull<D3d12GpuIsolate> isolate)
     : FGpuRecordData(isolate->m_device->m_instance->m_allocator.get()),
-      m_isolate_config(isolate->m_config), m_device(isolate->m_device)
+      m_isolate_config(isolate->m_config), m_device(isolate->m_device),
+      m_tmp_res_heaps(isolate, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+      m_tmp_smp_heaps(isolate, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
     Id = m_isolate_id = isolate->m_object_id;
     m_record_id = isolate->m_record_inc++;
@@ -342,6 +399,8 @@ void D3d12GpuRecord::Recycle()
     m_queue_wait_points.clear();
     m_barrier_analyzer->Clear();
     m_context->Recycle();
+    m_object_handles.clear();
+    m_persistent_allocation_infos.clear();
     m_resource_map.Clear();
     m_dynamic_bind_group_map.Clear();
     m_resource_infos.clear();
@@ -354,6 +413,8 @@ void D3d12GpuRecord::Recycle()
     m_allocations.clear();
     m_bind_items.clear();
     m_pipeline_context.Reset();
+    m_tmp_res_heaps.Recycle();
+    m_tmp_smp_heaps.Recycle();
     ClearData();
     Ended = false;
 }
@@ -380,11 +441,9 @@ void D3d12GpuRecord::DoEnd()
         COPLT_THROW("Too many resources");
     m_barrier_analyzer->StartAnalyze(this);
     ReadyResource();
-    u32 MaxResHeapSize{}, MaxSmpHeapSize{};
-    ReadyBindings(MaxResHeapSize, MaxSmpHeapSize);
-    // todo 改成分析时所有描述符堆更改都暂存在 cpu 上，分析结束统一上传
-    m_context->m_descriptor_manager.ReadyFrame(MaxResHeapSize, MaxSmpHeapSize);
+    ReadyBindings();
     Analyze();
+    UploadDescriptors();
     m_barrier_analyzer->EndAnalyze();
     if (m_isolate_config->MultiThreadRecord)
     {
@@ -459,10 +518,8 @@ void D3d12GpuRecord::ReadyResource()
     }
 }
 
-void D3d12GpuRecord::ReadyBindings(u32& MaxResHeapSize, u32& MaxSmpHeapSize)
+void D3d12GpuRecord::ReadyBindings()
 {
-    MaxResHeapSize = 0;
-    MaxSmpHeapSize = 0;
     m_binding_infos.clear();
     m_binding_infos.reserve(Bindings.size());
     for (u32 i = 0; i < Bindings.size(); ++i)
@@ -475,15 +532,46 @@ void D3d12GpuRecord::ReadyBindings(u32& MaxResHeapSize, u32& MaxSmpHeapSize)
     {
         m_sync_binding_infos.push_back(SyncBindingInfo());
     }
-    for (u32 i = 0; i < BindingChange.size(); ++i)
+}
+
+void D3d12GpuRecord::UploadDescriptors()
+{
+    m_context->m_descriptor_manager.ReadyFrame(m_tmp_res_heaps.m_sum_size, m_tmp_smp_heaps.m_sum_size);
+    for (auto& allocation : m_allocations)
     {
-        const auto& item = BindingChange[i];
-        const auto binding = NonNull(Bindings[item.Binding].Binding)->QueryInterface<ID3d12ShaderBinding>();
-        if (binding == nullptr)
-            COPLT_THROW_FMT("Binding [{}] comes from different backends", item.Binding);
-        const auto& data = binding->Layout()->Data();
-        MaxResHeapSize += data.SumTableResourceSlots;
-        MaxSmpHeapSize += data.SumTableSamplerSlots;
+        if (allocation.PersistentInfoIndex == COPLT_U32_MAX)
+        {
+            // todo
+        }
+        else
+        {
+            const auto& info = m_persistent_allocation_infos[allocation.PersistentInfoIndex];
+            const auto f = [this, &info](
+                DescriptorAllocation& allocation, const Rc<DescriptorHeap>& heap, const u64 ver, const ComPtr<ID3D12DescriptorHeap>& cpu_heap
+            )
+            {
+                if (cpu_heap == nullptr) return;
+                const auto size = cpu_heap->GetDesc().NumDescriptors;
+                if (info.Last)
+                {
+                    bool need_upload = false;
+                    allocation = heap->Allocate(info.ObjectId, ver, size, need_upload);
+                    if (!need_upload) return;
+                }
+                else
+                {
+                    allocation = heap->AllocateTmp(size);
+                }
+                m_device->m_device->CopyDescriptorsSimple(
+                    size,
+                    allocation.GetCpuHandle(),
+                    cpu_heap->GetCPUDescriptorHandleForHeapStart(),
+                    heap->m_type
+                );
+            };
+            f(allocation.Resource, m_context->m_descriptor_manager.m_res, info.Heap.ResourceVersion, info.Heap.ResourceHeap);
+            f(allocation.Sampler, m_context->m_descriptor_manager.m_smp, info.Heap.SamplerVersion, info.Heap.SamplerHeap);
+        }
     }
 }
 
@@ -750,12 +838,21 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
     const auto group_item_infos = binding_layout->GroupItemInfos();
     const auto group_bind_item_infos = binding_layout->GroupBindItemInfos();
     bool any_changed = false;
+    m_tmp_gdhs.clear();
     for (u32 g = 0; g < groups.size(); ++g)
     {
         const auto& group = groups[g];
         if (!group) continue;
         const auto& data = group->Layout()->Data();
-        if (data.Usage == FBindGroupUsage::Dynamic) continue;
+        if (data.Usage == FBindGroupUsage::Dynamic)
+        {
+            // 对于动态资源，只记录动态组信息索引， SyncBinding 时再处理
+            m_dynamic_bind_group_info_inds.push_back(BindGroupInd{
+                .GroupIndex = g,
+                .InfoIndex = QueryBindGroupInfo(*group, false).Index,
+            });
+            continue;
+        }
         const auto views = group->Views();
         for (u32 v = 0; v < views.size(); ++v)
         {
@@ -765,59 +862,44 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
             const auto& info = group_item_infos[g][v];
             m_barrier_analyzer->OnUse(res_index, view, info);
         }
-        if (group->EnsureAvailable()) any_changed = true;
+        TmpGroupDescriptorHeap group_descriptor_heap{};
+        group_descriptor_heap.GroupIndex = g;
+        if (group->EnsureAvailable(group_descriptor_heap.Heap)) any_changed = group_descriptor_heap.Changed = true;
+        m_tmp_gdhs.push_back(std::move(group_descriptor_heap));
     }
     auto& binding_info = m_binding_infos[m_pipeline_context.BindingIndex];
     binding_info.Layout = binding_layout.get();
     const auto binding_version = binding->Version();
-    if (binding_info.PersistentBindItemIndex == COPLT_U32_MAX || binding_info.BindingVersion != binding_version || any_changed)
+    const auto first = binding_info.PersistentBindItemIndex == COPLT_U32_MAX;
+    if (first || binding_info.BindingVersion != binding_version || any_changed)
     {
         binding_info.BindingVersion = binding_version;
         binding_info.PersistentBindItemIndex = m_bind_items.size();
         binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_infos.size();
-        for (u32 g = 0; g < groups.size(); ++g)
+
+        for (auto& tmp_gdh : m_tmp_gdhs)
         {
-            const auto& group = groups[g];
-            if (!group) continue;
+            const auto& group = groups[tmp_gdh.GroupIndex];
             const auto object_id = group->ObjectId();
             const auto& data = group->Layout()->Data();
-            const auto& bind_item_infos = group_bind_item_infos[g];
-            if (data.Usage == FBindGroupUsage::Dynamic)
+            const auto& bind_item_infos = group_bind_item_infos[tmp_gdh.GroupIndex];
+            if (first || tmp_gdh.Changed)
             {
-                // 对于动态资源，只记录动态组信息索引， SyncBinding 时再处理
-                m_dynamic_bind_group_info_inds.push_back(BindGroupInd{
-                    .GroupIndex = g,
-                    .InfoIndex = QueryBindGroupInfo(*group, false).Index,
-                });
-                continue;
+                m_tmp_res_heaps.m_sum_size += data.ResourceTableSize;
+                m_tmp_smp_heaps.m_sum_size += data.SamplerTableSize;
             }
-            DescriptorAllocation resource_allocation{};
-            DescriptorAllocation sampler_allocation{};
-            // todo 确定是最后一次修改
-            const auto f = [&](
-                const bool last, const u32 size, const Rc<DescriptorHeap>& heap,
-                const ComPtr<ID3D12DescriptorHeap>& dh, DescriptorAllocation& allocation
-            )
-            {
-                if (size == 0) return;
-                if (!last)
-                {
-                    allocation = heap->AllocateTmp(size);
-                }
-                else
-                {
-                    bool exists = false;
-                    allocation = heap->Allocate(object_id, size, exists);
-                    if (exists) return;
-                }
-                m_device->m_device->CopyDescriptorsSimple(
-                    size, allocation.GetCpuHandle(), dh->GetCPUDescriptorHandleForHeapStart(), heap->m_type
-                );
-            };
-            f(true, data.ResourceTableSize, m_context->m_descriptor_manager.m_res, group->ResourceHeap(), resource_allocation);
-            f(true, data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, group->SamplerHeap(), sampler_allocation);
             const auto AllocationIndex = m_allocations.size();
-            m_allocations.push_back({g, resource_allocation, sampler_allocation});
+            const auto PersistentInfoIndex = m_persistent_allocation_infos.size();
+            m_persistent_allocation_infos.push_back(PersistentAllocationPointInfo{
+                .ObjectId = object_id,
+                .Heap = std::move(tmp_gdh.Heap),
+                .Changed = tmp_gdh.Changed,
+                .Last = true, // todo 确定是最后一次修改
+            });
+            m_allocations.push_back(AllocationPoint{
+                .GroupIndex = tmp_gdh.GroupIndex,
+                .PersistentInfoIndex = PersistentInfoIndex,
+            });
             for (const auto& bind_item_info : bind_item_infos)
             {
                 // 持久绑定只有描述符表
@@ -829,6 +911,8 @@ void D3d12GpuRecord::Analyze_SetBinding(u32 i, const FCmdSetBinding& cmd)
                 m_bind_items.push_back(item);
             }
         }
+        m_tmp_gdhs.clear();
+
         binding_info.PersistentBindItemCount = m_bind_items.size() - binding_info.PersistentBindItemCount;
         binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_infos.size() - binding_info.DynamicBindGroupInfoIndIndex;
         binding_info.Changed = true;
@@ -883,33 +967,33 @@ void D3d12GpuRecord::Analyze_SyncBinding(u32 i, const FCmdSyncBinding& cmd)
             info.Frozen = true;
             changed = true;
             info.DynamicBindItemIndex = m_bind_items.size();
-            const auto& group = info.BindGroup;
-            const auto& bind_item_infos = group_bind_item_infos[ind.GroupIndex];
-            const auto& data = group->Layout()->Data();
-            DescriptorAllocation resource_allocation{};
-            DescriptorAllocation sampler_allocation{};
-            const auto f = [&](
-                const u32 size, const Rc<DescriptorHeap>& heap, DescriptorAllocation& allocation
-            )
-            {
-                if (size == 0) return;
-                allocation = heap->AllocateTmp(size);
-            };
-            const auto dyn_size = data.DynamicArrayIndex == COPLT_U32_MAX ? 0 : info.DynArraySize;
-            f(data.ResourceTableSize + dyn_size, m_context->m_descriptor_manager.m_res, resource_allocation);
-            f(data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, sampler_allocation);
-            const auto AllocationIndex = m_allocations.size();
-            m_allocations.push_back({ind.GroupIndex, resource_allocation, sampler_allocation});
-            for (const auto& bind_item_info : bind_item_infos)
-            {
-                // 常量和直接不在这里处理
-                if (bind_item_info.Place != Layout::BindItemPlace::Table) continue;
-                BindItem item{
-                    .Info = &bind_item_info,
-                    .AllocationIndex = AllocationIndex,
-                };
-                m_bind_items.push_back(item);
-            }
+            // const auto& group = info.BindGroup;
+            // const auto& bind_item_infos = group_bind_item_infos[ind.GroupIndex];
+            // const auto& data = group->Layout()->Data();
+            // DescriptorAllocation resource_allocation{};
+            // DescriptorAllocation sampler_allocation{};
+            // const auto f = [&](
+            //     const u32 size, const Rc<DescriptorHeap>& heap, DescriptorAllocation& allocation
+            // )
+            // {
+            //     if (size == 0) return;
+            //     allocation = heap->AllocateTmp(size);
+            // };
+            // const auto dyn_size = data.DynamicArrayIndex == COPLT_U32_MAX ? 0 : info.DynArraySize;
+            // f(data.ResourceTableSize + dyn_size, m_context->m_descriptor_manager.m_res, resource_allocation);
+            // f(data.SamplerTableSize, m_context->m_descriptor_manager.m_smp, sampler_allocation);
+            // const auto AllocationIndex = m_allocations.size();
+            // m_allocations.push_back({ind.GroupIndex, resource_allocation, sampler_allocation});
+            // for (const auto& bind_item_info : bind_item_infos)
+            // {
+            //     // 常量和直接不在这里处理
+            //     if (bind_item_info.Place != Layout::BindItemPlace::Table) continue;
+            //     BindItem item{
+            //         .Info = &bind_item_info,
+            //         .AllocationIndex = AllocationIndex,
+            //     };
+            //     m_bind_items.push_back(item);
+            // }
             info.DynamicBindItemCount = m_bind_items.size() - info.DynamicBindItemIndex;
         }
     }
@@ -1414,6 +1498,7 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
             {
                 const auto& allocation = m_allocations[bind_item.AllocationIndex];
                 const auto& al = bind_item_info.Type == Layout::BindItemType::Resource ? allocation.Resource : allocation.Sampler;
+                COPLT_DEBUG_ASSERT(al.m_heap != nullptr);
                 if (m_state == RecordState::Render)
                 {
                     list->g0->SetGraphicsRootDescriptorTable(bind_item_info.RootIndex, al.GetGpuHandle());

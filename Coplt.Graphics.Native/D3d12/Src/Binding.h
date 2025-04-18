@@ -15,6 +15,16 @@ namespace Coplt
     struct ID3d12ShaderBinding;
     struct DescriptorAllocation;
 
+    struct DescriptorHeapPair
+    {
+        u64 ResourceVersion{};
+        u64 SamplerVersion{};
+        ComPtr<ID3D12DescriptorHeap> ResourceHeap{};
+        ComPtr<ID3D12DescriptorHeap> SamplerHeap{};
+
+        explicit operator bool() const;
+    };
+
     COPLT_INTERFACE_DEFINE(ID3d12ShaderBindGroup, "5bb948b9-ad31-4eb8-b881-98017e048259", FShaderBindGroup)
     {
         virtual u64 Version() const noexcept = 0;
@@ -24,7 +34,7 @@ namespace Coplt
         virtual std::span<const u32> DefineIndexes() const noexcept = 0;
         virtual RwLock& SelfLock() noexcept = 0;
         // 返回是否有改变
-        virtual bool EnsureAvailable() = 0;
+        virtual bool EnsureAvailable(DescriptorHeapPair& out) = 0;
 
         virtual const ComPtr<ID3D12DescriptorHeap>& ResourceHeap() noexcept = 0;
         virtual const ComPtr<ID3D12DescriptorHeap>& SamplerHeap() noexcept = 0;
@@ -39,6 +49,8 @@ namespace Coplt
         // 动态组永远不会创建描述符暂存堆
         ComPtr<ID3D12DescriptorHeap> m_resource_heap{};
         ComPtr<ID3D12DescriptorHeap> m_sampler_heap{};
+        u64 m_resource_version{};
+        u64 m_sampler_version{};
         u32 m_resource_heap_inc{};
         u32 m_sampler_heap_inc{};
         std::vector<View> m_views{};
@@ -57,6 +69,7 @@ namespace Coplt
         explicit D3d12ShaderBindGroup(Rc<D3d12GpuDevice>&& device, const FShaderBindGroupCreateOptions& options);
         FResult SetName(const FStr8or16& name) noexcept override;
         void DoSetName(const FStr8or16& name) const;
+        static void DoSetName(const FStr8or16& name, const DescriptorHeapPair& pair);
 
         FShaderBindGroupData* ShaderBindGroupData() noexcept override;
 
@@ -70,8 +83,10 @@ namespace Coplt
         // 需要外部锁 m_self_lock 必须是 Write 锁定状态
         void Set(std::span<const FSetBindItem> items);
 
+        DescriptorHeapPair Cow() const;
+
         // 需要外部锁 m_self_lock 必须是 Read 锁定状态
-        bool EnsureAvailable() override;
+        bool EnsureAvailable(DescriptorHeapPair& out) override;
 
         const ComPtr<ID3D12DescriptorHeap>& ResourceHeap() noexcept override;
         const ComPtr<ID3D12DescriptorHeap>& SamplerHeap() noexcept override;
