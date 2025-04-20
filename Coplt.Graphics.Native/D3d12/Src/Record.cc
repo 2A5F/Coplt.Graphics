@@ -864,13 +864,15 @@ void D3d12GpuRecord::Analyze_SetBinding(const u32 i, const FCmdSetBinding& cmd)
         if (!group) continue;
         const auto& data = group->Layout()->Data();
         if (data.Usage == FBindGroupUsage::Dynamic) continue;
+        const auto define_item_indexes = group->DefineIndexes();
+        const auto& group_item_info = group_item_infos[g];
         const auto views = group->Views();
         for (u32 v = 0; v < views.size(); ++v)
         {
             const auto& view = views[v];
             if (!view || view.IsSampler()) continue;
             const auto& res_index = AddResource(view);
-            const auto& info = group_item_infos[g][v];
+            const auto& info = group_item_info[define_item_indexes[v]];
             m_barrier_analyzer->OnUse(res_index, view, info);
         }
         TmpGroupDescriptorHeap group_descriptor_heap{};
@@ -1004,6 +1006,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
     binding_info.Changed = false;
     const NonNull binding_layout = sync_binding_info.Layout;
     const auto group_root_item_infos = binding_layout->GroupRootItemInfos();
+    const auto group_item_infos = binding_layout->GroupItemInfos();
     sync_binding_info.PersistentRootItemIndex = binding_info.PersistentRootItemIndex;
     sync_binding_info.PersistentRootItemCount = binding_info.PersistentRootItemCount;
     sync_binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_info_sync_inds.size();
@@ -1021,6 +1024,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
             info.DynamicRootItemIndex = m_table_bind_items.size();
             const auto& group = info.BindGroup;
             const auto& group_root_item_info = group_root_item_infos[ind.GroupIndex];
+            const auto& group_item_info = group_item_infos[ind.GroupIndex];
             const auto& group_layout = group->Layout();
             const auto& data = group_layout->Data();
             const auto slots = group_layout->Slots();
@@ -1095,6 +1099,13 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                                 );
                             }
                         }
+                        View view(set_bind_item.View);
+                        if (view && !view.IsSampler())
+                        {
+                            const auto& res_index = AddResource(view);
+                            const auto& item_info = group_item_info[set_bind_item.Slot];
+                            m_barrier_analyzer->OnUse(res_index, view, item_info);
+                        }
                         switch (slot.Place)
                         {
                         case Layout::BindSlotPlace::NonTable:
@@ -1107,7 +1118,6 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                                     TmpResource.OffsetInHeap + slot.OffsetInTable + array_index,
                                     res_inc
                                 );
-                                View view(set_bind_item.View);
                                 view.CreateDescriptor(m_device->m_device.Get(), def, handle);
                                 break;
                             }
@@ -1118,7 +1128,6 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                                     TmpSampler.OffsetInHeap + slot.OffsetInTable + array_index,
                                     smp_inc
                                 );
-                                View view(set_bind_item.View);
                                 view.CreateDescriptor(m_device->m_device.Get(), def, handle);
                                 break;
                             }

@@ -99,18 +99,26 @@ bool Coplt::IsReadOnly(const ResAccess access)
     );
 }
 
+bool Coplt::IsNonUavReadOnly(const ResAccess access)
+{
+    return HasFlagsOnly(
+        access,
+        ResAccess::VertexBufferRead | ResAccess::ConstantBufferRead | ResAccess::IndexBufferRead |
+        ResAccess::DepthStencilRead | ResAccess::ShaderResourceRead | ResAccess::IndirectArgumentRead | ResAccess::CopySourceRead |
+        ResAccess::ResolveSourceRead | ResAccess::ShadingRateSourceRead |
+        ResAccess::VideoEncodeRead | ResAccess::VideoDecodeRead | ResAccess::VideoProcessRead
+    );
+}
+
 bool Coplt::IsCompatible(const ResAccess Old, const ResAccess New)
 {
     switch (Old)
     {
     case ResAccess::None:
         return true;
-    case ResAccess::UnorderedAccessRead:
-    case ResAccess::RayTracingAccelerationStructureRead:
-        return false;
     default:
-        if (IsReadOnly(Old) && IsReadOnly(New)) return true;
-        return false;
+        if (IsNonUavReadOnly(Old) && IsNonUavReadOnly(New)) return true;
+        return Old == New;
     }
 }
 

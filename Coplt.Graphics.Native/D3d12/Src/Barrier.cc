@@ -145,9 +145,11 @@ namespace Coplt::Enhanced
         {
             if (info.State.IsCompatible(new_state, true))
             {
+                if (HasFlags(info.State.Access, ResAccess::UnorderedAccessWrite) && m_last_cmd_count > 0) goto False0;
                 info.State = info.State.Merge(new_state);
                 goto End;
             }
+            False0:
             info.InfoState = InfoState::Used;
             m_inputs.push_back(IOResState{.ResIndex = ResIndex, .LstGroup = info.LstGroup, .State = info.State});
             if (info.CurGroup == CurGroupIndex() || need_split) Split();
@@ -157,9 +159,11 @@ namespace Coplt::Enhanced
         {
             if (info.State.IsCompatible(new_state, true))
             {
+                if (HasFlags(info.State.Access, ResAccess::UnorderedAccessWrite) && m_last_cmd_count > 0) goto False1;
                 info.State = info.State.Merge(new_state);
                 goto End;
             }
+            False1:
         }
         if (info.CurGroup == CurGroupIndex() || need_split) Split();
         CreateBarrier(info);

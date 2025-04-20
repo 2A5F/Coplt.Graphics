@@ -30,7 +30,9 @@ namespace Coplt
         virtual u64 Version() const noexcept = 0;
         virtual const Rc<ID3d12BindGroupLayout>& Layout() const noexcept = 0;
         virtual std::span<const View> Views() const noexcept = 0;
+        // 布局 item index => view index
         virtual std::span<const u32> ItemIndexes() const noexcept = 0;
+        // view index => 布局 item index
         virtual std::span<const u32> DefineIndexes() const noexcept = 0;
         virtual RwLock& SelfLock() noexcept = 0;
         // 返回是否有改变
