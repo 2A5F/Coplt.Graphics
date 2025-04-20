@@ -2,6 +2,7 @@ cbuffer Args : register(b0)
 {
     uint2 size;
     uint mip_levels; // 0 .. 4
+    uint arr;
 }
 
 RWTexture2D<float4> images[] : register(u0);
@@ -53,7 +54,7 @@ void Compute(uint2 tid : SV_DispatchThreadID, uint2 gtid : SV_GroupThreadID, uin
                 src.Load(pos + uint2(1, 0)) +
                 src.Load(pos + uint2(1, 1))
             ) * 0.25;
-            dst[gtid] = color;
+            dst[tid] = color;
             index = 2;
             X8_8(gtid, gid, index, color);
             return;
@@ -98,6 +99,7 @@ bool QuadIsFirst()
 
 void X8_8(uint2 gtid, uint2 gid, inout uint index, inout float4 color)
 {
+    if (index > arr) return;
     RWTexture2D<float4> dst = images[index]; // 4x4
     // color from 8x8
     float4 c1 = QuadReadAcrossX(color);
@@ -132,6 +134,7 @@ void X8_8(uint2 gtid, uint2 gid, inout uint index, inout float4 color)
 
 void X4_4(uint2 gtid, uint2 gid, inout uint index, inout float4 color)
 {
+    if (index > arr) return;
     RWTexture2D<float4> dst = images[index]; // 2x2
     // color from 4x4
     float4 c1 = QuadReadAcrossX(color);
@@ -166,6 +169,7 @@ void X4_4(uint2 gtid, uint2 gid, inout uint index, inout float4 color)
 
 void X2_2(uint2 gid, inout uint index, inout float4 color)
 {
+    if (index > arr) return;
     RWTexture2D<float4> dst = images[index]; // 1x1
     // color from 2x2
     float4 c1 = QuadReadAcrossX(color);

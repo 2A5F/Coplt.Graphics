@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
@@ -100,21 +101,41 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         GenMipmaps(cmd, test_image);
     }
 
+    [InlineArray(5)]
+    private struct SetShaderBindItemArr
+    {
+        private SetShaderBindItem _;
+    }
+
     private void GenMipmaps(GpuRecord cmd, GpuImage image)
     {
+        // Not handling non-power-of-2 cases
         using var compute = cmd.Compute(Name: "GenMipmaps");
         compute.SetBinding(Binding);
-        compute.SetDynArraySize(BindGroup, 4);
-        compute.SetConstants(BindGroup, 0, [image.Width, image.Height, 4]);
-        compute.SetBindItem(
-            BindGroup, [
-                new(1, 0, image.View2D(0, 1)),
-                new(1, 1, image.View2D(1, 1)),
-                new(1, 2, image.View2D(2, 1)),
-                new(1, 3, image.View2D(3, 1)),
-            ]
-        );
-        compute.Dispatch(Pipeline, 1, 1);
+        var size = new uint2(image.Width, image.Height);
+        var i = 0u;
+        var l = (image.MipLevels - 1u) % 4;
+        if (l == 0) l = 4;
+        for (; i < image.MipLevels; i += l, size >>= (int)l, l = 4)
+        {
+            var mip_levels = math.min(image.MipLevels - i - 1, 4);
+            var arr = math.min(l, image.MipLevels - i - 1);
+            if (arr == 0) break;
+            var half_size = size >> 1;
+            var groups = (half_size + 7) >> 3;
+            compute.SetDynArraySize(BindGroup, arr + 1);
+            compute.SetConstants(BindGroup, 0, [size.x, size.y, mip_levels, arr]);
+            Span<SetShaderBindItem> set_items =
+            [
+                new(1, 0, image.View2D((byte)(i + 0))),
+                new(1, 1, image.View2D((byte)(i + 1))),
+                new(1, 2, image.View2D((byte)(i + 2))),
+                new(1, 3, image.View2D((byte)(i + 3))),
+                new(1, 4, image.View2D((byte)(i + 4))),
+            ];
+            compute.SetBindItem(BindGroup, set_items[..((int)arr + 1)]);
+            compute.Dispatch(Pipeline, groups.x, groups.y);
+        }
     }
 
     protected override void Render(GpuRecord cmd, Time time)
