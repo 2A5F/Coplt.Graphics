@@ -202,7 +202,7 @@ void X2_2(uint2 gid, inout uint index, inout float4 color)
 ## The Display Shader
 
 <details>
-  <summary>The Mipmap Shader</summary>
+  <summary>The Display Shader</summary>
 
 ```hlsl
 struct Attribute
