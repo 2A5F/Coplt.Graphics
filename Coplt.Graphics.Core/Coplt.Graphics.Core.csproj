@@ -14,7 +14,7 @@
 
     <ItemGroup>
         <PackageReference Include="Coplt.Dropping" Version="0.6.0" PrivateAssets='All' />
-        <PackageReference Include="Coplt.Union" Version="0.15.0" PrivateAssets='All' />
+        <PackageReference Include="Coplt.Union" Version="0.17.0" PrivateAssets='All' />
         <PackageReference Include="Fody" Version="6.9.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -131,27 +131,27 @@ namespace Coplt
             FResourceAccess UavAccess{};
         };
 
-        enum class BindItemPlace : u8
+        enum class RootItemPlace : u8
         {
             Table,
             Direct,
             Const,
         };
 
-        enum class BindItemType : u8
+        enum class RootItemType : u8
         {
             Resource,
             Sampler,
         };
 
-        struct BindItemInfo
+        struct RootItemInfo
         {
             u32 Group{};
             // Place 为 Table 时永远为 0
             u32 IndexInGroup{};
             u32 RootIndex{};
-            BindItemPlace Place{};
-            BindItemType Type{};
+            RootItemPlace Place{};
+            RootItemType Type{};
         };
     }
 
@@ -175,6 +175,8 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(ID3d12BindGroupLayout, "2e440ba8-f47a-4f98-a434-31125406e55c", FBindGroupLayout)
     {
         using BindSlotInfo = Layout::BindSlotInfo;
+        virtual std::span<const FBindGroupItem> Items() const noexcept = 0;
+        virtual std::span<const FStaticSamplerInfo> StaticSamplerInfos() const noexcept = 0;
         virtual const D3d12BindGroupLayoutData& Data() const noexcept = 0;
         virtual std::span<const BindSlotInfo> Slots() const noexcept = 0;
     };
@@ -190,6 +192,8 @@ namespace Coplt
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
+        std::span<const FBindGroupItem> Items() const noexcept override;
+        std::span<const FStaticSamplerInfo> StaticSamplerInfos() const noexcept override;
         const D3d12BindGroupLayoutData& Data() const noexcept override;
         std::span<const BindSlotInfo> Slots() const noexcept override;
     };
@@ -205,14 +209,16 @@ namespace Coplt
         using SlotInfo = Layout::SlotInfo;
         using GroupItemInfo = Layout::GroupItemInfo;
         using TableInfo = Layout::TableInfo;
-        using BindItemInfo = Layout::BindItemInfo;
+        using RootItemInfo = Layout::RootItemInfo;
 
         virtual const D3d12BindingLayoutData& Data() const noexcept = 0;
         virtual const Rc<FShaderLayout>& ShaderLayout() const noexcept = 0;
         virtual std::span<const Rc<ID3d12BindGroupLayout>> Groups() const noexcept = 0;
         virtual const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept = 0;
         virtual std::span<const SlotInfo> SlotInfos() const noexcept = 0;
-        virtual std::span<const BindItemInfo> BindItemInfos() const noexcept = 0;
+        virtual std::span<const RootItemInfo> RootItemInfos() const noexcept = 0;
+        // 第一层索引是 Group index
+        virtual std::span<const std::vector<RootItemInfo>> GroupRootItemInfos() const noexcept = 0;
         // 第一层索引是 Group index
         virtual std::span<const std::vector<TableInfo>> TableInfos() const noexcept = 0;
         // 第一层索引是 Group index
@@ -228,8 +234,10 @@ namespace Coplt
         Rc<FShaderLayout> m_shader_layout{};
         std::vector<Rc<ID3d12BindGroupLayout>> m_groups{};
         std::vector<SlotInfo> m_slot_infos{};
-        std::vector<BindItemInfo> m_bind_item_infos{};
+        std::vector<RootItemInfo> m_bind_item_infos{};
         HashMap<BindSlot, usize> m_slot_to_info{};
+        // 第一层索引是 Group index
+        std::vector<std::vector<RootItemInfo>> m_group_bind_item_infos{};
         // 第一层索引是 Group index
         std::vector<std::vector<TableInfo>> m_tables{};
         // 第一层索引是 Group index
@@ -244,7 +252,8 @@ namespace Coplt
         std::span<const Rc<ID3d12BindGroupLayout>> Groups() const noexcept override;
         const ComPtr<ID3D12RootSignature>& RootSignature() const noexcept override;
         std::span<const SlotInfo> SlotInfos() const noexcept override;
-        std::span<const BindItemInfo> BindItemInfos() const noexcept override;
+        std::span<const RootItemInfo> RootItemInfos() const noexcept override;
+        std::span<const std::vector<RootItemInfo>> GroupRootItemInfos() const noexcept override;
         std::span<const std::vector<TableInfo>> TableInfos() const noexcept override;
         std::span<const std::vector<GroupItemInfo>> GroupItemInfos() const noexcept override;
     };
@@ -278,4 +287,11 @@ namespace Coplt
 
         const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const noexcept override;
     };
+
+    inline bool IsCompatible(const FShaderLayoutItemView Shader, const FShaderLayoutItemView Bind)
+    {
+        if (Shader == FShaderLayoutItemView::Sampler && Bind == FShaderLayoutItemView::StaticSampler) return true;
+        if (Shader == FShaderLayoutItemView::Cbv && Bind == FShaderLayoutItemView::Constants) return true;
+        return Shader == Bind;
+    }
 }

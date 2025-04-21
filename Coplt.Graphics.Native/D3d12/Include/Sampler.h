@@ -44,7 +44,7 @@ namespace Coplt
         desc.BorderColor[3] = info.BorderColor[3];
     }
 
-    inline void SetBorderColor(const FStaticSamplerInfo& info, D3D12_STATIC_SAMPLER_DESC& desc)
+    inline void SetBorderColor(const FStaticSamplerInfo& info, D3D12_STATIC_SAMPLER_DESC1& desc)
     {
         switch (info.BorderColor)
         {

@@ -14,7 +14,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     #region Fields
 
     internal FGpuRecordData* m_data;
-    internal readonly Dictionary<object, uint> m_resources = new();
+    internal readonly Dictionary<IGpuResource, uint> m_resources = new();
     internal readonly HashSet<object> m_objects = new();
     internal uint m_debug_scope_count;
     internal bool m_in_render_or_compute_scope;
@@ -104,6 +104,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     /// </summary>
     public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc loc, uint Align = 4)
     {
+        var r_size = Size;
         if (Align > 1) Size += Align - 1;
         ref var upload_buffers = ref Data.Context->m_upload_buffer;
         for (nuint i = 0; i < upload_buffers.LongLength; i++)
@@ -112,9 +113,9 @@ public sealed unsafe class GpuRecord : IsolateChild
             if (block.cur_offset + Size < block.size)
             {
                 var offset = block.cur_offset.Aligned(Align);
-                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-                loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
-                block.cur_offset += Size;
+                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset, r_size);
+                loc = new UploadLoc(Data.Id, Data.Version, i, offset, r_size);
+                block.cur_offset += r_size;
                 return r;
             }
         }
@@ -125,9 +126,9 @@ public sealed unsafe class GpuRecord : IsolateChild
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
             var offset = block.cur_offset.Aligned(Align);
-            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-            loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
-            block.cur_offset += Size;
+            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset, r_size);
+            loc = new UploadLoc(Data.Id, Data.Version, i, offset, r_size);
+            block.cur_offset += r_size;
             return r;
         }
     }
@@ -137,6 +138,18 @@ public sealed unsafe class GpuRecord : IsolateChild
         Data.CopyTo(AllocUploadMemory((uint)Data.Length, out var loc, Align));
         return loc;
     }
+
+    public UploadLoc UploadConstants<T>(ReadOnlySpan<T> Data) where T : unmanaged
+    {
+        var bytes = MemoryMarshal.AsBytes(Data);
+        var size = ((uint)bytes.Length).Aligned(256);
+        var mem = AllocUploadMemory(size, out var loc, 256);
+        bytes.CopyTo(mem);
+        return loc;
+    }
+
+    public UploadLoc UploadConstants<T>(T Data) where T : unmanaged =>
+        UploadConstants(new ReadOnlySpan<T>(in Data));
 
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
@@ -289,7 +302,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #region Scope
 
-    public DebugScope2 Scope(string Name, Color? Color = null)
+    public DebugScope Scope(string Name, Color? Color = null)
     {
         AssertNotEnded();
         if (!DebugEnabled) return new(this);
@@ -313,7 +326,7 @@ public sealed unsafe class GpuRecord : IsolateChild
         return new(this);
     }
 
-    public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null)
+    public DebugScope Scope(ReadOnlySpan<byte> Name, Color? Color = null)
     {
         AssertNotEnded();
         if (!DebugEnabled) return new(this);
@@ -421,6 +434,80 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #endregion
 
+    #region BufferImageCopy
+
+    public void Copy(
+        GpuImage Image,
+        GpuBuffer Buffer,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All,
+        ulong BufferOffset = 0,
+        bool ImageToBuffer = false
+    ) => Copy(
+        Image, Buffer,
+        0, 0, 0,
+        Image.Width, Image.Height, Image.DepthOrLength,
+        BytesPerRow, RowsPerImage,
+        MipLevel, ImageIndex, ImageCount, Plane, BufferOffset
+    );
+
+    public void Copy(
+        GpuImage Image,
+        GpuBuffer Buffer,
+        uint ImageX,
+        uint ImageY,
+        uint ImageZ,
+        uint ImageWidth,
+        uint ImageHeight,
+        uint ImageDepth,
+        uint BytesPerRow,
+        uint RowsPerImage,
+        uint MipLevel = 0,
+        uint ImageIndex = 0,
+        uint ImageCount = 1,
+        ImagePlane Plane = ImagePlane.All,
+        ulong BufferOffset = 0,
+        bool ImageToBuffer = false
+    )
+    {
+        AssertNotEnded();
+        Image.AssertSameIsolate(Isolate);
+        Buffer.AssertSameIsolate(Isolate);
+        var cmd = new FCmdBufferImageCopy
+        {
+            Base = { Type = FCmdType.BufferImageCopy },
+            RangeIndex = (uint)Data.PayloadBufferImageCopyRange.LongLength,
+            Image = AddResource(Image),
+            Buffer = { Buffer = AddResource(Buffer) },
+            BufferType = FBufferRefType2.Buffer,
+            ImageToBuffer = ImageToBuffer,
+        };
+        var range = new FBufferImageCopyRange
+        {
+            BufferOffset = BufferOffset,
+            BytesPerRow = BytesPerRow,
+            RowsPerImage = RowsPerImage,
+            ImageIndex = ImageIndex,
+            ImageCount = ImageCount,
+            MipLevel = (ushort)MipLevel,
+            Plane = Plane.ToFFI(),
+        };
+        range.ImageOffset[0] = ImageX;
+        range.ImageOffset[1] = ImageY;
+        range.ImageOffset[2] = ImageZ;
+        range.ImageExtent[0] = ImageWidth;
+        range.ImageExtent[1] = ImageHeight;
+        range.ImageExtent[2] = ImageDepth;
+        Data.PayloadBufferImageCopyRange.Add(range);
+        Data.Commands.Add(new() { BufferImageCopy = cmd });
+    }
+
+    #endregion
+
     #region BufferUpload
 
     public void Upload<T>(
@@ -494,7 +581,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     }
 
     #endregion
-    
+
     #region ImageUpload
 
     public void Upload(
@@ -581,17 +668,17 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #region Render
 
-    public RenderScope2 Render(
+    public RenderScope Render(
         ReadOnlySpan<RenderInfo.RtvInfo> Rtvs, RenderInfo.DsvInfo? Dsv = null,
         bool AutoViewportScissor = true,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     ) => Render(new(Rtvs, Dsv), AutoViewportScissor, Name, Name8);
-    public RenderScope2 Render(
+    public RenderScope Render(
         RenderInfo.DsvInfo Dsv, ReadOnlySpan<RenderInfo.RtvInfo> Rtvs = default,
         bool AutoViewportScissor = true,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
     ) => Render(new(Rtvs, Dsv), AutoViewportScissor, Name, Name8);
-    public RenderScope2 Render(
+    public RenderScope Render(
         in RenderInfo Info,
         bool AutoViewportScissor = true,
         string? Name = null, ReadOnlySpan<byte> Name8 = default
@@ -756,7 +843,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
         #region Scope
 
-        RenderScope2 scope = new(this, info_index, cmd_index, debug_scope, m_debug_scope_count);
+        RenderScope scope = new(this, info_index, cmd_index, debug_scope, m_debug_scope_count);
 
         #endregion
 
@@ -779,7 +866,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
     #region Compute
 
-    public ComputeScope2 Compute(string? Name = null, ReadOnlySpan<byte> Name8 = default)
+    public ComputeScope Compute(string? Name = null, ReadOnlySpan<byte> Name8 = default)
     {
         AssertNotEnded();
 
@@ -824,7 +911,7 @@ public sealed unsafe class GpuRecord : IsolateChild
 
         #region Scope
 
-        ComputeScope2 scope = new(this, cmd_index, debug_scope, m_debug_scope_count);
+        ComputeScope scope = new(this, cmd_index, debug_scope, m_debug_scope_count);
 
         #endregion
 
@@ -832,16 +919,94 @@ public sealed unsafe class GpuRecord : IsolateChild
     }
 
     #endregion
+
+    #region Binding
+
+    internal void SetDynArraySize(ShaderBindGroup Group, uint Size)
+    {
+        AssertNotEnded();
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic)
+            throw new ArgumentException("Dynamic array size can only be set for dynamic groups");
+        AddObject(Group);
+        var cmd = new FCmdSetDynArraySize
+        {
+            Base = { Type = FCmdType.SetDynArraySize },
+            Group = Group.Ptr,
+            Size = Size,
+        };
+        Data.Commands.Add(new() { SetDynArraySize = cmd });
+    }
+
+    internal void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        SetConstants(Group, BindIndex, MemoryMarshal.Cast<T, uint>(Constants), Offset);
+    }
+
+    internal void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged
+    {
+        if ((sizeof(T) & 3) != 0) throw new ArgumentException("Constant size must be a multiple of 4");
+        SetConstants(Group, BindIndex, MemoryMarshal.Cast<T, uint>(new ReadOnlySpan<T>(in Constant)), Offset);
+    }
+
+    [OverloadResolutionPriority(1)]
+    internal void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0)
+    {
+        AssertNotEnded();
+        if (Constants.Length == 0) return;
+        AddObject(Group);
+        var cmd = new FCmdSetConstants
+        {
+            Base = { Type = FCmdType.SetConstants },
+            Group = Group.Ptr,
+            Slot = BindIndex,
+            ValueIndex = (uint)Data.Payload32Bits.LongLength,
+            Count = (uint)Constants.Length,
+            Offset = Offset,
+        };
+        Data.Payload32Bits.AddRange(Constants);
+        Data.Commands.Add(new() { SetConstants = cmd });
+    }
+
+    internal void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items)
+    {
+        AssertNotEnded();
+        if (Group.Layout.Data.Usage != FBindGroupUsage.Dynamic)
+            throw new ArgumentException("Only items in a dynamic group can be set dynamically");
+        if (Items.Length == 0) return;
+        AddObject(Group);
+        var cmd = new FCmdSetBindItem
+        {
+            Base = { Type = FCmdType.SetBindItem },
+            Group = Group.Ptr,
+            ItemIndex = (uint)Data.PayloadSetBindItem.LongLength,
+            Count = (uint)Items.Length,
+        };
+        var dst = Data.PayloadSetBindItem.UnsafeAddRange(Items.Length);
+        for (var i = 0; i < Items.Length; i++)
+        {
+            ref readonly var item = ref Items[i];
+            dst[i] = new()
+            {
+                View = item.View.ToFFI(),
+                Slot = item.BindIndex,
+                Index = item.ArrayIndex,
+            };
+        }
+        Data.Commands.Add(new() { SetBindItem = cmd });
+    }
+
+    #endregion
 }
 
 #region DebugScope
 
-public struct DebugScope2(GpuRecord self) : IDisposable
+public struct DebugScope(GpuRecord self) : IDisposable
 {
     private bool m_disposed;
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(DebugScope2));
+        if (m_disposed) throw new ObjectDisposedException(nameof(DebugScope));
         m_disposed = true;
         if (!self.DebugEnabled) return;
         var cmd = new FCmdEndScope
@@ -902,7 +1067,7 @@ internal unsafe struct PipelineContext
         {
             Base = { Type = FCmdType.SetBinding },
             Binding = binding_index,
-            Index = self.Data.NumSetBindings++,
+            // Index = self.Data.NumSetBindings++,
         };
         self.Data.Commands.Add(new() { SetBinding = cmd });
     }
@@ -914,7 +1079,7 @@ internal unsafe struct PipelineContext
 
 #region RenderScope
 
-public unsafe struct RenderScope2(
+public unsafe struct RenderScope(
     GpuRecord self,
     uint info_index,
     uint cmd_index,
@@ -940,7 +1105,7 @@ public unsafe struct RenderScope2(
 
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(RenderScope2));
+        if (m_disposed) throw new ObjectDisposedException(nameof(RenderScope));
         m_disposed = true;
         if (self.m_debug_scope_count > debug_scope_count)
             throw new InvalidOperationException(
@@ -949,7 +1114,7 @@ public unsafe struct RenderScope2(
         Cmd.CommandCount = (uint)self.m_data->Commands.LongLength - cmd_index;
         self.m_in_render_or_compute_scope = false;
         self.Data.Commands.Add(new() { Type = FCmdType.End });
-        if (debug_scope) new DebugScope2(self).Dispose();
+        if (debug_scope) new DebugScope(self).Dispose();
     }
 
     #endregion
@@ -966,9 +1131,9 @@ public unsafe struct RenderScope2(
 
     #region Scope
 
-    public DebugScope2 Scope(string Name, Color? Color = null) => self.Scope(Name, Color);
+    public DebugScope Scope(string Name, Color? Color = null) => self.Scope(Name, Color);
 
-    public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null) => self.Scope(Name, Color);
+    public DebugScope Scope(ReadOnlySpan<byte> Name, Color? Color = null) => self.Scope(Name, Color);
 
     #endregion
 
@@ -976,7 +1141,7 @@ public unsafe struct RenderScope2(
 
     #region SetPipeline
 
-    public void SetPipeline(ShaderPipeline Pipeline)
+    public void SetPipeline(GraphicsShaderPipeline Pipeline)
     {
         self.AssertNotEnded();
         if (m_pipeline_context.m_current_pipeline == Pipeline) return;
@@ -994,6 +1159,25 @@ public unsafe struct RenderScope2(
         self.AssertNotEnded();
         m_pipeline_context.SetBinding(self, Binding);
     }
+
+    /// <summary>
+    /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    /// </summary>
+    public void SetDynArraySize(ShaderBindGroup Group, uint Size) =>
+        self.SetDynArraySize(Group, Size);
+
+    [OverloadResolutionPriority(1)]
+    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) =>
+        self.SetConstants(Group, BindIndex, Constants, Offset);
+
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged =>
+        self.SetConstants(Group, BindIndex, Constants, Offset);
+
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged =>
+        self.SetConstants(Group, BindIndex, Constant, Offset);
+
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) =>
+        self.SetBindItem(Group, Items);
 
     #endregion
 
@@ -1106,7 +1290,7 @@ public unsafe struct RenderScope2(
     ) => Draw(null, false, VertexCount, InstanceCount, FirstVertex, FirstInstance, 0, Binding);
 
     public void Draw(
-        ShaderPipeline? Pipeline,
+        GraphicsShaderPipeline? Pipeline,
         uint VertexCount, uint InstanceCount = 1,
         uint FirstVertex = 0, uint FirstInstance = 0,
         ShaderBinding? Binding = null
@@ -1119,14 +1303,14 @@ public unsafe struct RenderScope2(
     ) => Draw(null, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding);
 
     public void DrawIndexed(
-        ShaderPipeline? Pipeline,
+        GraphicsShaderPipeline? Pipeline,
         uint IndexCount, uint InstanceCount = 1,
         uint FirstIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
         ShaderBinding? Binding = null
     ) => Draw(Pipeline, true, IndexCount, InstanceCount, FirstIndex, FirstInstance, VertexOffset, Binding);
 
     public void Draw(
-        ShaderPipeline? Pipeline, bool Indexed,
+        GraphicsShaderPipeline? Pipeline, bool Indexed,
         uint VertexOrIndexCount, uint InstanceCount = 1,
         uint FirstVertexOrIndex = 0, uint FirstInstance = 0, uint VertexOffset = 0,
         ShaderBinding? Binding = null
@@ -1148,7 +1332,11 @@ public unsafe struct RenderScope2(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDraw
         {
-            Base = { Type = FCmdType.Draw },
+            Base =
+            {
+                Base = { Type = FCmdType.Draw },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             VertexOrIndexCount = VertexOrIndexCount,
             InstanceCount = InstanceCount,
             FirstVertexOrIndex = FirstVertexOrIndex,
@@ -1169,11 +1357,13 @@ public unsafe struct RenderScope2(
     ) => DispatchMesh(null, GroupCountX, GroupCountY, GroupCountZ, Binding);
 
     public void DispatchMesh(
-        ShaderPipeline? Pipeline,
+        GraphicsShaderPipeline? Pipeline,
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
         ShaderBinding? Binding = null
     )
     {
+        if (GroupCountX == 0 || GroupCountY == 0 || GroupCountZ == 0)
+            throw new ArgumentException("GroupCountX and GroupCountY and GroupCountZ must not be 0");
         self.AssertNotEnded();
         if (Pipeline != null)
         {
@@ -1190,7 +1380,11 @@ public unsafe struct RenderScope2(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
-            Base = { Type = FCmdType.Dispatch },
+            Base =
+            {
+                Base = { Type = FCmdType.Dispatch },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,
@@ -1206,7 +1400,7 @@ public unsafe struct RenderScope2(
 
 #region ComputeScope
 
-public unsafe struct ComputeScope2(
+public unsafe struct ComputeScope(
     GpuRecord self,
     uint cmd_index,
     bool debug_scope,
@@ -1230,7 +1424,7 @@ public unsafe struct ComputeScope2(
 
     public void Dispose()
     {
-        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope2));
+        if (m_disposed) throw new ObjectDisposedException(nameof(ComputeScope));
         m_disposed = true;
         if (self.m_debug_scope_count > debug_scope_count)
             throw new InvalidOperationException(
@@ -1239,7 +1433,7 @@ public unsafe struct ComputeScope2(
         Cmd.CommandCount = (uint)self.m_data->Commands.LongLength - cmd_index;
         self.m_in_render_or_compute_scope = false;
         self.Data.Commands.Add(new() { Type = FCmdType.End });
-        if (debug_scope) new DebugScope2(self).Dispose();
+        if (debug_scope) new DebugScope(self).Dispose();
     }
 
     #endregion
@@ -1256,9 +1450,9 @@ public unsafe struct ComputeScope2(
 
     #region Scope
 
-    public DebugScope2 Scope(string Name, Color? Color = null) => self.Scope(Name, Color);
+    public DebugScope Scope(string Name, Color? Color = null) => self.Scope(Name, Color);
 
-    public DebugScope2 Scope(ReadOnlySpan<byte> Name, Color? Color = null) => self.Scope(Name, Color);
+    public DebugScope Scope(ReadOnlySpan<byte> Name, Color? Color = null) => self.Scope(Name, Color);
 
     #endregion
 
@@ -1266,7 +1460,7 @@ public unsafe struct ComputeScope2(
 
     #region SetPipeline
 
-    public void SetPipeline(ShaderPipeline Pipeline)
+    public void SetPipeline(ComputeShaderPipeline Pipeline)
     {
         self.AssertNotEnded();
         if (m_pipeline_context.m_current_pipeline == Pipeline) return;
@@ -1285,6 +1479,24 @@ public unsafe struct ComputeScope2(
         m_pipeline_context.SetBinding(self, Binding);
     }
 
+    /// <summary>
+    /// 设置动态绑定的动态数组大小，调用后之前的动态数组内容将被丢弃
+    /// </summary>
+    public void SetDynArraySize(ShaderBindGroup Group, uint Size) => self.SetDynArraySize(Group, Size);
+
+    [OverloadResolutionPriority(1)]
+    public void SetConstants(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<uint> Constants, uint Offset = 0) =>
+        self.SetConstants(Group, BindIndex, Constants, Offset);
+
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, ReadOnlySpan<T> Constants, uint Offset = 0) where T : unmanaged =>
+        self.SetConstants(Group, BindIndex, Constants, Offset);
+
+    public void SetConstants<T>(ShaderBindGroup Group, uint BindIndex, in T Constant, uint Offset = 0) where T : unmanaged =>
+        self.SetConstants(Group, BindIndex, Constant, Offset);
+
+    public void SetBindItem(ShaderBindGroup Group, ReadOnlySpan<SetShaderBindItem> Items) =>
+        self.SetBindItem(Group, Items);
+
     #endregion
 
     #region Dispatch
@@ -1295,11 +1507,13 @@ public unsafe struct ComputeScope2(
     ) => Dispatch(null, GroupCountX, GroupCountY, GroupCountZ, Binding);
 
     public void Dispatch(
-        ShaderPipeline? Pipeline,
+        ComputeShaderPipeline? Pipeline,
         uint GroupCountX = 1, uint GroupCountY = 1, uint GroupCountZ = 1,
         ShaderBinding? Binding = null
     )
     {
+        if (GroupCountX == 0 || GroupCountY == 0 || GroupCountZ == 0)
+            throw new ArgumentException("GroupCountX and GroupCountY and GroupCountZ must not be 0");
         self.AssertNotEnded();
         if (Pipeline != null)
         {
@@ -1316,7 +1530,11 @@ public unsafe struct ComputeScope2(
         if (Binding != null) SetBinding(Binding);
         var cmd = new FCmdDispatch
         {
-            Base = { Type = FCmdType.Dispatch },
+            Base =
+            {
+                Base = { Type = FCmdType.Dispatch },
+                SyncBindingIndex = self.Data.NumSyncBindings++,
+            },
             GroupCountX = GroupCountX,
             GroupCountY = GroupCountY,
             GroupCountZ = GroupCountZ,

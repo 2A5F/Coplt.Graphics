@@ -3,14 +3,14 @@ using Coplt.Graphics.Native;
 
 namespace Coplt.Graphics.Core;
 
-/// <param name="Slot">绑定槽的索引</param>
-/// <param name="Index">如果绑定是数组的话，数组中的索引</param>
+/// <param name="BindIndex">绑定槽的索引</param>
+/// <param name="ArrayIndex">如果绑定是数组的话，数组中的索引</param>
 /// <param name="View">绑定内容</param>
-public record struct SetShaderBindItem(uint Slot, uint Index, View View)
+public record struct SetShaderBindItem(uint BindIndex, uint ArrayIndex, View View)
 {
-    /// <param name="Slot">绑定槽的索引</param>
+    /// <param name="BindIndex">绑定槽的索引</param>
     /// <param name="View">绑定内容</param>
-    public SetShaderBindItem(uint Slot, View View) : this(Slot, 0, View) { }
+    public SetShaderBindItem(uint BindIndex, View View) : this(BindIndex, 0, View) { }
 }
 
 [Dropping(Unmanaged = true)]
@@ -60,9 +60,9 @@ public sealed unsafe partial class ShaderBindGroup : IsolateChild
         var defs = layout.Items;
         foreach (ref readonly var item in items)
         {
-            if (item.Slot >= defs.Length) throw new IndexOutOfRangeException();
-            ref readonly var def = ref defs[(int)item.Slot];
-            if (item.Index >= def.Count) throw new IndexOutOfRangeException();
+            if (item.BindIndex >= defs.Length) throw new IndexOutOfRangeException();
+            ref readonly var def = ref defs[(int)item.BindIndex];
+            if (item.ArrayIndex >= def.Count) throw new IndexOutOfRangeException();
         }
     }
 

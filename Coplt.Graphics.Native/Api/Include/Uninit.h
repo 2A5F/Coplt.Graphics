@@ -45,7 +45,7 @@ namespace Coplt
             }
         }
 
-        template <typename U> requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U, T>
         void put(U&& value)
         {
             if (m_initialized) *m_ptr = std::forward<U>(value);
@@ -67,7 +67,7 @@ namespace Coplt
             return *m_ptr;
         }
 
-        template <typename U> requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U, T>
         T& operator=(U&& p) noexcept(std::is_nothrow_move_constructible_v<T>)
         {
             if (m_initialized) *m_ptr = std::forward<U>(p);
@@ -90,7 +90,7 @@ namespace Coplt
             return *m_ptr;
         }
 
-        template <typename U> requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U, T>
         T& operator=(const U& p) noexcept(std::is_nothrow_copy_constructible_v<T>)
         {
             if (m_initialized) *m_ptr = p;
@@ -107,7 +107,7 @@ namespace Coplt
             return operator=(std::forward<T>(p));
         }
 
-        template <typename U> requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U, T>
         T& operator<<(U&& p) noexcept(std::is_nothrow_move_constructible_v<T>)
         {
             return operator=(std::forward<U>(p));
@@ -118,7 +118,7 @@ namespace Coplt
             return operator=(p);
         }
 
-        template <typename U> requires std::convertible_to<U*, T*>
+        template <typename U> requires std::convertible_to<U, T>
         T& operator<<(const U& p) noexcept(std::is_nothrow_copy_constructible_v<T>)
         {
             return operator=(p);

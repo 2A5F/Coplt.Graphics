@@ -329,9 +329,11 @@ D3d12RentedCommandList::D3d12RentedCommandList(const Rc<D3d12CommandPool>& pool,
 {
 }
 
-D3d12RentedCommandList::~D3d12RentedCommandList()
+D3d12RentedCommandList::~D3d12RentedCommandList() noexcept(false)
 {
-    if (!m_pool) return;
+    if (!m_pool || !m_list) return;
+    if (std::uncaught_exceptions())
+        return;
     m_pool->ReturnCommandList(std::move(m_list));
 }
 
@@ -369,9 +371,11 @@ D3d12RentedCommandAllocator::D3d12RentedCommandAllocator(const Rc<D3d12CommandPo
 {
 }
 
-D3d12RentedCommandAllocator::~D3d12RentedCommandAllocator()
+D3d12RentedCommandAllocator::~D3d12RentedCommandAllocator() noexcept(false)
 {
-    if (!m_pool) return;
+    if (!m_pool || !m_allocator) return;
+    if (std::uncaught_exceptions())
+        return;
     m_pool->ReturnCommandAllocator(std::move(m_allocator));
 }
 

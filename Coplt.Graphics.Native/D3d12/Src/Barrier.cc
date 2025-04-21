@@ -145,9 +145,11 @@ namespace Coplt::Enhanced
         {
             if (info.State.IsCompatible(new_state, true))
             {
+                if (HasFlags(info.State.Access, ResAccess::UnorderedAccessWrite) && m_last_cmd_count > 0) goto False0;
                 info.State = info.State.Merge(new_state);
                 goto End;
             }
+            False0:
             info.InfoState = InfoState::Used;
             m_inputs.push_back(IOResState{.ResIndex = ResIndex, .LstGroup = info.LstGroup, .State = info.State});
             if (info.CurGroup == CurGroupIndex() || need_split) Split();
@@ -157,9 +159,11 @@ namespace Coplt::Enhanced
         {
             if (info.State.IsCompatible(new_state, true))
             {
+                if (HasFlags(info.State.Access, ResAccess::UnorderedAccessWrite) && m_last_cmd_count > 0) goto False1;
                 info.State = info.State.Merge(new_state);
                 goto End;
             }
+            False1:
         }
         if (info.CurGroup == CurGroupIndex() || need_split) Split();
         CreateBarrier(info);
@@ -399,49 +403,29 @@ namespace Coplt::Enhanced
                 });
                 if (!exist)
                 {
-                    if (sr.State->Layout != input.State.Layout)
+                    if (res.IsImage() && sr.State->Layout != input.State.Layout)
                     {
                         auto& group = result_list ? m_tmp_group : barrier_analyzer->Groups()[0];
-                        if (res.IsImage())
-                        {
-                            const auto img_data = res.GetImageData();
-                            const auto SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage);
-                            D3D12_TEXTURE_BARRIER barrier{
-                                .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-                                .SyncAfter = SyncAfter,
-                                .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-                                .AccessAfter = GetBarrierAccess(input.State.Access),
-                                .LayoutBefore = GetBarrierLayout(sr.State->Layout),
-                                .LayoutAfter = GetBarrierLayout(input.State.Layout),
-                                .pResource = res.GetResource(),
-                                .Subresources = {
-                                    .IndexOrFirstMipLevel = 0,
-                                    .NumMipLevels = img_data->m_mip_levels,
-                                    .FirstArraySlice = 0,
-                                    .NumArraySlices = img_data->m_depth_or_length,
-                                    .FirstPlane = 0,
-                                    .NumPlanes = img_data->m_planes,
-                                },
-                                .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
-                            };
-                            group.Push(barrier);
-                        }
-                        else
-                        {
-                            const auto buffer_data = res.GetBufferData();
-                            const auto SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage);
-                            D3D12_BUFFER_BARRIER barrier{
-                                .SyncBefore = D3D12_BARRIER_SYNC_NONE,
-                                .SyncAfter = D3D12_BARRIER_SYNC_SPLIT,
-                                .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
-                                .AccessAfter = GetBarrierAccess(input.State.Access),
-                                .pResource = res.GetResource(),
-                                .Offset = 0,
-                                .Size = buffer_data->m_size,
-                            };
-                            barrier.SyncAfter = SyncAfter;
-                            group.Push(barrier);
-                        }
+                        const auto img_data = res.GetImageData();
+                        D3D12_TEXTURE_BARRIER barrier{
+                            .SyncBefore = D3D12_BARRIER_SYNC_NONE,
+                            .SyncAfter = GetBarrierSync(input.State.Access, input.State.Usage),
+                            .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
+                            .AccessAfter = GetBarrierAccess(input.State.Access),
+                            .LayoutBefore = GetBarrierLayout(sr.State->Layout),
+                            .LayoutAfter = GetBarrierLayout(input.State.Layout),
+                            .pResource = res.GetResource(),
+                            .Subresources = {
+                                .IndexOrFirstMipLevel = 0,
+                                .NumMipLevels = img_data->m_mip_levels,
+                                .FirstArraySlice = 0,
+                                .NumArraySlices = img_data->m_depth_or_length,
+                                .FirstPlane = 0,
+                                .NumPlanes = img_data->m_planes,
+                            },
+                            .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
+                        };
+                        group.Push(barrier);
                     }
                 }
                 // todo
@@ -529,7 +513,7 @@ bool AD3d12BarrierCombiner::Submit(NonNull<D3d12GpuIsolate> isolate, std::span<R
 {
     StartSubmit();
     Process(isolate, records);
-    const auto has_submit = m_list_node.size() > 0;
+    const auto has_submit = !m_list_node.empty();
     if (has_submit)
     {
         const auto& main_queue = isolate->m_main_queue;

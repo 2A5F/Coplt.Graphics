@@ -136,12 +136,42 @@ public sealed unsafe partial class GpuImage : GpuResource, IGpuResource, ISrv, I
 
     #endregion
 
-    #region View
+    #region Try View
 
     public bool TryRtv() => Purpose.HasFlags(ResourcePurpose.RenderTarget);
     public bool TryDsv() => Purpose.HasFlags(ResourcePurpose.DepthStencil);
     public bool TryUav() => Purpose.HasFlags(ResourcePurpose.UnorderedAccess);
     public bool TrySrv() => Purpose.HasFlags(ResourcePurpose.ShaderResource);
+
+    #endregion
+
+    #region Create View
+
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View View1D(byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0)
+        => View.MakeImage1D(this, Mip, NumMips, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View View1DArray(uint Index = 0, int Size = -1, byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0)
+        => View.MakeImage1DArray(this, Index, Size, Mip, NumMips, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View View2D(byte Mip = 0, sbyte NumMips = -1, byte Plane = 0, GraphicsFormat Format = 0)
+        => View.MakeImage2D(this, Mip, NumMips, Plane, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View View2DArray(uint Index = 0, int Size = -1, byte Mip = 0, sbyte NumMips = -1, byte Plane = 0, GraphicsFormat Format = 0)
+        => View.MakeImage2DArray(this, Index, Size, Mip, NumMips, Plane, Format);
+    public View View2DMs(GraphicsFormat Format = 0)
+        => View.MakeImage2DMs(this, Format);
+    public View View2DMsArray(uint Index = 0, int Size = -1, GraphicsFormat Format = 0)
+        => View.MakeImage2DMsArray(this, Index, Size, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View View3D(uint Z = 0, int Depth = -1, byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0)
+        => View.MakeImage3D(this, Z, Depth, Mip, NumMips, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View ViewCube(byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0)
+        => View.MakeImageCube(this, Mip, NumMips, Format);
+    /// <summary>Uav 忽略 NumMips</summary>
+    public View ViewCubeArray(uint Index = 0, int Size = -1, byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0)
+        => View.MakeImageCubeArray(this, Index, Size, Mip, NumMips, Format);
 
     #endregion
 }

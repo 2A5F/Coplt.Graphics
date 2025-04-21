@@ -122,7 +122,7 @@ namespace Coplt
 
         D3d12RentedCommandList() = default;
         explicit D3d12RentedCommandList(const Rc<D3d12CommandPool>& pool, Rc<D3d12CommandList>&& list);
-        ~D3d12RentedCommandList();
+        ~D3d12RentedCommandList() noexcept(false);
 
         D3d12RentedCommandList(D3d12RentedCommandList&&) = default;
         D3d12RentedCommandList& operator=(D3d12RentedCommandList&&) = default;
@@ -146,7 +146,7 @@ namespace Coplt
 
         D3d12RentedCommandAllocator() = default;
         explicit D3d12RentedCommandAllocator(const Rc<D3d12CommandPool>& pool, ComPtr<ID3D12CommandAllocator>&& allocator);
-        ~D3d12RentedCommandAllocator();
+        ~D3d12RentedCommandAllocator() noexcept(false);
 
         D3d12RentedCommandAllocator(D3d12RentedCommandAllocator&& other) = default;
         D3d12RentedCommandAllocator& operator=(D3d12RentedCommandAllocator&& other) = default;

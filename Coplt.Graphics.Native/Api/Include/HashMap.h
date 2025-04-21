@@ -700,6 +700,28 @@ namespace Coplt
             return GetOrAddEntry(key, already_exist, fove(create_value)).second;
         }
 
+        Value& GetOrAdd(const Key& key, Value&& value, bool& already_exist)
+        {
+            return GetOrAddEntry(key, already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(std::forward<Value&&>(value)); }).second;
+        }
+
+        Value& GetOrAdd(const Key& key, Value&& value)
+        {
+            bool already_exist{};
+            return GetOrAdd(key, std::forward<Value&&>(value), already_exist);
+        }
+
+        Value& GetOrAdd(const Key& key, const Value& value, bool& already_exist)
+        {
+            return GetOrAddEntry(key, already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(value); }).second;
+        }
+
+        Value& GetOrAdd(const Key& key, const Value& value)
+        {
+            bool already_exist{};
+            return GetOrAdd(key, value, already_exist);
+        }
+
         Value& GetOrAddDefault(Key&& key, bool& already_exist)
         {
             return GetOrAdd(std::forward<Key>(key), already_exist, [&](UP<Value> p) { new(p.unsafe_put()) Value(); });

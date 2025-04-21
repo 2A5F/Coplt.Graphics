@@ -301,6 +301,7 @@ public unsafe partial class GraphicsInstance
         return id;
     }
     private Func<string, SlotId>? m_cache_AllocSlotId;
+    /// <param name="name">不区分大小写</param> // todo 改进 SlotId，保留区分大小写的字符串
     public SlotId GetSlotId(string name) => m_slot_id_cache.GetOrAdd(name, m_cache_AllocSlotId ??= AllocSlotId);
     public string? TryGetSlotName(SlotId SlotId) => m_slot_id_name.GetValueOrDefault(SlotId);
     public String8? TryGetSlotName8(SlotId SlotId) => m_slot_id_name8.GetValueOrDefault(SlotId);

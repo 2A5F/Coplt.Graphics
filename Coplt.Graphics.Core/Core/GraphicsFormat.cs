@@ -1,4 +1,6 @@
 ﻿using Coplt.Graphics.Native;
+using Coplt.Union;
+using Coplt.Union.Misc;
 
 namespace Coplt.Graphics
 {

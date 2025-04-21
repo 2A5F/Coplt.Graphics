@@ -31,6 +31,9 @@ namespace Coplt
         // Render / Compute
         SetPipeline,
         SetBinding,
+        SetConstants,
+        SetDynArraySize,
+        SetBindItem,
 
         // Render
         SetViewportScissor,
@@ -286,6 +289,42 @@ namespace Coplt
         u32 Index{};
     };
 
+    struct FCmdSyncBinding : FCmdBase
+    {
+        u32 SyncBindingIndex{};
+    };
+
+    struct FCmdSetConstants : FCmdBase
+    {
+        // Payload 中的索引，类型为 FCmdBindGroup
+        FShaderBindGroup* Group{};
+        // 第几个 SetConstants
+        u32 SetConstantsIndex{};
+        u32 Slot{};
+        // Payload 中的索引，类型为 u32
+        u32 ValueIndex{};
+        u32 Count{};
+        u32 Offset{};
+    };
+
+    // 设置动态绑定的动态数组大小
+    struct FCmdSetDynArraySize : FCmdBase
+    {
+        // Payload 中的索引，类型为 FCmdBindGroup
+        FShaderBindGroup* Group{};
+        // 动态数组大小
+        u32 Size{};
+    };
+
+    struct FCmdSetBindItem : FCmdBase
+    {
+        // Payload 中的索引，类型为 FCmdBindGroup
+        FShaderBindGroup* Group{};
+        // Payload 中的索引，类型为 FSetBindItem
+        u32 ItemIndex{};
+        u32 Count{};
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     struct FCmdSetViewportScissor : FCmdBase
@@ -332,7 +371,7 @@ namespace Coplt
         u32 PayloadIndex{};
     };
 
-    struct FCmdDraw : FCmdBase
+    struct FCmdDraw : FCmdSyncBinding
     {
         u32 VertexOrIndexCount{};
         u32 InstanceCount{};
@@ -345,7 +384,7 @@ namespace Coplt
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    struct FCmdDispatch : FCmdBase
+    struct FCmdDispatch : FCmdSyncBinding
     {
         u32 GroupCountX{};
         u32 GroupCountY{};
@@ -378,6 +417,9 @@ namespace Coplt
 
             FCmdSetPipeline SetPipeline;
             FCmdSetBinding SetBinding;
+            FCmdSetConstants SetConstants;
+            FCmdSetDynArraySize SetDynArraySize;
+            FCmdSetBindItem SetBindItem;
 
             FCmdSetViewportScissor SetViewportScissor;
             FCmdSetMeshBuffers SetMeshBuffers;

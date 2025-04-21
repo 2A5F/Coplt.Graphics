@@ -107,6 +107,8 @@ namespace Coplt
 
     bool IsReadOnly(ResAccess access);
 
+    bool IsNonUavReadOnly(ResAccess access);
+
     bool IsCompatible(ResAccess Old, ResAccess New);
 
     D3D12_RESOURCE_STATES GetResourceState(ResAccess access);

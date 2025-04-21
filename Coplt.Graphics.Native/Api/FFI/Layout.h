@@ -79,7 +79,9 @@ namespace Coplt
         u32 Slot{};
         // dx 的 space，vk 的 set，vk 建议尽可能多的拆分 set，dx 的 space 写不写都一样 // todo 引入 spv 修改器运行时修改 vk 的 set
         u32 Space{};
-        // 数量，View 是 StaticSampler 时必须是 1，其他必须最少是 1, View 是 Constants 是 32 位值的数量，而不是 byte 的数量
+        // 数量，View 是 StaticSampler 时必须是 1，其他必须最少是 1, View 是 Constants 时是 32 位值的数量，而不是 byte 的数量
+        // u32::max 表示是动态数组，只有 Cbv|Srv|Uav View 支持动态数组
+        // 采样器不支持动态数组，因为一般采样器没几个，也不会动态使用
         u32 Count{};
         FGraphicsFormat Format{};
         FShaderStage Stage{};
@@ -185,6 +187,8 @@ namespace Coplt
         // 绑定点所属范围，和 Id 共同组成唯一定位
         u64 Scope{};
         // 数量
+        // u32::max 表示是动态数组，只有 Dynamic Usage 且 Cbv|Srv|Uav View 支持动态数组，每个组只能有 Cbv|Srv|Uav 中的一个
+        // 采样器不支持动态数组，因为一般采样器没几个，也不会动态使用；
         u32 Count{};
         // StaticSamplers 中的 Index
         u32 StaticSamplerIndex{};
@@ -199,9 +203,11 @@ namespace Coplt
     {
         // 一般组
         Common = 0,
-        // 提示组的使用是频繁更改的，d3d12 将会尽可能使用根描述符
-        // 只有缓冲区可以使用根描述符，且建议小缓冲区(几个 32 位值)尽量使用根常量
+        // 动态组不保留绑定状态，每帧都需要在 cmd 上设置
+        // d3d12 将会尽可能使用根描述符，但只有缓冲区可以使用根描述符，且建议小缓冲区(几个 32 位值)尽量使用根常量
         Dynamic = 1,
+        // 冻结组中的资源状态将被冻结，不允许改变，可以节省屏障检测开销, 建议将静态资源归与冻结组中 // todo 未实现
+        Freeze = 2,
     };
 
     struct FBindGroupLayoutCreateOptions
@@ -220,6 +226,7 @@ namespace Coplt
         const FStaticSamplerInfo* StaticSamplers{};
         u32 NumItems{};
         u32 NumStaticSamplers{};
+        u32 DynamicArrayIndex{COPLT_U32_MAX};
         FBindGroupUsage Usage{};
     };
 

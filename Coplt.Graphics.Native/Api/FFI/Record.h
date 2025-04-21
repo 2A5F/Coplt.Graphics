@@ -32,7 +32,7 @@ namespace Coplt
         FList<FCmdItem> Commands;
         FList<FCmdRes> Resources;
         FList<FCmdBinding> Bindings;
-        FList<FBindingChange> BindingChange;
+        FList<FBindingChange> BindingChange; // todo remove
         FList<FRect> PayloadRect;
         FList<FViewport> PayloadViewport;
         FList<FRenderInfo2> PayloadRenderInfo;
@@ -41,16 +41,20 @@ namespace Coplt
         FList<FBufferImageCopyRange> PayloadBufferImageCopyRange;
         FList<FMeshBuffers2> PayloadMeshBuffers;
         FList<FVertexBufferRange2> PayloadVertexBufferRange;
+        FList<u32> Payload32Bits;
+        FList<FSetBindItem> PayloadSetBindItem;
         FList<u8> Blob;
-        u32 NumSetBindings{};
+        u32 NumSyncBindings{};
+        u32 SumDynArraySize{};
         b8 Ended{};
         FGpuRecordMode Mode{};
 
         #ifdef FFI_SRC
         explicit FGpuRecordData(FAllocator* allocator)
-            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator), PayloadRect(allocator),
-              PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator), PayloadBufferCopyRange(allocator),
-              PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator), PayloadVertexBufferRange(allocator), Blob(allocator)
+            : Commands(allocator), Resources(allocator), Bindings(allocator), BindingChange(allocator),
+              PayloadRect(allocator), PayloadViewport(allocator), PayloadRenderInfo(allocator), PayloadResolveInfo(allocator),
+              PayloadBufferCopyRange(allocator), PayloadBufferImageCopyRange(allocator), PayloadMeshBuffers(allocator),
+              PayloadVertexBufferRange(allocator), Payload32Bits(allocator), PayloadSetBindItem(allocator), Blob(allocator)
         {
         }
 
@@ -68,8 +72,10 @@ namespace Coplt
             PayloadBufferImageCopyRange.Clear();
             PayloadMeshBuffers.Clear();
             PayloadVertexBufferRange.Clear();
+            Payload32Bits.Clear();
+            PayloadSetBindItem.Clear();
             Blob.Clear();
-            NumSetBindings = 0;
+            NumSyncBindings = 0;
         }
         #endif
     };

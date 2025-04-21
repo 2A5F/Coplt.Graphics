@@ -382,6 +382,34 @@ public sealed unsafe partial class GpuDevice : GpuObject
 
     #endregion
 
+    #region CreateComputeShaderPipeline
+
+    public ComputeShaderPipeline CreateComputeShaderPipeline(
+        Shader Shader, string? Name = null, ReadOnlySpan<byte> Name8 = default
+    ) => CreateComputeShaderPipeline(Shader, Shader.Layout.GetEmptyBindingLayout(), Name, Name8);
+
+    public ComputeShaderPipeline CreateComputeShaderPipeline(
+        Shader Shader, ShaderBindingLayout BindingLayout,
+        string? Name = null, ReadOnlySpan<byte> Name8 = default
+    )
+    {
+        fixed (char* p_name = Name)
+        fixed (byte* p_name8 = Name8)
+        {
+            FShaderPipelineCreateOptions f_options = new()
+            {
+                Name = new(Name, Name8, p_name, p_name8),
+                Shader = Shader.Ptr,
+                Layout = BindingLayout.Ptr,
+            };
+            FComputeShaderPipeline* ptr;
+            Ptr->CreateComputePipeline(&f_options, &ptr).TryThrow();
+            return new(ptr, Name, Shader, BindingLayout);
+        }
+    }
+
+    #endregion
+
     #region CreateSampler
 
     public Sampler CreateSampler(

@@ -5,6 +5,7 @@
 #include "../../Api/Src/Shader.h"
 #include "Adapter.h"
 #include "Buffer.h"
+#include "ComputePipeline.h"
 #include "GraphicsPipeline.h"
 #include "Image.h"
 #include "Isolate.h"
@@ -325,6 +326,14 @@ FResult D3d12GpuDevice::CreateGraphicsPipeline(const FGraphicsShaderPipelineCrea
     return feb([&]
     {
         *out = new D3d12GraphicsShaderPipeline(this->CloneThis(), options);
+    });
+}
+
+FResult D3d12GpuDevice::CreateComputePipeline(const FShaderPipelineCreateOptions& options, FComputeShaderPipeline** out) noexcept
+{
+    return feb([&]
+    {
+        *out = new D3d12ComputeShaderPipeline(this->CloneThis(), options);
     });
 }
 

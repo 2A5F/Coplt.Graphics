@@ -25,6 +25,10 @@ public enum ShaderLayoutItemView : byte
     /// 将使用 Push Const / Root Const, 忽略 Usage，Type 必须是 ConstantBuffer
     /// </summary>
     Constants,
+    /// <summary>
+    /// 静态采样器, Type 必须是 Sampler
+    /// </summary>
+    StaticSampler,
 }
 
 public enum ShaderLayoutItemType : byte
