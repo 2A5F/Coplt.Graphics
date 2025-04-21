@@ -473,10 +473,10 @@ struct Args
 
 void Render(GpuRecord cmd, Time time)
 {
-    // Using quaternions to create a view matrix is better than look at
     var t = (float)time.Total.TotalSeconds;
     var (sin_t, cos_t) = sincos(float2(t, t * 0.1f));
 
+    // Using quaternions to create a view matrix is better than look at
     var pos = mad(float3(0, -cos_t.y, sin_t.x), float3(1, 0.1f, 1), float3(0, -0.25f, -2));
     var rot = quaternion.Euler(float3(radians(-45f + cos_t.y * 15f), 0, 0));
     var view = float4x4.TR(-pos, inverse(rot));
