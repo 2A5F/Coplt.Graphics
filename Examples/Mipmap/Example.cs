@@ -166,14 +166,14 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             var modules = await Example.LoadShaderModules("Display", [ShaderStage.Vertex, ShaderStage.Pixel]);
             ShaderLayout = Example.Device.CreateShaderLayout(
                 [
-                    // new()
-                    // {
-                    //     Id = 0,
-                    //     Slot = 0,
-                    //     Stage = ShaderStage.Vertex,
-                    //     View = ShaderLayoutItemView.Cbv,
-                    //     Type = ShaderLayoutItemType.ConstantBuffer,
-                    // },
+                    new()
+                    {
+                        Id = 0,
+                        Slot = 0,
+                        Stage = ShaderStage.Vertex,
+                        View = ShaderLayoutItemView.Cbv,
+                        Type = ShaderLayoutItemType.ConstantBuffer,
+                    },
                     new()
                     {
                         Id = 1,
@@ -196,6 +196,14 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                 ShaderLayout, [
                     BindGroupLayout = Example.Device.CreateBindGroupLayout(
                         [
+                            new()
+                            {
+                                Id = 0,
+                                Count = 16,
+                                Stages = ShaderStageFlags.Vertex,
+                                View = ShaderLayoutItemView.Constants,
+                                Type = ShaderLayoutItemType.ConstantBuffer,
+                            },
                             new()
                             {
                                 Id = 1,
@@ -229,21 +237,27 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
             Binding = Example.Isolate.CreateBinding(BindingLayout, [new(0, BindGroup)]);
         }
 
+        private float Fov = 60;
+        private float Near = 0.01f;
+        private float Far = 1000;
+
         private struct Args
         {
-            public float4x4 Mesh;
-            public float4x4 View;
-            public float4x4 Proj;
+            public float4x4 ViewProj;
         }
 
         public void Render(GpuRecord cmd, Time time)
         {
-            var args = cmd.WriteToUpload(new Args
-            {
-                
-            });
+            var pos = new float3(0, -0.25f, -2);
+            var rot = quaternion.Euler(new(-45f.radians(), 0, 0));
+            var view = float4x4.TR(-pos, rot.inverse());
+            var proj = float4x4.PerspectiveFov(Fov.radians(), Example.AspectRatio, Near, Far);
+            var vp = math.mul(proj, view);
+            // var args = cmd.WriteToUpload(new Args { ViewProj = vp });
             using var render = cmd.Render([new(Example.Output, new Color(0.83f, 0.8f, 0.97f))], Name: "Display");
-            render.SetBindItem(BindGroup, [new(0, Example.Image)]);
+            // render.SetBindItem(BindGroup, [new(0, args), new(1, Example.Image)]);
+            render.SetConstants(BindGroup, 0, new Args { ViewProj = vp });
+            render.SetBindItem(BindGroup, [new(1, Example.Image)]);
             render.Draw(Pipeline, 4, Binding: Binding);
         }
     }

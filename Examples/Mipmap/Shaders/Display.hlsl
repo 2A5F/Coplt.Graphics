@@ -18,16 +18,20 @@ float4 GetQuadVertexPosition(out float2 uv, uint vid, float z = 1)
 
 cbuffer Args : register(b0)
 {
-    float4x4 Mesh;
-    float4x4 View;
-    float4x4 Proj;
+    float4x4 ViewProj;
+}
+
+float4 ApplyVP(float3 positionWS)
+{
+    return mul(ViewProj, float4(positionWS, 1.0));
 }
 
 [shader("vertex")]
 Varying Vertex(Attribute input)
 {
     Varying output;
-    output.PositionCS = GetQuadVertexPosition(output.Uv, input.VertexID);
+    float3 pos = GetQuadVertexPosition(output.Uv, input.VertexID, 0).xyz;
+    output.PositionCS = ApplyVP(pos);
     return output;
 }
 

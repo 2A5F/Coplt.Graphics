@@ -169,6 +169,11 @@ std::span<const FBindGroupItem> D3d12BindGroupLayout::Items() const noexcept
     return m_items;
 }
 
+std::span<const FStaticSamplerInfo> D3d12BindGroupLayout::StaticSamplerInfos() const noexcept
+{
+    return m_static_samplers;
+}
+
 const D3d12BindGroupLayoutData& D3d12BindGroupLayout::Data() const noexcept
 {
     return *this;
@@ -251,10 +256,15 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                     || def.Type != item.Type || def.Format != item.Format
                 )
                 {
+                    if (item.View == FShaderLayoutItemView::Constants && def.View == FShaderLayoutItemView::Cbv)
+                    {
+                        if (def.Count == 1) goto Compatible;
+                    }
                     COPLT_THROW_FMT(
                         "Incompatible binding slot {{ Id = {}, Scope = {}, Stage = {} }} at Group {} [{}]",
                         slot.Id, slot.Scope, static_cast<u32>(slot.Stage), g, i
                     );
+                Compatible:;
                 }
                 if (def.Count != COPLT_U32_MAX && item.Count < def.Count)
                 {
@@ -315,7 +325,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             param.Constants.ShaderRegister = item.Slot;
             param.Constants.RegisterSpace = item.Space;
-            param.Constants.Num32BitValues = std::max(1u, item.Count);
+            param.Constants.Num32BitValues = std::max(1u, group_item.Count);
             param.ShaderVisibility = ToDxVisibility(item.Stage);
             info.SigIndex = static_cast<u32>(root_parameters.size());
             info.SigPlace = SigPlace::Const;
@@ -420,9 +430,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
         }
     DefineStaticSampler:
         {
-            const auto group_items = group->GetItems();
-            const auto samplers = group->GetStaticSamplers();
-            const auto& group_item = group_items[info.IndexInGroup];
+            const auto samplers = group->StaticSamplerInfos();
             const auto& sampler = samplers[group_item.StaticSamplerIndex];
             D3D12_STATIC_SAMPLER_DESC1 desc{};
             desc.ShaderRegister = item.Slot;

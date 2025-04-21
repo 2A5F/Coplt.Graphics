@@ -33,7 +33,10 @@ public partial class MainWindow : Window
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         Log.Information("OnRenderSizeChanged {NewSize}", sizeInfo.NewSize);
-        Example.Output.Resize((uint)sizeInfo.NewSize.Width, (uint)sizeInfo.NewSize.Height);
+        Example.Width = (uint)sizeInfo.NewSize.Width;
+        Example.Height = (uint)sizeInfo.NewSize.Height;
+        Example.AspectRatio = (float)((double)Example.Width / Example.Height);
+        Example.Output.Resize(Example.Width, Example.Height);
     }
 
     #endregion

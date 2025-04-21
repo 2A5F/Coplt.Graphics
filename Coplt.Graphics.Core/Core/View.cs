@@ -12,6 +12,7 @@ public unsafe partial struct View
         void None();
         Sampler Sampler();
         void Buffer(GpuBuffer Buffer, ulong Offset = 0, int Size = -1, int Stride = -1, GraphicsFormat Format = 0);
+        void UploadBuffer(UploadLoc Buffer, ulong Offset = 0, int Size = -1, int Stride = -1, GraphicsFormat Format = 0);
         /// <summary>Uav 忽略 NumMips</summary>
         void Image1D(GpuImage Image, byte Mip = 0, sbyte NumMips = -1, GraphicsFormat Format = 0);
         /// <summary>Uav 忽略 NumMips</summary>
@@ -33,6 +34,7 @@ public unsafe partial struct View
     public static View None => default;
 
     public static implicit operator View(GpuBuffer buffer) => MakeBuffer(buffer);
+    public static implicit operator View(UploadLoc buffer) => MakeUploadBuffer(buffer);
     public static implicit operator View(GpuImage image) => image.Dimension switch
     {
         ImageDimension.One   => image.DepthOrLength > 1 ? MakeImage1DArray(image) : MakeImage1D(image),

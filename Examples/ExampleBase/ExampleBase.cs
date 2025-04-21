@@ -10,6 +10,9 @@ namespace Examples;
 
 public abstract class ExampleBase(IntPtr Handle, uint Width, uint Height)
 {
+    public uint Width = Width;
+    public uint Height = Height;
+    public float AspectRatio = (float)((double)Width / Height);
     public bool IsClosed = false;
     public GraphicsInstance Graphics = null!;
     public GpuDevice Device = null!;

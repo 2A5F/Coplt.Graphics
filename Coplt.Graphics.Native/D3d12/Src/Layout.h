@@ -176,6 +176,7 @@ namespace Coplt
     {
         using BindSlotInfo = Layout::BindSlotInfo;
         virtual std::span<const FBindGroupItem> Items() const noexcept = 0;
+        virtual std::span<const FStaticSamplerInfo> StaticSamplerInfos() const noexcept = 0;
         virtual const D3d12BindGroupLayoutData& Data() const noexcept = 0;
         virtual std::span<const BindSlotInfo> Slots() const noexcept = 0;
     };
@@ -192,6 +193,7 @@ namespace Coplt
 
         FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
         std::span<const FBindGroupItem> Items() const noexcept override;
+        std::span<const FStaticSamplerInfo> StaticSamplerInfos() const noexcept override;
         const D3d12BindGroupLayoutData& Data() const noexcept override;
         std::span<const BindSlotInfo> Slots() const noexcept override;
     };
