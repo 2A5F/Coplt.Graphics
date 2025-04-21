@@ -138,6 +138,9 @@ public sealed unsafe class GpuRecord : IsolateChild
         return loc;
     }
 
+    public UploadLoc WriteToUpload<T>(T Data, uint Align = 4) where T : unmanaged =>
+        WriteToUpload(MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in Data)), Align);
+
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
     /// </summary>

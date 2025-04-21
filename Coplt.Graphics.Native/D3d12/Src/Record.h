@@ -172,8 +172,8 @@ namespace Coplt
             u32 PersistentRootItemIndex{COPLT_U32_MAX};
             u32 PersistentRootItemCount{0};
             // 类型为 BindGroupInd
-            u32 DynamicBindGroupInfoIndIndex{COPLT_U32_MAX};
-            u32 DynamicBindGroupInfoIndCount{0};
+            u32 DynamicBindGroupInfoSyncIndIndex{COPLT_U32_MAX};
+            u32 DynamicBindGroupInfoSyncIndCount{0};
             bool Skip{};
 
             explicit operator bool() const noexcept

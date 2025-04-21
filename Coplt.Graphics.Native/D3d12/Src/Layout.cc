@@ -69,7 +69,7 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
 {
     m_items = std::vector(options.Items, options.Items + options.NumItems);
     m_static_samplers = std::vector(options.StaticSamplers, options.StaticSamplers + options.NumStaticSamplers);
-    Items = m_items.data();
+    FBindGroupLayoutData::Items = m_items.data();
     StaticSamplers = m_static_samplers.data();
     NumItems = m_items.size();
     NumStaticSamplers = m_static_samplers.size();
@@ -164,6 +164,11 @@ FBindGroupLayoutData* D3d12BindGroupLayout::BindGroupLayoutData() noexcept
     return this;
 }
 
+std::span<const FBindGroupItem> D3d12BindGroupLayout::Items() const noexcept
+{
+    return m_items;
+}
+
 const D3d12BindGroupLayoutData& D3d12BindGroupLayout::Data() const noexcept
 {
     return *this;
@@ -241,7 +246,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
                 }
                 const auto& def = defines[info.Index];
                 if (
-                    def.View != item.View ||
+                    !IsCompatible(def.View, item.View) ||
                     (item.View == FShaderLayoutItemView::StaticSampler || def.Count == COPLT_U32_MAX ? false : def.Count != item.Count)
                     || def.Type != item.Type || def.Format != item.Format
                 )
@@ -287,7 +292,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
     }
 
     std::vector<D3D12_ROOT_PARAMETER1> root_parameters{};
-    std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers{};
+    std::vector<D3D12_STATIC_SAMPLER_DESC1> static_samplers{};
     std::vector<HashMap<TableKey, TableDefine>> tables{};
     tables.reserve(m_groups.size());
     for (u32 i = 0; i < m_groups.size(); i++) tables.push_back({});
@@ -297,8 +302,11 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
     for (auto& info : m_slot_infos)
     {
         const auto& item = defines[info.Index];
+        const auto& group = m_groups[info.Group];
+        const auto& group_item = group->Items()[info.IndexInGroup];
+        const auto view = group_item.View;
 
-        if (item.View == FShaderLayoutItemView::Constants)
+        if (view == FShaderLayoutItemView::Constants)
         {
             if (item.Type != FShaderLayoutItemType::ConstantBuffer)
                 COPLT_THROW("Push Const / Root Const view must be ConstantBuffer");
@@ -329,11 +337,10 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             COPLT_THROW("TODO");
 
         D3D12_ROOT_PARAMETER_TYPE type;
-        const auto& group = m_groups[info.Group];
 
-        if (item.View == FShaderLayoutItemView::StaticSampler)
+        if (view == FShaderLayoutItemView::StaticSampler)
             goto DefineStaticSampler;
-        if (item.View == FShaderLayoutItemView::Sampler)
+        if (view == FShaderLayoutItemView::Sampler)
             goto DefineDescriptorTable;
 
         const auto usage = group->Data().Usage;
@@ -343,7 +350,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             {
                 goto DefineDescriptorTable;
             }
-            switch (item.View)
+            switch (view)
             {
             case FShaderLayoutItemView::Cbv:
                 type = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -368,7 +375,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             const auto& slot = slots[info.IndexInGroup];
             COPLT_DEBUG_ASSERT(slot.Place != BindSlotPlace::NonTable);
             D3D12_DESCRIPTOR_RANGE1 range{};
-            const auto range_type = ToTableType(item.View);
+            const auto range_type = ToTableType(view);
             range.RangeType = range_type;
             auto& table = tables[info.Group].GetOrAdd(TableKey(item.Stage, range_type), [&](auto& p)
             {
@@ -417,7 +424,7 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
             const auto samplers = group->GetStaticSamplers();
             const auto& group_item = group_items[info.IndexInGroup];
             const auto& sampler = samplers[group_item.StaticSamplerIndex];
-            D3D12_STATIC_SAMPLER_DESC desc{};
+            D3D12_STATIC_SAMPLER_DESC1 desc{};
             desc.ShaderRegister = item.Slot;
             desc.RegisterSpace = item.Space;
             desc.ShaderVisibility = ToDxVisibility(item.Stage);
@@ -460,19 +467,19 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
     desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_2;
-    desc.Desc_1_1.NumParameters = static_cast<u32>(root_parameters.size());
-    desc.Desc_1_1.pParameters = root_parameters.data();
-    desc.Desc_1_1.NumStaticSamplers = 0;
-    desc.Desc_1_1.pStaticSamplers = nullptr;
-    desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+    desc.Desc_1_2.NumParameters = static_cast<u32>(root_parameters.size());
+    desc.Desc_1_2.pParameters = root_parameters.data();
+    desc.Desc_1_2.NumStaticSamplers = static_cast<u32>(static_samplers.size());
+    desc.Desc_1_2.pStaticSamplers = static_samplers.data();
+    desc.Desc_1_2.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
     const auto layout = *NonNull(m_shader_layout->ShaderLayoutData());
     if (HasFlags(layout.Flags, FShaderLayoutFlags::InputAssembler))
-        desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        desc.Desc_1_2.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     if (HasFlags(layout.Flags, FShaderLayoutFlags::StreamOutput))
-        desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+        desc.Desc_1_2.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
     if (HasFlags(layout.Flags, FShaderLayoutFlags::DynBindLess))
-        desc.Desc_1_1.Flags |=
+        desc.Desc_1_2.Flags |=
             D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
             D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 

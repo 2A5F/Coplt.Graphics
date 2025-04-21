@@ -888,7 +888,7 @@ void D3d12GpuRecord::Analyze_SetBinding(const u32 i, const FCmdSetBinding& cmd)
     {
         binding_info.BindingVersion = binding_version;
         binding_info.PersistentRootItemIndex = m_table_bind_items.size();
-        binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_infos.size();
+        binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_info_inds.size();
 
         for (u32 g = 0; g < groups.size(); ++g)
         {
@@ -938,8 +938,8 @@ void D3d12GpuRecord::Analyze_SetBinding(const u32 i, const FCmdSetBinding& cmd)
         }
         m_tmp_gdhs.clear();
 
-        binding_info.PersistentRootItemCount = m_table_bind_items.size() - binding_info.PersistentRootItemCount;
-        binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_infos.size() - binding_info.DynamicBindGroupInfoIndIndex;
+        binding_info.PersistentRootItemCount = m_table_bind_items.size() - binding_info.PersistentRootItemIndex;
+        binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_info_inds.size() - binding_info.DynamicBindGroupInfoIndIndex;
         binding_info.Changed = true;
     }
 }
@@ -1009,7 +1009,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
     const auto group_item_infos = binding_layout->GroupItemInfos();
     sync_binding_info.PersistentRootItemIndex = binding_info.PersistentRootItemIndex;
     sync_binding_info.PersistentRootItemCount = binding_info.PersistentRootItemCount;
-    sync_binding_info.DynamicBindGroupInfoIndIndex = m_dynamic_bind_group_info_sync_inds.size();
+    sync_binding_info.DynamicBindGroupInfoSyncIndIndex = m_dynamic_bind_group_info_sync_inds.size();
     const auto bi_ind = std::span(m_dynamic_bind_group_info_inds)
         .subspan(binding_info.DynamicBindGroupInfoIndIndex, binding_info.DynamicBindGroupInfoIndCount);
     for (auto& ind : bi_ind)
@@ -1140,7 +1140,8 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
             #pragma endregion
         }
     }
-    sync_binding_info.DynamicBindGroupInfoIndCount = m_dynamic_bind_group_info_sync_inds.size() - sync_binding_info.DynamicBindGroupInfoIndIndex;
+    sync_binding_info.DynamicBindGroupInfoSyncIndCount =
+        m_dynamic_bind_group_info_sync_inds.size() - sync_binding_info.DynamicBindGroupInfoSyncIndIndex;
     if (!changed) sync_binding_info.Skip = true;
 }
 
@@ -1655,7 +1656,7 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
     #pragma region 动态组
 
     const auto dyn_bind_group_info_inds = std::span(m_dynamic_bind_group_info_sync_inds)
-        .subspan(sync_binding_info.DynamicBindGroupInfoIndIndex, sync_binding_info.DynamicBindGroupInfoIndCount);
+        .subspan(sync_binding_info.DynamicBindGroupInfoSyncIndIndex, sync_binding_info.DynamicBindGroupInfoSyncIndCount);
     for (const auto& dyn_bind_group_info_ind : dyn_bind_group_info_inds)
     {
         const auto& info = m_dynamic_bind_group_infos[dyn_bind_group_info_ind.InfoIndex];

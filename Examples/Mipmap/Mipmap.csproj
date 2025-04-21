@@ -66,7 +66,9 @@
     </Target>
 
     <Target Name="BuildShader" AfterTargets="Build">
-        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T cs_6_6 -E Compute -Od -Zi -Qembed_debug -Fo $(OutDir)/Shader.Compute.dxil ./Shaders/Shader.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T cs_6_6 -E Compute -Od -Zi -Qembed_debug -Fo $(OutDir)/Mipmap.Compute.dxil ./Shaders/Mipmap.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T vs_6_6 -E Vertex -Od -Zi -Qembed_debug -Fo $(OutDir)/Display.Vertex.dxil ./Shaders/Display.hlsl"/>
+        <Exec Command="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxc.exe -T ps_6_6 -E Pixel -Od -Zi -Qembed_debug -Fo $(OutDir)/Display.Pixel.dxil ./Shaders/Display.hlsl"/>
     </Target>
 
     <ItemGroup>
@@ -74,5 +76,9 @@
         <None Include="../../build/debug/bin/**/*.pdb" Visible="false" Condition="'$(Configuration)' == 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../build/release/bin/**/*.dll" Visible="false" Condition="'$(Configuration)' != 'Debug'" CopyToOutputDirectory="PreserveNewest"/>
         <None Include="../../Coplt.Graphics.Native/D3d12/ThirdParty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll" Visible="false" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ClCompile Include="Shaders\Display.hlsl" />
     </ItemGroup>
 </Project>

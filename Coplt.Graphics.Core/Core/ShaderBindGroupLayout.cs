@@ -29,28 +29,28 @@ public record struct StaticSamplerInfo()
     public AddressMode W;
     public StaticSamplerBorderColor BorderColor;
 
-    public static readonly SamplerInfo PointRepeat = new()
+    public static readonly StaticSamplerInfo PointRepeat = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
         Mipmap = FilterMode.Point,
     };
 
-    public static readonly SamplerInfo LinearRepeat = new()
+    public static readonly StaticSamplerInfo LinearRepeat = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
         Mipmap = FilterMode.Point,
     };
 
-    public static readonly SamplerInfo TrilinearRepeat = new()
+    public static readonly StaticSamplerInfo TrilinearRepeat = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
         Mipmap = FilterMode.Linear,
     };
 
-    public static readonly SamplerInfo PointClamp = new()
+    public static readonly StaticSamplerInfo PointClamp = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
@@ -60,7 +60,7 @@ public record struct StaticSamplerInfo()
         W = AddressMode.Clamp,
     };
 
-    public static readonly SamplerInfo LinearClamp = new()
+    public static readonly StaticSamplerInfo LinearClamp = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
@@ -70,7 +70,7 @@ public record struct StaticSamplerInfo()
         W = AddressMode.Clamp,
     };
 
-    public static readonly SamplerInfo TrilinearClamp = new()
+    public static readonly StaticSamplerInfo TrilinearClamp = new()
     {
         Mag = FilterMode.Linear,
         Min = FilterMode.Linear,
@@ -100,7 +100,7 @@ public unsafe record struct BindGroupItem()
     /// <inheritdoc cref="ShaderLayoutItem.Scope"/>
     public ulong Scope;
     /// <summary>
-    /// 数量，或者 StaticSamplers 中的 Index
+    /// 数量
     /// </summary>
     public uint Count = 1;
     /// <summary>

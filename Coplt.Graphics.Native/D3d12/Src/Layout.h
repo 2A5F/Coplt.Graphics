@@ -175,6 +175,7 @@ namespace Coplt
     COPLT_INTERFACE_DEFINE(ID3d12BindGroupLayout, "2e440ba8-f47a-4f98-a434-31125406e55c", FBindGroupLayout)
     {
         using BindSlotInfo = Layout::BindSlotInfo;
+        virtual std::span<const FBindGroupItem> Items() const noexcept = 0;
         virtual const D3d12BindGroupLayoutData& Data() const noexcept = 0;
         virtual std::span<const BindSlotInfo> Slots() const noexcept = 0;
     };
@@ -190,6 +191,7 @@ namespace Coplt
         FResult SetName(const FStr8or16& name) noexcept override;
 
         FBindGroupLayoutData* BindGroupLayoutData() noexcept override;
+        std::span<const FBindGroupItem> Items() const noexcept override;
         const D3d12BindGroupLayoutData& Data() const noexcept override;
         std::span<const BindSlotInfo> Slots() const noexcept override;
     };
@@ -283,4 +285,11 @@ namespace Coplt
 
         const FMeshBufferElement* TryGetElement(u32 SlotId, u32 SlotIndex) const noexcept override;
     };
+
+    inline bool IsCompatible(const FShaderLayoutItemView Shader, const FShaderLayoutItemView Bind)
+    {
+        if (Shader == FShaderLayoutItemView::Sampler && Bind == FShaderLayoutItemView::StaticSampler) return true;
+        if (Shader == FShaderLayoutItemView::Cbv && Bind == FShaderLayoutItemView::Constants) return true;
+        return Shader == Bind;
+    }
 }
