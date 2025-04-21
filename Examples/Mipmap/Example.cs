@@ -1,9 +1,10 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Coplt.Graphics;
 using Coplt.Graphics.Core;
 using Coplt.Graphics.States;
 using Coplt.Mathematics;
+using static Coplt.Mathematics.math;
+using static Coplt.Mathematics.ctor;
 
 namespace Examples;
 
@@ -246,14 +247,16 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         }
 
         public void Render(GpuRecord cmd, Time time)
-        { 
-            var pos = new float3(0, -0.25f, -2);
-            pos.z += (float)math.sin(time.Total.TotalSeconds);
-            var rot = quaternion.Euler(new((-45f + (float)math.cos(time.Total.TotalSeconds * 0.1f) * 15f).radians(), 0, 0));
-            var view = float4x4.TR(-pos, rot.inverse());
-            var proj = float4x4.PerspectiveFov(Fov.radians(), Example.AspectRatio, Near, Far);
-            var vp = math.mul(proj, view);
-            var args = cmd.UploadConstants(new Args { ViewProj = vp });
+        {
+            var t = (float)time.Total.TotalSeconds;
+            var (sin_t, cos_t) = sincos(float2(t, t * 0.1f));
+            var pos = mad(float3(0, -cos_t.y, sin_t.x), float3(1, 0.1f, 1), float3(0, -0.25f, -2));
+            var rot = quaternion.Euler(float3(radians(-45f + cos_t.y * 15f), 0, 0));
+            var view = float4x4.TR(-pos, inverse(rot));
+            var proj = float4x4.PerspectiveFov(radians(Fov), Example.AspectRatio, Far, Near); // invert depth (near <> far)
+            var view_proj = mul(proj, view);
+            var args = cmd.UploadConstants(new Args { ViewProj = view_proj });
+            
             using var render = cmd.Render([new(Example.Output, new Color(0.83f, 0.8f, 0.97f))], Name: "Display");
             render.SetBindItem(BindGroup, [new(0, args), new(1, Example.Image)]);
             render.Draw(Pipeline, 4, Binding: Binding);
