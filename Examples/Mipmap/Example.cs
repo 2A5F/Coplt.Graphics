@@ -199,9 +199,8 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
                             new()
                             {
                                 Id = 0,
-                                Count = 16,
                                 Stages = ShaderStageFlags.Vertex,
-                                View = ShaderLayoutItemView.Constants,
+                                View = ShaderLayoutItemView.Cbv,
                                 Type = ShaderLayoutItemType.ConstantBuffer,
                             },
                             new()
@@ -247,17 +246,16 @@ public class Example(IntPtr Handle, uint Width, uint Height) : ExampleBase(Handl
         }
 
         public void Render(GpuRecord cmd, Time time)
-        {
+        { 
             var pos = new float3(0, -0.25f, -2);
-            var rot = quaternion.Euler(new(-45f.radians(), 0, 0));
+            pos.z += (float)math.sin(time.Total.TotalSeconds);
+            var rot = quaternion.Euler(new((-45f + (float)math.cos(time.Total.TotalSeconds * 0.1f) * 15f).radians(), 0, 0));
             var view = float4x4.TR(-pos, rot.inverse());
             var proj = float4x4.PerspectiveFov(Fov.radians(), Example.AspectRatio, Near, Far);
             var vp = math.mul(proj, view);
-            // var args = cmd.WriteToUpload(new Args { ViewProj = vp });
+            var args = cmd.UploadConstants(new Args { ViewProj = vp });
             using var render = cmd.Render([new(Example.Output, new Color(0.83f, 0.8f, 0.97f))], Name: "Display");
-            // render.SetBindItem(BindGroup, [new(0, args), new(1, Example.Image)]);
-            render.SetConstants(BindGroup, 0, new Args { ViewProj = vp });
-            render.SetBindItem(BindGroup, [new(1, Example.Image)]);
+            render.SetBindItem(BindGroup, [new(0, args), new(1, Example.Image)]);
             render.Draw(Pipeline, 4, Binding: Binding);
         }
     }

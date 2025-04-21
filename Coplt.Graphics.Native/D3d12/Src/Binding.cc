@@ -316,11 +316,13 @@ bool D3d12ShaderBindGroup::EnsureAvailable(DescriptorHeapPair& out)
         if (const auto& mark = m_changed_marks[i]) mark = false;
         else continue;
         const auto& view = m_views[i];
+        if (view.IsUploadBuffer())
+            COPLT_THROW_FMT("[{}] The upload buffer can only be set dynamically in the dynamic buffer.", i);
         const auto& def = defs[def_index];
         const auto& heap = slot.Place == Layout::BindSlotPlace::ResourceTable ? new_heap.ResourceHeap : new_heap.SamplerHeap;
         COPLT_DEBUG_ASSERT(heap != nullptr);
         CD3DX12_CPU_DESCRIPTOR_HANDLE handle(heap->GetCPUDescriptorHandleForHeapStart(), slot.OffsetInTable, m_resource_heap_inc);
-        view.CreateDescriptor(m_device->m_device.Get(), def, handle);
+        view.CreateDescriptor(m_device->m_device.Get(), nullptr, def, handle);
     }
     m_changed = false;
     m_resource_heap = new_heap.ResourceHeap;

@@ -49,13 +49,16 @@ ResourceInfo::ResourceInfo(Rc<FGpuObject>&& resource, const FCmdRes& res, const 
 
 ResourceInfo::ResourceInfo(Rc<FGpuObject>&& resource, const View& view, u32 index): Resource(std::move(resource)), Index(index)
 {
-    switch (view.m_type)
+    switch (view.m_data.Type)
     {
     case FViewType::None:
         COPLT_THROW("Null view");
     case FViewType::Buffer:
         Type = FCmdResType::Buffer;
         Buffer = NonNull(view.TryGetBuffer());
+        return;
+    case FViewType::UploadBuffer:
+        COPLT_THROW("Upload buffer does not require barriers");
         return;
     case FViewType::Image1D:
     case FViewType::Image1DArray:
@@ -496,6 +499,8 @@ FResIndex D3d12GpuRecord::AddResource(const FCmdRes& res)
 
 FResIndex D3d12GpuRecord::AddResource(const View& view)
 {
+    if (view.IsUploadBuffer())
+        COPLT_THROW("Upload buffer does not require barriers");
     const auto obj = view.GetViewable();
     const auto index = m_resource_map.GetOrAdd(obj->ObjectId(), [this, obj, &view](auto& p)
     {
@@ -870,7 +875,7 @@ void D3d12GpuRecord::Analyze_SetBinding(const u32 i, const FCmdSetBinding& cmd)
         for (u32 v = 0; v < views.size(); ++v)
         {
             const auto& view = views[v];
-            if (!view || view.IsSampler()) continue;
+            if (!view || !view.NeedBarrier()) continue;
             const auto& res_index = AddResource(view);
             const auto& info = group_item_info[define_item_indexes[v]];
             m_barrier_analyzer->OnUse(res_index, view, info);
@@ -1079,6 +1084,8 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                         const auto& slot = slots[set_bind_item.Slot];
                         const auto& def = defs[set_bind_item.Slot];
                         const auto array_index = def.Count == 0 ? 0 : set_bind_item.Index;
+                        if (def.View == FShaderLayoutItemView::Constants || def.View == FShaderLayoutItemView::Sampler)
+                            COPLT_THROW_FMT("[{}] Invalid set bind item view, dose not support Constants and Sampler", i);
                         if (def.Count == COPLT_U32_MAX)
                         {
                             if (array_index >= dyn_size)
@@ -1100,7 +1107,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                             }
                         }
                         View view(set_bind_item.View);
-                        if (view && !view.IsSampler())
+                        if (view && view.NeedBarrier())
                         {
                             const auto& res_index = AddResource(view);
                             const auto& item_info = group_item_info[set_bind_item.Slot];
@@ -1118,7 +1125,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                                     TmpResource.OffsetInHeap + slot.OffsetInTable + array_index,
                                     res_inc
                                 );
-                                view.CreateDescriptor(m_device->m_device.Get(), def, handle);
+                                view.CreateDescriptor(m_device->m_device.Get(), m_context, def, handle);
                                 break;
                             }
                         case Layout::BindSlotPlace::SamplerTable:
@@ -1128,7 +1135,7 @@ void D3d12GpuRecord::Analyze_SyncBinding(const u32 i, const FCmdSyncBinding& cmd
                                     TmpSampler.OffsetInHeap + slot.OffsetInTable + array_index,
                                     smp_inc
                                 );
-                                view.CreateDescriptor(m_device->m_device.Get(), def, handle);
+                                view.CreateDescriptor(m_device->m_device.Get(), nullptr, def, handle);
                                 break;
                             }
                         }
@@ -1648,7 +1655,6 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
         {
             list->g0->SetComputeRootDescriptorTable(bind_item_info.RootIndex, al.GetGpuHandle());
         }
-        break;
     }
 
     #pragma endregion
@@ -1718,7 +1724,6 @@ void D3d12GpuRecord::Interpret_SyncBinding(const CmdList& list, u32 i, const FCm
             {
                 list->g0->SetComputeRootDescriptorTable(bind_item_info.RootIndex, al.GetGpuHandle());
             }
-            break;
         }
 
         #pragma endregion

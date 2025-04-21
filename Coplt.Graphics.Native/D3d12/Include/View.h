@@ -7,6 +7,7 @@
 
 #include "../../Api/FFI/Resource.h"
 #include "../../Api/FFI/Binding.h"
+#include "../Src/Context.h"
 
 namespace Coplt
 {
@@ -23,7 +24,6 @@ namespace Coplt
     {
         Rc<ID3d12GpuViewable> m_viewable{};
         FViewData m_data{};
-        FViewType m_type{};
 
         View() = default;
 
@@ -44,14 +44,22 @@ namespace Coplt
         bool IsBuffer() const;
         bool IsImage() const;
         bool IsSampler() const;
+        bool IsUploadBuffer() const;
+        bool NeedBarrier() const;
+
         NonNull<ID3d12GpuViewable> GetViewable() const;
         Ptr<ID3d12GpuBuffer> TryGetBuffer() const;
         Ptr<ID3d12GpuImage> TryGetImage() const;
         Ptr<ID3d12GpuSampler> TryGetSampler() const;
 
-        void CreateDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
+        void CreateDescriptor(
+            NonNull<ID3D12Device2> device, Ptr<D3d12RecordContext> context, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle
+        ) const;
         static void CreateNullDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle);
         void CreateBufferDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
+        void CreateUploadBufferDescriptor(
+            NonNull<ID3D12Device2> device, NonNull<D3d12RecordContext> context, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle
+        ) const;
         void CreateImageDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
         void CreateSamplerDescriptor(NonNull<ID3D12Device2> device, const FBindGroupItem& def, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) const;
     };

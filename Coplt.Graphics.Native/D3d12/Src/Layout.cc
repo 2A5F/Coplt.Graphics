@@ -128,11 +128,12 @@ D3d12BindGroupLayout::D3d12BindGroupLayout(const FBindGroupLayoutCreateOptions& 
         case FShaderLayoutItemView::Cbv:
         case FShaderLayoutItemView::Srv:
         case FShaderLayoutItemView::Uav:
-            if (Usage == FBindGroupUsage::Dynamic && item.Count <= 1 && IsBuffer(item.Type))
-            {
-                info.Place = BindSlotPlace::NonTable;
-                break;
-            }
+            // if (Usage == FBindGroupUsage::Dynamic && item.Count <= 1 && IsBuffer(item.Type))
+            // {
+            //     info.Place = BindSlotPlace::NonTable;
+            //     break;
+            // }
+            // todo 暂时不支持直接资源
             info.OffsetInTable = ResourceTableSize;
             info.Place = BindSlotPlace::ResourceTable;
             if (count != COPLT_U32_MAX)
@@ -356,27 +357,28 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
         const auto usage = group->Data().Usage;
         if (usage == FBindGroupUsage::Dynamic)
         {
-            if (item.Count > 1 || !IsBuffer(item.Type))
-            {
-                goto DefineDescriptorTable;
-            }
-            switch (view)
-            {
-            case FShaderLayoutItemView::Cbv:
-                type = D3D12_ROOT_PARAMETER_TYPE_CBV;
-                goto DefineDescriptor;
-            case FShaderLayoutItemView::Srv:
-                type = D3D12_ROOT_PARAMETER_TYPE_SRV;
-                goto DefineDescriptor;
-            case FShaderLayoutItemView::Uav:
-                type = D3D12_ROOT_PARAMETER_TYPE_UAV;
-                goto DefineDescriptor;
-            case FShaderLayoutItemView::StaticSampler:
-            case FShaderLayoutItemView::Sampler:
-            case FShaderLayoutItemView::Constants:
-            default:
-                COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
-            }
+            goto DefineDescriptorTable; // 暂时不支持直接资源
+            // if (item.Count > 1 || !IsBuffer(item.Type))
+            // {
+            //     goto DefineDescriptorTable;
+            // }
+            // switch (view)
+            // {
+            // case FShaderLayoutItemView::Cbv:
+            //     type = D3D12_ROOT_PARAMETER_TYPE_CBV;
+            //     goto DefineDescriptor;
+            // case FShaderLayoutItemView::Srv:
+            //     type = D3D12_ROOT_PARAMETER_TYPE_SRV;
+            //     goto DefineDescriptor;
+            // case FShaderLayoutItemView::Uav:
+            //     type = D3D12_ROOT_PARAMETER_TYPE_UAV;
+            //     goto DefineDescriptor;
+            // case FShaderLayoutItemView::StaticSampler:
+            // case FShaderLayoutItemView::Sampler:
+            // case FShaderLayoutItemView::Constants:
+            // default:
+            //     COPLT_THROW_FMT("Unknown shader layout item type {}", static_cast<u32>(item.Type));
+            // }
         }
 
     DefineDescriptorTable:
@@ -408,25 +410,25 @@ D3d12BindingLayout::D3d12BindingLayout(Rc<D3d12GpuDevice>&& device, const FBindi
         }
     DefineDescriptor:
         {
-            D3D12_ROOT_PARAMETER1 param{};
-            param.ParameterType = type;
-            param.Descriptor.ShaderRegister = item.Slot;
-            param.Descriptor.RegisterSpace = item.Space;
-            param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
-            param.ShaderVisibility = ToDxVisibility(item.Stage);
-            info.SigIndex = static_cast<u32>(root_parameters.size());
-            info.SigPlace = SigPlace::Direct;
-            root_parameters.push_back(param);
-
-            RootItemInfo item_info{};
-            item_info.Group = info.Group;
-            item_info.IndexInGroup = info.Index;
-            item_info.RootIndex = info.SigIndex;
-            item_info.Place = RootItemPlace::Direct;
-            item_info.Type = RootItemType::Resource;
-            m_bind_item_infos.push_back(item_info);
-            m_group_bind_item_infos[info.Group].push_back(item_info);
-            continue;
+            // D3D12_ROOT_PARAMETER1 param{};
+            // param.ParameterType = type;
+            // param.Descriptor.ShaderRegister = item.Slot;
+            // param.Descriptor.RegisterSpace = item.Space;
+            // param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+            // param.ShaderVisibility = ToDxVisibility(item.Stage);
+            // info.SigIndex = static_cast<u32>(root_parameters.size());
+            // info.SigPlace = SigPlace::Direct;
+            // root_parameters.push_back(param);
+            //
+            // RootItemInfo item_info{};
+            // item_info.Group = info.Group;
+            // item_info.IndexInGroup = info.Index;
+            // item_info.RootIndex = info.SigIndex;
+            // item_info.Place = RootItemPlace::Direct;
+            // item_info.Type = RootItemType::Resource;
+            // m_bind_item_infos.push_back(item_info);
+            // m_group_bind_item_infos[info.Group].push_back(item_info);
+            // continue;
         }
     DefineStaticSampler:
         {

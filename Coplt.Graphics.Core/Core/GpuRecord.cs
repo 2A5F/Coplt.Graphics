@@ -104,6 +104,7 @@ public sealed unsafe class GpuRecord : IsolateChild
     /// </summary>
     public FSlice<byte> AllocUploadMemory(uint Size, out UploadLoc loc, uint Align = 4)
     {
+        var r_size = Size;
         if (Align > 1) Size += Align - 1;
         ref var upload_buffers = ref Data.Context->m_upload_buffer;
         for (nuint i = 0; i < upload_buffers.LongLength; i++)
@@ -112,9 +113,9 @@ public sealed unsafe class GpuRecord : IsolateChild
             if (block.cur_offset + Size < block.size)
             {
                 var offset = block.cur_offset.Aligned(Align);
-                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-                loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
-                block.cur_offset += Size;
+                var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset, r_size);
+                loc = new UploadLoc(Data.Id, Data.Version, i, offset, r_size);
+                block.cur_offset += r_size;
                 return r;
             }
         }
@@ -125,9 +126,9 @@ public sealed unsafe class GpuRecord : IsolateChild
             ref var block = ref upload_buffers[i];
             if (block.cur_offset + Size >= block.size) throw new OutOfMemoryException();
             var offset = block.cur_offset.Aligned(Align);
-            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset);
-            loc = new UploadLoc(Data.Id, Data.Version, i, offset, Size);
-            block.cur_offset += Size;
+            var r = new FSlice<byte>(block.mapped_ptr, (nuint)block.size).Slice((nuint)offset, r_size);
+            loc = new UploadLoc(Data.Id, Data.Version, i, offset, r_size);
+            block.cur_offset += r_size;
             return r;
         }
     }
@@ -138,8 +139,17 @@ public sealed unsafe class GpuRecord : IsolateChild
         return loc;
     }
 
-    public UploadLoc WriteToUpload<T>(T Data, uint Align = 4) where T : unmanaged =>
-        WriteToUpload(MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in Data)), Align);
+    public UploadLoc UploadConstants<T>(ReadOnlySpan<T> Data) where T : unmanaged
+    {
+        var bytes = MemoryMarshal.AsBytes(Data);
+        var size = ((uint)bytes.Length).Aligned(256);
+        var mem = AllocUploadMemory(size, out var loc, 256);
+        bytes.CopyTo(mem);
+        return loc;
+    }
+
+    public UploadLoc UploadConstants<T>(T Data) where T : unmanaged =>
+        UploadConstants(new ReadOnlySpan<T>(in Data));
 
     /// <summary>
     /// 分配用于上传纹理的 256 对齐的内存
