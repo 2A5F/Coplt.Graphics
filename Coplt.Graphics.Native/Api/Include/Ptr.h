@@ -170,9 +170,13 @@ namespace Coplt
             return reinterpret_cast<usize>(m_ptr);
         }
 
-        Ptr operator[](usize offset) const noexcept
+        T& operator[](usize offset) const noexcept
         {
-            return Ptr(m_ptr + offset);
+            #ifdef COPLT_NULL_CHECK
+            if (m_ptr == nullptr) [[unlikely]]
+                COPLT_THROW("Null Pointer");
+            #endif
+            return m_ptr[offset];
         }
 
         Ptr operator+(usize offset) const noexcept
