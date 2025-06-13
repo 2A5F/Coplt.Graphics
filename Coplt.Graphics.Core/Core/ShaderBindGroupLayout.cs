@@ -31,8 +31,8 @@ public record struct StaticSamplerInfo()
 
     public static readonly StaticSamplerInfo PointRepeat = new()
     {
-        Mag = FilterMode.Linear,
-        Min = FilterMode.Linear,
+        Mag = FilterMode.Point,
+        Min = FilterMode.Point,
         Mipmap = FilterMode.Point,
     };
 
@@ -52,8 +52,8 @@ public record struct StaticSamplerInfo()
 
     public static readonly StaticSamplerInfo PointClamp = new()
     {
-        Mag = FilterMode.Linear,
-        Min = FilterMode.Linear,
+        Mag = FilterMode.Point,
+        Min = FilterMode.Point,
         Mipmap = FilterMode.Point,
         U = AddressMode.Clamp,
         V = AddressMode.Clamp,
